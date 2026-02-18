@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { CreateBusinessInput } from '../../types';
 import { useLazyLookupGstinStandaloneQuery } from '../../api/gstinApi';
+import styles from './BusinessForm.module.css';
 
 const businessSchema = z.object({
   name: z.string().min(1, 'Business name is required').max(100),
@@ -119,28 +120,27 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
       {/* GST lookup at the top — enter GSTIN first to auto-fill other fields */}
       <div className="form-group">
         <label htmlFor="gst">GST Number</label>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+        <div className={styles.gstRow}>
           <input
             id="gst"
             {...register('gst')}
             disabled={isLoading}
             placeholder="e.g. 22AAAAA0000A1Z5"
-            style={{ flex: 1, textTransform: 'uppercase' }}
+            className={styles.gstInput}
             maxLength={15}
           />
           <button
             type="button"
-            className="btn btn-secondary"
+            className={`btn btn-secondary ${styles.gstFetchButton}`}
             onClick={handleFetchGstDetails}
             disabled={isLoading || isGstLoading || gstValue.trim().length !== 15}
-            style={{ whiteSpace: 'nowrap', padding: '8px 12px', fontSize: '13px' }}
           >
             {isGstLoading ? 'Fetching...' : 'Fetch Details'}
           </button>
         </div>
         {gstFetchError && <span className="error-message">{gstFetchError}</span>}
         {gstFetchSuccess && (
-          <span style={{ color: '#16a34a', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+          <span className={styles.gstSuccess}>
             {gstFetchSuccess}
           </span>
         )}
@@ -170,7 +170,7 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
         </div>
       </div>
 
-      <h3 style={{ marginTop: '20px', marginBottom: '15px' }}>Business Settings</h3>
+      <h3 className={styles.sectionHeading}>Business Settings</h3>
 
       <div className="form-row">
         <div className="form-group">

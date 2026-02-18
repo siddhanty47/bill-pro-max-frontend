@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Party, Inventory, CreateChallanInput } from '../../types';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
+import styles from './ChallanForm.module.css';
 
 const challanSchema = z.object({
   type: z.enum(['delivery', 'return']),
@@ -169,7 +170,7 @@ export function ChallanForm({
       </div>
 
       <div className="form-row">
-        <div className="form-group" style={{ flex: 1 }}>
+        <div className={`form-group ${styles.flexGroup}`}>
           <CodeAutocomplete
             label="Party *"
             placeholder="Type party code or name..."
@@ -184,7 +185,7 @@ export function ChallanForm({
           <input type="hidden" {...register('partyId')} />
         </div>
 
-        <div className="form-group" style={{ flex: 1 }}>
+        <div className={`form-group ${styles.flexGroup}`}>
           <label htmlFor="agreementId">Agreement *</label>
           <select id="agreementId" {...register('agreementId')} disabled={isLoading || !selectedPartyId}>
             <option value="">Select agreement...</option>
@@ -201,8 +202,8 @@ export function ChallanForm({
       <div className="form-group">
         <label>Items *</label>
         {fields.map((field, index) => (
-          <div key={field.id} className="form-row" style={{ marginBottom: '10px', alignItems: 'flex-end' }}>
-            <div style={{ flex: 2 }}>
+          <div key={field.id} className={`form-row ${styles.itemRow}`}>
+            <div className={styles.itemAutocomplete}>
               <CodeAutocomplete
                 label=""
                 placeholder="Type item code or name..."
@@ -215,7 +216,7 @@ export function ChallanForm({
               <input type="hidden" {...register(`items.${index}.itemId`)} />
               <input type="hidden" {...register(`items.${index}.itemName`)} />
             </div>
-            <div className="form-group" style={{ flex: 1 }}>
+            <div className={`form-group ${styles.flexGroup}`}>
               <label>Qty</label>
               <input
                 type="number"
@@ -225,7 +226,7 @@ export function ChallanForm({
               />
             </div>
             {challanType === 'return' && (
-              <div className="form-group" style={{ flex: 1 }}>
+              <div className={`form-group ${styles.flexGroup}`}>
                 <label>Condition</label>
                 <select {...register(`items.${index}.condition`)} disabled={isLoading}>
                   <option value="good">Good</option>
@@ -237,10 +238,9 @@ export function ChallanForm({
             {fields.length > 1 && (
               <button
                 type="button"
-                className="btn btn-danger btn-sm"
+                className={`btn btn-danger btn-sm ${styles.removeButton}`}
                 onClick={() => remove(index)}
                 disabled={isLoading}
-                style={{ marginBottom: '5px' }}
               >
                 Remove
               </button>

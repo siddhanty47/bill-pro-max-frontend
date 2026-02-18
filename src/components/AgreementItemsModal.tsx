@@ -14,6 +14,7 @@ import {
 } from '../api/agreementApi';
 import { useGetInventoryQuery } from '../api/inventoryApi';
 import type { AgreementRateWithItem } from '../types';
+import styles from './AgreementItemsModal.module.css';
 
 interface AgreementItemsModalProps {
   isOpen: boolean;
@@ -193,7 +194,7 @@ export function AgreementItemsModal({
       onClose={handleClose}
       title={`Agreement Items - ${partyName}`}
     >
-      <div className="agreement-items-modal">
+      <div className={styles.root}>
         {/* Loading state */}
         {isLoadingRates && <LoadingSpinner />}
 
@@ -204,7 +205,7 @@ export function AgreementItemsModal({
 
         {/* Items table */}
         {rates && rates.length > 0 && (
-          <div className="agreement-items-table-container">
+          <div className={styles.tableContainer}>
             <table className="data-table">
               <thead>
                 <tr>
@@ -223,14 +224,14 @@ export function AgreementItemsModal({
                     <td>{item.itemCategory}</td>
                     <td>
                       {editingItemId === item.itemId ? (
-                        <div className="edit-rate-inline">
+                        <div className={styles.editRateInline}>
                           <input
                             type="number"
                             min="0"
                             step="0.01"
                             value={editRate}
                             onChange={(e) => setEditRate(e.target.value)}
-                            className="edit-rate-input"
+                            className={styles.editRateInput}
                           />
                         </div>
                       ) : (
@@ -239,7 +240,7 @@ export function AgreementItemsModal({
                     </td>
                     <td>
                       {editingItemId === item.itemId ? (
-                        <div className="edit-actions">
+                        <div className={styles.editActions}>
                           <button
                             type="button"
                             onClick={handleSaveEdit}
@@ -270,20 +271,20 @@ export function AgreementItemsModal({
                 ))}
               </tbody>
             </table>
-            {editError && <div className="error-text">{editError}</div>}
+            {editError && <div className={styles.errorText}>{editError}</div>}
           </div>
         )}
 
         {/* Empty state */}
         {rates && rates.length === 0 && (
-          <p className="empty-message">No items in this agreement yet.</p>
+          <p className={styles.emptyMessage}>No items in this agreement yet.</p>
         )}
 
         {/* Add new item section */}
-        <div className="add-item-section">
+        <div className={styles.addItemSection}>
           <h4>Add New Item</h4>
-          <div className="add-item-form">
-            <div className="add-item-autocomplete">
+          <div className={styles.addItemForm}>
+            <div className={styles.addItemAutocomplete}>
               <CodeAutocomplete
                 label="Select Item"
                 placeholder="Type to search inventory..."
@@ -294,8 +295,8 @@ export function AgreementItemsModal({
                 disabled={isAdding}
               />
             </div>
-            <div className="add-item-rate">
-              <label className="form-label">Rate/Day *</label>
+            <div className={styles.addItemRate}>
+              <label>Rate/Day *</label>
               <input
                 type="number"
                 min="0"
@@ -303,11 +304,10 @@ export function AgreementItemsModal({
                 value={newRate}
                 onChange={(e) => setNewRate(e.target.value)}
                 placeholder="0.00"
-                className="form-input"
                 disabled={isAdding}
               />
             </div>
-            <div className="add-item-button">
+            <div className={styles.addItemButton}>
               <button
                 type="button"
                 onClick={handleAddItem}
@@ -318,86 +318,10 @@ export function AgreementItemsModal({
               </button>
             </div>
           </div>
-          {addError && <div className="error-text">{addError}</div>}
+          {addError && <div className={styles.errorText}>{addError}</div>}
         </div>
       </div>
 
-      <style>{`
-        .agreement-items-modal {
-          min-height: 300px;
-        }
-        
-        .agreement-items-table-container {
-          margin-bottom: 24px;
-          max-height: 300px;
-          overflow-y: auto;
-        }
-        
-        .edit-rate-inline {
-          display: flex;
-          align-items: center;
-        }
-        
-        .edit-rate-input {
-          width: 100px;
-          padding: 4px 8px;
-          border: 1px solid #ccc;
-          border-radius: 4px;
-        }
-        
-        .edit-actions {
-          display: flex;
-          gap: 8px;
-        }
-        
-        .btn-sm {
-          padding: 4px 8px;
-          font-size: 0.875rem;
-        }
-        
-        .add-item-section {
-          border-top: 1px solid #eee;
-          padding-top: 16px;
-        }
-        
-        .add-item-section h4 {
-          margin-bottom: 16px;
-          font-size: 1rem;
-        }
-        
-        .add-item-form {
-          display: flex;
-          gap: 16px;
-          align-items: flex-end;
-          flex-wrap: wrap;
-        }
-        
-        .add-item-autocomplete {
-          flex: 2;
-          min-width: 200px;
-        }
-        
-        .add-item-rate {
-          flex: 1;
-          min-width: 120px;
-        }
-        
-        .add-item-button {
-          flex-shrink: 0;
-        }
-        
-        .error-text {
-          color: #dc3545;
-          font-size: 0.875rem;
-          margin-top: 8px;
-        }
-        
-        .empty-message {
-          text-align: center;
-          color: #666;
-          padding: 24px;
-        }
-      `}</style>
     </Modal>
   );
 }

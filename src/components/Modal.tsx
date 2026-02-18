@@ -2,6 +2,7 @@
  * Modal dialog component
  */
 import { useEffect } from 'react';
+import styles from './Modal.module.css';
 
 interface ModalProps {
   isOpen: boolean;
@@ -31,15 +32,15 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
+    <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.header}>
           <h2>{title}</h2>
-          <button onClick={onClose} className="modal-close">
+          <button onClick={onClose} className={styles.closeButton}>
             &times;
           </button>
         </div>
-        <div className="modal-body">{children}</div>
+        <div className={styles.body}>{children}</div>
       </div>
     </div>
   );

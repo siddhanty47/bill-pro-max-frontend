@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import styles from './LoginPage.module.css';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -32,8 +33,8 @@ export function LoginPage() {
   };
 
   return (
-    <div className="login-page">
-      <div className="login-container">
+    <div className={styles.page}>
+      <div className={styles.container}>
         <h1>BillProMax</h1>
         <h2>Sign In</h2>
 
@@ -71,7 +72,7 @@ export function LoginPage() {
           </button>
         </form>
 
-        <div className="login-footer">
+        <div className={styles.footer}>
           <p>Test credentials:</p>
           <code>demo@billpromax.com / demo123</code>
         </div>

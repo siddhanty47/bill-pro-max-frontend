@@ -1,0 +1,11 @@
+.nameGroup {
+  flex: 2;
+}
+
+.codeGroup {
+  flex: 1;
+}
+
+.uppercaseInput {
+  text-transform: uppercase;
+}

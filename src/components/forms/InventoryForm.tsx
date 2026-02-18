@@ -1,13 +1,15 @@
 /**
  * Inventory form component
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Inventory, CreateInventoryInput } from '../../types';
-import { useLazyCheckInventoryCodeExistsQuery } from '../../api/inventoryApi';
+import { useLazyCheckInventoryCodeExistsQuery, useGetInventoryCategoriesQuery } from '../../api/inventoryApi';
 import { useCurrentBusiness } from '../../hooks/useCurrentBusiness';
+import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
+import styles from './InventoryForm.module.css';
 
 const inventorySchema = z.object({
   code: z.string().min(1, 'Code is required').max(20),
@@ -33,11 +35,28 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
   const [codeError, setCodeError] = useState<string | null>(null);
   const [checkCodeExists] = useLazyCheckInventoryCodeExistsQuery();
 
+  const { data: existingCategories } = useGetInventoryCategoriesQuery(currentBusinessId || '', {
+    skip: !currentBusinessId,
+  });
+
+  /** Map category strings to AutocompleteItem format for CodeAutocomplete */
+  const categoryAutocompleteItems: AutocompleteItem[] = useMemo(() => {
+    if (!existingCategories) return [];
+    return existingCategories.map((cat) => ({
+      code: cat,
+      label: cat,
+      id: cat,
+    }));
+  }, [existingCategories]);
+
+  const [categoryValue, setCategoryValue] = useState(initialData?.category || '');
+
   const {
     register,
     handleSubmit,
     formState: { errors },
     getValues,
+    setValue,
   } = useForm<FormData>({
     resolver: zodResolver(inventorySchema),
     defaultValues: initialData
@@ -56,6 +75,15 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
           totalQuantity: 0,
         },
   });
+
+  /** Sync local category state with react-hook-form */
+  const handleCategoryChange = useCallback(
+    (value: string) => {
+      setCategoryValue(value);
+      setValue('category', value, { shouldValidate: true });
+    },
+    [setValue]
+  );
 
   /**
    * Handle code change to validate uniqueness
@@ -103,13 +131,13 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
   return (
     <form onSubmit={onFormSubmit}>
       <div className="form-row">
-        <div className="form-group" style={{ flex: 2 }}>
+        <div className={`form-group ${styles.nameGroup}`}>
           <label htmlFor="name">Item Name *</label>
           <input id="name" {...register('name')} disabled={isLoading} />
           {errors.name && <span className="error-message">{errors.name.message}</span>}
         </div>
 
-        <div className="form-group" style={{ flex: 1 }}>
+        <div className={`form-group ${styles.codeGroup}`}>
           <label htmlFor="code">Item Code *</label>
           <input
             id="code"
@@ -119,7 +147,7 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
               handleCodeBlur();
             }}
             disabled={isLoading}
-            style={{ textTransform: 'uppercase' }}
+            className={styles.uppercaseInput}
             placeholder="Enter code"
           />
           {errors.code && <span className="error-message">{errors.code.message}</span>}
@@ -129,9 +157,17 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
 
       <div className="form-row">
         <div className="form-group">
-          <label htmlFor="category">Category *</label>
-          <input id="category" {...register('category')} disabled={isLoading} />
-          {errors.category && <span className="error-message">{errors.category.message}</span>}
+          <CodeAutocomplete
+            label="Category"
+            placeholder="Select or type a new category..."
+            value={categoryValue}
+            onChange={handleCategoryChange}
+            items={categoryAutocompleteItems}
+            onSelect={(item) => handleCategoryChange(item.label)}
+            disabled={isLoading}
+            error={errors.category?.message}
+            required
+          />
         </div>
 
         <div className="form-group">

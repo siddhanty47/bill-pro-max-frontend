@@ -1,6 +1,8 @@
 /**
  * Generic data table component
  */
+import styles from './DataTable.module.css';
+
 interface Column {
   key: string;
   header: string;
@@ -23,7 +25,7 @@ export function DataTable({
   emptyMessage = 'No data found',
 }: DataTableProps) {
   if (data.length === 0) {
-    return <div className="empty-state">{emptyMessage}</div>;
+    return <div className={styles.emptyState}>{emptyMessage}</div>;
   }
 
   return (

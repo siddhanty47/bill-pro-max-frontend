@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { AgreementWithParty, UpdateAgreementInput } from '../../types';
+import styles from './EditAgreementForm.module.css';
 
 const editAgreementSchema = z.object({
   startDate: z.string().min(1, 'Start date is required'),
@@ -78,7 +79,7 @@ export function EditAgreementForm({
             type="text"
             value={agreement.agreementId}
             disabled
-            className="input-disabled"
+            className={styles.inputDisabled}
           />
         </div>
 
@@ -89,7 +90,7 @@ export function EditAgreementForm({
             type="text"
             value={agreement.partyName}
             disabled
-            className="input-disabled"
+            className={styles.inputDisabled}
           />
         </div>
       </div>
@@ -103,7 +104,7 @@ export function EditAgreementForm({
             {...register('startDate')}
             disabled={isLoading}
           />
-          {errors.startDate && <span className="error">{errors.startDate.message}</span>}
+          {errors.startDate && <span className={styles.error}>{errors.startDate.message}</span>}
         </div>
 
         <div className="form-group">
@@ -114,7 +115,7 @@ export function EditAgreementForm({
             {...register('endDate')}
             disabled={isLoading}
           />
-          {errors.endDate && <span className="error">{errors.endDate.message}</span>}
+          {errors.endDate && <span className={styles.error}>{errors.endDate.message}</span>}
         </div>
       </div>
 
@@ -125,7 +126,7 @@ export function EditAgreementForm({
           <option value="expired">Expired</option>
           <option value="terminated">Terminated</option>
         </select>
-        {errors.status && <span className="error">{errors.status.message}</span>}
+        {errors.status && <span className={styles.error}>{errors.status.message}</span>}
       </div>
 
       <div className="form-row">
@@ -136,7 +137,7 @@ export function EditAgreementForm({
             <option value="weekly">Weekly</option>
             <option value="yearly">Yearly</option>
           </select>
-          {errors.billingCycle && <span className="error">{errors.billingCycle.message}</span>}
+          {errors.billingCycle && <span className={styles.error}>{errors.billingCycle.message}</span>}
         </div>
 
         <div className="form-group">
@@ -147,7 +148,7 @@ export function EditAgreementForm({
             {...register('paymentDueDays', { valueAsNumber: true })}
             disabled={isLoading}
           />
-          {errors.paymentDueDays && <span className="error">{errors.paymentDueDays.message}</span>}
+          {errors.paymentDueDays && <span className={styles.error}>{errors.paymentDueDays.message}</span>}
         </div>
       </div>
 
@@ -159,12 +160,12 @@ export function EditAgreementForm({
           {...register('securityDeposit', { valueAsNumber: true })}
           disabled={isLoading}
         />
-        {errors.securityDeposit && <span className="error">{errors.securityDeposit.message}</span>}
+        {errors.securityDeposit && <span className={styles.error}>{errors.securityDeposit.message}</span>}
       </div>
 
-      <div className="form-info">
+      <div className={styles.formInfo}>
         <p><strong>Item Rates:</strong> {agreement.rates.length} items configured</p>
-        <p className="text-muted">Note: Item rates cannot be modified after creation.</p>
+        <p className={styles.textMuted}>Note: Item rates cannot be modified after creation.</p>
       </div>
 
       <div className="form-actions">

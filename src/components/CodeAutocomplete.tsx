@@ -4,7 +4,7 @@
  * Uses client-side filtering of pre-loaded data for instant results.
  */
 import { useState, useRef, useEffect, useCallback, type KeyboardEvent, type ChangeEvent } from 'react';
-import './CodeAutocomplete.css';
+import styles from './CodeAutocomplete.module.css';
 
 /**
  * Interface for autocomplete items
@@ -201,17 +201,17 @@ export function CodeAutocomplete({
   }, []);
 
   return (
-    <div className="code-autocomplete" ref={containerRef}>
-      <label className="code-autocomplete__label">
+    <div className={styles.container} ref={containerRef}>
+      <label className={styles.label}>
         {label}
         {required && ' *'}
       </label>
       
-      <div className="code-autocomplete__input-container">
+      <div className={styles.inputContainer}>
         <input
           ref={inputRef}
           type="text"
-          className={`code-autocomplete__input ${error ? 'code-autocomplete__input--error' : ''}`}
+          className={`${styles.input} ${error ? styles.inputError : ''}`}
           value={value}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
@@ -228,24 +228,24 @@ export function CodeAutocomplete({
         {isOpen && filteredItems.length > 0 && (
           <ul
             ref={listRef}
-            className="code-autocomplete__dropdown"
+            className={styles.dropdown}
             role="listbox"
           >
             {filteredItems.map((item, index) => (
               <li
                 key={item.id}
-                className={`code-autocomplete__item ${
-                  index === highlightedIndex ? 'code-autocomplete__item--highlighted' : ''
+                className={`${styles.item} ${
+                  index === highlightedIndex ? styles.itemHighlighted : ''
                 }`}
                 onClick={() => handleSelect(item)}
                 onMouseEnter={() => setHighlightedIndex(index)}
                 role="option"
                 aria-selected={index === highlightedIndex}
               >
-                <span className="code-autocomplete__item-code">{item.code}</span>
-                <span className="code-autocomplete__item-label">{item.label}</span>
+                <span className={styles.itemCode}>{item.code}</span>
+                <span className={styles.itemLabel}>{item.label}</span>
                 {item.sublabel && (
-                  <span className="code-autocomplete__item-sublabel">{item.sublabel}</span>
+                  <span className={styles.itemSublabel}>{item.sublabel}</span>
                 )}
               </li>
             ))}
@@ -253,11 +253,11 @@ export function CodeAutocomplete({
         )}
 
         {isOpen && value && filteredItems.length === 0 && (
-          <div className="code-autocomplete__no-results">No results found</div>
+          <div className={styles.noResults}>No results found</div>
         )}
       </div>
 
-      {error && <span className="code-autocomplete__error">{error}</span>}
+      {error && <span className={styles.error}>{error}</span>}
     </div>
   );
 }

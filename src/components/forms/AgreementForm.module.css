@@ -1,0 +1,80 @@
+.warningText {
+  color: #e74c3c;
+}
+
+.categoryPanel {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.selectAllLabel {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.categoryLabel {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  cursor: pointer;
+}
+
+.categoryCount {
+  color: #888;
+  font-size: 0.85em;
+}
+
+.previewContainer {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.previewTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+
+.previewTable thead tr {
+  border-bottom: 2px solid #eee;
+  text-align: left;
+}
+
+.previewTable th {
+  padding: 8px 12px;
+}
+
+.rateColumn {
+  width: 120px;
+}
+
+.previewTable tbody tr {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.codeCell {
+  padding: 6px 12px;
+  font-family: monospace;
+}
+
+.cell {
+  padding: 6px 12px;
+}
+
+.rateInput {
+  width: 100%;
+}
+
+.formCheckbox {
+  width: fit-content !important;
+}

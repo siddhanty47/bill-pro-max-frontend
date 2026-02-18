@@ -12,6 +12,7 @@ import { Modal } from '../components/Modal';
 import { BusinessForm } from '../components/forms/BusinessForm';
 import { getErrorMessage } from '../api/baseApi';
 import type { CreateBusinessInput } from '../types';
+import styles from './DashboardPage.module.css';
 
 export function DashboardPage() {
   const { currentBusinessId, currentBusiness, businesses, isLoading: businessLoading } = useCurrentBusiness();
@@ -60,7 +61,7 @@ export function DashboardPage() {
         </div>
         <div className="card">
           <h2>Get Started</h2>
-          <p style={{ margin: '15px 0' }}>
+          <p className={styles.getStartedText}>
             You don't have any businesses yet. Create your first business to get started.
           </p>
           <button className="btn btn-primary" onClick={() => setIsBusinessModalOpen(true)}>
@@ -99,7 +100,7 @@ export function DashboardPage() {
     <div>
       <div className="page-header">
         <h1>Dashboard</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+        <div className={styles.headerActions}>
           {currentBusiness && <span>Welcome to {currentBusiness.name}</span>}
           <button className="btn btn-secondary" onClick={() => setIsBusinessModalOpen(true)}>
             + Add Business

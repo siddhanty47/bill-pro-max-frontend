@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { Modal } from './Modal';
 import { useAddSiteMutation } from '../api/partyApi';
 import type { Party } from '../types';
+import styles from './AddSiteModal.module.css';
 
 const addSiteSchema = z.object({
   code: z.string().max(20).optional(),
@@ -81,13 +82,13 @@ export function AddSiteModal({ isOpen, onClose, businessId, party }: AddSiteModa
     <Modal isOpen={isOpen} onClose={handleClose} title={`Add Site to ${party.name}`}>
       <form onSubmit={handleSubmit(handleFormSubmit)}>
         {error && (
-          <div className="error-message" style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#fee' }}>
+          <div className={`error-message ${styles.errorAlert}`}>
             {error}
           </div>
         )}
 
-        <div className="form-group" style={{ marginBottom: '15px' }}>
-          <p style={{ fontSize: '14px', color: '#666' }}>
+        <div className={`form-group ${styles.existingSitesInfo}`}>
+          <p className={styles.existingSitesText}>
             <strong>Existing Sites:</strong> {existingSiteCodes}
           </p>
         </div>
@@ -112,18 +113,18 @@ export function AddSiteModal({ isOpen, onClose, businessId, party }: AddSiteModa
             id="siteCode"
             {...register('code')}
             disabled={isLoading}
-            style={{ textTransform: 'uppercase' }}
+            className={styles.uppercaseInput}
             placeholder="Auto-generated if empty"
           />
           {errors.code && (
             <span className="error-message">{errors.code.message}</span>
           )}
-          <small style={{ color: '#666', fontSize: '12px' }}>
+          <small className={styles.helpText}>
             Leave empty to auto-generate from address
           </small>
         </div>
 
-        <div className="form-actions" style={{ marginTop: '20px' }}>
+        <div className={`form-actions ${styles.actions}`}>
           <button
             type="button"
             className="btn btn-secondary"

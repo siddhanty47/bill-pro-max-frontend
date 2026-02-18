@@ -1,0 +1,11 @@
+.summaryGrid {
+  margin-bottom: 20px;
+}
+
+.valueReceived {
+  color: #28a745;
+}
+
+.valuePaid {
+  color: #dc3545;
+}

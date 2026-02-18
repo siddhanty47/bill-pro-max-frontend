@@ -1,0 +1,11 @@
+.errorBox {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.errorBox :global(.btn) {
+  margin-top: 15px;
+}

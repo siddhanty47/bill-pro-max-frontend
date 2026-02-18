@@ -4,6 +4,7 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
+import styles from './Layout.module.css';
 
 export function Layout() {
   const location = useLocation();
@@ -26,21 +27,21 @@ export function Layout() {
   };
 
   return (
-    <div className="layout">
-      <header className="header">
-        <div className="header-brand">
+    <div className={styles.layout}>
+      <header className={styles.header}>
+        <div className={styles.headerBrand}>
           <h1>BillProMax</h1>
           {currentBusiness && (
-            <span className="business-name">{currentBusiness.name}</span>
+            <span className={styles.businessName}>{currentBusiness.name}</span>
           )}
         </div>
 
-        <div className="header-actions">
+        <div className={styles.headerActions}>
           {hasMultipleBusinesses && (
             <select
               value={currentBusiness?._id || ''}
               onChange={(e) => selectBusiness(e.target.value)}
-              className="business-select"
+              className={styles.businessSelect}
             >
               {businesses.map((b) => (
                 <option key={b._id} value={b._id}>
@@ -50,21 +51,21 @@ export function Layout() {
             </select>
           )}
 
-          <span className="user-name">{user?.name || user?.email}</span>
+          <span className={styles.userName}>{user?.name || user?.email}</span>
           <button onClick={logout} className="btn btn-secondary">
             Logout
           </button>
         </div>
       </header>
 
-      <div className="main-container">
-        <nav className="sidebar">
+      <div className={styles.mainContainer}>
+        <nav className={styles.sidebar}>
           <ul>
             {navItems.map((item) => (
               <li key={item.path}>
                 <Link
                   to={item.path}
-                  className={isActive(item.path) ? 'active' : ''}
+                  className={`${styles.navLink} ${isActive(item.path) ? styles.navLinkActive : ''}`}
                 >
                   {item.label}
                 </Link>
@@ -73,7 +74,7 @@ export function Layout() {
           </ul>
         </nav>
 
-        <main className="content">
+        <main className={styles.content}>
           <Outlet />
         </main>
       </div>

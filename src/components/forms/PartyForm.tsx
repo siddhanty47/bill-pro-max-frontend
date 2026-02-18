@@ -11,6 +11,7 @@ import type { Party, CreatePartyInput } from '../../types';
 import { useLazyGeneratePartyCodeQuery, useLazyCheckPartyCodeExistsQuery } from '../../api/partyApi';
 import { useLazyLookupGstinQuery } from '../../api/gstinApi';
 import { useCurrentBusiness } from '../../hooks/useCurrentBusiness';
+import styles from './PartyForm.module.css';
 
 /**
  * Create schema factory to handle conditional validation for site fields
@@ -243,35 +244,34 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
       {/* GST lookup at the top — enter GSTIN first to auto-fill other fields */}
       <div className="form-group">
         <label htmlFor="gst">GST Number</label>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+        <div className={styles.gstRow}>
           <input
             id="gst"
             {...register('gst')}
             disabled={isLoading}
             placeholder="e.g. 22AAAAA0000A1Z5"
-            style={{ flex: 1, textTransform: 'uppercase' }}
+            className={styles.gstInput}
             maxLength={15}
           />
           <button
             type="button"
-            className="btn btn-secondary"
+            className={`btn btn-secondary ${styles.gstFetchButton}`}
             onClick={handleFetchGstDetails}
             disabled={isLoading || isGstLoading || gstValue.trim().length !== 15}
-            style={{ whiteSpace: 'nowrap', padding: '8px 12px', fontSize: '13px' }}
           >
             {isGstLoading ? 'Fetching...' : 'Fetch Details'}
           </button>
         </div>
         {gstFetchError && <span className="error-message">{gstFetchError}</span>}
         {gstFetchSuccess && (
-          <span style={{ color: '#16a34a', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+          <span className={styles.gstSuccess}>
             {gstFetchSuccess}
           </span>
         )}
       </div>
 
       <div className="form-row">
-        <div className="form-group" style={{ flex: 2 }}>
+        <div className={`form-group ${styles.nameGroup}`}>
           <label htmlFor="name">Party Name *</label>
           <input
             id="name"
@@ -285,7 +285,7 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
           {errors.name && <span className="error-message">{errors.name.message}</span>}
         </div>
 
-        <div className="form-group" style={{ flex: 1 }}>
+        <div className={`form-group ${styles.codeGroup}`}>
           <label htmlFor="code">Party Code *</label>
           <input
             id="code"
@@ -295,7 +295,7 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
               handleCodeBlur();
             }}
             disabled={isLoading}
-            style={{ textTransform: 'uppercase' }}
+            className={styles.uppercaseInput}
             placeholder="Auto-generated"
           />
           {errors.code && <span className="error-message">{errors.code.message}</span>}
@@ -305,8 +305,8 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
 
       <div className="form-group">
         <label>Roles *</label>
-        <div style={{ display: 'flex', gap: '15px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+        <div className={styles.rolesContainer}>
+          <label className={styles.checkboxLabel}>
             <input
               type="checkbox"
               checked={roles.includes('client')}
@@ -315,7 +315,7 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
             />
             Client
           </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <label className={styles.checkboxLabel}>
             <input
               type="checkbox"
               checked={roles.includes('supplier')}
@@ -362,11 +362,11 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
 
       {/* Site section - only show when creating a new party */}
       {!initialData && (
-        <fieldset style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '4px', marginTop: '20px' }}>
-          <legend style={{ padding: '0 10px', fontWeight: 'bold' }}>Initial Site Address</legend>
+        <fieldset className={styles.siteFieldset}>
+          <legend>Initial Site Address</legend>
           
-          <div className="form-group" style={{ marginBottom: '10px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'normal' }}>
+          <div className={`form-group ${styles.sameAsOfficeGroup}`}>
+            <label className={styles.sameAsOfficeLabel}>
               <input
                 type="checkbox"
                 checked={siteIsSameAsOffice || false}
@@ -378,7 +378,7 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
           </div>
 
           <div className="form-row">
-            <div className="form-group" style={{ flex: 2 }}>
+            <div className={`form-group ${styles.siteAddressGroup}`}>
               <label htmlFor="siteAddress">Site Address *</label>
               <textarea
                 id="siteAddress"
@@ -392,13 +392,13 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
               )}
             </div>
 
-            <div className="form-group" style={{ flex: 1 }}>
+            <div className={`form-group ${styles.siteCodeGroup}`}>
               <label htmlFor="siteCode">Site Code</label>
               <input
                 id="siteCode"
                 {...register('siteCode')}
                 disabled={isLoading}
-                style={{ textTransform: 'uppercase' }}
+                className={styles.uppercaseInput}
                 placeholder="Auto-generated"
               />
               {errors.siteCode && (

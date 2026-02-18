@@ -20,6 +20,7 @@ import { AgreementForm } from '../components/forms/AgreementForm';
 import { AddSiteModal } from '../components/AddSiteModal';
 import { getErrorMessage } from '../api/baseApi';
 import type { Party, CreatePartyInput, CreateAgreementInput } from '../types';
+import styles from './PartiesPage.module.css';
 
 type TableItem = Record<string, unknown>;
 
@@ -147,7 +148,7 @@ export function PartiesPage() {
         return (
           <div>
             <div>{party.contact.person}</div>
-            <div style={{ fontSize: '12px', color: '#666' }}>{party.contact.phone}</div>
+            <div className={styles.contactPhone}>{party.contact.phone}</div>
           </div>
         );
       },

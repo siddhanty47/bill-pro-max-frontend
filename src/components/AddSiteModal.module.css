@@ -1,0 +1,27 @@
+.errorAlert {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #fee;
+}
+
+.existingSitesInfo {
+  margin-bottom: 15px;
+}
+
+.existingSitesText {
+  font-size: 14px;
+  color: #666;
+}
+
+.uppercaseInput {
+  text-transform: uppercase;
+}
+
+.helpText {
+  color: #666;
+  font-size: 12px;
+}
+
+.actions {
+  margin-top: 20px;
+}

@@ -1,12 +1,16 @@
 /**
  * Agreement form component
+ *
+ * Items are added via category checkboxes: selecting a category bulk-adds
+ * every inventory item in that category with its default rate. Users can
+ * then fine-tune individual rates in the preview table before submitting.
  */
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { CreateAgreementInput, Inventory, Site, Agreement } from '../../types';
-import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
+import styles from './AgreementForm.module.css';
 
 const agreementSchema = z.object({
   siteCode: z.string().min(1, 'Select a site'),
@@ -46,8 +50,35 @@ export function AgreementForm({
   onCancel,
   isLoading,
 }: AgreementFormProps) {
-  // Track search values for each rate row's autocomplete
-  const [rateSearchValues, setRateSearchValues] = useState<Record<number, string>>({});
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
+
+  /** Preserves user rate edits across category toggles (itemId -> rate) */
+  const rateOverridesRef = useRef<Record<string, number>>({});
+
+  /** Group inventory items by category */
+  const categorizedItems = useMemo(() => {
+    const map = new Map<string, Inventory[]>();
+    for (const item of inventoryItems) {
+      const existing = map.get(item.category) || [];
+      existing.push(item);
+      map.set(item.category, existing);
+    }
+    return map;
+  }, [inventoryItems]);
+
+  const allCategories = useMemo(
+    () => Array.from(categorizedItems.keys()).sort(),
+    [categorizedItems]
+  );
+
+  /** Fast lookup from itemId to inventory details */
+  const inventoryById = useMemo(() => {
+    const map = new Map<string, Inventory>();
+    for (const item of inventoryItems) {
+      map.set(item._id, item);
+    }
+    return map;
+  }, [inventoryItems]);
 
   /**
    * Filter sites to only show those without active agreements
@@ -72,49 +103,71 @@ export function AgreementForm({
       startDate: new Date().toISOString().split('T')[0],
       billingCycle: 'monthly',
       paymentDueDays: 15,
-      rates: [{ itemId: '', ratePerDay: 0 }],
+      rates: [],
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, replace } = useFieldArray({
     control,
     name: 'rates',
   });
 
-  /**
-   * Convert inventory items to autocomplete items
-   */
-  const inventoryAutocompleteItems: AutocompleteItem[] = useMemo(() => {
-    return inventoryItems.map((item) => ({
-      code: item.code || item.name.substring(0, 4).toUpperCase(),
-      label: item.name,
-      sublabel: item.category,
-      id: item._id,
-    }));
-  }, [inventoryItems]);
-
-  /**
-   * Handle inventory selection for a rate row
-   */
-  const handleInventorySelect = useCallback(
-    (index: number, item: AutocompleteItem) => {
-      setValue(`rates.${index}.itemId`, item.id);
-      // Also set the default rate if available
-      const inventoryItem = inventoryItems.find((i) => i._id === item.id);
-      if (inventoryItem?.defaultRatePerDay) {
-        setValue(`rates.${index}.ratePerDay`, inventoryItem.defaultRatePerDay);
+  /** Build rates array from a set of selected categories, preserving user overrides */
+  const buildRatesFromCategories = useCallback(
+    (categories: Set<string>) => {
+      const rates: Array<{ itemId: string; ratePerDay: number }> = [];
+      for (const category of Array.from(categories).sort()) {
+        const items = categorizedItems.get(category) || [];
+        for (const item of items) {
+          rates.push({
+            itemId: item._id,
+            ratePerDay: rateOverridesRef.current[item._id] ?? item.defaultRatePerDay ?? 0,
+          });
+        }
       }
-      setRateSearchValues((prev) => ({ ...prev, [index]: item.code }));
+      return rates;
     },
-    [inventoryItems, setValue]
+    [categorizedItems]
   );
 
-  /**
-   * Handle search value change for a rate row
-   */
-  const handleRateSearchChange = useCallback((index: number, value: string) => {
-    setRateSearchValues((prev) => ({ ...prev, [index]: value }));
-  }, []);
+  /** Toggle a single category on or off */
+  const handleCategoryToggle = useCallback(
+    (category: string) => {
+      setSelectedCategories((prev) => {
+        const next = new Set(prev);
+        if (next.has(category)) {
+          next.delete(category);
+        } else {
+          next.add(category);
+        }
+        replace(buildRatesFromCategories(next));
+        return next;
+      });
+    },
+    [buildRatesFromCategories, replace]
+  );
+
+  /** Select all or unselect all categories */
+  const handleSelectAllToggle = useCallback(() => {
+    const allSelected = selectedCategories.size === allCategories.length;
+    if (allSelected) {
+      setSelectedCategories(new Set());
+      replace([]);
+    } else {
+      const all = new Set(allCategories);
+      setSelectedCategories(all);
+      replace(buildRatesFromCategories(all));
+    }
+  }, [selectedCategories.size, allCategories, buildRatesFromCategories, replace]);
+
+  /** Track user rate edits so they survive category re-toggles */
+  const handleRateChange = useCallback(
+    (index: number, itemId: string, rate: number) => {
+      rateOverridesRef.current[itemId] = rate;
+      setValue(`rates.${index}.ratePerDay`, rate);
+    },
+    [setValue]
+  );
 
   const handleFormSubmit = async (data: FormData) => {
     await onSubmit({
@@ -133,6 +186,9 @@ export function AgreementForm({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onFormSubmit = handleSubmit(handleFormSubmit as any);
 
+  const isAllSelected = allCategories.length > 0 && selectedCategories.size === allCategories.length;
+  const isSomeSelected = selectedCategories.size > 0 && !isAllSelected;
+
   return (
     <form onSubmit={onFormSubmit}>
       <div className="form-group">
@@ -147,7 +203,7 @@ export function AgreementForm({
         </select>
         {errors.siteCode && <span className="error-message">{errors.siteCode.message}</span>}
         {availableSites.length === 0 && (
-          <small style={{ color: '#e74c3c' }}>
+          <small className={styles.warningText}>
             No sites available. All sites have active agreements.
           </small>
         )}
@@ -197,55 +253,104 @@ export function AgreementForm({
         </div>
       </div>
 
+      {/* Category selection */}
       <div className="form-group">
-        <label>Item Rates *</label>
-        {fields.map((field, index) => (
-          <div key={field.id} className="form-row" style={{ marginBottom: '10px', alignItems: 'flex-end' }}>
-            <div style={{ flex: 2 }}>
-              <CodeAutocomplete
-                label=""
-                placeholder="Type code or name..."
-                value={rateSearchValues[index] || ''}
-                onChange={(value) => handleRateSearchChange(index, value)}
-                items={inventoryAutocompleteItems}
-                onSelect={(item) => handleInventorySelect(index, item)}
-                disabled={isLoading}
-              />
-              <input type="hidden" {...register(`rates.${index}.itemId`)} />
-            </div>
-            <div className="form-group" style={{ flex: 1 }}>
-              <label>Rate/day (₹)</label>
+        <label>Select Categories *</label>
+
+        {allCategories.length === 0 && (
+          <small className={styles.warningText}>No inventory items available.</small>
+        )}
+
+        {allCategories.length > 0 && (
+          <div className={styles.categoryPanel}>
+            {/* Select All / Unselect All */}
+            <label className={styles.selectAllLabel}>
               <input
-                type="number"
-                step="0.01"
-                placeholder="Rate/day"
-                {...register(`rates.${index}.ratePerDay`, { valueAsNumber: true })}
+                className={styles.formCheckbox}
+                type="checkbox"
+                checked={isAllSelected}
+                ref={(el) => {
+                  if (el) el.indeterminate = isSomeSelected;
+                }}
+                onChange={handleSelectAllToggle}
                 disabled={isLoading}
               />
-            </div>
-            {fields.length > 1 && (
-              <button
-                type="button"
-                className="btn btn-danger btn-sm"
-                onClick={() => remove(index)}
-                disabled={isLoading}
-                style={{ marginBottom: '5px' }}
-              >
-                Remove
-              </button>
-            )}
+              {isAllSelected ? 'Unselect All' : 'Select All'}
+            </label>
+
+            {/* Individual categories */}
+            {allCategories.map((category) => {
+              const items = categorizedItems.get(category) || [];
+              return (
+                <label
+                  key={category}
+                  className={styles.categoryLabel}
+                >
+                  <input
+                    type="checkbox"
+                    className={styles.formCheckbox}
+                    checked={selectedCategories.has(category)}
+                    onChange={() => handleCategoryToggle(category)}
+                    disabled={isLoading}
+                  />
+                  {category}
+                  <span className={styles.categoryCount}>
+                    ({items.length} {items.length === 1 ? 'item' : 'items'})
+                  </span>
+                </label>
+              );
+            })}
           </div>
-        ))}
+        )}
+
         {errors.rates && <span className="error-message">{errors.rates.message}</span>}
-        <button
-          type="button"
-          className="btn btn-secondary btn-sm"
-          onClick={() => append({ itemId: '', ratePerDay: 0 })}
-          disabled={isLoading}
-        >
-          + Add Item Rate
-        </button>
       </div>
+
+      {/* Selected items preview with editable rates */}
+      {fields.length > 0 && (
+        <div className="form-group">
+          <label>Selected Items ({fields.length})</label>
+          <div className={styles.previewContainer}>
+            <table className={styles.previewTable}>
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th className={styles.rateColumn}>Rate/day (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fields.map((field, index) => {
+                  const item = inventoryById.get(field.itemId);
+                  return (
+                    <tr key={field.id}>
+                      <td className={styles.codeCell}>
+                        {item?.code || '-'}
+                      </td>
+                      <td className={styles.cell}>{item?.name || '-'}</td>
+                      <td className={styles.cell}>{item?.category || '-'}</td>
+                      <td className={styles.cell}>
+                        <input
+                          type="number"
+                          step="0.01"
+                          {...register(`rates.${index}.ratePerDay`, { valueAsNumber: true })}
+                          onChange={(e) =>
+                            handleRateChange(index, field.itemId, parseFloat(e.target.value) || 0)
+                          }
+                          disabled={isLoading}
+                          className={styles.rateInput}
+                        />
+                        <input type="hidden" {...register(`rates.${index}.itemId`)} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="form-actions">
         <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={isLoading}>

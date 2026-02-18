@@ -1,6 +1,7 @@
 /**
- * Minimal CSS for BillProMax Frontend
- * Functional styling only - will be enhanced later
+ * Global shared styles for BillProMax Frontend
+ * Only truly cross-component utility classes belong here.
+ * Component-specific styles live in *.module.css files.
  */
 
 /* Reset */
@@ -16,92 +17,6 @@ body {
   line-height: 1.5;
   color: #333;
   background: #f5f5f5;
-}
-
-/* Layout */
-.layout {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.header {
-  background: #1a1a2e;
-  color: white;
-  padding: 0 20px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.header h1 {
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.header-brand {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.business-name {
-  font-size: 14px;
-  opacity: 0.8;
-  padding-left: 20px;
-  border-left: 1px solid rgba(255,255,255,0.3);
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.user-name {
-  font-size: 13px;
-}
-
-.main-container {
-  display: flex;
-  flex: 1;
-}
-
-.sidebar {
-  width: 200px;
-  background: white;
-  border-right: 1px solid #e0e0e0;
-  padding: 20px 0;
-}
-
-.sidebar ul {
-  list-style: none;
-}
-
-.sidebar a {
-  display: block;
-  padding: 10px 20px;
-  color: #555;
-  text-decoration: none;
-  border-left: 3px solid transparent;
-}
-
-.sidebar a:hover {
-  background: #f0f0f0;
-}
-
-.sidebar a.active {
-  background: #e8f4ff;
-  color: #0066cc;
-  border-left-color: #0066cc;
-  font-weight: 500;
-}
-
-.content {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
 }
 
 /* Page header */
@@ -321,106 +236,7 @@ body {
   font-weight: 600;
 }
 
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal {
-  background: white;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.modal-header h2 {
-  font-size: 18px;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #666;
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-/* Login page */
-.login-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-}
-
-.login-container {
-  background: white;
-  padding: 40px;
-  border-radius: 8px;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-}
-
-.login-container h1 {
-  text-align: center;
-  margin-bottom: 10px;
-  color: #1a1a2e;
-}
-
-.login-container h2 {
-  text-align: center;
-  font-size: 16px;
-  color: #666;
-  margin-bottom: 30px;
-  font-weight: normal;
-}
-
-.login-container .btn {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-}
-
-.login-footer {
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #e0e0e0;
-  text-align: center;
-  font-size: 12px;
-  color: #666;
-}
-
-.login-footer code {
-  display: block;
-  margin-top: 5px;
-  background: #f5f5f5;
-  padding: 5px 10px;
-  border-radius: 4px;
-}
-
-/* Error/Loading states */
+/* Error message (used in many forms) */
 .error-message {
   background: #f8d7da;
   color: #721c24;
@@ -429,62 +245,10 @@ body {
   margin-bottom: 15px;
 }
 
-.error-box {
-  background: #f8d7da;
-  color: #721c24;
-  padding: 20px;
-  border-radius: 8px;
-  text-align: center;
-}
-
-.error-box .btn {
-  margin-top: 15px;
-}
-
-.loading-spinner {
-  text-align: center;
-  padding: 40px;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #e0e0e0;
-  border-top-color: #0066cc;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 15px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: #666;
-}
-
 /* Action buttons in tables */
 .action-buttons {
   display: flex;
   gap: 5px;
-}
-
-/* Business select in header */
-.business-select {
-  padding: 6px 10px;
-  border-radius: 4px;
-  border: 1px solid rgba(255,255,255,0.3);
-  background: rgba(255,255,255,0.1);
-  color: white;
-  font-size: 13px;
-}
-
-.business-select option {
-  background: #1a1a2e;
-  color: white;
 }
 
 /* Filters */

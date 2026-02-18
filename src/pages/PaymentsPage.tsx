@@ -13,6 +13,7 @@ import { ErrorMessage } from '../components/ErrorMessage';
 import { PaymentForm } from '../components/forms/PaymentForm';
 import { getErrorMessage } from '../api/baseApi';
 import type { Payment, CreatePaymentInput } from '../types';
+import styles from './PaymentsPage.module.css';
 
 type TableItem = Record<string, unknown>;
 
@@ -160,16 +161,16 @@ export function PaymentsPage() {
         </button>
       </div>
 
-      <div className="stats-grid" style={{ marginBottom: '20px' }}>
+      <div className={`stats-grid ${styles.summaryGrid}`}>
         <div className="stat-card">
           <h3>Total Received</h3>
-          <div className="value" style={{ color: '#28a745' }}>
+          <div className={`value ${styles.valueReceived}`}>
             ₹{totalReceived.toLocaleString()}
           </div>
         </div>
         <div className="stat-card">
           <h3>Total Paid</h3>
-          <div className="value" style={{ color: '#dc3545' }}>
+          <div className={`value ${styles.valuePaid}`}>
             ₹{totalPaid.toLocaleString()}
           </div>
         </div>

@@ -1,0 +1,16 @@
+.flexGroup {
+  flex: 1;
+}
+
+.itemRow {
+  margin-bottom: 10px;
+  align-items: flex-end;
+}
+
+.itemAutocomplete {
+  flex: 2;
+}
+
+.removeButton {
+  margin-bottom: 5px;
+}

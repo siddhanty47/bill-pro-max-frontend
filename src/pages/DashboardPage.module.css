@@ -1,0 +1,9 @@
+.getStartedText {
+  margin: 15px 0;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
