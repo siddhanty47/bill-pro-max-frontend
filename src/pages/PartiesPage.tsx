@@ -1,12 +1,14 @@
 /**
  * Parties management page
  */
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
+import { useHotkey } from '../hooks/useHotkey';
+import { usePlatform } from '../hooks/usePlatform';
 import {
   useGetPartiesQuery,
   useCreatePartyMutation,
-  useUpdatePartyMutation,
   useDeletePartyMutation,
   useCreateAgreementMutation,
 } from '../api/partyApi';
@@ -26,12 +28,15 @@ type TableItem = Record<string, unknown>;
 
 export function PartiesPage() {
   const { currentBusinessId } = useCurrentBusiness();
+  const { modLabel } = usePlatform();
+  const navigate = useNavigate();
   const [isPartyModalOpen, setIsPartyModalOpen] = useState(false);
   const [isAgreementModalOpen, setIsAgreementModalOpen] = useState(false);
   const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
   const [selectedParty, setSelectedParty] = useState<Party | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const {
     data: parties,
@@ -47,7 +52,6 @@ export function PartiesPage() {
   });
 
   const [createParty, { isLoading: isCreating }] = useCreatePartyMutation();
-  const [updateParty, { isLoading: isUpdating }] = useUpdatePartyMutation();
   const [deleteParty] = useDeletePartyMutation();
   const [createAgreement, { isLoading: isCreatingAgreement }] = useCreateAgreementMutation();
 
@@ -56,10 +60,8 @@ export function PartiesPage() {
     setIsPartyModalOpen(true);
   };
 
-  const handleEditParty = (party: Party) => {
-    setSelectedParty(party);
-    setIsPartyModalOpen(true);
-  };
+  useHotkey('alt+n', () => { if (!isPartyModalOpen) handleAddParty(); });
+  useHotkey('/', () => searchRef.current?.focus());
 
   const handleAddAgreement = (party: Party) => {
     setSelectedParty(party);
@@ -85,18 +87,10 @@ export function PartiesPage() {
 
   const handlePartySubmit = async (data: CreatePartyInput) => {
     try {
-      if (selectedParty) {
-        await updateParty({
-          businessId: currentBusinessId!,
-          partyId: selectedParty._id,
-          data,
-        }).unwrap();
-      } else {
-        await createParty({
-          businessId: currentBusinessId!,
-          data,
-        }).unwrap();
-      }
+      await createParty({
+        businessId: currentBusinessId!,
+        data,
+      }).unwrap();
       setIsPartyModalOpen(false);
       setSelectedParty(null);
     } catch (err) {
@@ -118,7 +112,6 @@ export function PartiesPage() {
     }
   };
 
-  // Filter parties
   const filteredParties = (parties || []).filter((party) => {
     const matchesSearch =
       !searchTerm ||
@@ -193,9 +186,9 @@ export function PartiesPage() {
       render: (row: TableItem) => {
         const party = row as unknown as Party;
         return (
-          <div className="action-buttons">
-            <button className="btn btn-sm btn-secondary" onClick={() => handleEditParty(party)}>
-              Edit
+          <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
+            <button className="btn btn-sm btn-secondary" onClick={() => navigate(`/parties/${party._id}`)}>
+              View
             </button>
             <button className="btn btn-sm btn-secondary" onClick={() => handleAddSite(party)}>
               + Site
@@ -229,18 +222,22 @@ export function PartiesPage() {
       <div className="page-header">
         <h1>Parties</h1>
         <button className="btn btn-primary" onClick={handleAddParty}>
-          + Add Party
+          + Add Party <kbd className="kbd-hint">{modLabel}+N</kbd>
         </button>
       </div>
 
       <div className="filters">
-        <input
-          type="text"
-          placeholder="Search parties..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
-        />
+        <div className="search-wrapper">
+          <input
+            ref={searchRef}
+            type="text"
+            placeholder="Search parties..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+          <kbd className="kbd-hint search-kbd">/</kbd>
+        </div>
         <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
           <option value="">All Roles</option>
           <option value="client">Clients</option>
@@ -252,19 +249,19 @@ export function PartiesPage() {
         data={filteredParties as unknown as TableItem[]}
         columns={columns}
         keyField="_id"
+        onRowClick={(row) => navigate(`/parties/${String(row._id)}`)}
         emptyMessage="No parties found. Add your first party to get started."
       />
 
       <Modal
         isOpen={isPartyModalOpen}
         onClose={() => setIsPartyModalOpen(false)}
-        title={selectedParty ? 'Edit Party' : 'Add Party'}
+        title="Add Party"
       >
         <PartyForm
-          initialData={selectedParty || undefined}
           onSubmit={handlePartySubmit}
           onCancel={() => setIsPartyModalOpen(false)}
-          isLoading={isCreating || isUpdating}
+          isLoading={isCreating}
         />
       </Modal>
 

@@ -1,13 +1,74 @@
 /**
- * Challan form component
+ * Challan creation form with predicted challan number,
+ * color-coded type support, and running-quantity display per item.
  */
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { Party, Inventory, CreateChallanInput } from '../../types';
+import type { Party, Inventory, Challan, CreateChallanInput } from '../../types';
+import { useGetNextChallanNumberQuery, useGetItemsWithPartyQuery } from '../../api/challanApi';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
 import styles from './ChallanForm.module.css';
+
+/**
+ * Compute the Indian financial year string (e.g. "2025-26") from a date.
+ * FY runs April–March; Jan–Mar belongs to the previous FY.
+ */
+function getFinancialYear(date: Date): string {
+  const month = date.getMonth();
+  const year = date.getFullYear();
+  const fyStartYear = month < 3 ? year - 1 : year;
+  const fyEndYear = fyStartYear + 1;
+  return `${fyStartYear}-${String(fyEndYear).slice(-2)}`;
+}
+
+/**
+ * Client-side prediction of the next challan number using the already-loaded
+ * challans list. Mirrors the backend logic: count challans whose number starts
+ * with the matching prefix + FY, then increment.
+ */
+function predictChallanNumberLocally(
+  challans: Challan[],
+  type: 'delivery' | 'return',
+  dateStr: string
+): string {
+  const prefix = type === 'delivery' ? 'D' : 'R';
+  const fy = getFinancialYear(dateStr ? new Date(dateStr) : new Date());
+  const pattern = `${prefix}-${fy}-`;
+  const count = challans.filter((c) => c.challanNumber.startsWith(pattern)).length;
+  return `${prefix}-${fy}-${String(count + 1).padStart(4, '0')}`;
+}
+
+/**
+ * Compute net item quantities currently with a party for a given agreement
+ * from the client-side challans list. Mirrors the backend aggregation:
+ * sum confirmed delivery quantities minus confirmed return quantities per item.
+ */
+function computeItemsWithPartyLocally(
+  challans: Challan[],
+  partyId: string,
+  agreementId: string
+): Map<string, number> {
+  const qtyMap = new Map<string, number>();
+
+  const relevant = challans.filter(
+    (c) =>
+      c.partyId === partyId &&
+      c.agreementId === agreementId &&
+      c.status === 'confirmed'
+  );
+
+  for (const challan of relevant) {
+    for (const item of challan.items) {
+      const current = qtyMap.get(item.itemId) ?? 0;
+      const delta = challan.type === 'delivery' ? item.quantity : -item.quantity;
+      qtyMap.set(item.itemId, current + delta);
+    }
+  }
+
+  return qtyMap;
+}
 
 const challanSchema = z.object({
   type: z.enum(['delivery', 'return']),
@@ -30,21 +91,32 @@ const challanSchema = z.object({
 type FormData = z.infer<typeof challanSchema>;
 
 interface ChallanFormProps {
+  businessId: string;
   parties: Party[];
   inventoryItems: Inventory[];
+  /** Existing challans used as fallback for client-side number prediction. */
+  challans: Challan[];
   onSubmit: (data: CreateChallanInput) => Promise<void>;
   onCancel: () => void;
+  onTypeChange?: (type: 'delivery' | 'return') => void;
   isLoading?: boolean;
 }
 
+/**
+ * Form for creating delivery or return challans.
+ * Displays a predicted challan number and per-item running quantities
+ * for the selected party + agreement combination.
+ */
 export function ChallanForm({
+  businessId,
   parties,
   inventoryItems,
+  challans,
   onSubmit,
   onCancel,
+  onTypeChange,
   isLoading,
 }: ChallanFormProps) {
-  // Track search values for party and item autocompletes
   const [partySearchValue, setPartySearchValue] = useState('');
   const [itemSearchValues, setItemSearchValues] = useState<Record<number, string>>({});
 
@@ -70,13 +142,65 @@ export function ChallanForm({
   });
 
   const selectedPartyId = watch('partyId');
+  const selectedAgreementId = watch('agreementId');
   const selectedParty = parties.find((p) => p._id === selectedPartyId);
   const activeAgreements = selectedParty?.agreements?.filter((a) => a.status === 'active') || [];
   const challanType = watch('type');
+  const challanDate = watch('date');
+
+  /** Notify parent whenever the challan type changes so the modal variant can update. */
+  useEffect(() => {
+    onTypeChange?.(challanType);
+  }, [challanType, onTypeChange]);
+
+  /** Fetch predicted next challan number; fall back to client-side estimation. */
+  const {
+    data: apiPredictedNumber,
+    isFetching: isPredictedLoading,
+    isError: isPredictedError,
+  } = useGetNextChallanNumberQuery(
+    { businessId, type: challanType, date: challanDate },
+    { skip: !businessId || !challanDate }
+  );
+
+  const predictedNumber = useMemo(() => {
+    if (apiPredictedNumber) return apiPredictedNumber;
+    if (isPredictedError || !isPredictedLoading) {
+      return predictChallanNumberLocally(challans, challanType, challanDate);
+    }
+    return undefined;
+  }, [apiPredictedNumber, isPredictedError, isPredictedLoading, challans, challanType, challanDate]);
 
   /**
-   * Convert parties to autocomplete items (only those with active agreements)
+   * Fetch items currently with the selected party for the chosen agreement.
+   * Falls back to client-side computation from the loaded challans list
+   * when the API endpoint is unavailable.
    */
+  const {
+    data: apiItemsWithParty,
+    isError: isItemsWithPartyError,
+  } = useGetItemsWithPartyQuery(
+    { businessId, partyId: selectedPartyId, agreementId: selectedAgreementId },
+    { skip: !businessId || !selectedPartyId || !selectedAgreementId }
+  );
+
+  const localItemsMap = useMemo(() => {
+    if (!selectedPartyId || !selectedAgreementId) return new Map<string, number>();
+    return computeItemsWithPartyLocally(challans, selectedPartyId, selectedAgreementId);
+  }, [challans, selectedPartyId, selectedAgreementId]);
+
+  /** Look up the running quantity for a given itemId, preferring API data. */
+  const getRunningQty = useCallback(
+    (itemId: string): number => {
+      if (!itemId) return 0;
+      if (apiItemsWithParty && !isItemsWithPartyError) {
+        return apiItemsWithParty.find((i) => i.itemId === itemId)?.quantity ?? 0;
+      }
+      return localItemsMap.get(itemId) ?? 0;
+    },
+    [apiItemsWithParty, isItemsWithPartyError, localItemsMap]
+  );
+
   const partyAutocompleteItems: AutocompleteItem[] = useMemo(() => {
     return parties
       .filter((p) => p.agreements && p.agreements.some((a) => a.status === 'active'))
@@ -88,9 +212,6 @@ export function ChallanForm({
       }));
   }, [parties]);
 
-  /**
-   * Convert inventory items to autocomplete items
-   */
   const inventoryAutocompleteItems: AutocompleteItem[] = useMemo(() => {
     return inventoryItems.map((item) => ({
       code: item.code || item.name.substring(0, 4).toUpperCase(),
@@ -100,21 +221,15 @@ export function ChallanForm({
     }));
   }, [inventoryItems]);
 
-  /**
-   * Handle party selection
-   */
   const handlePartySelect = useCallback(
     (item: AutocompleteItem) => {
       setValue('partyId', item.id);
-      setValue('agreementId', ''); // Reset agreement when party changes
+      setValue('agreementId', '');
       setPartySearchValue(item.code);
     },
     [setValue]
   );
 
-  /**
-   * Handle inventory item selection
-   */
   const handleInventorySelect = useCallback(
     (index: number, item: AutocompleteItem) => {
       const inventoryItem = inventoryItems.find((i) => i._id === item.id);
@@ -125,9 +240,6 @@ export function ChallanForm({
     [inventoryItems, setValue]
   );
 
-  /**
-   * Handle item search value change
-   */
   const handleItemSearchChange = useCallback((index: number, value: string) => {
     setItemSearchValues((prev) => ({ ...prev, [index]: value }));
   }, []);
@@ -153,6 +265,14 @@ export function ChallanForm({
 
   return (
     <form onSubmit={onFormSubmit}>
+      {/* Predicted challan number badge */}
+      <div className={styles.challanNumberBadge}>
+        <span className={styles.challanNumberLabel}>Challan #</span>
+        <span className={`${styles.challanNumberValue} ${styles[challanType]}`}>
+          {isPredictedLoading ? '...' : predictedNumber ?? '—'}
+        </span>
+      </div>
+
       <div className="form-row">
         <div className="form-group">
           <label htmlFor="type">Challan Type *</label>
@@ -199,54 +319,73 @@ export function ChallanForm({
         </div>
       </div>
 
+      {/* Items section with column headers */}
       <div className="form-group">
         <label>Items *</label>
-        {fields.map((field, index) => (
-          <div key={field.id} className={`form-row ${styles.itemRow}`}>
-            <div className={styles.itemAutocomplete}>
-              <CodeAutocomplete
-                label=""
-                placeholder="Type item code or name..."
-                value={itemSearchValues[index] || ''}
-                onChange={(value) => handleItemSearchChange(index, value)}
-                items={inventoryAutocompleteItems}
-                onSelect={(item) => handleInventorySelect(index, item)}
-                disabled={isLoading}
-              />
-              <input type="hidden" {...register(`items.${index}.itemId`)} />
-              <input type="hidden" {...register(`items.${index}.itemName`)} />
-            </div>
-            <div className={`form-group ${styles.flexGroup}`}>
-              <label>Qty</label>
-              <input
-                type="number"
-                placeholder="Qty"
-                {...register(`items.${index}.quantity`, { valueAsNumber: true })}
-                disabled={isLoading}
-              />
-            </div>
-            {challanType === 'return' && (
-              <div className={`form-group ${styles.flexGroup}`}>
-                <label>Condition</label>
-                <select {...register(`items.${index}.condition`)} disabled={isLoading}>
-                  <option value="good">Good</option>
-                  <option value="damaged">Damaged</option>
-                  <option value="missing">Missing</option>
-                </select>
+        <div className={styles.itemHeader}>
+          <span className={styles.itemHeaderName}>Item</span>
+          <span className={styles.itemHeaderQty}>Qty</span>
+          <span className={styles.itemHeaderRunning}>Running</span>
+          {challanType === 'return' && <span className={styles.itemHeaderCondition}>Condition</span>}
+          <span className={styles.itemHeaderAction}></span>
+        </div>
+
+        {fields.map((field, index) => {
+          const currentItemId = watch(`items.${index}.itemId`);
+          const runningQty = getRunningQty(currentItemId);
+
+          return (
+            <div key={field.id} className={`form-row ${styles.itemRow}`}>
+              <div className={styles.itemAutocomplete}>
+                <CodeAutocomplete
+                  label=""
+                  placeholder="Type item code or name..."
+                  value={itemSearchValues[index] || ''}
+                  onChange={(value) => handleItemSearchChange(index, value)}
+                  items={inventoryAutocompleteItems}
+                  onSelect={(item) => handleInventorySelect(index, item)}
+                  disabled={isLoading}
+                />
+                <input type="hidden" {...register(`items.${index}.itemId`)} />
+                <input type="hidden" {...register(`items.${index}.itemName`)} />
               </div>
-            )}
-            {fields.length > 1 && (
-              <button
-                type="button"
-                className={`btn btn-danger btn-sm ${styles.removeButton}`}
-                onClick={() => remove(index)}
-                disabled={isLoading}
-              >
-                Remove
-              </button>
-            )}
-          </div>
-        ))}
+
+              <div className={`form-group ${styles.qtyGroup}`}>
+                <input
+                  type="number"
+                  placeholder="Qty"
+                  {...register(`items.${index}.quantity`, { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className={styles.runningQty}>
+                <span className={styles.runningQtyValue}>{runningQty}</span>
+              </div>
+
+              {challanType === 'return' && (
+                <div className={`form-group ${styles.conditionGroup}`}>
+                  <select {...register(`items.${index}.condition`)} disabled={isLoading}>
+                    <option value="good">Good</option>
+                    <option value="damaged">Damaged</option>
+                    <option value="missing">Missing</option>
+                  </select>
+                </div>
+              )}
+
+              {fields.length > 1 && (
+                <button
+                  type="button"
+                  className={`btn btn-danger btn-sm ${styles.removeButton}`}
+                  onClick={() => remove(index)}
+                  disabled={isLoading}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          );
+        })}
         {errors.items && <span className="error-message">{errors.items.message}</span>}
         <button
           type="button"

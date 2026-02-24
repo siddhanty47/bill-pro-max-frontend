@@ -97,7 +97,7 @@ export function DashboardPage() {
   const totalOutstanding = bills?.reduce((sum, b) => sum + (b.totalAmount - b.amountPaid), 0) || 0;
 
   return (
-    <div>
+    <div className={styles.dashboard}>
       <div className="page-header">
         <h1>Dashboard</h1>
         <div className={styles.headerActions}>

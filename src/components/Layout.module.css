@@ -1,7 +1,8 @@
 .layout {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .header {
@@ -45,6 +46,8 @@
 .mainContainer {
   display: flex;
   flex: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .sidebar {
@@ -81,6 +84,7 @@
   flex: 1;
   padding: 20px;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .businessSelect {

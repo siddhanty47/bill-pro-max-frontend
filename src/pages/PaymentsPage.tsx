@@ -1,8 +1,10 @@
 /**
  * Payments management page
  */
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
+import { useHotkey } from '../hooks/useHotkey';
+import { usePlatform } from '../hooks/usePlatform';
 import { useGetPaymentsQuery, useCreatePaymentMutation } from '../api/paymentApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetBillsQuery } from '../api/billApi';
@@ -19,10 +21,12 @@ type TableItem = Record<string, unknown>;
 
 export function PaymentsPage() {
   const { currentBusinessId } = useCurrentBusiness();
+  const { modLabel } = usePlatform();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [methodFilter, setMethodFilter] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const {
     data: payments,
@@ -46,6 +50,9 @@ export function PaymentsPage() {
   const handleCreate = () => {
     setIsModalOpen(true);
   };
+
+  useHotkey('alt+n', () => { if (!isModalOpen) handleCreate(); });
+  useHotkey('/', () => searchRef.current?.focus());
 
   const handleSubmit = async (data: CreatePaymentInput) => {
     try {
@@ -157,7 +164,7 @@ export function PaymentsPage() {
       <div className="page-header">
         <h1>Payments</h1>
         <button className="btn btn-primary" onClick={handleCreate}>
-          + Record Payment
+          + Record Payment <kbd className="kbd-hint">{modLabel}+N</kbd>
         </button>
       </div>
 
@@ -181,13 +188,17 @@ export function PaymentsPage() {
       </div>
 
       <div className="filters">
-        <input
-          type="text"
-          placeholder="Search payments..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
-        />
+        <div className="search-wrapper">
+          <input
+            ref={searchRef}
+            type="text"
+            placeholder="Search payments..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+          <kbd className="kbd-hint search-kbd">/</kbd>
+        </div>
         <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
           <option value="">All Types</option>
           <option value="receivable">Received</option>

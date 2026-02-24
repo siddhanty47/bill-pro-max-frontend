@@ -1,12 +1,14 @@
 /**
  * Inventory management page
  */
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
+import { useHotkey } from '../hooks/useHotkey';
+import { usePlatform } from '../hooks/usePlatform';
 import {
   useGetInventoryQuery,
   useCreateInventoryMutation,
-  useUpdateInventoryMutation,
 } from '../api/inventoryApi';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
@@ -20,10 +22,12 @@ type TableItem = Record<string, unknown>;
 
 export function InventoryPage() {
   const { currentBusinessId } = useCurrentBusiness();
+  const { modLabel } = usePlatform();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<Inventory | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const {
     data: inventory,
@@ -35,43 +39,28 @@ export function InventoryPage() {
   });
 
   const [createInventory, { isLoading: isCreating }] = useCreateInventoryMutation();
-  const [updateInventory, { isLoading: isUpdating }] = useUpdateInventoryMutation();
 
   const handleAdd = () => {
-    setSelectedItem(null);
     setIsModalOpen(true);
   };
 
-  const handleEdit = (item: Inventory) => {
-    setSelectedItem(item);
-    setIsModalOpen(true);
-  };
+  useHotkey('alt+n', () => { if (!isModalOpen) handleAdd(); });
+  useHotkey('/', () => searchRef.current?.focus());
 
   const handleSubmit = async (data: CreateInventoryInput) => {
     try {
-      if (selectedItem) {
-        await updateInventory({
-          businessId: currentBusinessId!,
-          itemId: selectedItem._id,
-          data,
-        }).unwrap();
-      } else {
-        await createInventory({
-          businessId: currentBusinessId!,
-          data,
-        }).unwrap();
-      }
+      await createInventory({
+        businessId: currentBusinessId!,
+        data,
+      }).unwrap();
       setIsModalOpen(false);
-      setSelectedItem(null);
     } catch (err) {
       alert(getErrorMessage(err));
     }
   };
 
-  // Get unique categories for filter
   const categories = [...new Set(inventory?.map((i) => i.category) || [])];
 
-  // Filter inventory
   const filteredInventory = (inventory || []).filter((item) => {
     const matchesSearch =
       !searchTerm ||
@@ -124,9 +113,9 @@ export function InventoryPage() {
       render: (row: TableItem) => {
         const item = row as unknown as Inventory;
         return (
-          <div className="action-buttons">
-            <button className="btn btn-sm btn-secondary" onClick={() => handleEdit(item)}>
-              Edit
+          <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
+            <button className="btn btn-sm btn-secondary" onClick={() => navigate(`/inventory/${item._id}`)}>
+              View
             </button>
           </div>
         );
@@ -151,18 +140,22 @@ export function InventoryPage() {
       <div className="page-header">
         <h1>Inventory</h1>
         <button className="btn btn-primary" onClick={handleAdd}>
-          + Add Item
+          + Add Item <kbd className="kbd-hint">{modLabel}+N</kbd>
         </button>
       </div>
 
       <div className="filters">
-        <input
-          type="text"
-          placeholder="Search inventory..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
-        />
+        <div className="search-wrapper">
+          <input
+            ref={searchRef}
+            type="text"
+            placeholder="Search inventory..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+          <kbd className="kbd-hint search-kbd">/</kbd>
+        </div>
         <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
           <option value="">All Categories</option>
           {categories.map((cat) => (
@@ -177,19 +170,19 @@ export function InventoryPage() {
         data={filteredInventory as unknown as TableItem[]}
         columns={columns}
         keyField="_id"
+        onRowClick={(row) => navigate(`/inventory/${String(row._id)}`)}
         emptyMessage="No inventory items found. Add your first item to get started."
       />
 
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={selectedItem ? 'Edit Inventory Item' : 'Add Inventory Item'}
+        title="Add Inventory Item"
       >
         <InventoryForm
-          initialData={selectedItem || undefined}
           onSubmit={handleSubmit}
           onCancel={() => setIsModalOpen(false)}
-          isLoading={isCreating || isUpdating}
+          isLoading={isCreating}
         />
       </Modal>
     </div>

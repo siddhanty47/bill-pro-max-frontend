@@ -1,8 +1,11 @@
 /**
  * Bills management page
  */
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
+import { useHotkey } from '../hooks/useHotkey';
+import { usePlatform } from '../hooks/usePlatform';
 import {
   useGetBillsQuery,
   useGenerateBillMutation,
@@ -22,9 +25,12 @@ type TableItem = Record<string, unknown>;
 
 export function BillsPage() {
   const { currentBusinessId } = useCurrentBusiness();
+  const { modLabel } = usePlatform();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const {
     data: bills,
@@ -46,6 +52,9 @@ export function BillsPage() {
   const handleGenerate = () => {
     setIsModalOpen(true);
   };
+
+  useHotkey('alt+n', () => { if (!isModalOpen) handleGenerate(); });
+  useHotkey('/', () => searchRef.current?.focus());
 
   const handleSubmit = async (data: GenerateBillInput) => {
     try {
@@ -161,7 +170,10 @@ export function BillsPage() {
       render: (row: TableItem) => {
         const bill = row as unknown as Bill;
         return (
-          <div className="action-buttons">
+          <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
+            <button className="btn btn-sm btn-secondary" onClick={() => navigate(`/bills/${bill._id}`)}>
+              View
+            </button>
             {bill.status === 'draft' && (
               <button
                 className="btn btn-sm btn-primary"
@@ -212,18 +224,22 @@ export function BillsPage() {
       <div className="page-header">
         <h1>Bills</h1>
         <button className="btn btn-primary" onClick={handleGenerate}>
-          + Generate Bill
+          + Generate Bill <kbd className="kbd-hint">{modLabel}+N</kbd>
         </button>
       </div>
 
       <div className="filters">
-        <input
-          type="text"
-          placeholder="Search bills..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
-        />
+        <div className="search-wrapper">
+          <input
+            ref={searchRef}
+            type="text"
+            placeholder="Search bills..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+          <kbd className="kbd-hint search-kbd">/</kbd>
+        </div>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="">All Status</option>
           <option value="draft">Draft</option>
@@ -239,6 +255,7 @@ export function BillsPage() {
         data={filteredBills as unknown as TableItem[]}
         columns={columns}
         keyField="_id"
+        onRowClick={(row) => navigate(`/bills/${String(row._id)}`)}
         emptyMessage="No bills found. Generate your first bill to get started."
       />
 

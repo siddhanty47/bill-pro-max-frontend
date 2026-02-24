@@ -1,8 +1,11 @@
 /**
  * Challans management page
  */
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
+import { useHotkey } from '../hooks/useHotkey';
+import { usePlatform } from '../hooks/usePlatform';
 import {
   useGetChallansQuery,
   useCreateChallanMutation,
@@ -11,7 +14,7 @@ import {
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetInventoryQuery } from '../api/inventoryApi';
 import { DataTable } from '../components/DataTable';
-import { Modal } from '../components/Modal';
+import { Modal, type ModalVariant } from '../components/Modal';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { ChallanForm } from '../components/forms/ChallanForm';
@@ -24,10 +27,14 @@ import { useAuth } from '../hooks/useAuth';
 export function ChallansPage() {
   const { currentBusinessId } = useCurrentBusiness();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { modLabel } = usePlatform();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalVariant, setModalVariant] = useState<ModalVariant>('delivery');
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const {
     data: challans,
@@ -52,6 +59,9 @@ export function ChallansPage() {
   const handleCreate = () => {
     setIsModalOpen(true);
   };
+
+  useHotkey('alt+n', () => { if (!isModalOpen) handleCreate(); });
+  useHotkey('/', () => searchRef.current?.focus());
 
   const handleSubmit = async (data: CreateChallanInput) => {
     try {
@@ -146,7 +156,10 @@ export function ChallansPage() {
       render: (row: TableItem) => {
         const challan = row as unknown as Challan;
         return (
-          <div className="action-buttons">
+          <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
+            <button className="btn btn-sm btn-secondary" onClick={() => navigate(`/challans/${challan._id}`)}>
+              View
+            </button>
             {challan.status === 'draft' && (
               <button className="btn btn-sm btn-primary" onClick={() => handleConfirm(challan)}>
                 Confirm
@@ -175,18 +188,22 @@ export function ChallansPage() {
       <div className="page-header">
         <h1>Challans</h1>
         <button className="btn btn-primary" onClick={handleCreate}>
-          + Create Challan
+          + Create Challan <kbd className="kbd-hint">{modLabel}+N</kbd>
         </button>
       </div>
 
       <div className="filters">
-        <input
-          type="text"
-          placeholder="Search challans..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
-        />
+        <div className="search-wrapper">
+          <input
+            ref={searchRef}
+            type="text"
+            placeholder="Search challans..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+          <kbd className="kbd-hint search-kbd">/</kbd>
+        </div>
         <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
           <option value="">All Types</option>
           <option value="delivery">Delivery</option>
@@ -204,19 +221,24 @@ export function ChallansPage() {
         data={filteredChallans as unknown as TableItem[]}
         columns={columns}
         keyField="_id"
+        onRowClick={(row) => navigate(`/challans/${String(row._id)}`)}
         emptyMessage="No challans found. Create your first challan to get started."
       />
 
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Create Challan"
+        title={`Create ${modalVariant === 'return' ? 'Return' : 'Delivery'} Challan`}
+        variant={modalVariant}
       >
         <ChallanForm
+          businessId={currentBusinessId!}
           parties={parties || []}
           inventoryItems={inventory || []}
+          challans={challans || []}
           onSubmit={handleSubmit}
           onCancel={() => setIsModalOpen(false)}
+          onTypeChange={setModalVariant}
           isLoading={isCreating}
         />
       </Modal>

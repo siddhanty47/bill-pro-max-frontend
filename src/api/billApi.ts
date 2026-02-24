@@ -7,7 +7,7 @@ import type { Bill, GenerateBillInput, ApiResponse, PaginatedResponse } from '..
 export const billApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getBills: builder.query<Bill[], string>({
-      query: (businessId) => `/businesses/${businessId}/bills`,
+      query: (businessId) => `/businesses/${businessId}/bills?pageSize=100`,
       transformResponse: (response: PaginatedResponse<Bill>) => response.data,
       providesTags: ['Bill'],
     }),

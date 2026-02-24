@@ -2,12 +2,12 @@
  * Challan API endpoints
  */
 import { baseApi } from './baseApi';
-import type { Challan, CreateChallanInput, ApiResponse, PaginatedResponse } from '../types';
+import type { Challan, CreateChallanInput, ItemWithParty, ApiResponse, PaginatedResponse } from '../types';
 
 export const challanApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getChallans: builder.query<Challan[], string>({
-      query: (businessId) => `/businesses/${businessId}/challans`,
+      query: (businessId) => `/businesses/${businessId}/challans?pageSize=100`,
       transformResponse: (response: PaginatedResponse<Challan>) => response.data,
       providesTags: ['Challan'],
     }),
@@ -37,6 +37,22 @@ export const challanApi = baseApi.injectEndpoints({
       transformResponse: (response: ApiResponse<Challan>) => response.data,
       invalidatesTags: (_result, _error, { challanId }) => [{ type: 'Challan', id: challanId }, 'Challan', 'Inventory'],
     }),
+
+    getNextChallanNumber: builder.query<string, { businessId: string; type: 'delivery' | 'return'; date: string }>({
+      query: ({ businessId, type, date }) =>
+        `/businesses/${businessId}/challans/next-number?type=${type}&date=${date}`,
+      transformResponse: (response: ApiResponse<string>) => response.data,
+      providesTags: ['Challan'],
+    }),
+
+    getItemsWithParty: builder.query<ItemWithParty[], { businessId: string; partyId: string; agreementId?: string }>({
+      query: ({ businessId, partyId, agreementId }) => {
+        const base = `/businesses/${businessId}/challans/items-with-party/${partyId}`;
+        return agreementId ? `${base}?agreementId=${agreementId}` : base;
+      },
+      transformResponse: (response: ApiResponse<ItemWithParty[]>) => response.data,
+      providesTags: ['Challan'],
+    }),
   }),
 });
 
@@ -45,4 +61,6 @@ export const {
   useGetChallanQuery,
   useCreateChallanMutation,
   useConfirmChallanMutation,
+  useGetNextChallanNumberQuery,
+  useGetItemsWithPartyQuery,
 } = challanApi;

@@ -29,31 +29,33 @@ export function DataTable({
   }
 
   return (
-    <table className="data-table">
-      <thead>
-        <tr>
-          {columns.map((col) => (
-            <th key={col.key}>{col.header}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {data.map((item) => (
-          <tr
-            key={String(item[keyField])}
-            onClick={() => onRowClick?.(item)}
-            className={onRowClick ? 'clickable' : ''}
-          >
+    <div className={styles.tableContainer}>
+      <table className="data-table">
+        <thead>
+          <tr>
             {columns.map((col) => (
-              <td key={col.key}>
-                {col.render
-                  ? col.render(item)
-                  : String(item[col.key] ?? '')}
-              </td>
+              <th key={col.key}>{col.header}</th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {data.map((item) => (
+            <tr
+              key={String(item[keyField])}
+              onClick={() => onRowClick?.(item)}
+              className={onRowClick ? 'clickable' : ''}
+            >
+              {columns.map((col) => (
+                <td key={col.key}>
+                  {col.render
+                    ? col.render(item)
+                    : String(item[col.key] ?? '')}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

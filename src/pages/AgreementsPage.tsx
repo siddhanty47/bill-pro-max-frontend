@@ -1,30 +1,26 @@
 /**
  * Agreements management page
- * Lists all agreements across all parties with edit functionality
+ * Lists all agreements across all parties
  */
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
-import { useGetAgreementsQuery, useUpdateAgreementMutation } from '../api/agreementApi';
+import { useGetAgreementsQuery } from '../api/agreementApi';
 import { DataTable } from '../components/DataTable';
-import { Modal } from '../components/Modal';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
-import { EditAgreementForm } from '../components/forms/EditAgreementForm';
-import { AgreementItemsModal } from '../components/AgreementItemsModal';
-import { getErrorMessage } from '../api/baseApi';
-import type { AgreementWithParty, UpdateAgreementInput } from '../types';
+import type { AgreementWithParty } from '../types';
 
 type TableItem = Record<string, unknown>;
 
 /**
  * AgreementsPage component
- * Displays a table of all agreements with filtering and edit options
+ * Displays a table of all agreements with filtering options.
+ * Editing is handled on the detail view page.
  */
 export function AgreementsPage() {
   const { currentBusinessId } = useCurrentBusiness();
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isItemsModalOpen, setIsItemsModalOpen] = useState(false);
-  const [selectedAgreement, setSelectedAgreement] = useState<AgreementWithParty | null>(null);
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
@@ -37,49 +33,6 @@ export function AgreementsPage() {
     skip: !currentBusinessId,
   });
 
-  const [updateAgreement, { isLoading: isUpdating }] = useUpdateAgreementMutation();
-
-  const handleEdit = (agreement: AgreementWithParty) => {
-    setSelectedAgreement(agreement);
-    setIsEditModalOpen(true);
-  };
-
-  const handleViewItems = (agreement: AgreementWithParty) => {
-    setSelectedAgreement(agreement);
-    setIsItemsModalOpen(true);
-  };
-
-  const handleSubmit = async (data: UpdateAgreementInput) => {
-    if (!selectedAgreement) return;
-
-    try {
-      await updateAgreement({
-        businessId: currentBusinessId!,
-        agreementId: selectedAgreement.agreementId,
-        data,
-      }).unwrap();
-      setIsEditModalOpen(false);
-      setSelectedAgreement(null);
-    } catch (err) {
-      alert(getErrorMessage(err));
-    }
-  };
-
-  const handleTerminate = async (agreement: AgreementWithParty) => {
-    if (!confirm(`Terminate agreement with "${agreement.partyName}"?`)) return;
-
-    try {
-      await updateAgreement({
-        businessId: currentBusinessId!,
-        agreementId: agreement.agreementId,
-        data: { status: 'terminated' },
-      }).unwrap();
-    } catch (err) {
-      alert(getErrorMessage(err));
-    }
-  };
-
-  // Filter agreements
   const filteredAgreements = (agreements || []).filter((agreement) => {
     const matchesSearch =
       !searchTerm ||
@@ -139,15 +92,7 @@ export function AgreementsPage() {
       header: 'Items',
       render: (row: TableItem) => {
         const agreement = row as unknown as AgreementWithParty;
-        return (
-          <button
-            className="btn-link"
-            onClick={() => handleViewItems(agreement)}
-            title="Click to view/edit items"
-          >
-            {agreement.rates.length} items
-          </button>
-        );
+        return `${agreement.rates.length} items`;
       },
     },
     {
@@ -168,28 +113,13 @@ export function AgreementsPage() {
       render: (row: TableItem) => {
         const agreement = row as unknown as AgreementWithParty;
         return (
-          <div className="action-buttons">
-            <button
-              className="btn btn-sm btn-primary"
-              onClick={() => handleViewItems(agreement)}
-              title="View/Edit Items"
-            >
-              Items
-            </button>
+          <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
             <button
               className="btn btn-sm btn-secondary"
-              onClick={() => handleEdit(agreement)}
+              onClick={() => navigate(`/agreements/${agreement.agreementId}`)}
             >
-              Edit
+              View
             </button>
-            {agreement.status === 'active' && (
-              <button
-                className="btn btn-sm btn-danger"
-                onClick={() => handleTerminate(agreement)}
-              >
-                Terminate
-              </button>
-            )}
           </div>
         );
       },
@@ -213,7 +143,7 @@ export function AgreementsPage() {
       <div className="page-header">
         <h1>Agreements</h1>
         <p className="page-description">
-          Manage all agreements. To create a new agreement, go to the Parties page and click "+ Agreement" for a party.
+          Manage all agreements. To create a new agreement, go to the Parties page and click &quot;+ Agreement&quot; for a party.
         </p>
       </div>
 
@@ -237,37 +167,9 @@ export function AgreementsPage() {
         data={filteredAgreements as unknown as TableItem[]}
         columns={columns}
         keyField="agreementId"
+        onRowClick={(row) => navigate(`/agreements/${String(row.agreementId)}`)}
         emptyMessage="No agreements found. Create agreements from the Parties page."
       />
-
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        title={`Edit Agreement - ${selectedAgreement?.partyName || ''}`}
-      >
-        {selectedAgreement && (
-          <EditAgreementForm
-            agreement={selectedAgreement}
-            onSubmit={handleSubmit}
-            onCancel={() => setIsEditModalOpen(false)}
-            isLoading={isUpdating}
-          />
-        )}
-      </Modal>
-
-      {/* Agreement Items Modal */}
-      {selectedAgreement && currentBusinessId && (
-        <AgreementItemsModal
-          isOpen={isItemsModalOpen}
-          onClose={() => {
-            setIsItemsModalOpen(false);
-            setSelectedAgreement(null);
-          }}
-          businessId={currentBusinessId}
-          agreementId={selectedAgreement.agreementId}
-          partyName={selectedAgreement.partyName}
-        />
-      )}
     </div>
   );
 }

@@ -217,6 +217,28 @@ export interface PurchaseInfo {
   paymentStatus: 'pending' | 'partial' | 'paid';
 }
 
+/**
+ * A single quantity adjustment record (purchase, scraped, or sold)
+ */
+export interface QuantityTransaction {
+  _id: string;
+  type: 'purchase' | 'scraped' | 'sold';
+  quantity: number;
+  note?: string;
+  date: string;
+}
+
+/**
+ * Input for adjusting inventory quantity
+ */
+export interface AdjustQuantityInput {
+  type: 'purchase' | 'scraped' | 'sold';
+  quantity: number;
+  /** ISO date string — must not be in the future */
+  date: string;
+  note?: string;
+}
+
 export interface Inventory {
   _id: string;
   businessId: string;
@@ -230,6 +252,7 @@ export interface Inventory {
   description?: string;
   defaultRatePerDay?: number;
   purchaseInfo?: PurchaseInfo;
+  quantityHistory?: QuantityTransaction[];
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -299,6 +322,13 @@ export interface CreateChallanInput {
     condition?: 'good' | 'damaged' | 'missing';
   }[];
   notes?: string;
+}
+
+/** Net quantity of an item currently held by a party (delivery minus returns). */
+export interface ItemWithParty {
+  itemId: string;
+  itemName: string;
+  quantity: number;
 }
 
 // ============ Bill ============

@@ -7,7 +7,7 @@ import type { Party, CreatePartyInput, CreateAgreementInput, AddSiteInput, ApiRe
 export const partyApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getParties: builder.query<Party[], string>({
-      query: (businessId) => `/businesses/${businessId}/parties`,
+      query: (businessId) => `/businesses/${businessId}/parties?pageSize=100`,
       transformResponse: (response: PaginatedResponse<Party>) => response.data,
       providesTags: ['Party'],
     }),

@@ -7,7 +7,7 @@ import type { Payment, CreatePaymentInput, PaymentStats, ApiResponse, PaginatedR
 export const paymentApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getPayments: builder.query<Payment[], string>({
-      query: (businessId) => `/businesses/${businessId}/payments`,
+      query: (businessId) => `/businesses/${businessId}/payments?pageSize=100`,
       transformResponse: (response: PaginatedResponse<Payment>) => response.data,
       providesTags: ['Payment'],
     }),

@@ -1,0 +1,168 @@
+/* EditableField styles — only layout/hover/spinner/error, inputs use global form-group styles */
+
+.wrapper {
+  display: flex;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.wrapper:last-child {
+  border-bottom: none;
+}
+
+.label {
+  width: 160px;
+  flex-shrink: 0;
+  color: #666;
+  font-weight: 500;
+}
+
+/* View mode: value area with hover effect */
+.valueDisplay {
+  flex: 1;
+  color: #1a1a1a;
+  word-break: break-word;
+  padding: 2px 6px;
+  margin: -2px -6px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  transition: background 0.15s;
+}
+
+.valueDisplay:hover {
+  background: #deebff;
+}
+
+.valueEmpty {
+  color: #999;
+  font-style: italic;
+}
+
+.pencilIcon {
+  opacity: 0;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: #666;
+  transition: opacity 0.15s;
+}
+
+.valueDisplay:hover .pencilIcon {
+  opacity: 1;
+}
+
+/* Edit mode: input + action buttons */
+.editContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.editRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.editRow input,
+.editRow select,
+.editRow textarea {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #0066cc;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+}
+
+.editRow input:focus,
+.editRow select:focus,
+.editRow textarea:focus {
+  outline: none;
+}
+
+.editRow textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.editActions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.actionBtn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  padding: 0;
+  color: #555;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.actionBtn:hover {
+  background: #f0f0f0;
+  border-color: #999;
+}
+
+.saveBtn {
+  color: #155724;
+}
+
+.saveBtn:hover {
+  background: #d4edda;
+  border-color: #28a745;
+}
+
+.cancelBtn {
+  color: #721c24;
+}
+
+.cancelBtn:hover {
+  background: #f8d7da;
+  border-color: #dc3545;
+}
+
+/* Saving state */
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #e0e0e0;
+  border-top-color: #0066cc;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error */
+.editError {
+  color: #dc3545;
+  font-size: 12px;
+}
+
+/* Custom render wrapper */
+.customInputWrapper {
+  flex: 1;
+}

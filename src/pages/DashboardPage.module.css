@@ -1,3 +1,7 @@
+.dashboard {
+  overflow-y: auto;
+}
+
 .getStartedText {
   margin: 15px 0;
 }

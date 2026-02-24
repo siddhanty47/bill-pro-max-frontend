@@ -12,6 +12,11 @@ import { AgreementsPage } from './pages/AgreementsPage';
 import { ChallansPage } from './pages/ChallansPage';
 import { BillsPage } from './pages/BillsPage';
 import { PaymentsPage } from './pages/PaymentsPage';
+import { InventoryDetailPage } from './pages/InventoryDetailPage';
+import { PartyDetailPage } from './pages/PartyDetailPage';
+import { AgreementDetailPage } from './pages/AgreementDetailPage';
+import { ChallanDetailPage } from './pages/ChallanDetailPage';
+import { BillDetailPage } from './pages/BillDetailPage';
 
 function App() {
   return (
@@ -30,10 +35,15 @@ function App() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="inventory" element={<InventoryPage />} />
+        <Route path="inventory/:itemId" element={<InventoryDetailPage />} />
         <Route path="parties" element={<PartiesPage />} />
+        <Route path="parties/:partyId" element={<PartyDetailPage />} />
         <Route path="agreements" element={<AgreementsPage />} />
+        <Route path="agreements/:agreementId" element={<AgreementDetailPage />} />
         <Route path="challans" element={<ChallansPage />} />
+        <Route path="challans/:challanId" element={<ChallanDetailPage />} />
         <Route path="bills" element={<BillsPage />} />
+        <Route path="bills/:billId" element={<BillDetailPage />} />
         <Route path="payments" element={<PaymentsPage />} />
       </Route>
 

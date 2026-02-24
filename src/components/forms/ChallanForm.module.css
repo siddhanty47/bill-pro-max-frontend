@@ -1,16 +1,124 @@
+/* ---- Predicted challan number badge ---- */
+
+.challanNumberBadge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+}
+
+.challanNumberLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.challanNumberValue {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  padding: 2px 10px;
+  border-radius: 4px;
+}
+
+.challanNumberValue.delivery {
+  color: #004a99;
+  background: #e8f4fd;
+}
+
+.challanNumberValue.return {
+  color: #b35c00;
+  background: #fff8e1;
+}
+
+/* ---- Layout helpers ---- */
+
 .flexGroup {
   flex: 1;
 }
 
+/* ---- Items section ---- */
+
+.itemHeader {
+  display: flex;
+  gap: 15px;
+  padding: 6px 0;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #777;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  align-items: center;
+}
+
+.itemHeaderName {
+  flex: 2;
+}
+
+.itemHeaderQty {
+  flex: 0 0 70px;
+  text-align: center;
+}
+
+.itemHeaderRunning {
+  flex: 0 0 60px;
+  text-align: center;
+}
+
+.itemHeaderCondition {
+  flex: 1;
+}
+
+.itemHeaderAction {
+  flex: 0 0 70px;
+}
+
 .itemRow {
-  margin-bottom: 10px;
-  align-items: flex-end;
+  margin-bottom: 8px;
+  align-items: flex-start;
 }
 
 .itemAutocomplete {
   flex: 2;
 }
 
+.qtyGroup {
+  flex: 0 0 70px !important;
+}
+
+.runningQty {
+  flex: 0 0 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.runningQtyValue {
+  display: inline-block;
+  min-width: 32px;
+  text-align: center;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  background: #f0f0f0;
+  border-radius: 4px;
+}
+
+.conditionGroup {
+  flex: 1 !important;
+}
+
 .removeButton {
-  margin-bottom: 5px;
+  margin-top: 2px;
+  flex: 0 0 70px;
 }

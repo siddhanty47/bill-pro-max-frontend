@@ -1,3 +1,12 @@
+/* Fills remaining page height and scrolls table content independently */
+.tableContainer {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
 .emptyState {
   text-align: center;
   padding: 40px;

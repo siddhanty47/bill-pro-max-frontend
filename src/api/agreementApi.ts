@@ -17,7 +17,7 @@ export const agreementApi = baseApi.injectEndpoints({
      * Get all agreements for a business
      */
     getAgreements: builder.query<AgreementWithParty[], string>({
-      query: (businessId) => `/businesses/${businessId}/agreements`,
+      query: (businessId) => `/businesses/${businessId}/agreements?pageSize=100`,
       transformResponse: (response: ApiResponse<AgreementWithParty[]>) => response.data,
       providesTags: ['Agreement'],
     }),

@@ -40,3 +40,29 @@
 .body {
   padding: 20px;
 }
+
+/* Delivery variant — blue accent */
+.delivery {
+  border-top: 4px solid #0066cc;
+}
+
+.delivery .header {
+  background: #e8f4fd;
+}
+
+.delivery .header h2 {
+  color: #004a99;
+}
+
+/* Return variant — amber accent */
+.return {
+  border-top: 4px solid #e67e22;
+}
+
+.return .header {
+  background: #fff8e1;
+}
+
+.return .header h2 {
+  color: #b35c00;
+}

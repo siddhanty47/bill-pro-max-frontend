@@ -132,11 +132,9 @@ body {
 /* Tables */
 .data-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   background: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .data-table th,
@@ -146,7 +144,10 @@ body {
   border-bottom: 1px solid #e0e0e0;
 }
 
-.data-table th {
+.data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   background: #f8f8f8;
   font-weight: 600;
   color: #555;
@@ -187,6 +188,36 @@ body {
 .status-overdue {
   background: #f8d7da;
   color: #721c24;
+}
+
+.status-expired, .status-inactive {
+  background: #e0e0e0;
+  color: #555;
+}
+
+.status-terminated {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-sent {
+  background: #cce5ff;
+  color: #004085;
+}
+
+.status-partial {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-delivery {
+  background: #cce5ff;
+  color: #004085;
+}
+
+.status-return {
+  background: #fff3cd;
+  color: #856404;
 }
 
 /* Cards */
@@ -266,7 +297,51 @@ body {
   font-size: 14px;
 }
 
+.search-wrapper {
+  position: relative;
+  flex: 1;
+  max-width: 300px;
+}
+
+.search-wrapper .search-input {
+  width: 100%;
+  max-width: none;
+  padding-right: 32px;
+}
+
 .search-input {
   flex: 1;
   max-width: 300px;
+}
+
+/* Keyboard shortcut hints */
+.kbd-hint {
+  display: inline-block;
+  padding: 1px 5px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  border-radius: 3px;
+  border: 1px solid rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.15);
+  opacity: 0.8;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.btn-secondary .kbd-hint {
+  border-color: rgba(0,0,0,0.15);
+  background: rgba(0,0,0,0.06);
+}
+
+.search-kbd {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-color: #ccc;
+  background: #f0f0f0;
+  color: #888;
+  pointer-events: none;
 }

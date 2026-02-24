@@ -2,12 +2,12 @@
  * Inventory API endpoints
  */
 import { baseApi } from './baseApi';
-import type { Inventory, CreateInventoryInput, InventoryStats, ApiResponse, PaginatedResponse } from '../types';
+import type { Inventory, CreateInventoryInput, AdjustQuantityInput, InventoryStats, ApiResponse, PaginatedResponse } from '../types';
 
 export const inventoryApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getInventory: builder.query<Inventory[], string>({
-      query: (businessId) => `/businesses/${businessId}/inventory`,
+      query: (businessId) => `/businesses/${businessId}/inventory?pageSize=100`,
       transformResponse: (response: PaginatedResponse<Inventory>) => response.data,
       providesTags: ['Inventory'],
     }),
@@ -48,6 +48,16 @@ export const inventoryApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { itemId }) => [{ type: 'Inventory', id: itemId }, 'Inventory'],
     }),
 
+    adjustQuantity: builder.mutation<Inventory, { businessId: string; itemId: string; data: AdjustQuantityInput }>({
+      query: ({ businessId, itemId, data }) => ({
+        url: `/businesses/${businessId}/inventory/${itemId}/adjust-quantity`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<Inventory>) => response.data,
+      invalidatesTags: (_result, _error, { itemId }) => [{ type: 'Inventory', id: itemId }, 'Inventory'],
+    }),
+
     checkInventoryCodeExists: builder.query<boolean, { businessId: string; code: string }>({
       query: ({ businessId, code }) => `/businesses/${businessId}/inventory/check-code?code=${encodeURIComponent(code)}`,
       transformResponse: (response: ApiResponse<{ exists: boolean }>) => response.data.exists,
@@ -62,5 +72,6 @@ export const {
   useGetInventoryCategoriesQuery,
   useCreateInventoryMutation,
   useUpdateInventoryMutation,
+  useAdjustQuantityMutation,
   useLazyCheckInventoryCodeExistsQuery,
 } = inventoryApi;
