@@ -172,7 +172,7 @@ export function InventoryDetailPage() {
           inputType: 'text',
           onSave: (v) => handleSave('category', v),
           isSaving,
-          renderEditInput: ({ value: editVal, onChange, onSave, onCancel }) => (
+          renderEditInput: ({ value: editVal, onChange, onSave }) => (
             <CodeAutocomplete
               label=""
               placeholder="Select or type a category..."
