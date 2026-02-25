@@ -2,6 +2,7 @@
  * Payments management page
  */
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
 import { usePlatform } from '../hooks/usePlatform';
@@ -21,6 +22,7 @@ type TableItem = Record<string, unknown>;
 
 export function PaymentsPage() {
   const { currentBusinessId } = useCurrentBusiness();
+  const navigate = useNavigate();
   const { modLabel } = usePlatform();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -136,6 +138,20 @@ export function PaymentsPage() {
         return <span className={`status status-${payment.status}`}>{payment.status}</span>;
       },
     },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (row: TableItem) => {
+        const payment = row as unknown as Payment;
+        return (
+          <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
+            <button className="btn btn-sm btn-secondary" onClick={() => navigate(`/payments/${payment._id}`)}>
+              View
+            </button>
+          </div>
+        );
+      },
+    },
   ];
 
   if (!currentBusinessId) {
@@ -218,6 +234,7 @@ export function PaymentsPage() {
         data={filteredPayments as unknown as TableItem[]}
         columns={columns}
         keyField="_id"
+        onRowClick={(row) => navigate(`/payments/${String(row._id)}`)}
         emptyMessage="No payments found. Record your first payment to get started."
       />
 

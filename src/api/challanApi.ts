@@ -53,6 +53,13 @@ export const challanApi = baseApi.injectEndpoints({
       transformResponse: (response: ApiResponse<ItemWithParty[]>) => response.data,
       providesTags: ['Challan'],
     }),
+
+    getChallansByAgreement: builder.query<Challan[], { businessId: string; agreementId: string }>({
+      query: ({ businessId, agreementId }) =>
+        `/businesses/${businessId}/challans?agreementId=${encodeURIComponent(agreementId)}&pageSize=100`,
+      transformResponse: (response: PaginatedResponse<Challan>) => response.data,
+      providesTags: ['Challan'],
+    }),
   }),
 });
 
@@ -63,4 +70,5 @@ export const {
   useConfirmChallanMutation,
   useGetNextChallanNumberQuery,
   useGetItemsWithPartyQuery,
+  useGetChallansByAgreementQuery,
 } = challanApi;

@@ -13,6 +13,7 @@ import {
   useUpdateAgreementMutation,
   useUpdateAgreementRateMutation,
 } from '../api/agreementApi';
+import { useGetItemsWithPartyQuery, useGetChallansByAgreementQuery } from '../api/challanApi';
 import {
   DetailPageShell,
   DetailSection,
@@ -64,6 +65,16 @@ export function AgreementDetailPage() {
   );
 
   const { data: rates } = useGetAgreementRatesQuery(
+    { businessId: currentBusinessId!, agreementId: agreementId! },
+    { skip: !currentBusinessId || !agreementId },
+  );
+
+  const { data: itemsAtSite } = useGetItemsWithPartyQuery(
+    { businessId: currentBusinessId!, partyId: agreement?.partyId ?? '', agreementId: agreementId! },
+    { skip: !currentBusinessId || !agreementId || !agreement?.partyId },
+  );
+
+  const { data: challans } = useGetChallansByAgreementQuery(
     { businessId: currentBusinessId!, agreementId: agreementId! },
     { skip: !currentBusinessId || !agreementId },
   );
@@ -305,6 +316,75 @@ export function AgreementDetailPage() {
               </table>
             ) : (
               <p style={{ color: '#999', fontStyle: 'italic' }}>No items/rates configured.</p>
+            )}
+          </DetailSection>
+
+          {/* Items currently deployed at the site under this agreement */}
+          <DetailSection title={`Items at Site (${itemsAtSite?.length || 0})`}>
+            {itemsAtSite && itemsAtSite.length > 0 ? (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Quantity at Site</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {itemsAtSite.map((item) => (
+                    <tr key={item.itemId}>
+                      <td>{item.itemName}</td>
+                      <td>{item.quantity}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p style={{ color: '#999', fontStyle: 'italic' }}>No items currently at site.</p>
+            )}
+          </DetailSection>
+
+          {/* Challans linked to this agreement */}
+          <DetailSection title={`Challans (${challans?.length || 0})`}>
+            {challans && challans.length > 0 ? (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Challan #</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Items</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {challans.map((challan) => (
+                    <tr key={challan._id}>
+                      <td>
+                        <Link
+                          to={`/challans/${challan._id}`}
+                          style={{ color: '#0066cc', textDecoration: 'none' }}
+                        >
+                          {challan.challanNumber}
+                        </Link>
+                      </td>
+                      <td>
+                        <span className={`status status-${challan.type === 'delivery' ? 'active' : 'pending'}`}>
+                          {challan.type}
+                        </span>
+                      </td>
+                      <td>{formatDate(challan.date)}</td>
+                      <td>{challan.items.length}</td>
+                      <td>
+                        <span className={`status status-${challan.status}`}>
+                          {challan.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p style={{ color: '#999', fontStyle: 'italic' }}>No challans yet.</p>
             )}
           </DetailSection>
         </>

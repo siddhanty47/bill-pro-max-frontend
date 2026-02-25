@@ -17,6 +17,7 @@ import { PartyDetailPage } from './pages/PartyDetailPage';
 import { AgreementDetailPage } from './pages/AgreementDetailPage';
 import { ChallanDetailPage } from './pages/ChallanDetailPage';
 import { BillDetailPage } from './pages/BillDetailPage';
+import { PaymentDetailPage } from './pages/PaymentDetailPage';
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
         <Route path="bills" element={<BillsPage />} />
         <Route path="bills/:billId" element={<BillDetailPage />} />
         <Route path="payments" element={<PaymentsPage />} />
+        <Route path="payments/:paymentId" element={<PaymentDetailPage />} />
       </Route>
 
       {/* Fallback */}
