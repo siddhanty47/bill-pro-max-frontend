@@ -2,17 +2,29 @@
  * @fileoverview Party detail view page
  * @description Detail page showing all information for a single party, including
  * contact info, sites, and agreements. Supports Jira-style inline editing for
- * name, contact fields, and notes.
+ * name, contact fields, notes, and site details. Provides modals to add new
+ * sites and agreements, reusing the same components as the list page.
  */
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
-import { useGetPartyQuery, useUpdatePartyMutation } from '../api/partyApi';
+import {
+  useGetPartyQuery,
+  useUpdatePartyMutation,
+  useCreateAgreementMutation,
+  useUpdateSiteMutation,
+} from '../api/partyApi';
+import { useGetInventoryQuery } from '../api/inventoryApi';
 import {
   DetailPageShell,
   DetailSection,
   DetailField,
 } from '../components/DetailPageShell';
+import { Modal } from '../components/Modal';
+import { AddSiteModal } from '../components/AddSiteModal';
+import { AgreementForm } from '../components/forms/AgreementForm';
+import { getErrorMessage } from '../api/baseApi';
+import type { CreateAgreementInput, Site } from '../types';
 
 /**
  * Formats an ISO date string for display.
@@ -36,6 +48,20 @@ export function PartyDetailPage() {
   );
 
   const [updateParty, { isLoading: isSaving }] = useUpdatePartyMutation();
+  const [createAgreement, { isLoading: isCreatingAgreement }] = useCreateAgreementMutation();
+  const [updateSite, { isLoading: isUpdatingSite }] = useUpdateSiteMutation();
+
+  const { data: inventory } = useGetInventoryQuery(currentBusinessId || '', {
+    skip: !currentBusinessId,
+  });
+
+  const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
+  const [isAgreementModalOpen, setIsAgreementModalOpen] = useState(false);
+
+  /** Tracks which site code is currently being inline-edited (null = none) */
+  const [editingSiteCode, setEditingSiteCode] = useState<string | null>(null);
+  const [editSiteAddress, setEditSiteAddress] = useState('');
+  const [editSiteError, setEditSiteError] = useState<string | null>(null);
 
   /** Save handler for top-level party fields (e.g. name, notes) */
   const handleSave = useCallback(
@@ -63,6 +89,61 @@ export function PartyDetailPage() {
       }).unwrap();
     },
     [currentBusinessId, party, partyId, updateParty],
+  );
+
+  /** Submit handler for the agreement creation modal */
+  const handleAgreementSubmit = useCallback(
+    async (data: CreateAgreementInput) => {
+      try {
+        await createAgreement({
+          businessId: currentBusinessId!,
+          partyId: partyId!,
+          data,
+        }).unwrap();
+        setIsAgreementModalOpen(false);
+      } catch (err) {
+        alert(getErrorMessage(err));
+      }
+    },
+    [createAgreement, currentBusinessId, partyId],
+  );
+
+  /** Enter inline edit mode for a site row */
+  const startEditingSite = (site: Site) => {
+    setEditingSiteCode(site.code);
+    setEditSiteAddress(site.address);
+    setEditSiteError(null);
+  };
+
+  /** Cancel inline site editing */
+  const cancelEditingSite = () => {
+    setEditingSiteCode(null);
+    setEditSiteError(null);
+  };
+
+  /** Save the inline site edit */
+  const handleSaveSite = useCallback(
+    async (originalCode: string) => {
+      setEditSiteError(null);
+      if (!editSiteAddress.trim()) {
+        setEditSiteError('Address is required');
+        return;
+      }
+      try {
+        await updateSite({
+          businessId: currentBusinessId!,
+          partyId: partyId!,
+          siteCode: originalCode,
+          data: {
+            address: editSiteAddress.trim(),
+          },
+        }).unwrap();
+        setEditingSiteCode(null);
+      } catch (err) {
+        setEditSiteError(getErrorMessage(err));
+      }
+    },
+    [currentBusinessId, partyId, editSiteAddress, updateSite],
   );
 
   const sidebar = party ? (
@@ -162,31 +243,92 @@ export function PartyDetailPage() {
           </DetailSection>
 
           {/* Sites */}
-          <DetailSection title={`Sites (${party.sites?.length || 0})`}>
+          <DetailSection
+            title={`Sites (${party.sites?.length || 0})`}
+            headerActions={
+              <button className="btn btn-sm btn-primary" onClick={() => setIsSiteModalOpen(true)}>
+                + Add Site
+              </button>
+            }
+          >
             {party.sites && party.sites.length > 0 ? (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Site Code</th>
-                    <th>Address</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {party.sites.map((site) => (
-                    <tr key={site.code}>
-                      <td>{site.code}</td>
-                      <td>{site.address}</td>
+              <>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Site Code</th>
+                      <th>Address</th>
+                      <th style={{ width: '120px' }}>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {party.sites.map((site) =>
+                      editingSiteCode === site.code ? (
+                        <tr key={site.code}>
+                          <td>{site.code}</td>
+                          <td>
+                            <input
+                              type="text"
+                              className="form-input"
+                              value={editSiteAddress}
+                              onChange={(e) => setEditSiteAddress(e.target.value)}
+                              style={{ width: '100%', padding: '4px 8px', fontSize: '13px' }}
+                            />
+                          </td>
+                          <td>
+                            <div className="action-buttons" style={{ gap: '4px' }}>
+                              <button
+                                className="btn btn-sm btn-primary"
+                                onClick={() => handleSaveSite(site.code)}
+                                disabled={isUpdatingSite}
+                              >
+                                {isUpdatingSite ? '...' : 'Save'}
+                              </button>
+                              <button
+                                className="btn btn-sm btn-secondary"
+                                onClick={cancelEditingSite}
+                                disabled={isUpdatingSite}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        <tr key={site.code}>
+                          <td>{site.code}</td>
+                          <td>{site.address}</td>
+                          <td>
+                            <button
+                              className="btn btn-sm btn-secondary"
+                              onClick={() => startEditingSite(site)}
+                            >
+                              Edit
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+                {editSiteError && (
+                  <p style={{ color: '#dc3545', fontSize: '13px', marginTop: '6px' }}>{editSiteError}</p>
+                )}
+              </>
             ) : (
               <p style={{ color: '#999', fontStyle: 'italic' }}>No sites added yet.</p>
             )}
           </DetailSection>
 
           {/* Agreements */}
-          <DetailSection title={`Agreements (${party.agreements?.length || 0})`}>
+          <DetailSection
+            title={`Agreements (${party.agreements?.length || 0})`}
+            headerActions={
+              <button className="btn btn-sm btn-primary" onClick={() => setIsAgreementModalOpen(true)}>
+                + Agreement
+              </button>
+            }
+          >
             {party.agreements && party.agreements.length > 0 ? (
               <table className="data-table">
                 <thead>
@@ -240,6 +382,32 @@ export function PartyDetailPage() {
               }}
             />
           </DetailSection>
+
+          {/* Add Site Modal */}
+          {currentBusinessId && (
+            <AddSiteModal
+              isOpen={isSiteModalOpen}
+              onClose={() => setIsSiteModalOpen(false)}
+              businessId={currentBusinessId}
+              party={party}
+            />
+          )}
+
+          {/* Add Agreement Modal */}
+          <Modal
+            isOpen={isAgreementModalOpen}
+            onClose={() => setIsAgreementModalOpen(false)}
+            title={`Add Agreement for ${party.name}`}
+          >
+            <AgreementForm
+              inventoryItems={inventory || []}
+              sites={party.sites || []}
+              existingAgreements={party.agreements || []}
+              onSubmit={handleAgreementSubmit}
+              onCancel={() => setIsAgreementModalOpen(false)}
+              isLoading={isCreatingAgreement}
+            />
+          </Modal>
         </>
       )}
     </DetailPageShell>

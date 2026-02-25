@@ -109,6 +109,8 @@ export function DetailPageShell({
 interface DetailSectionProps {
   /** Section heading text */
   title: string;
+  /** Optional action buttons rendered inline with the section title */
+  headerActions?: React.ReactNode;
   /** Section content */
   children: React.ReactNode;
 }
@@ -116,11 +118,15 @@ interface DetailSectionProps {
 /**
  * Card-like section block with a title header and content body.
  * Used inside DetailPageShell to group related fields.
+ * Supports optional `headerActions` for buttons like "+ Add Site".
  */
-export function DetailSection({ title, children }: DetailSectionProps) {
+export function DetailSection({ title, headerActions, children }: DetailSectionProps) {
   return (
     <div className={styles.section}>
-      <div className={styles.sectionHeader}>{title}</div>
+      <div className={styles.sectionHeader}>
+        <span>{title}</span>
+        {headerActions && <div className={styles.sectionActions}>{headerActions}</div>}
+      </div>
       <div className={styles.sectionBody}>{children}</div>
     </div>
   );

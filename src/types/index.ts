@@ -206,6 +206,14 @@ export interface AddSiteInput {
   address: string;
 }
 
+/**
+ * Input for updating an existing site on a party
+ */
+export interface UpdateSiteInput {
+  code?: string;
+  address?: string;
+}
+
 // ============ Inventory ============
 
 export interface PurchaseInfo {

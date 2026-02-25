@@ -2,7 +2,7 @@
  * Party API endpoints
  */
 import { baseApi } from './baseApi';
-import type { Party, CreatePartyInput, CreateAgreementInput, AddSiteInput, ApiResponse, PaginatedResponse } from '../types';
+import type { Party, CreatePartyInput, CreateAgreementInput, AddSiteInput, UpdateSiteInput, ApiResponse, PaginatedResponse } from '../types';
 
 export const partyApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -75,6 +75,16 @@ export const partyApi = baseApi.injectEndpoints({
       transformResponse: (response: ApiResponse<Party>) => response.data,
       invalidatesTags: (_result, _error, { partyId }) => [{ type: 'Party', id: partyId }, 'Party'],
     }),
+
+    updateSite: builder.mutation<Party, { businessId: string; partyId: string; siteCode: string; data: UpdateSiteInput }>({
+      query: ({ businessId, partyId, siteCode, data }) => ({
+        url: `/businesses/${businessId}/parties/${partyId}/sites/${encodeURIComponent(siteCode)}`,
+        method: 'PATCH',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<Party>) => response.data,
+      invalidatesTags: (_result, _error, { partyId }) => [{ type: 'Party', id: partyId }, 'Party'],
+    }),
   }),
 });
 
@@ -88,4 +98,5 @@ export const {
   useLazyGeneratePartyCodeQuery,
   useLazyCheckPartyCodeExistsQuery,
   useAddSiteMutation,
+  useUpdateSiteMutation,
 } = partyApi;
