@@ -50,12 +50,14 @@ function loadAuthState(): Partial<AuthState> {
   try {
     const token = localStorage.getItem('token');
     const refreshToken = localStorage.getItem('refreshToken');
+    const idToken = localStorage.getItem('idToken');
     const currentBusinessId = localStorage.getItem('currentBusinessId');
     if (token) {
       const user = extractUserFromToken(token);
       return {
         token,
         refreshToken,
+        idToken,
         user,
         isAuthenticated: !!user,
         currentBusinessId,
@@ -72,6 +74,7 @@ const initialState: AuthState = {
   user: null,
   token: null,
   refreshToken: null,
+  idToken: null,
   isAuthenticated: false,
   isLoading: false,
   error: null,
@@ -85,16 +88,19 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (
       state,
-      action: PayloadAction<{ token: string; refreshToken: string }>
+      action: PayloadAction<{ token: string; refreshToken: string; idToken?: string }>
     ) => {
-      const { token, refreshToken } = action.payload;
+      const { token, refreshToken, idToken } = action.payload;
       state.token = token;
       state.refreshToken = refreshToken;
+      if (idToken) {
+        state.idToken = idToken;
+        localStorage.setItem('idToken', idToken);
+      }
       state.user = extractUserFromToken(token);
       state.isAuthenticated = true;
       state.error = null;
       
-      // Persist to localStorage
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
     },
@@ -112,14 +118,19 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.refreshToken = null;
+      state.idToken = null;
       state.isAuthenticated = false;
       state.error = null;
       state.currentBusinessId = null;
       
-      // Clear localStorage
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
+      localStorage.removeItem('idToken');
       localStorage.removeItem('currentBusinessId');
+
+      sessionStorage.removeItem('pkce_code_verifier');
+      sessionStorage.removeItem('oauth_state');
+      sessionStorage.removeItem('invitation_token');
     },
 
     setCurrentBusiness: (state, action: PayloadAction<string>) => {

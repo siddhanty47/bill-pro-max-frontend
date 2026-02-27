@@ -19,22 +19,70 @@ export interface AuthState {
   user: User | null;
   token: string | null;
   refreshToken: string | null;
+  idToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
   currentBusinessId: string | null;
 }
 
-export interface LoginCredentials {
-  username: string;
-  password: string;
-}
-
 export interface TokenResponse {
   access_token: string;
   refresh_token: string;
+  id_token?: string;
   expires_in: number;
   token_type: string;
+}
+
+// ============ Business Member ============
+
+export interface BusinessMember {
+  _id: string;
+  businessId: string;
+  userId: string;
+  email: string;
+  name?: string;
+  role: string;
+  joinedAt: string;
+  invitedBy?: string;
+}
+
+// ============ Invitation ============
+
+export type InvitationStatus = 'pending' | 'accepted' | 'declined' | 'expired' | 'cancelled';
+
+export interface Invitation {
+  _id: string;
+  businessId: string;
+  email: string;
+  role: string;
+  invitedBy: string;
+  inviterName?: string;
+  businessName?: string;
+  status: InvitationStatus;
+  token: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface CreateInvitationInput {
+  email: string;
+  role: string;
+}
+
+// ============ In-App Notification ============
+
+export type NotificationType = 'invitation' | 'system' | 'info';
+
+export interface AppNotification {
+  _id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  data?: Record<string, string>;
+  isRead: boolean;
+  createdAt: string;
 }
 
 // ============ Business ============

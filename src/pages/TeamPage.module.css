@@ -1,0 +1,35 @@
+.page {
+  padding: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  margin: 0;
+}
+
+.section {
+  margin-bottom: 32px;
+}
+
+.section h2 {
+  font-size: 16px;
+  color: #555;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.empty h2 {
+  margin-bottom: 8px;
+}

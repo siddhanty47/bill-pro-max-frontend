@@ -1,10 +1,11 @@
 /**
- * Main App component with routing
+ * @file Main App component with routing
  */
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
+import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { PartiesPage } from './pages/PartiesPage';
@@ -18,12 +19,16 @@ import { AgreementDetailPage } from './pages/AgreementDetailPage';
 import { ChallanDetailPage } from './pages/ChallanDetailPage';
 import { BillDetailPage } from './pages/BillDetailPage';
 import { PaymentDetailPage } from './pages/PaymentDetailPage';
+import { TeamPage } from './pages/TeamPage';
+import { InvitationAcceptPage } from './pages/InvitationAcceptPage';
 
 function App() {
   return (
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
+      <Route path="/invitations/:token" element={<InvitationAcceptPage />} />
 
       {/* Protected routes */}
       <Route
@@ -47,6 +52,7 @@ function App() {
         <Route path="bills/:billId" element={<BillDetailPage />} />
         <Route path="payments" element={<PaymentsPage />} />
         <Route path="payments/:paymentId" element={<PaymentDetailPage />} />
+        <Route path="team" element={<TeamPage />} />
       </Route>
 
       {/* Fallback */}

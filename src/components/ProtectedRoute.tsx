@@ -1,5 +1,6 @@
 /**
- * Protected route component - requires authentication
+ * @file Protected route component - requires authentication.
+ * Redirects unauthenticated users to the login page.
  */
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -13,7 +14,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const location = useLocation();
 
   if (!isAuthenticated) {
-    // Redirect to login, preserving the intended destination
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

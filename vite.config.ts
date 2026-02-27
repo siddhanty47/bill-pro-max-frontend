@@ -11,12 +11,6 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
-      // Proxy Keycloak requests to avoid CORS issues
-      '/auth': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/auth/, ''),
-      },
     },
   },
 })

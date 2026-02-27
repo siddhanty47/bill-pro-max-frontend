@@ -1,9 +1,11 @@
 /**
- * Main layout component with navigation
+ * @file Main layout component with navigation.
+ * Includes header with business switcher, notification bell, and sidebar navigation.
  */
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
+import { NotificationBell } from './NotificationBell';
 import styles from './Layout.module.css';
 
 export function Layout() {
@@ -19,6 +21,7 @@ export function Layout() {
     { path: '/challans', label: 'Challans' },
     { path: '/bills', label: 'Bills' },
     { path: '/payments', label: 'Payments' },
+    { path: '/team', label: 'Team' },
   ];
 
   const isActive = (path: string) => {
@@ -51,6 +54,7 @@ export function Layout() {
             </select>
           )}
 
+          <NotificationBell />
           <span className={styles.userName}>{user?.name || user?.email}</span>
           <button onClick={logout} className="btn btn-secondary">
             Logout
