@@ -2,12 +2,17 @@
  * @fileoverview Bill detail view page
  * @description Detail page showing all information for a single bill, including
  * line items, financial summary, and payment status. Supports Jira-style inline
- * editing for the bill status field.
+ * editing for the bill status field and stale-bill regeneration.
  */
-import { useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useCallback, useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
-import { useGetBillQuery, useUpdateBillStatusMutation } from '../api/billApi';
+import {
+  useGetBillQuery,
+  useUpdateBillStatusMutation,
+  useDeleteBillMutation,
+  useGenerateBillMutation,
+} from '../api/billApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import {
   DetailPageShell,
@@ -48,6 +53,7 @@ function formatCurrency(amount: number): string {
 export function BillDetailPage() {
   const { billId } = useParams<{ billId: string }>();
   const { currentBusinessId } = useCurrentBusiness();
+  const navigate = useNavigate();
 
   const { data: bill, isLoading, error, refetch } = useGetBillQuery(
     { businessId: currentBusinessId!, billId: billId! },
@@ -59,9 +65,13 @@ export function BillDetailPage() {
   });
 
   const [updateBillStatus, { isLoading: isSaving }] = useUpdateBillStatusMutation();
+  const [deleteBill] = useDeleteBillMutation();
+  const [generateBill] = useGenerateBillMutation();
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const partyName = parties?.find((p) => p._id === bill?.partyId)?.name || bill?.partyId || '';
   const outstanding = bill ? bill.totalAmount - bill.amountPaid : 0;
+  const rentalSubtotal = bill ? bill.subtotal - (bill.transportationCharges || 0) : 0;
 
   /** Save handler for bill status changes */
   const handleStatusSave = useCallback(
@@ -74,6 +84,34 @@ export function BillDetailPage() {
     },
     [currentBusinessId, billId, updateBillStatus],
   );
+
+  const handleRegenerate = useCallback(async () => {
+    if (!bill || !currentBusinessId) return;
+    setIsRegenerating(true);
+    try {
+      await deleteBill({
+        businessId: currentBusinessId,
+        billId: bill._id,
+        force: true,
+      }).unwrap();
+
+      const newBill = await generateBill({
+        businessId: currentBusinessId,
+        data: {
+          partyId: bill.partyId,
+          agreementId: bill.agreementId,
+          billingPeriod: bill.billingPeriod,
+          taxRate: bill.taxRate,
+          discountRate: bill.discountRate,
+          notes: bill.notes,
+        },
+      }).unwrap();
+
+      navigate(`/bills/${newBill._id}`, { replace: true });
+    } catch {
+      setIsRegenerating(false);
+    }
+  }, [bill, currentBusinessId, deleteBill, generateBill, navigate]);
 
   const sidebar = bill ? (
     <DetailSection title="Details">
@@ -140,6 +178,36 @@ export function BillDetailPage() {
     >
       {bill && (
         <>
+          {/* Stale Warning Banner */}
+          {bill.isStale && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '12px 16px',
+                marginBottom: 16,
+                background: '#fff3cd',
+                border: '1px solid #ffc107',
+                borderRadius: 8,
+                color: '#856404',
+              }}
+            >
+              <span style={{ fontSize: 20 }}>&#9888;</span>
+              <span style={{ flex: 1 }}>
+                <strong>Stale bill</strong> &mdash; Underlying challan data has changed since this bill was generated.
+              </span>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleRegenerate}
+                disabled={isRegenerating}
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                {isRegenerating ? 'Regenerating...' : 'Regenerate Bill'}
+              </button>
+            </div>
+          )}
+
           {/* Billing Period */}
           <DetailSection title="Billing Period">
             <DetailField label="Period Start" value={formatDate(bill.billingPeriod.start)} />
@@ -179,6 +247,11 @@ export function BillDetailPage() {
 
           {/* Financial Summary */}
           <DetailSection title="Financial Summary">
+            <DetailField label="Rental Subtotal" value={formatCurrency(rentalSubtotal)} />
+            <DetailField
+              label="Transportation Charges"
+              value={formatCurrency(bill.transportationCharges || 0)}
+            />
             <DetailField label="Subtotal" value={formatCurrency(bill.subtotal)} />
             <DetailField
               label="Tax"

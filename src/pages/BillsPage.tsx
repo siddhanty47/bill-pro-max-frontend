@@ -161,7 +161,29 @@ export function BillsPage() {
       header: 'Status',
       render: (row: TableItem) => {
         const bill = row as unknown as Bill;
-        return <span className={`status status-${bill.status}`}>{bill.status}</span>;
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span className={`status status-${bill.status}`}>{bill.status}</span>
+            {bill.isStale && (
+              <span
+                title="Stale — underlying challan data changed"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '1px 6px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  background: '#fff3cd',
+                  color: '#856404',
+                  border: '1px solid #ffc107',
+                  borderRadius: 4,
+                }}
+              >
+                &#9888; Stale
+              </span>
+            )}
+          </span>
+        );
       },
     },
     {

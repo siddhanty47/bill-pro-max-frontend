@@ -211,6 +211,74 @@ export function AgreementDetailPage() {
         }}
       />
 
+      {/* Editable: Delivery Cartage */}
+      <DetailField
+        label="Delivery Cartage"
+        value={
+          agreement.terms.deliveryCartage != null
+            ? `₹${agreement.terms.deliveryCartage.toLocaleString()}`
+            : undefined
+        }
+        editable={{
+          rawValue: agreement.terms.deliveryCartage,
+          inputType: 'number',
+          prefix: '₹',
+          onSave: (v) => handleTermsSave('deliveryCartage', v),
+          isSaving,
+        }}
+      />
+
+      {/* Editable: Return Cartage */}
+      <DetailField
+        label="Return Cartage"
+        value={
+          agreement.terms.returnCartage != null
+            ? `₹${agreement.terms.returnCartage.toLocaleString()}`
+            : undefined
+        }
+        editable={{
+          rawValue: agreement.terms.returnCartage,
+          inputType: 'number',
+          prefix: '₹',
+          onSave: (v) => handleTermsSave('returnCartage', v),
+          isSaving,
+        }}
+      />
+
+      {/* Editable: Loading Charge */}
+      <DetailField
+        label="Loading Charge"
+        value={
+          agreement.terms.loadingCharge != null
+            ? `₹${agreement.terms.loadingCharge.toLocaleString()}`
+            : undefined
+        }
+        editable={{
+          rawValue: agreement.terms.loadingCharge,
+          inputType: 'number',
+          prefix: '₹',
+          onSave: (v) => handleTermsSave('loadingCharge', v),
+          isSaving,
+        }}
+      />
+
+      {/* Editable: Unloading Charge */}
+      <DetailField
+        label="Unloading Charge"
+        value={
+          agreement.terms.unloadingCharge != null
+            ? `₹${agreement.terms.unloadingCharge.toLocaleString()}`
+            : undefined
+        }
+        editable={{
+          rawValue: agreement.terms.unloadingCharge,
+          inputType: 'number',
+          prefix: '₹',
+          onSave: (v) => handleTermsSave('unloadingCharge', v),
+          isSaving,
+        }}
+      />
+
       <DetailField label="Created" value={formatDate(agreement.createdAt)} />
     </DetailSection>
   ) : null;

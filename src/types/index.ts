@@ -141,6 +141,16 @@ export interface AgreementRate {
   ratePerDay: number;
 }
 
+export interface AgreementTerms {
+  billingCycle: 'monthly' | 'weekly' | 'yearly';
+  paymentDueDays: number;
+  securityDeposit?: number;
+  deliveryCartage?: number;
+  returnCartage?: number;
+  loadingCharge?: number;
+  unloadingCharge?: number;
+}
+
 export interface Agreement {
   agreementId: string;
   /** Site code - references a site in party.sites */
@@ -148,11 +158,7 @@ export interface Agreement {
   startDate: string;
   endDate?: string;
   status: 'active' | 'expired' | 'terminated';
-  terms: {
-    billingCycle: 'monthly' | 'weekly' | 'yearly';
-    paymentDueDays: number;
-    securityDeposit?: number;
-  };
+  terms: AgreementTerms;
   rates: AgreementRate[];
   createdAt: string;
 }
@@ -196,6 +202,10 @@ export interface CreateAgreementInput {
     billingCycle: 'monthly' | 'weekly' | 'yearly';
     paymentDueDays: number;
     securityDeposit?: number;
+    deliveryCartage?: number;
+    returnCartage?: number;
+    loadingCharge?: number;
+    unloadingCharge?: number;
   };
   rates: AgreementRate[];
 }
@@ -208,6 +218,10 @@ export interface UpdateAgreementInput {
     billingCycle?: 'monthly' | 'weekly' | 'yearly';
     paymentDueDays?: number;
     securityDeposit?: number;
+    deliveryCartage?: number;
+    returnCartage?: number;
+    loadingCharge?: number;
+    unloadingCharge?: number;
   };
 }
 
@@ -220,11 +234,7 @@ export interface AgreementWithParty {
   startDate: string;
   endDate?: string;
   status: 'active' | 'expired' | 'terminated';
-  terms: {
-    billingCycle: 'monthly' | 'weekly' | 'yearly';
-    paymentDueDays: number;
-    securityDeposit?: number;
-  };
+  terms: AgreementTerms;
   rates: AgreementRate[];
   createdAt: string;
 }
@@ -362,6 +372,11 @@ export interface Challan {
   confirmedAt?: string;
   signature?: string;
   notes?: string;
+  transporterName?: string;
+  vehicleNumber?: string;
+  cartageCharge?: number;
+  loadingCharge?: number;
+  unloadingCharge?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -378,6 +393,11 @@ export interface CreateChallanInput {
     condition?: 'good' | 'damaged' | 'missing';
   }[];
   notes?: string;
+  transporterName?: string;
+  vehicleNumber?: string;
+  cartageCharge?: number;
+  loadingCharge?: number;
+  unloadingCharge?: number;
 }
 
 /** Net quantity of an item currently held by a party (delivery minus returns). */
@@ -423,6 +443,8 @@ export interface Bill {
   paidAt?: string;
   amountPaid: number;
   notes?: string;
+  transportationCharges?: number;
+  isStale?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -545,4 +567,37 @@ export interface ApiError {
   };
   timestamp: string;
   requestId?: string;
+}
+
+// ============ Employee ============
+
+export type EmployeeType = 'transporter';
+
+export interface TransporterDetails {
+  vehicleNumber: string;
+}
+
+export interface Employee {
+  _id: string;
+  businessId: string;
+  name: string;
+  phone?: string;
+  type: EmployeeType;
+  details: TransporterDetails;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateEmployeeInput {
+  name: string;
+  phone?: string;
+  type: EmployeeType;
+  details: TransporterDetails;
+}
+
+export interface UpdateEmployeeInput {
+  name?: string;
+  phone?: string;
+  details?: Partial<TransporterDetails>;
 }

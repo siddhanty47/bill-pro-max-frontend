@@ -38,6 +38,46 @@ export const challanApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { challanId }) => [{ type: 'Challan', id: challanId }, 'Challan', 'Inventory'],
     }),
 
+    updateChallanItem: builder.mutation<
+      Challan,
+      { businessId: string; challanId: string; itemId: string; quantity: number }
+    >({
+      query: ({ businessId, challanId, itemId, quantity }) => ({
+        url: `/businesses/${businessId}/challans/${challanId}/items/${itemId}`,
+        method: 'PATCH',
+        body: { quantity },
+      }),
+      transformResponse: (response: ApiResponse<Challan>) => response.data,
+      invalidatesTags: (_result, _error, { challanId }) => [
+        { type: 'Challan', id: challanId },
+        'Challan',
+        'Bill',
+      ],
+    }),
+
+    updateChallanTransportation: builder.mutation<
+      Challan,
+      {
+        businessId: string;
+        challanId: string;
+        data: {
+          transporterName?: string;
+          vehicleNumber?: string;
+          cartageCharge?: number;
+          loadingCharge?: number;
+          unloadingCharge?: number;
+        };
+      }
+    >({
+      query: ({ businessId, challanId, data }) => ({
+        url: `/businesses/${businessId}/challans/${challanId}/transportation`,
+        method: 'PATCH',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<Challan>) => response.data,
+      invalidatesTags: (_result, _error, { challanId }) => [{ type: 'Challan', id: challanId }, 'Challan', 'Bill'],
+    }),
+
     getNextChallanNumber: builder.query<string, { businessId: string; type: 'delivery' | 'return'; date: string }>({
       query: ({ businessId, type, date }) =>
         `/businesses/${businessId}/challans/next-number?type=${type}&date=${date}`,
@@ -68,6 +108,8 @@ export const {
   useGetChallanQuery,
   useCreateChallanMutation,
   useConfirmChallanMutation,
+  useUpdateChallanItemMutation,
+  useUpdateChallanTransportationMutation,
   useGetNextChallanNumberQuery,
   useGetItemsWithPartyQuery,
   useGetChallansByAgreementQuery,

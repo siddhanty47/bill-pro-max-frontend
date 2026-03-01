@@ -6,8 +6,9 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { Party, Inventory, Challan, CreateChallanInput } from '../../types';
+import type { Party, Inventory, Challan, CreateChallanInput, Employee } from '../../types';
 import { useGetNextChallanNumberQuery, useGetItemsWithPartyQuery } from '../../api/challanApi';
+import { useGetEmployeesQuery } from '../../api/employeeApi';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
 import styles from './ChallanForm.module.css';
 
@@ -86,6 +87,12 @@ const challanSchema = z.object({
     )
     .min(1, 'Add at least one item'),
   notes: z.string().max(1000).optional(),
+  transporterId: z.string().optional(),
+  transporterName: z.string().max(100).optional(),
+  vehicleNumber: z.string().max(20).optional(),
+  cartageCharge: z.number().min(0).optional(),
+  loadingCharge: z.number().min(0).optional(),
+  unloadingCharge: z.number().min(0).optional(),
 });
 
 type FormData = z.infer<typeof challanSchema>;
@@ -147,6 +154,43 @@ export function ChallanForm({
   const activeAgreements = selectedParty?.agreements?.filter((a) => a.status === 'active') || [];
   const challanType = watch('type');
   const challanDate = watch('date');
+
+  /** Fetch transporter employees for the business */
+  const { data: employeesResponse } = useGetEmployeesQuery(
+    { businessId, type: 'transporter' },
+    { skip: !businessId }
+  );
+  const transporters: Employee[] = employeesResponse?.data ?? [];
+
+  /** Auto-fill cartage charges when agreement or challan type changes */
+  const selectedAgreement = selectedParty?.agreements?.find(
+    (a) => a.agreementId === selectedAgreementId
+  );
+
+  useEffect(() => {
+    if (!selectedAgreement) return;
+    const terms = selectedAgreement.terms;
+    const cartage = challanType === 'delivery' ? terms.deliveryCartage : terms.returnCartage;
+    if (cartage != null) setValue('cartageCharge', cartage);
+    if (terms.loadingCharge != null) setValue('loadingCharge', terms.loadingCharge);
+    if (terms.unloadingCharge != null) setValue('unloadingCharge', terms.unloadingCharge);
+  }, [selectedAgreementId, challanType, selectedAgreement, setValue]);
+
+  /** Handle transporter selection — auto-fill name and vehicle */
+  const handleTransporterChange = useCallback(
+    (transporterId: string) => {
+      setValue('transporterId', transporterId);
+      const transporter = transporters.find((t) => t._id === transporterId);
+      if (transporter) {
+        setValue('transporterName', transporter.name);
+        setValue('vehicleNumber', transporter.details?.vehicleNumber ?? '');
+      } else {
+        setValue('transporterName', '');
+        setValue('vehicleNumber', '');
+      }
+    },
+    [transporters, setValue]
+  );
 
   /** Notify parent whenever the challan type changes so the modal variant can update. */
   useEffect(() => {
@@ -257,6 +301,11 @@ export function ChallanForm({
         condition: item.condition,
       })),
       notes: data.notes || undefined,
+      transporterName: data.transporterName || undefined,
+      vehicleNumber: data.vehicleNumber || undefined,
+      cartageCharge: data.cartageCharge,
+      loadingCharge: data.loadingCharge,
+      unloadingCharge: data.unloadingCharge,
     });
   };
 
@@ -401,6 +450,91 @@ export function ChallanForm({
         <label htmlFor="notes">Notes</label>
         <textarea id="notes" {...register('notes')} rows={2} disabled={isLoading} />
       </div>
+
+      {/* Transportation section */}
+      <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: '12px 16px', marginBottom: 16 }}>
+        <legend style={{ fontSize: 13, fontWeight: 600, color: '#555', padding: '0 6px' }}>
+          Transportation
+        </legend>
+
+        <div className="form-row">
+          <div className="form-group" style={{ flex: 2 }}>
+            <label htmlFor="transporterId">Transporter</label>
+            <select
+              id="transporterId"
+              {...register('transporterId')}
+              onChange={(e) => handleTransporterChange(e.target.value)}
+              disabled={isLoading}
+            >
+              <option value="">Select transporter...</option>
+              {transporters.map((t) => (
+                <option key={t._id} value={t._id}>
+                  {t.name} — {t.details?.vehicleNumber}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="transporterName">Transporter Name</label>
+            <input
+              id="transporterName"
+              type="text"
+              {...register('transporterName')}
+              disabled={isLoading}
+              placeholder="Auto-filled from selection"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="vehicleNumber">Vehicle Number</label>
+            <input
+              id="vehicleNumber"
+              type="text"
+              {...register('vehicleNumber')}
+              disabled={isLoading}
+              placeholder="Auto-filled from selection"
+            />
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="cartageCharge">Cartage (₹)</label>
+            <input
+              id="cartageCharge"
+              type="number"
+              step="0.01"
+              {...register('cartageCharge', { valueAsNumber: true })}
+              disabled={isLoading}
+              placeholder="Auto-filled from agreement"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="loadingCharge">Loading (₹)</label>
+            <input
+              id="loadingCharge"
+              type="number"
+              step="0.01"
+              {...register('loadingCharge', { valueAsNumber: true })}
+              disabled={isLoading}
+              placeholder="Auto-filled from agreement"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="unloadingCharge">Unloading (₹)</label>
+            <input
+              id="unloadingCharge"
+              type="number"
+              step="0.01"
+              {...register('unloadingCharge', { valueAsNumber: true })}
+              disabled={isLoading}
+              placeholder="Auto-filled from agreement"
+            />
+          </div>
+        </div>
+      </fieldset>
 
       <div className="form-actions">
         <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={isLoading}>

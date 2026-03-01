@@ -19,6 +19,10 @@ const agreementSchema = z.object({
   billingCycle: z.enum(['monthly', 'weekly', 'yearly']),
   paymentDueDays: z.number().int().min(0).max(365),
   securityDeposit: z.number().min(0).optional(),
+  deliveryCartage: z.number().min(0).optional(),
+  returnCartage: z.number().min(0).optional(),
+  loadingCharge: z.number().min(0).optional(),
+  unloadingCharge: z.number().min(0).optional(),
   rates: z
     .array(
       z.object({
@@ -178,6 +182,10 @@ export function AgreementForm({
         billingCycle: data.billingCycle,
         paymentDueDays: data.paymentDueDays,
         securityDeposit: data.securityDeposit,
+        deliveryCartage: data.deliveryCartage,
+        returnCartage: data.returnCartage,
+        loadingCharge: data.loadingCharge,
+        unloadingCharge: data.unloadingCharge,
       },
       rates: data.rates,
     });
@@ -252,6 +260,61 @@ export function AgreementForm({
           />
         </div>
       </div>
+
+      {/* Transportation Charges */}
+      <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: '12px 16px', marginBottom: 16 }}>
+        <legend style={{ fontSize: 13, fontWeight: 600, color: '#555', padding: '0 6px' }}>
+          Transportation Charges (optional)
+        </legend>
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="deliveryCartage">Delivery Cartage (₹)</label>
+            <input
+              id="deliveryCartage"
+              type="number"
+              step="0.01"
+              {...register('deliveryCartage', { valueAsNumber: true })}
+              disabled={isLoading}
+              placeholder="0"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="returnCartage">Return Cartage (₹)</label>
+            <input
+              id="returnCartage"
+              type="number"
+              step="0.01"
+              {...register('returnCartage', { valueAsNumber: true })}
+              disabled={isLoading}
+              placeholder="0"
+            />
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="loadingCharge">Loading Charge (₹)</label>
+            <input
+              id="loadingCharge"
+              type="number"
+              step="0.01"
+              {...register('loadingCharge', { valueAsNumber: true })}
+              disabled={isLoading}
+              placeholder="0"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="unloadingCharge">Unloading Charge (₹)</label>
+            <input
+              id="unloadingCharge"
+              type="number"
+              step="0.01"
+              {...register('unloadingCharge', { valueAsNumber: true })}
+              disabled={isLoading}
+              placeholder="0"
+            />
+          </div>
+        </div>
+      </fieldset>
 
       {/* Category selection */}
       <div className="form-group">
