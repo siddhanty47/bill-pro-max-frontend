@@ -101,7 +101,11 @@ export function BillDetailPage() {
           partyId: bill.partyId,
           agreementId: bill.agreementId,
           billingPeriod: bill.billingPeriod,
+          taxMode: bill.taxMode,
           taxRate: bill.taxRate,
+          sgstRate: bill.sgstRate,
+          cgstRate: bill.cgstRate,
+          igstRate: bill.igstRate,
           discountRate: bill.discountRate,
           notes: bill.notes,
         },
@@ -253,10 +257,31 @@ export function BillDetailPage() {
               value={formatCurrency(bill.transportationCharges || 0)}
             />
             <DetailField label="Subtotal" value={formatCurrency(bill.subtotal)} />
-            <DetailField
-              label="Tax"
-              value={`${formatCurrency(bill.taxAmount)} (${bill.taxRate}%)`}
-            />
+            {bill.taxMode === 'intra' ? (
+              <>
+                <DetailField
+                  label="SGST"
+                  value={`${formatCurrency(bill.sgstAmount || 0)} (${bill.sgstRate || 0}%)`}
+                />
+                <DetailField
+                  label="CGST"
+                  value={`${formatCurrency(bill.cgstAmount || 0)} (${bill.cgstRate || 0}%)`}
+                />
+              </>
+            ) : bill.taxMode === 'inter' ? (
+              <DetailField
+                label="IGST"
+                value={`${formatCurrency(bill.igstAmount || 0)} (${bill.igstRate || 0}%)`}
+              />
+            ) : (
+              <DetailField
+                label="Tax"
+                value={`${formatCurrency(bill.taxAmount)} (${bill.taxRate || 0}%)`}
+              />
+            )}
+            {(bill.taxMode === 'intra' || bill.taxMode === 'inter') && (
+              <DetailField label="Total Tax" value={formatCurrency(bill.taxAmount)} />
+            )}
             <DetailField
               label="Discount"
               value={`${formatCurrency(bill.discountAmount)} (${bill.discountRate}%)`}

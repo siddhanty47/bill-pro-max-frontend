@@ -91,6 +91,9 @@ export interface BusinessSettings {
   billingCycle: 'monthly' | 'weekly' | 'yearly';
   currency: string;
   defaultTaxRate: number;
+  defaultSgstRate?: number;
+  defaultCgstRate?: number;
+  defaultIgstRate?: number;
   defaultPaymentDueDays: number;
 }
 
@@ -430,7 +433,14 @@ export interface Bill {
   };
   items: BillItem[];
   subtotal: number;
-  taxRate: number;
+  taxMode?: 'intra' | 'inter';
+  taxRate?: number;
+  sgstRate?: number;
+  cgstRate?: number;
+  igstRate?: number;
+  sgstAmount?: number;
+  cgstAmount?: number;
+  igstAmount?: number;
   taxAmount: number;
   discountRate: number;
   discountAmount: number;
@@ -456,7 +466,11 @@ export interface GenerateBillInput {
     start: string;
     end: string;
   };
+  taxMode?: 'intra' | 'inter';
   taxRate?: number;
+  sgstRate?: number;
+  cgstRate?: number;
+  igstRate?: number;
   discountRate?: number;
   notes?: string;
 }

@@ -19,7 +19,9 @@ const businessSchema = z.object({
   gst: z.string().max(20).optional(),
   billingCycle: z.enum(['monthly', 'weekly', 'yearly']).optional(),
   currency: z.string().max(10).optional(),
-  defaultTaxRate: z.number().min(0).max(100).optional(),
+  defaultSgstRate: z.number().min(0).max(100).optional(),
+  defaultCgstRate: z.number().min(0).max(100).optional(),
+  defaultIgstRate: z.number().min(0).max(100).optional(),
   defaultPaymentDueDays: z.number().int().min(0).max(365).optional(),
 });
 
@@ -48,7 +50,9 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
     defaultValues: {
       billingCycle: 'monthly',
       currency: 'INR',
-      defaultTaxRate: 18,
+      defaultSgstRate: 9,
+      defaultCgstRate: 9,
+      defaultIgstRate: 18,
       defaultPaymentDueDays: 15,
     },
   });
@@ -97,6 +101,10 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
   }, [getValues, lookupGstin, setValue]);
 
   const handleFormSubmit = async (data: FormData) => {
+    const defaultSgstRate = data.defaultSgstRate ?? 0;
+    const defaultCgstRate = data.defaultCgstRate ?? 0;
+    const defaultIgstRate = data.defaultIgstRate ?? defaultSgstRate + defaultCgstRate;
+
     await onSubmit({
       name: data.name,
       address: data.address || undefined,
@@ -106,7 +114,11 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
       settings: {
         billingCycle: data.billingCycle,
         currency: data.currency || 'INR',
-        defaultTaxRate: data.defaultTaxRate ?? 18,
+        // Keep legacy field populated during transition.
+        defaultTaxRate: defaultSgstRate + defaultCgstRate,
+        defaultSgstRate,
+        defaultCgstRate,
+        defaultIgstRate,
         defaultPaymentDueDays: data.defaultPaymentDueDays ?? 15,
       },
     });
@@ -190,12 +202,36 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
 
       <div className="form-row">
         <div className="form-group">
-          <label htmlFor="defaultTaxRate">Default Tax Rate (%)</label>
+          <label htmlFor="defaultSgstRate">Default SGST (%)</label>
           <input
-            id="defaultTaxRate"
+            id="defaultSgstRate"
             type="number"
             step="0.01"
-            {...register('defaultTaxRate', { valueAsNumber: true })}
+            {...register('defaultSgstRate', { valueAsNumber: true })}
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="defaultCgstRate">Default CGST (%)</label>
+          <input
+            id="defaultCgstRate"
+            type="number"
+            step="0.01"
+            {...register('defaultCgstRate', { valueAsNumber: true })}
+            disabled={isLoading}
+          />
+        </div>
+      </div>
+
+      <div className="form-row">
+        <div className="form-group">
+          <label htmlFor="defaultIgstRate">Default IGST (%)</label>
+          <input
+            id="defaultIgstRate"
+            type="number"
+            step="0.01"
+            {...register('defaultIgstRate', { valueAsNumber: true })}
             disabled={isLoading}
           />
         </div>
