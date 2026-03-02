@@ -104,6 +104,8 @@ export function ChallansPage() {
     return matchesSearch && matchesType && matchesStatus;
   });
 
+  const hasDraftChallans = filteredChallans.some((c) => c.status === 'draft');
+
   const columns = [
     { key: 'challanNumber', header: 'Challan #' },
     {
@@ -150,25 +152,26 @@ export function ChallansPage() {
         return <span className={`status status-${challan.status}`}>{challan.status}</span>;
       },
     },
-    {
-      key: 'actions',
-      header: 'Actions',
-      render: (row: TableItem) => {
-        const challan = row as unknown as Challan;
-        return (
-          <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
-            <button className="btn btn-sm btn-secondary" onClick={() => navigate(`/challans/${challan._id}`)}>
-              View
-            </button>
-            {challan.status === 'draft' && (
-              <button className="btn btn-sm btn-primary" onClick={() => handleConfirm(challan)}>
-                Confirm
-              </button>
-            )}
-          </div>
-        );
-      },
-    },
+    ...(hasDraftChallans
+      ? [
+          {
+            key: 'actions',
+            header: 'Actions',
+            render: (row: TableItem) => {
+              const challan = row as unknown as Challan;
+              return (
+                <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
+                  {challan.status === 'draft' && (
+                    <button className="btn btn-sm btn-primary" onClick={() => handleConfirm(challan)}>
+                      Confirm
+                    </button>
+                  )}
+                </div>
+              );
+            },
+          },
+        ]
+      : []),
   ];
 
   if (!currentBusinessId) {

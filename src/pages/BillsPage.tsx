@@ -229,9 +229,6 @@ export function BillsPage() {
               </svg>
               Download
             </button>
-            <button className="btn btn-sm btn-secondary" onClick={() => navigate(`/bills/${bill._id}`)}>
-              View
-            </button>
             {bill.status === 'draft' && (
               <button
                 className="btn btn-sm btn-primary"

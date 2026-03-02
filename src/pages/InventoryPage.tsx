@@ -107,20 +107,6 @@ export function InventoryPage() {
         return item.defaultRatePerDay ? `₹${item.defaultRatePerDay}` : '-';
       },
     },
-    {
-      key: 'actions',
-      header: 'Actions',
-      render: (row: TableItem) => {
-        const item = row as unknown as Inventory;
-        return (
-          <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
-            <button className="btn btn-sm btn-secondary" onClick={() => navigate(`/inventory/${item._id}`)}>
-              View
-            </button>
-          </div>
-        );
-      },
-    },
   ];
 
   if (!currentBusinessId) {

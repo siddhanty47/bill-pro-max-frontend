@@ -187,9 +187,6 @@ export function PartiesPage() {
         const party = row as unknown as Party;
         return (
           <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
-            <button className="btn btn-sm btn-secondary" onClick={() => navigate(`/parties/${party._id}`)}>
-              View
-            </button>
             <button className="btn btn-sm btn-secondary" onClick={() => handleAddSite(party)}>
               + Site
             </button>

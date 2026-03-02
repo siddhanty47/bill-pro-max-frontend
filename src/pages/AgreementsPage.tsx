@@ -107,23 +107,6 @@ export function AgreementsPage() {
         );
       },
     },
-    {
-      key: 'actions',
-      header: 'Actions',
-      render: (row: TableItem) => {
-        const agreement = row as unknown as AgreementWithParty;
-        return (
-          <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="btn btn-sm btn-secondary"
-              onClick={() => navigate(`/agreements/${agreement.agreementId}`)}
-            >
-              View
-            </button>
-          </div>
-        );
-      },
-    },
   ];
 
   if (!currentBusinessId) {
