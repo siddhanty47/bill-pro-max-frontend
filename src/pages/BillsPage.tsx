@@ -11,6 +11,7 @@ import {
   useGenerateBillMutation,
   useUpdateBillStatusMutation,
   useDeleteBillMutation,
+  useLazyGetBillPdfQuery,
 } from '../api/billApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { DataTable } from '../components/DataTable';
@@ -48,6 +49,7 @@ export function BillsPage() {
   const [generateBill, { isLoading: isGenerating }] = useGenerateBillMutation();
   const [updateBillStatus] = useUpdateBillStatusMutation();
   const [deleteBill] = useDeleteBillMutation();
+  const [downloadPdf, { isLoading: isDownloading }] = useLazyGetBillPdfQuery();
 
   const handleGenerate = () => {
     setIsModalOpen(true);
@@ -75,6 +77,24 @@ export function BillsPage() {
         billId: bill._id,
         status: newStatus,
       }).unwrap();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    }
+  };
+
+  const handleDownloadPdf = async (bill: Bill) => {
+    if (!currentBusinessId) return;
+    try {
+      const blob = await downloadPdf({
+        businessId: currentBusinessId,
+        billId: bill._id,
+      }).unwrap();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoice-${bill.billNumber}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
     } catch (err) {
       alert(getErrorMessage(err));
     }
@@ -193,6 +213,22 @@ export function BillsPage() {
         const bill = row as unknown as Bill;
         return (
           <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownloadPdf(bill);
+              }}
+              title="Download invoice PDF"
+              disabled={isDownloading}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 4 }}>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Download
+            </button>
             <button className="btn btn-sm btn-secondary" onClick={() => navigate(`/bills/${bill._id}`)}>
               View
             </button>

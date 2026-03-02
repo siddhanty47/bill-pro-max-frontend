@@ -60,6 +60,14 @@ export const billApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Bill'],
     }),
+
+    /** Download bill invoice PDF */
+    getBillPdf: builder.query<Blob, { businessId: string; billId: string }>({
+      query: ({ businessId, billId }) => ({
+        url: `/businesses/${businessId}/bills/${billId}/pdf`,
+        responseHandler: (response) => response.blob(),
+      }),
+    }),
   }),
 });
 
@@ -71,4 +79,5 @@ export const {
   useGenerateBillMutation,
   useUpdateBillStatusMutation,
   useDeleteBillMutation,
+  useLazyGetBillPdfQuery,
 } = billApi;
