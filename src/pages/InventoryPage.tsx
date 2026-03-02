@@ -9,6 +9,7 @@ import { usePlatform } from '../hooks/usePlatform';
 import {
   useGetInventoryQuery,
   useCreateInventoryMutation,
+  useDeleteInventoryMutation,
 } from '../api/inventoryApi';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
@@ -39,6 +40,7 @@ export function InventoryPage() {
   });
 
   const [createInventory, { isLoading: isCreating }] = useCreateInventoryMutation();
+  const [deleteInventory] = useDeleteInventoryMutation();
 
   const handleAdd = () => {
     setIsModalOpen(true);
@@ -54,6 +56,18 @@ export function InventoryPage() {
         data,
       }).unwrap();
       setIsModalOpen(false);
+    } catch (err) {
+      alert(getErrorMessage(err));
+    }
+  };
+
+  const handleDelete = async (item: Inventory) => {
+    if (!confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
+    try {
+      await deleteInventory({
+        businessId: currentBusinessId!,
+        itemId: item._id,
+      }).unwrap();
     } catch (err) {
       alert(getErrorMessage(err));
     }
@@ -105,6 +119,26 @@ export function InventoryPage() {
       render: (row: TableItem) => {
         const item = row as unknown as Inventory;
         return item.defaultRatePerDay ? `₹${item.defaultRatePerDay}` : '-';
+      },
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (row: TableItem) => {
+        const item = row as unknown as Inventory;
+        const canDelete = item.rentedQuantity === 0;
+        return (
+          <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="btn btn-sm btn-danger"
+              onClick={() => handleDelete(item)}
+              disabled={!canDelete}
+              title={!canDelete ? 'Cannot delete: items are currently rented' : 'Delete item'}
+            >
+              Delete
+            </button>
+          </div>
+        );
       },
     },
   ];
