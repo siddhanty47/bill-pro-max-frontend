@@ -204,7 +204,7 @@ export function BillDetailPage() {
       headerActions={
         bill && currentBusinessId ? (
           <button
-            className="btn btn-primary btn-sm"
+            className="btn btn-primary"
             onClick={handleDownloadPdf}
             disabled={isDownloading}
           >
@@ -240,7 +240,7 @@ export function BillDetailPage() {
                 <strong>Stale bill</strong> &mdash; Underlying challan data has changed since this bill was generated.
               </span>
               <button
-                className="btn btn-primary btn-sm"
+                className="btn btn-primary"
                 onClick={handleRegenerate}
                 disabled={isRegenerating}
                 style={{ whiteSpace: 'nowrap' }}
