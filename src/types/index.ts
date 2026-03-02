@@ -431,6 +431,8 @@ export interface Bill {
     start: string;
     end: string;
   };
+  /** Bill date (optional for legacy bills; UI/PDF fallback to period end or createdAt) */
+  billDate?: string;
   items: BillItem[];
   subtotal: number;
   taxMode?: 'intra' | 'inter';
@@ -460,6 +462,7 @@ export interface Bill {
 }
 
 export interface GenerateBillInput {
+  billDate: string;
   partyId: string;
   agreementId: string;
   billingPeriod: {

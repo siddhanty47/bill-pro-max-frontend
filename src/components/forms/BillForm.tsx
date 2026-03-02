@@ -9,6 +9,7 @@ import type { Party, GenerateBillInput } from '../../types';
 import { useCurrentBusiness } from '../../hooks/useCurrentBusiness';
 
 const billSchema = z.object({
+  billDate: z.string().min(1, 'Bill date is required'),
   partyId: z.string().min(1, 'Select a party'),
   agreementId: z.string().min(1, 'Select an agreement'),
   periodStart: z.string().min(1, 'Start date is required'),
@@ -42,6 +43,7 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
   } = useForm<FormData>({
     resolver: zodResolver(billSchema),
     defaultValues: {
+      billDate: new Date().toISOString().split('T')[0],
       periodStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
         .toISOString()
         .split('T')[0],
@@ -85,6 +87,7 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
         : sanitize(igstRate);
 
     await onSubmit({
+      billDate: data.billDate,
       partyId: data.partyId,
       agreementId: data.agreementId,
       billingPeriod: {
@@ -111,6 +114,11 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
 
   return (
     <form onSubmit={onFormSubmit}>
+      <div className="form-group">
+        <label htmlFor="billDate">Bill Date</label>
+        <input id="billDate" type="date" {...register('billDate')} disabled={isLoading} />
+        {errors.billDate && <span className="error-message">{errors.billDate.message}</span>}
+      </div>
       <div className="form-row">
         <div className="form-group">
           <label htmlFor="partyId">Party *</label>

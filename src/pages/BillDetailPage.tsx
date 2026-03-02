@@ -98,6 +98,7 @@ export function BillDetailPage() {
       const newBill = await generateBill({
         businessId: currentBusinessId,
         data: {
+          billDate: bill.billDate || bill.billingPeriod.end || bill.createdAt,
           partyId: bill.partyId,
           agreementId: bill.agreementId,
           billingPeriod: bill.billingPeriod,
@@ -216,7 +217,12 @@ export function BillDetailPage() {
           <DetailSection title="Billing Period">
             <DetailField label="Period Start" value={formatDate(bill.billingPeriod.start)} />
             <DetailField label="Period End" value={formatDate(bill.billingPeriod.end)} />
-            <DetailField label="Bill Date" value={formatDate(bill.createdAt)} />
+            <DetailField
+              label="Bill Date"
+              value={formatDate(
+                bill.billDate || bill.billingPeriod?.end || bill.createdAt
+              )}
+            />
           </DetailSection>
 
           {/* Line Items */}
