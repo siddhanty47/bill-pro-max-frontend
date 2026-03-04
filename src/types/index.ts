@@ -320,6 +320,7 @@ export interface Inventory {
   unit: string;
   description?: string;
   defaultRatePerDay?: number;
+  damageRate?: number;
   purchaseInfo?: PurchaseInfo;
   quantityHistory?: QuantityTransaction[];
   isActive: boolean;
@@ -335,6 +336,7 @@ export interface CreateInventoryInput {
   unit: string;
   description?: string;
   defaultRatePerDay?: number;
+  damageRate?: number;
   purchaseInfo?: {
     supplierPartyId?: string;
     supplierName?: string;

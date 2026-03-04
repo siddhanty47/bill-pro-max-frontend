@@ -214,6 +214,19 @@ export function InventoryDetailPage() {
         }}
       />
 
+      {/* Damage Charge — fixed price per unit when returned damaged */}
+      <DetailField
+        label="Damage Charge (₹)"
+        value={item.damageRate != null && item.damageRate > 0 ? `₹${item.damageRate}` : undefined}
+        editable={{
+          rawValue: item.damageRate ?? 0,
+          inputType: 'number',
+          prefix: '₹',
+          onSave: (v) => handleSave('damageRate', v),
+          isSaving,
+        }}
+      />
+
       <DetailField
         label="Status"
         value={
