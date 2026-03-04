@@ -74,7 +74,9 @@ export function BillDetailPage() {
 
   const partyName = parties?.find((p) => p._id === bill?.partyId)?.name || bill?.partyId || '';
   const outstanding = bill ? bill.totalAmount - bill.amountPaid : 0;
-  const rentalSubtotal = bill ? bill.subtotal - (bill.transportationCharges || 0) : 0;
+  const rentalSubtotal = bill
+    ? bill.subtotal - (bill.transportationCharges || 0) - (bill.damageCharges || 0)
+    : 0;
 
   /** Save handler for bill status changes */
   const handleStatusSave = useCallback(
@@ -292,12 +294,46 @@ export function BillDetailPage() {
             )}
           </DetailSection>
 
+          {/* Damage Items (if any) */}
+          {bill.damageItems && bill.damageItems.length > 0 && (
+            <DetailSection title={`Damage Items (${bill.damageItems.length})`}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Rate</th>
+                    <th style={{ textAlign: 'right' }}>Amount</th>
+                    <th>Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bill.damageItems.map((d, idx) => (
+                    <tr key={`${d.itemId}-${idx}`}>
+                      <td>{d.itemName}</td>
+                      <td>{d.quantity}</td>
+                      <td>₹{d.damageRate}</td>
+                      <td style={{ textAlign: 'right' }}>{formatCurrency(d.amount)}</td>
+                      <td style={{ color: d.note ? '#333' : '#999', fontStyle: d.note ? 'normal' : 'italic' }}>
+                        {d.note || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </DetailSection>
+          )}
+
           {/* Financial Summary */}
           <DetailSection title="Financial Summary">
             <DetailField label="Rental Subtotal" value={formatCurrency(rentalSubtotal)} />
             <DetailField
               label="Transportation Charges"
               value={formatCurrency(bill.transportationCharges || 0)}
+            />
+            <DetailField
+              label="Damage Charges"
+              value={formatCurrency(bill.damageCharges || 0)}
             />
             <DetailField label="Subtotal" value={formatCurrency(bill.subtotal)} />
             {bill.taxMode === 'intra' ? (

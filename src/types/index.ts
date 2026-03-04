@@ -360,7 +360,14 @@ export interface ChallanItem {
   itemId: string;
   itemName: string;
   quantity: number;
-  condition: 'good' | 'damaged' | 'missing';
+}
+
+export interface DamagedItem {
+  itemId: string;
+  itemName: string;
+  quantity: number;
+  damageRate: number;
+  note?: string;
 }
 
 export interface Challan {
@@ -372,6 +379,7 @@ export interface Challan {
   agreementId: string;
   date: string;
   items: ChallanItem[];
+  damagedItems?: DamagedItem[];
   status: 'draft' | 'confirmed' | 'cancelled';
   confirmedBy?: string;
   confirmedAt?: string;
@@ -395,7 +403,13 @@ export interface CreateChallanInput {
     itemId: string;
     itemName: string;
     quantity: number;
-    condition?: 'good' | 'damaged' | 'missing';
+  }[];
+  damagedItems?: {
+    itemId: string;
+    itemName: string;
+    quantity: number;
+    damageRate: number;
+    note?: string;
   }[];
   notes?: string;
   transporterName?: string;
@@ -421,6 +435,15 @@ export interface BillItem {
   ratePerDay: number;
   totalDays: number;
   amount: number;
+}
+
+export interface DamageBillItem {
+  itemId: string;
+  itemName: string;
+  quantity: number;
+  damageRate: number;
+  amount: number;
+  note?: string;
 }
 
 export interface Bill {
@@ -458,6 +481,8 @@ export interface Bill {
   amountPaid: number;
   notes?: string;
   transportationCharges?: number;
+  damageItems?: DamageBillItem[];
+  damageCharges?: number;
   isStale?: boolean;
   createdAt: string;
   updatedAt: string;

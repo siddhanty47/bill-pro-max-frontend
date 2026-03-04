@@ -82,10 +82,20 @@ const challanSchema = z.object({
         itemId: z.string().min(1, 'Select an item'),
         itemName: z.string().min(1),
         quantity: z.number().int().min(1, 'Quantity must be at least 1'),
-        condition: z.enum(['good', 'damaged', 'missing']),
       })
     )
     .min(1, 'Add at least one item'),
+  damagedItems: z
+    .array(
+      z.object({
+        itemId: z.string().min(1, 'Select an item'),
+        itemName: z.string().min(1),
+        quantity: z.number().int().min(1, 'Quantity must be at least 1'),
+        damageRate: z.number().min(0),
+        note: z.string().max(500).optional(),
+      })
+    )
+    .optional(),
   notes: z.string().max(1000).optional(),
   transporterId: z.string().optional(),
   transporterName: z.string().max(100).optional(),
@@ -126,6 +136,7 @@ export function ChallanForm({
 }: ChallanFormProps) {
   const [partySearchValue, setPartySearchValue] = useState('');
   const [itemSearchValues, setItemSearchValues] = useState<Record<number, string>>({});
+  const [damagedItemSearchValues, setDamagedItemSearchValues] = useState<Record<number, string>>({});
 
   const {
     register,
@@ -139,13 +150,23 @@ export function ChallanForm({
     defaultValues: {
       type: 'delivery',
       date: new Date().toISOString().split('T')[0],
-      items: [{ itemId: '', itemName: '', quantity: 1, condition: 'good' }],
+      items: [{ itemId: '', itemName: '', quantity: 1 }],
+      damagedItems: [],
     },
   });
 
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'items',
+  });
+
+  const {
+    fields: damagedFields,
+    append: appendDamaged,
+    remove: removeDamaged,
+  } = useFieldArray({
+    control,
+    name: 'damagedItems',
   });
 
   const selectedPartyId = watch('partyId');
@@ -288,7 +309,35 @@ export function ChallanForm({
     setItemSearchValues((prev) => ({ ...prev, [index]: value }));
   }, []);
 
+  const handleDamagedItemSelect = useCallback(
+    (index: number, item: AutocompleteItem) => {
+      const inventoryItem = inventoryItems.find((i) => i._id === item.id);
+      setValue(`damagedItems.${index}.itemId`, item.id);
+      setValue(`damagedItems.${index}.itemName`, inventoryItem?.name || item.label);
+      setValue(`damagedItems.${index}.damageRate`, inventoryItem?.damageRate ?? 0);
+      setDamagedItemSearchValues((prev) => ({ ...prev, [index]: item.code }));
+    },
+    [inventoryItems, setValue]
+  );
+
+  const handleDamagedItemSearchChange = useCallback((index: number, value: string) => {
+    setDamagedItemSearchValues((prev) => ({ ...prev, [index]: value }));
+  }, []);
+
   const handleFormSubmit = async (data: FormData) => {
+    const damagedItems =
+      data.type === 'return' && data.damagedItems?.length
+        ? data.damagedItems
+            .filter((d) => d.itemId)
+            .map((d) => ({
+              itemId: d.itemId,
+              itemName: d.itemName,
+              quantity: d.quantity,
+              damageRate: d.damageRate,
+              note: d.note || undefined,
+            }))
+        : undefined;
+
     await onSubmit({
       type: data.type,
       partyId: data.partyId,
@@ -298,8 +347,8 @@ export function ChallanForm({
         itemId: item.itemId,
         itemName: item.itemName,
         quantity: item.quantity,
-        condition: item.condition,
       })),
+      damagedItems: damagedItems?.length ? damagedItems : undefined,
       notes: data.notes || undefined,
       transporterName: data.transporterName || undefined,
       vehicleNumber: data.vehicleNumber || undefined,
@@ -375,7 +424,6 @@ export function ChallanForm({
           <span className={styles.itemHeaderName}>Item</span>
           <span className={styles.itemHeaderQty}>Qty</span>
           <span className={styles.itemHeaderRunning}>Running</span>
-          {challanType === 'return' && <span className={styles.itemHeaderCondition}>Condition</span>}
           <span className={styles.itemHeaderAction}></span>
         </div>
 
@@ -412,16 +460,6 @@ export function ChallanForm({
                 <span className={styles.runningQtyValue}>{runningQty}</span>
               </div>
 
-              {challanType === 'return' && (
-                <div className={`form-group ${styles.conditionGroup}`}>
-                  <select {...register(`items.${index}.condition`)} disabled={isLoading}>
-                    <option value="good">Good</option>
-                    <option value="damaged">Damaged</option>
-                    <option value="missing">Missing</option>
-                  </select>
-                </div>
-              )}
-
               {fields.length > 1 && (
                 <button
                   type="button"
@@ -439,7 +477,7 @@ export function ChallanForm({
         <button
           type="button"
           className="btn btn-secondary btn-sm"
-          onClick={() => append({ itemId: '', itemName: '', quantity: 1, condition: 'good' })}
+          onClick={() => append({ itemId: '', itemName: '', quantity: 1 })}
           disabled={isLoading}
         >
           + Add Item
@@ -450,6 +488,79 @@ export function ChallanForm({
         <label htmlFor="notes">Notes</label>
         <textarea id="notes" {...register('notes')} rows={2} disabled={isLoading} />
       </div>
+
+      {/* Damaged Items section (return challans only) */}
+      {challanType === 'return' && (
+        <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: '12px 16px', marginBottom: 16 }}>
+          <legend style={{ fontSize: 13, fontWeight: 600, color: '#555', padding: '0 6px' }}>
+            Damaged Items
+          </legend>
+
+          {damagedFields.map((field, index) => (
+            <div key={field.id} className={`form-row ${styles.itemRow}`}>
+              <div className={styles.itemAutocomplete}>
+                <CodeAutocomplete
+                  label=""
+                  placeholder="Type item code or name..."
+                  value={damagedItemSearchValues[index] || ''}
+                  onChange={(value) => handleDamagedItemSearchChange(index, value)}
+                  items={inventoryAutocompleteItems}
+                  onSelect={(item) => handleDamagedItemSelect(index, item)}
+                  disabled={isLoading}
+                />
+                <input type="hidden" {...register(`damagedItems.${index}.itemId`)} />
+                <input type="hidden" {...register(`damagedItems.${index}.itemName`)} />
+              </div>
+
+              <div className={`form-group ${styles.qtyGroup}`}>
+                <input
+                  type="number"
+                  placeholder="Qty"
+                  {...register(`damagedItems.${index}.quantity`, { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className={`form-group ${styles.qtyGroup}`}>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Rate"
+                  {...register(`damagedItems.${index}.damageRate`, { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="form-group" style={{ flex: 2 }}>
+                <input
+                  type="text"
+                  placeholder="Note (optional)"
+                  {...register(`damagedItems.${index}.note`)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <button
+                type="button"
+                className={`btn btn-danger btn-sm ${styles.removeButton}`}
+                onClick={() => removeDamaged(index)}
+                disabled={isLoading}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => appendDamaged({ itemId: '', itemName: '', quantity: 1, damageRate: 0, note: '' })}
+            disabled={isLoading}
+          >
+            + Add Damaged Item
+          </button>
+        </fieldset>
+      )}
 
       {/* Transportation section */}
       <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: '12px 16px', marginBottom: 16 }}>

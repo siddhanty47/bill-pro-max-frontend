@@ -1,22 +1,29 @@
 /**
  * @fileoverview Challan detail view page
  * @description Detail page showing all information for a single
- * challan (delivery or return), including editable items, vehicle details, and notes.
+ * challan (delivery or return), including editable items, damaged items,
+ * vehicle details, and notes.
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
   useGetChallanQuery,
   useUpdateChallanTransportationMutation,
   useUpdateChallanItemMutation,
+  useAddChallanItemMutation,
+  useDeleteChallanItemMutation,
+  useUpdateChallanDamagedItemsMutation,
 } from '../api/challanApi';
 import { useGetPartiesQuery } from '../api/partyApi';
+import { useGetInventoryQuery } from '../api/inventoryApi';
 import {
   DetailPageShell,
   DetailSection,
   DetailField,
 } from '../components/DetailPageShell';
+import { CodeAutocomplete, type AutocompleteItem } from '../components/CodeAutocomplete';
+import type { DamagedItem } from '../types';
 
 /**
  * Formats an ISO date string for display.
@@ -50,14 +57,40 @@ export function ChallanDetailPage() {
   const { data: parties } = useGetPartiesQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
   });
+  const { data: inventoryItems } = useGetInventoryQuery(currentBusinessId || '', {
+    skip: !currentBusinessId,
+  });
+
   const [updateTransportation, { isLoading: isSavingTransportation }] =
     useUpdateChallanTransportationMutation();
   const [updateItem, { isLoading: isSavingItem }] = useUpdateChallanItemMutation();
+  const [addItem, { isLoading: isAddingItem }] = useAddChallanItemMutation();
+  const [deleteItem] = useDeleteChallanItemMutation();
+  const [updateDamagedItems, { isLoading: isSavingDamage }] = useUpdateChallanDamagedItemsMutation();
 
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editQty, setEditQty] = useState<number>(0);
 
+  // Add item state
+  const [showAddItem, setShowAddItem] = useState(false);
+  const [addItemSearch, setAddItemSearch] = useState('');
+  const [addItemData, setAddItemData] = useState<{ itemId: string; itemName: string; quantity: number } | null>(null);
+
+  // Damaged items editing state
+  const [editingDamage, setEditingDamage] = useState(false);
+  const [localDamagedItems, setLocalDamagedItems] = useState<DamagedItem[]>([]);
+  const [damageItemSearch, setDamageItemSearch] = useState<Record<number, string>>({});
+
   const partyName = parties?.find((p) => p._id === challan?.partyId)?.name || challan?.partyId || '';
+
+  const inventoryAutocompleteItems: AutocompleteItem[] = useMemo(() => {
+    return (inventoryItems || []).map((item) => ({
+      code: item.code || item.name.substring(0, 4).toUpperCase(),
+      label: item.name,
+      sublabel: `Avail: ${item.availableQuantity} ${item.unit}`,
+      id: item._id,
+    }));
+  }, [inventoryItems]);
 
   const handleTransportationSave = useCallback(
     async (field: string, newValue: string | number) => {
@@ -93,6 +126,60 @@ export function ChallanDetailPage() {
     },
     [currentBusinessId, challanId, editQty, updateItem]
   );
+
+  const handleAddItem = useCallback(async () => {
+    if (!currentBusinessId || !challanId || !addItemData) return;
+    try {
+      await addItem({
+        businessId: currentBusinessId,
+        challanId,
+        data: addItemData,
+      }).unwrap();
+      setShowAddItem(false);
+      setAddItemData(null);
+      setAddItemSearch('');
+    } catch {
+      // error is handled by RTK Query
+    }
+  }, [currentBusinessId, challanId, addItemData, addItem]);
+
+  const handleDeleteItem = useCallback(
+    async (itemId: string) => {
+      if (!currentBusinessId || !challanId) return;
+      if (!window.confirm('Delete this item from the challan?')) return;
+      try {
+        await deleteItem({
+          businessId: currentBusinessId,
+          challanId,
+          itemId,
+        }).unwrap();
+      } catch {
+        // error is handled by RTK Query
+      }
+    },
+    [currentBusinessId, challanId, deleteItem]
+  );
+
+  const startEditingDamage = useCallback(() => {
+    setLocalDamagedItems(challan?.damagedItems ? [...challan.damagedItems] : []);
+    setDamageItemSearch({});
+    setEditingDamage(true);
+  }, [challan?.damagedItems]);
+
+  const handleSaveDamagedItems = useCallback(async () => {
+    if (!currentBusinessId || !challanId) return;
+    const filtered = localDamagedItems.filter((d) => d.itemId);
+    try {
+      await updateDamagedItems({
+        businessId: currentBusinessId,
+        challanId,
+        damagedItems: filtered,
+      }).unwrap();
+      setEditingDamage(false);
+    } catch {
+      // error is handled by RTK Query
+    }
+  }, [currentBusinessId, challanId, localDamagedItems, updateDamagedItems]);
 
   const sidebar = challan ? (
     <DetailSection title="Details">
@@ -165,7 +252,7 @@ export function ChallanDetailPage() {
                   <tr>
                     <th>Item</th>
                     <th>Quantity</th>
-                    <th>Condition</th>
+                    <th style={{ width: 80 }}></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -217,9 +304,15 @@ export function ChallanDetailPage() {
                         )}
                       </td>
                       <td>
-                        <span className={`status status-${item.condition === 'good' ? 'active' : item.condition === 'damaged' ? 'overdue' : 'cancelled'}`}>
-                          {item.condition}
-                        </span>
+                        {challan.items.length > 1 && (
+                          <button
+                            onClick={() => handleDeleteItem(item.itemId)}
+                            style={{ padding: '2px 8px', cursor: 'pointer', fontSize: 12, color: '#dc2626' }}
+                            title="Delete item"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -228,7 +321,206 @@ export function ChallanDetailPage() {
             ) : (
               <p style={{ color: '#999', fontStyle: 'italic' }}>No items in this challan.</p>
             )}
+
+            {/* Add item row */}
+            {showAddItem ? (
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginTop: 8 }}>
+                <div style={{ flex: 2 }}>
+                  <CodeAutocomplete
+                    label=""
+                    placeholder="Type item code or name..."
+                    value={addItemSearch}
+                    onChange={setAddItemSearch}
+                    items={inventoryAutocompleteItems}
+                    onSelect={(item) => {
+                      const inv = inventoryItems?.find((i) => i._id === item.id);
+                      setAddItemData({
+                        itemId: item.id,
+                        itemName: inv?.name || item.label,
+                        quantity: 1,
+                      });
+                      setAddItemSearch(item.code);
+                    }}
+                  />
+                </div>
+                {addItemData && (
+                  <input
+                    type="number"
+                    min={1}
+                    value={addItemData.quantity}
+                    onChange={(e) => setAddItemData({ ...addItemData, quantity: Number(e.target.value) })}
+                    style={{ width: 70, padding: '4px 6px' }}
+                  />
+                )}
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={handleAddItem}
+                  disabled={!addItemData || isAddingItem}
+                >
+                  {isAddingItem ? '...' : 'Add'}
+                </button>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => { setShowAddItem(false); setAddItemData(null); setAddItemSearch(''); }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ marginTop: 8 }}
+                onClick={() => setShowAddItem(true)}
+              >
+                + Add Item
+              </button>
+            )}
           </DetailSection>
+
+          {/* Damaged Items (return challans only) */}
+          {challan.type === 'return' && (
+            <DetailSection title="Damaged Items">
+              {editingDamage ? (
+                <>
+                  {localDamagedItems.map((d, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 8 }}>
+                      <div style={{ flex: 2 }}>
+                        <CodeAutocomplete
+                          label=""
+                          placeholder="Item..."
+                          value={damageItemSearch[idx] || d.itemName || ''}
+                          onChange={(v) => setDamageItemSearch((prev) => ({ ...prev, [idx]: v }))}
+                          items={inventoryAutocompleteItems}
+                          onSelect={(item) => {
+                            const inv = inventoryItems?.find((i) => i._id === item.id);
+                            const updated = [...localDamagedItems];
+                            updated[idx] = {
+                              ...updated[idx],
+                              itemId: item.id,
+                              itemName: inv?.name || item.label,
+                              damageRate: inv?.damageRate ?? updated[idx].damageRate,
+                            };
+                            setLocalDamagedItems(updated);
+                            setDamageItemSearch((prev) => ({ ...prev, [idx]: item.code }));
+                          }}
+                        />
+                      </div>
+                      <input
+                        type="number"
+                        min={1}
+                        placeholder="Qty"
+                        value={d.quantity}
+                        onChange={(e) => {
+                          const updated = [...localDamagedItems];
+                          updated[idx] = { ...updated[idx], quantity: Number(e.target.value) };
+                          setLocalDamagedItems(updated);
+                        }}
+                        style={{ width: 70, padding: '4px 6px' }}
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        placeholder="Rate"
+                        value={d.damageRate}
+                        onChange={(e) => {
+                          const updated = [...localDamagedItems];
+                          updated[idx] = { ...updated[idx], damageRate: Number(e.target.value) };
+                          setLocalDamagedItems(updated);
+                        }}
+                        style={{ width: 90, padding: '4px 6px' }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Note"
+                        value={d.note || ''}
+                        onChange={(e) => {
+                          const updated = [...localDamagedItems];
+                          updated[idx] = { ...updated[idx], note: e.target.value };
+                          setLocalDamagedItems(updated);
+                        }}
+                        style={{ flex: 1, padding: '4px 6px' }}
+                      />
+                      <button
+                        onClick={() => {
+                          const updated = [...localDamagedItems];
+                          updated.splice(idx, 1);
+                          setLocalDamagedItems(updated);
+                        }}
+                        style={{ padding: '2px 8px', cursor: 'pointer', fontSize: 12, color: '#dc2626' }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        setLocalDamagedItems([
+                          ...localDamagedItems,
+                          { itemId: '', itemName: '', quantity: 1, damageRate: 0, note: '' },
+                        ]);
+                      }}
+                    >
+                      + Add Damaged Item
+                    </button>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={handleSaveDamagedItems}
+                      disabled={isSavingDamage}
+                    >
+                      {isSavingDamage ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setEditingDamage(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {challan.damagedItems && challan.damagedItems.length > 0 ? (
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Item</th>
+                          <th>Qty</th>
+                          <th>Rate</th>
+                          <th>Amount</th>
+                          <th>Note</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {challan.damagedItems.map((d, idx) => (
+                          <tr key={`${d.itemId}-${idx}`}>
+                            <td>{d.itemName}</td>
+                            <td>{d.quantity}</td>
+                            <td>₹{d.damageRate}</td>
+                            <td>₹{(d.quantity * d.damageRate).toLocaleString()}</td>
+                            <td style={{ color: d.note ? '#333' : '#999', fontStyle: d.note ? 'normal' : 'italic' }}>
+                              {d.note || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p style={{ color: '#999', fontStyle: 'italic' }}>No damaged items recorded.</p>
+                  )}
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    style={{ marginTop: 8 }}
+                    onClick={startEditingDamage}
+                  >
+                    Edit Damaged Items
+                  </button>
+                </>
+              )}
+            </DetailSection>
+          )}
 
           {/* Transportation */}
           <DetailSection title="Transportation">

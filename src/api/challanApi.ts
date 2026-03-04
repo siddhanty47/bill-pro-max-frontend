@@ -2,7 +2,7 @@
  * Challan API endpoints
  */
 import { baseApi } from './baseApi';
-import type { Challan, CreateChallanInput, ItemWithParty, ApiResponse, PaginatedResponse } from '../types';
+import type { Challan, CreateChallanInput, DamagedItem, ItemWithParty, ApiResponse, PaginatedResponse } from '../types';
 
 export const challanApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -94,6 +94,56 @@ export const challanApi = baseApi.injectEndpoints({
       providesTags: ['Challan'],
     }),
 
+    addChallanItem: builder.mutation<
+      Challan,
+      { businessId: string; challanId: string; data: { itemId: string; itemName: string; quantity: number } }
+    >({
+      query: ({ businessId, challanId, data }) => ({
+        url: `/businesses/${businessId}/challans/${challanId}/items`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<Challan>) => response.data,
+      invalidatesTags: (_result, _error, { challanId }) => [
+        { type: 'Challan', id: challanId },
+        'Challan',
+        'Bill',
+      ],
+    }),
+
+    deleteChallanItem: builder.mutation<
+      Challan,
+      { businessId: string; challanId: string; itemId: string }
+    >({
+      query: ({ businessId, challanId, itemId }) => ({
+        url: `/businesses/${businessId}/challans/${challanId}/items/${itemId}`,
+        method: 'DELETE',
+      }),
+      transformResponse: (response: ApiResponse<Challan>) => response.data,
+      invalidatesTags: (_result, _error, { challanId }) => [
+        { type: 'Challan', id: challanId },
+        'Challan',
+        'Bill',
+      ],
+    }),
+
+    updateChallanDamagedItems: builder.mutation<
+      Challan,
+      { businessId: string; challanId: string; damagedItems: DamagedItem[] }
+    >({
+      query: ({ businessId, challanId, damagedItems }) => ({
+        url: `/businesses/${businessId}/challans/${challanId}/damaged-items`,
+        method: 'PUT',
+        body: { damagedItems },
+      }),
+      transformResponse: (response: ApiResponse<Challan>) => response.data,
+      invalidatesTags: (_result, _error, { challanId }) => [
+        { type: 'Challan', id: challanId },
+        'Challan',
+        'Bill',
+      ],
+    }),
+
     getChallansByAgreement: builder.query<Challan[], { businessId: string; agreementId: string }>({
       query: ({ businessId, agreementId }) =>
         `/businesses/${businessId}/challans?agreementId=${encodeURIComponent(agreementId)}&pageSize=100`,
@@ -110,6 +160,9 @@ export const {
   useConfirmChallanMutation,
   useUpdateChallanItemMutation,
   useUpdateChallanTransportationMutation,
+  useAddChallanItemMutation,
+  useDeleteChallanItemMutation,
+  useUpdateChallanDamagedItemsMutation,
   useGetNextChallanNumberQuery,
   useGetItemsWithPartyQuery,
   useGetChallansByAgreementQuery,
