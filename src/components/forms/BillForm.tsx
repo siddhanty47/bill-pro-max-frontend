@@ -1,8 +1,9 @@
 /**
  * Bill generation form component
  */
-import { useEffect } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
+import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Party, GenerateBillInput } from '../../types';
@@ -34,6 +35,7 @@ interface BillFormProps {
 
 export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormProps) {
   const { currentBusiness } = useCurrentBusiness();
+  const [partySearchValue, setPartySearchValue] = useState('');
   const {
     register,
     handleSubmit,
@@ -104,10 +106,44 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
     });
   };
 
-  // Filter parties with active agreements
-  const partiesWithAgreements = parties.filter(
-    (p) => p.agreements && p.agreements.some((a) => a.status === 'active')
+  const partiesWithAgreements = useMemo(
+    () =>
+      parties.filter(
+        (p) => p.agreements && p.agreements.some((a) => a.status === 'active')
+      ),
+    [parties]
   );
+
+  const partyAutocompleteItems: AutocompleteItem[] = useMemo(
+    () =>
+      partiesWithAgreements.map((party) => ({
+        code: party.code || party.name.substring(0, 4).toUpperCase(),
+        label: party.name,
+        sublabel: party.contact.person,
+        id: party._id,
+      })),
+    [partiesWithAgreements]
+  );
+
+  const handlePartySelect = useCallback(
+    (item: AutocompleteItem) => {
+      setValue('partyId', item.id);
+      setValue('agreementId', '');
+      setPartySearchValue(item.code);
+    },
+    [setValue]
+  );
+
+  useEffect(() => {
+    if (selectedPartyId) {
+      const party = partiesWithAgreements.find((p) => p._id === selectedPartyId);
+      if (party) {
+        setPartySearchValue(party.code || party.name.substring(0, 4).toUpperCase());
+      }
+    } else {
+      setPartySearchValue('');
+    }
+  }, [selectedPartyId, partiesWithAgreements]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onFormSubmit = handleSubmit(handleFormSubmit as any);
@@ -121,16 +157,18 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
       </div>
       <div className="form-row">
         <div className="form-group">
-          <label htmlFor="partyId">Party *</label>
-          <select id="partyId" {...register('partyId')} disabled={isLoading}>
-            <option value="">Select party...</option>
-            {partiesWithAgreements.map((party) => (
-              <option key={party._id} value={party._id}>
-                {party.name}
-              </option>
-            ))}
-          </select>
-          {errors.partyId && <span className="error-message">{errors.partyId.message}</span>}
+          <CodeAutocomplete
+            label="Party *"
+            placeholder="Type party code or name..."
+            value={partySearchValue}
+            onChange={setPartySearchValue}
+            items={partyAutocompleteItems}
+            onSelect={handlePartySelect}
+            disabled={isLoading}
+            error={errors.partyId?.message}
+            required
+          />
+          <input type="hidden" {...register('partyId')} />
         </div>
 
         <div className="form-group">
