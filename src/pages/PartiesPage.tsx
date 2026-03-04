@@ -254,6 +254,7 @@ export function PartiesPage() {
         isOpen={isPartyModalOpen}
         onClose={() => setIsPartyModalOpen(false)}
         title="Add Party"
+        size="form"
       >
         <PartyForm
           onSubmit={handlePartySubmit}
@@ -266,6 +267,7 @@ export function PartiesPage() {
         isOpen={isAgreementModalOpen}
         onClose={() => setIsAgreementModalOpen(false)}
         title={`Add Agreement for ${selectedParty?.name || ''}`}
+        size="form"
       >
         <AgreementForm
           inventoryItems={inventory || []}

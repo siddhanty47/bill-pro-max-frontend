@@ -198,6 +198,7 @@ export function InventoryPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title="Add Inventory Item"
+        size="form"
       >
         <InventoryForm
           onSubmit={handleSubmit}

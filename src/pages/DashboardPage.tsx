@@ -73,6 +73,7 @@ export function DashboardPage() {
           isOpen={isBusinessModalOpen}
           onClose={() => setIsBusinessModalOpen(false)}
           title="Create New Business"
+          size="form"
         >
           <BusinessForm
             onSubmit={handleCreateBusiness}
@@ -172,6 +173,7 @@ export function DashboardPage() {
         isOpen={isBusinessModalOpen}
         onClose={() => setIsBusinessModalOpen(false)}
         title="Create New Business"
+        size="form"
       >
         <BusinessForm
           onSubmit={handleCreateBusiness}

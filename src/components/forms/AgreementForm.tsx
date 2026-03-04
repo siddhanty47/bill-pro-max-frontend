@@ -199,6 +199,9 @@ export function AgreementForm({
 
   return (
     <form onSubmit={onFormSubmit}>
+      <div className="form-content">
+      <div className="form-columns">
+        <div>
       <div className="form-group">
         <label htmlFor="siteCode">Site *</label>
         <select id="siteCode" {...register('siteCode')} disabled={isLoading}>
@@ -260,7 +263,8 @@ export function AgreementForm({
           />
         </div>
       </div>
-
+        </div>
+        <div>
       {/* Transportation Charges */}
       <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: '12px 16px', marginBottom: 16 }}>
         <legend style={{ fontSize: 13, fontWeight: 600, color: '#555', padding: '0 6px' }}>
@@ -315,8 +319,10 @@ export function AgreementForm({
           </div>
         </div>
       </fieldset>
+        </div>
+      </div>
 
-      {/* Category selection */}
+      {/* Category selection - full width */}
       <div className="form-group">
         <label>Select Categories *</label>
 
@@ -414,6 +420,7 @@ export function AgreementForm({
           </div>
         </div>
       )}
+      </div>
 
       <div className="form-actions">
         <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={isLoading}>

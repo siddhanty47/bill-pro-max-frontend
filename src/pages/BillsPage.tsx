@@ -314,7 +314,7 @@ export function BillsPage() {
         emptyMessage="No bills found. Generate your first bill to get started."
       />
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Generate Bill">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Generate Bill" size="form">
         <BillForm
           parties={parties || []}
           onSubmit={handleSubmit}

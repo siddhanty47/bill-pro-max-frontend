@@ -398,6 +398,7 @@ export function PartyDetailPage() {
             isOpen={isAgreementModalOpen}
             onClose={() => setIsAgreementModalOpen(false)}
             title={`Add Agreement for ${party.name}`}
+            size="form"
           >
             <AgreementForm
               inventoryItems={inventory || []}

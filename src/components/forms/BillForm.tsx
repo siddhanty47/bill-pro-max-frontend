@@ -150,6 +150,9 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
 
   return (
     <form onSubmit={onFormSubmit}>
+      <div className="form-content">
+      <div className="form-columns">
+        <div>
       <div className="form-group">
         <label htmlFor="billDate">Bill Date</label>
         <input id="billDate" type="date" {...register('billDate')} disabled={isLoading} />
@@ -202,7 +205,8 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
           {errors.periodEnd && <span className="error-message">{errors.periodEnd.message}</span>}
         </div>
       </div>
-
+        </div>
+        <div>
       <div className="form-row">
         <div className="form-group">
           <label htmlFor="taxMode">Tax Mode</label>
@@ -265,6 +269,9 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
       <div className="form-group">
         <label htmlFor="notes">Notes</label>
         <textarea id="notes" {...register('notes')} rows={2} disabled={isLoading} />
+      </div>
+        </div>
+      </div>
       </div>
 
       <div className="form-actions">

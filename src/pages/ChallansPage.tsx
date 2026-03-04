@@ -233,6 +233,7 @@ export function ChallansPage() {
         onClose={() => setIsModalOpen(false)}
         title={`Create ${modalVariant === 'return' ? 'Return' : 'Delivery'} Challan`}
         variant={modalVariant}
+        size="form"
       >
         <ChallanForm
           businessId={currentBusinessId!}

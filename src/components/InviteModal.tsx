@@ -36,10 +36,12 @@ export function InviteModal({ businessId, onClose }: InviteModalProps) {
   };
 
   return (
-    <Modal isOpen={true} title="Invite Team Member" onClose={onClose}>
+    <Modal isOpen={true} title="Invite Team Member" onClose={onClose} size="form">
       {error && <div className="error-message">{getErrorMessage(error)}</div>}
 
       <form onSubmit={handleSubmit}>
+        <div className="form-content">
+        <div className="form-row">
         <div className="form-group">
           <label htmlFor="invite-email">Email Address</label>
           <input
@@ -68,8 +70,10 @@ export function InviteModal({ businessId, onClose }: InviteModalProps) {
             ))}
           </select>
         </div>
+        </div>
+        </div>
 
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+        <div className="form-actions">
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isLoading}>
             Cancel
           </button>

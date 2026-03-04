@@ -70,6 +70,9 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
 
   return (
     <form onSubmit={onFormSubmit}>
+      <div className="form-content">
+      <div className="form-columns">
+        <div>
       <div className="form-row">
         <div className="form-group">
           <label htmlFor="type">Payment Type *</label>
@@ -118,7 +121,8 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
           </select>
         </div>
       )}
-
+        </div>
+        <div>
       <div className="form-row">
         <div className="form-group">
           <label htmlFor="amount">Amount (₹) *</label>
@@ -152,6 +156,9 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
       <div className="form-group">
         <label htmlFor="notes">Notes</label>
         <textarea id="notes" {...register('notes')} rows={2} disabled={isLoading} />
+      </div>
+        </div>
+      </div>
       </div>
 
       <div className="form-actions">

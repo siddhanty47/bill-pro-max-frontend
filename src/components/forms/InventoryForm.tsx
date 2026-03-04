@@ -133,6 +133,9 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
 
   return (
     <form onSubmit={onFormSubmit}>
+      <div className="form-content">
+      <div className="form-columns">
+        <div>
       <div className="form-row">
         <div className={`form-group ${styles.nameGroup}`}>
           <label htmlFor="name">Item Name *</label>
@@ -185,7 +188,8 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
           {errors.unit && <span className="error-message">{errors.unit.message}</span>}
         </div>
       </div>
-
+        </div>
+        <div>
       <div className="form-row">
         <div className="form-group">
           <label htmlFor="totalQuantity">Total Quantity *</label>
@@ -226,6 +230,9 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
       <div className="form-group">
         <label htmlFor="description">Description</label>
         <textarea id="description" {...register('description')} rows={3} disabled={isLoading} />
+      </div>
+        </div>
+      </div>
       </div>
 
       <div className="form-actions">

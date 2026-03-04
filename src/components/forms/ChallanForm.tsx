@@ -363,6 +363,7 @@ export function ChallanForm({
 
   return (
     <form onSubmit={onFormSubmit}>
+      <div className="form-content">
       {/* Predicted challan number badge */}
       <div className={styles.challanNumberBadge}>
         <span className={styles.challanNumberLabel}>Challan #</span>
@@ -646,6 +647,7 @@ export function ChallanForm({
           </div>
         </div>
       </fieldset>
+      </div>
 
       <div className="form-actions">
         <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={isLoading}>

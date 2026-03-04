@@ -241,6 +241,9 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
 
   return (
     <form onSubmit={onFormSubmit}>
+      <div className="form-content">
+      <div className="form-columns">
+        <div>
       {/* GST lookup at the top — enter GSTIN first to auto-fill other fields */}
       <div className="form-group">
         <label htmlFor="gst">GST Number</label>
@@ -350,6 +353,8 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
         {errors.email && <span className="error-message">{errors.email.message}</span>}
       </div>
 
+        </div>
+        <div>
       <div className="form-group">
         <label htmlFor="address">Address</label>
         <textarea id="address" {...register('address')} rows={2} disabled={isLoading} />
@@ -404,10 +409,13 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
               {errors.siteCode && (
                 <span className="error-message">{errors.siteCode.message}</span>
               )}
-            </div>
           </div>
-        </fieldset>
+        </div>
+      </fieldset>
       )}
+        </div>
+      </div>
+      </div>
 
       <div className="form-actions">
         <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={isLoading}>

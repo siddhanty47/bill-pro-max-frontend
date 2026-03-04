@@ -68,10 +68,12 @@ export function EmployeeForm({ businessId, employee, onClose }: EmployeeFormProp
   };
 
   return (
-    <Modal isOpen={true} title={isEditing ? 'Edit Transporter' : 'Add Transporter'} onClose={onClose}>
+    <Modal isOpen={true} title={isEditing ? 'Edit Transporter' : 'Add Transporter'} onClose={onClose} size="form">
       {error && <div className="error-message">{getErrorMessage(error)}</div>}
 
       <form onSubmit={handleSubmit}>
+        <div className="form-content">
+        <div className="form-row">
         <div className="form-group">
           <label htmlFor="emp-name">Name</label>
           <input
@@ -111,8 +113,10 @@ export function EmployeeForm({ businessId, employee, onClose }: EmployeeFormProp
             />
           </div>
         )}
+        </div>
+        </div>
 
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+        <div className="form-actions">
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isLoading}>
             Cancel
           </button>

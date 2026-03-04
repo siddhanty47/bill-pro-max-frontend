@@ -79,7 +79,7 @@ export function AddSiteModal({ isOpen, onClose, businessId, party }: AddSiteModa
   const existingSiteCodes = party.sites.map((s) => s.code).join(', ') || 'None';
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title={`Add Site to ${party.name}`}>
+    <Modal isOpen={isOpen} onClose={handleClose} title={`Add Site to ${party.name}`} size="form">
       <form onSubmit={handleSubmit(handleFormSubmit)}>
         {error && (
           <div className={`error-message ${styles.errorAlert}`}>
@@ -87,12 +87,15 @@ export function AddSiteModal({ isOpen, onClose, businessId, party }: AddSiteModa
           </div>
         )}
 
+        <div className="form-content">
         <div className={`form-group ${styles.existingSitesInfo}`}>
           <p className={styles.existingSitesText}>
             <strong>Existing Sites:</strong> {existingSiteCodes}
           </p>
         </div>
 
+        <div className="form-columns">
+        <div>
         <div className="form-group">
           <label htmlFor="siteAddress">Site Address *</label>
           <textarea
@@ -106,7 +109,8 @@ export function AddSiteModal({ isOpen, onClose, businessId, party }: AddSiteModa
             <span className="error-message">{errors.address.message}</span>
           )}
         </div>
-
+        </div>
+        <div>
         <div className="form-group">
           <label htmlFor="siteCode">Site Code</label>
           <input
@@ -122,6 +126,9 @@ export function AddSiteModal({ isOpen, onClose, businessId, party }: AddSiteModa
           <small className={styles.helpText}>
             Leave empty to auto-generate from address
           </small>
+        </div>
+        </div>
+        </div>
         </div>
 
         <div className={`form-actions ${styles.actions}`}>

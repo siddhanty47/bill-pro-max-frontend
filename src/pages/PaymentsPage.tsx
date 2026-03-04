@@ -238,7 +238,7 @@ export function PaymentsPage() {
         emptyMessage="No payments found. Record your first payment to get started."
       />
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Record Payment">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Record Payment" size="form">
         <PaymentForm
           parties={parties || []}
           bills={bills || []}

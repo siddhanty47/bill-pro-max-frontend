@@ -127,6 +127,56 @@ body {
   margin-top: 20px;
   padding-top: 15px;
   border-top: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+/* Form layout for modal dialogs — scrollable content + sticky footer */
+.form-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Multi-column form layout */
+.form-columns {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.form-columns > div:not(:first-child) {
+  border-left: 1px solid #e5e7eb;
+  padding-left: 12px;
+}
+
+.form-columns-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.form-columns-3 > div:not(:first-child) {
+  border-left: 1px solid #e5e7eb;
+  padding-left: 12px;
+}
+
+.form-section {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.form-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 600px) {
+  .form-columns,
+  .form-columns-3 {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Tables */

@@ -9,12 +9,15 @@ import styles from './Modal.module.css';
 
 export type ModalVariant = 'delivery' | 'return';
 
+export type ModalSize = 'default' | 'form';
+
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
   variant?: ModalVariant;
+  size?: ModalSize;
 }
 
 const FOCUSABLE = 'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])';
@@ -23,7 +26,7 @@ const FOCUSABLE = 'input:not([disabled]):not([type="hidden"]), select:not([disab
  * Reusable modal dialog with optional color-coded variant
  * for distinguishing delivery (blue) and return (amber) flows.
  */
-export function Modal({ isOpen, onClose, title, children, variant }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, variant, size = 'default' }: ModalProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,7 +54,7 @@ export function Modal({ isOpen, onClose, title, children, variant }: ModalProps)
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={`${styles.modal} ${variant ? styles[variant] : ''}`} onClick={(e) => e.stopPropagation()}>
+      <div className={`${styles.modal} ${variant ? styles[variant] : ''} ${size === 'form' ? styles.formSize : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <h2>{title}</h2>
           <button onClick={onClose} className={styles.closeButton}>

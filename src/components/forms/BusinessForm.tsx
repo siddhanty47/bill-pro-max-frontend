@@ -129,6 +129,9 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
 
   return (
     <form onSubmit={onFormSubmit}>
+      <div className="form-content">
+      <div className="form-columns">
+        <div>
       {/* GST lookup at the top — enter GSTIN first to auto-fill other fields */}
       <div className="form-group">
         <label htmlFor="gst">GST Number</label>
@@ -181,7 +184,8 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
           {errors.email && <span className="error-message">{errors.email.message}</span>}
         </div>
       </div>
-
+        </div>
+        <div>
       <h3 className={styles.sectionHeading}>Business Settings</h3>
 
       <div className="form-row">
@@ -245,6 +249,9 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
             disabled={isLoading}
           />
         </div>
+      </div>
+        </div>
+      </div>
       </div>
 
       <div className="form-actions">

@@ -17,6 +17,30 @@
   overflow-y: auto;
 }
 
+/* Landscape form layout — wider, less vertical scroll */
+.modal.formSize {
+  max-width: min(95vw, 900px);
+  min-width: 600px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal.formSize .body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal.formSize .body > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 .header {
   display: flex;
   justify-content: space-between;
