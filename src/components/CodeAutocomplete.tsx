@@ -2,9 +2,17 @@
  * CodeAutocomplete Component
  * A reusable, keyboard-accessible autocomplete component for code-based selection.
  * Uses client-side filtering of pre-loaded data for instant results.
+ * Renders dropdown via portal to avoid clipping by parent overflow.
  */
 import { useState, useRef, useEffect, useCallback, type KeyboardEvent, type ChangeEvent } from 'react';
+import { createPortal } from 'react-dom';
 import styles from './CodeAutocomplete.module.css';
+
+/** Minimum dropdown width so content is visible when input is narrow */
+const DROPDOWN_MIN_WIDTH = 320;
+/** Max height from CSS - used for flip-above calculation */
+const DROPDOWN_MAX_HEIGHT = 250;
+const DROPDOWN_GAP = 4;
 
 /**
  * Interface for autocomplete items
@@ -69,10 +77,68 @@ export function CodeAutocomplete({
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [filteredItems, setFilteredItems] = useState<AutocompleteItem[]>([]);
-  
+  const [position, setPosition] = useState<{
+    top?: number;
+    bottom?: number;
+    left: number;
+    width: number;
+  } | null>(null);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Compute dropdown position from input rect (for portal).
+   * Flips above when would overflow bottom; aligns right when would overflow right.
+   */
+  const updatePosition = useCallback(() => {
+    const rect = inputRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const dropdownWidth = Math.max(rect.width, DROPDOWN_MIN_WIDTH);
+    const spaceBelow = window.innerHeight - rect.bottom - DROPDOWN_GAP;
+    const showAbove = spaceBelow < DROPDOWN_MAX_HEIGHT;
+
+    let left: number;
+    if (rect.left + dropdownWidth > window.innerWidth) {
+      left = Math.max(0, rect.right - dropdownWidth);
+    } else {
+      left = rect.left;
+    }
+
+    if (showAbove) {
+      setPosition({
+        bottom: window.innerHeight - rect.top + DROPDOWN_GAP,
+        left,
+        width: dropdownWidth,
+      });
+    } else {
+      setPosition({
+        top: rect.bottom + DROPDOWN_GAP,
+        left,
+        width: dropdownWidth,
+      });
+    }
+  }, []);
+
+  /**
+   * Update position when open, and on scroll/resize
+   */
+  useEffect(() => {
+    if (!isOpen) {
+      setPosition(null);
+      return;
+    }
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isOpen, updatePosition]);
 
   /**
    * Filter items based on input value
@@ -96,11 +162,14 @@ export function CodeAutocomplete({
   }, [value, items]);
 
   /**
-   * Handle click outside to close dropdown
+   * Handle click outside to close dropdown (includes portaled dropdown)
    */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const inContainer = containerRef.current?.contains(target);
+      const inDropdown = dropdownRef.current?.contains(target);
+      if (!inContainer && !inDropdown) {
         setIsOpen(false);
       }
     };
@@ -225,36 +294,54 @@ export function CodeAutocomplete({
           aria-autocomplete="list"
         />
 
-        {isOpen && filteredItems.length > 0 && (
-          <ul
-            ref={listRef}
-            className={styles.dropdown}
-            role="listbox"
-          >
-            {filteredItems.map((item, index) => (
-              <li
-                key={item.id}
-                className={`${styles.item} ${
-                  index === highlightedIndex ? styles.itemHighlighted : ''
-                }`}
-                onClick={() => handleSelect(item)}
-                onMouseEnter={() => setHighlightedIndex(index)}
-                role="option"
-                aria-selected={index === highlightedIndex}
-              >
-                <span className={styles.itemCode}>{item.code}</span>
-                <span className={styles.itemLabel}>{item.label}</span>
-                {item.sublabel && (
-                  <span className={styles.itemSublabel}>{item.sublabel}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {isOpen && value && filteredItems.length === 0 && (
-          <div className={styles.noResults}>No results found</div>
-        )}
+        {isOpen &&
+          position &&
+          (filteredItems.length > 0 || (value && filteredItems.length === 0)) &&
+          createPortal(
+            <div
+              ref={dropdownRef}
+              className={styles.dropdownPortal}
+              style={{
+                position: 'fixed',
+                ...(position.top !== undefined
+                  ? { top: position.top }
+                  : { bottom: position.bottom }),
+                left: position.left,
+                width: position.width,
+                minWidth: DROPDOWN_MIN_WIDTH,
+              }}
+            >
+              {filteredItems.length > 0 ? (
+                <ul
+                  ref={listRef}
+                  className={styles.dropdown}
+                  role="listbox"
+                >
+                  {filteredItems.map((item, index) => (
+                    <li
+                      key={item.id}
+                      className={`${styles.item} ${
+                        index === highlightedIndex ? styles.itemHighlighted : ''
+                      }`}
+                      onClick={() => handleSelect(item)}
+                      onMouseEnter={() => setHighlightedIndex(index)}
+                      role="option"
+                      aria-selected={index === highlightedIndex}
+                    >
+                      <span className={styles.itemCode}>{item.code}</span>
+                      <span className={styles.itemLabel}>{item.label}</span>
+                      {item.sublabel && (
+                        <span className={styles.itemSublabel}>{item.sublabel}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : value ? (
+                <div className={styles.noResults}>No results found</div>
+              ) : null}
+            </div>,
+            document.body
+          )}
       </div>
 
       {error && <span className={styles.error}>{error}</span>}
