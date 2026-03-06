@@ -100,7 +100,7 @@ export function BillDetailPage() {
         force: true,
       }).unwrap();
 
-      const newBill = await generateBill({
+      await generateBill({
         businessId: currentBusinessId,
         data: {
           billDate: bill.billDate || bill.billingPeriod.end || bill.createdAt,
@@ -117,7 +117,7 @@ export function BillDetailPage() {
         },
       }).unwrap();
 
-      navigate(`/bills/${newBill._id}`, { replace: true });
+      navigate('/bills', { replace: true });
     } catch {
       setIsRegenerating(false);
     }

@@ -232,6 +232,7 @@ export interface AgreementWithParty {
   agreementId: string;
   /** Site code - references a site in party.sites */
   siteCode: string;
+  siteAddress?: string;
   partyId: string;
   partyName: string;
   startDate: string;
@@ -503,6 +504,29 @@ export interface GenerateBillInput {
   igstRate?: number;
   discountRate?: number;
   notes?: string;
+}
+
+export interface BulkGenerateBillInput {
+  billDate: string;
+  billingPeriod: {
+    start: string;
+    end: string;
+  };
+  taxMode?: 'intra' | 'inter';
+  sgstRate?: number;
+  cgstRate?: number;
+  igstRate?: number;
+  discountRate?: number;
+  notes?: string;
+  agreements: Array<{
+    partyId: string;
+    agreementId: string;
+  }>;
+}
+
+export interface BillGenerationResponse {
+  batchId: string;
+  jobCount: number;
 }
 
 // ============ Payment ============

@@ -9,18 +9,23 @@ import { usePlatform } from '../hooks/usePlatform';
 import {
   useGetBillsQuery,
   useGenerateBillMutation,
+  useBulkGenerateBillsMutation,
   useUpdateBillStatusMutation,
   useDeleteBillMutation,
   useLazyGetBillPdfQuery,
 } from '../api/billApi';
 import { useGetPartiesQuery } from '../api/partyApi';
+import { useGetAgreementsQuery } from '../api/agreementApi';
+import { useBillGenerationProgress } from '../hooks/useBillGenerationProgress';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { BillForm } from '../components/forms/BillForm';
+import { BulkBillForm } from '../components/forms/BulkBillForm';
+import { BulkBillProgress } from '../components/BulkBillProgress';
 import { getErrorMessage } from '../api/baseApi';
-import type { Bill, GenerateBillInput } from '../types';
+import type { Bill, GenerateBillInput, BulkGenerateBillInput } from '../types';
 
 type TableItem = Record<string, unknown>;
 
@@ -29,6 +34,7 @@ export function BillsPage() {
   const { modLabel } = usePlatform();
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
@@ -46,25 +52,50 @@ export function BillsPage() {
     skip: !currentBusinessId,
   });
 
+  const { data: agreements } = useGetAgreementsQuery(currentBusinessId || '', {
+    skip: !currentBusinessId,
+  });
+
   const [generateBill, { isLoading: isGenerating }] = useGenerateBillMutation();
+  const [bulkGenerateBills, { isLoading: isBulkGenerating }] = useBulkGenerateBillsMutation();
   const [updateBillStatus] = useUpdateBillStatusMutation();
   const [deleteBill] = useDeleteBillMutation();
   const [downloadPdf, { isLoading: isDownloading }] = useLazyGetBillPdfQuery();
+
+  const { batches, startBatch, dismissBatch } = useBillGenerationProgress();
 
   const handleGenerate = () => {
     setIsModalOpen(true);
   };
 
-  useHotkey('alt+n', () => { if (!isModalOpen) handleGenerate(); });
+  const handleBulkGenerate = () => {
+    setIsBulkModalOpen(true);
+  };
+
+  useHotkey('alt+n', () => { if (!isModalOpen && !isBulkModalOpen) handleGenerate(); });
   useHotkey('/', () => searchRef.current?.focus());
 
   const handleSubmit = async (data: GenerateBillInput) => {
     try {
-      await generateBill({
+      const result = await generateBill({
         businessId: currentBusinessId!,
         data,
       }).unwrap();
+      startBatch(result.batchId, result.jobCount);
       setIsModalOpen(false);
+    } catch (err) {
+      alert(getErrorMessage(err));
+    }
+  };
+
+  const handleBulkSubmit = async (data: BulkGenerateBillInput) => {
+    try {
+      const result = await bulkGenerateBills({
+        businessId: currentBusinessId!,
+        data,
+      }).unwrap();
+      startBatch(result.batchId, result.jobCount);
+      setIsBulkModalOpen(false);
     } catch (err) {
       alert(getErrorMessage(err));
     }
@@ -119,12 +150,10 @@ export function BillsPage() {
     }
   };
 
-  // Get party name by ID
   const getPartyName = (partyId: string) => {
     return parties?.find((p) => p._id === partyId)?.name || 'Unknown';
   };
 
-  // Filter bills
   const filteredBills = (bills || []).filter((bill) => {
     const matchesSearch =
       !searchTerm ||
@@ -278,10 +307,17 @@ export function BillsPage() {
     <div>
       <div className="page-header">
         <h1>Bills</h1>
-        <button className="btn btn-primary" onClick={handleGenerate}>
-          + Generate Bill <kbd className="kbd-hint">{modLabel}+N</kbd>
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary" onClick={handleBulkGenerate}>
+            Bulk Generate
+          </button>
+          <button className="btn btn-primary" onClick={handleGenerate}>
+            + Generate Bill <kbd className="kbd-hint">{modLabel}+N</kbd>
+          </button>
+        </div>
       </div>
+
+      <BulkBillProgress batches={batches} onDismiss={dismissBatch} />
 
       <div className="filters">
         <div className="search-wrapper">
@@ -320,6 +356,15 @@ export function BillsPage() {
           onSubmit={handleSubmit}
           onCancel={() => setIsModalOpen(false)}
           isLoading={isGenerating}
+        />
+      </Modal>
+
+      <Modal isOpen={isBulkModalOpen} onClose={() => setIsBulkModalOpen(false)} title="Bulk Generate Bills" size="form">
+        <BulkBillForm
+          agreements={agreements || []}
+          onSubmit={handleBulkSubmit}
+          onCancel={() => setIsBulkModalOpen(false)}
+          isLoading={isBulkGenerating}
         />
       </Modal>
     </div>

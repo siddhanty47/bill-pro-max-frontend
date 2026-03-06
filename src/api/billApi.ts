@@ -2,7 +2,7 @@
  * Bill API endpoints
  */
 import { baseApi } from './baseApi';
-import type { Bill, GenerateBillInput, ApiResponse, PaginatedResponse } from '../types';
+import type { Bill, GenerateBillInput, BulkGenerateBillInput, BillGenerationResponse, ApiResponse, PaginatedResponse } from '../types';
 
 export const billApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -29,14 +29,22 @@ export const billApi = baseApi.injectEndpoints({
       transformResponse: (response: ApiResponse<{ totalDue: number; totalPaid: number; overdue: number }>) => response.data,
     }),
 
-    generateBill: builder.mutation<Bill, { businessId: string; data: GenerateBillInput }>({
+    generateBill: builder.mutation<BillGenerationResponse, { businessId: string; data: GenerateBillInput }>({
       query: ({ businessId, data }) => ({
         url: `/businesses/${businessId}/bills/generate`,
         method: 'POST',
         body: data,
       }),
-      transformResponse: (response: ApiResponse<Bill>) => response.data,
-      invalidatesTags: ['Bill'],
+      transformResponse: (response: ApiResponse<BillGenerationResponse>) => response.data,
+    }),
+
+    bulkGenerateBills: builder.mutation<BillGenerationResponse, { businessId: string; data: BulkGenerateBillInput }>({
+      query: ({ businessId, data }) => ({
+        url: `/businesses/${businessId}/bills/bulk-generate`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<BillGenerationResponse>) => response.data,
     }),
 
     updateBillStatus: builder.mutation<Bill, { businessId: string; billId: string; status: Bill['status'] }>({
@@ -77,6 +85,7 @@ export const {
   useGetOverdueBillsQuery,
   useGetPaymentSummaryQuery,
   useGenerateBillMutation,
+  useBulkGenerateBillsMutation,
   useUpdateBillStatusMutation,
   useDeleteBillMutation,
   useLazyGetBillPdfQuery,

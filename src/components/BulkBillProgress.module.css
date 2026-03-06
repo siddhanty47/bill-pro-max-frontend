@@ -1,0 +1,141 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.banner {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  border-radius: 8px;
+  padding: 12px 16px;
+  transition: background 0.2s;
+}
+
+.banner.done {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.banner.hasErrors.done {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #93c5fd;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.checkmark {
+  color: #16a34a;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.failCount {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.toggleBtn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.toggleBtn:hover {
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.dismissBtn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.dismissBtn:hover {
+  color: #374151;
+}
+
+.progressTrack {
+  margin-top: 8px;
+  height: 4px;
+  background: #dbeafe;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  background: #2563eb;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.errorList {
+  margin-top: 10px;
+  border-top: 1px solid #fde68a;
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.errorItem {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  padding: 4px 0;
+}
+
+.errorAgreement {
+  font-weight: 600;
+  color: #92400e;
+  white-space: nowrap;
+}
+
+.errorMsg {
+  color: #dc2626;
+}
