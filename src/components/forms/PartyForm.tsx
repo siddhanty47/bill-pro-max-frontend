@@ -26,12 +26,14 @@ const createPartySchema = (isEditing: boolean) => z.object({
   email: z.string().email().optional().or(z.literal('')),
   address: z.string().max(500).optional(),
   gst: z.string().max(20).optional(),
+  stateCode: z.string().regex(/^[0-9]{2}$/).max(2).optional().or(z.literal('')),
   notes: z.string().max(1000).optional(),
   // Site fields - required only for new party
   siteCode: z.string().max(20).optional(),
   siteAddress: isEditing 
     ? z.string().max(500).optional()
     : z.string().min(1, 'Site address is required').max(500),
+  siteStateCode: z.string().regex(/^[0-9]{2}$/).max(2).optional().or(z.literal('')),
   siteIsSameAsOffice: z.boolean().optional(),
 });
 
@@ -75,9 +77,11 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
           email: initialData.contact.email || '',
           address: initialData.contact.address || '',
           gst: initialData.contact.gst || '',
+          stateCode: initialData.contact.stateCode || '',
           notes: initialData.notes || '',
           siteCode: '',
           siteAddress: '',
+          siteStateCode: '',
           siteIsSameAsOffice: false,
         }
       : {
@@ -85,6 +89,7 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
           roles: ['client'],
           siteCode: '',
           siteAddress: '',
+          siteStateCode: '',
           siteIsSameAsOffice: false,
         },
   });
@@ -93,6 +98,19 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
   const siteIsSameAsOffice = watch('siteIsSameAsOffice');
   const officeAddress = watch('address');
   const gstValue = watch('gst') || '';
+  const stateCodeValue = watch('stateCode') || '';
+  const siteStateCodeValue = watch('siteStateCode') || '';
+
+  // Auto-fill state code and site state code from GSTIN when 15 chars and empty
+  useEffect(() => {
+    if (gstValue.trim().length === 15 && !stateCodeValue) {
+      const code = gstValue.trim().substring(0, 2);
+      setValue('stateCode', code);
+      if (!initialData && !siteStateCodeValue) {
+        setValue('siteStateCode', code);
+      }
+    }
+  }, [gstValue, stateCodeValue, siteStateCodeValue, initialData, setValue]);
 
   const toggleRole = (role: 'client' | 'supplier') => {
     const newRoles = roles.includes(role)
@@ -199,6 +217,15 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
         setValue('address', details.address);
       }
 
+      // Auto-fill state code from GSTIN (first 2 digits) when empty
+      if (!getValues('stateCode') && details.gstin?.length === 15) {
+        const code = details.gstin.substring(0, 2);
+        setValue('stateCode', code);
+        if (!initialData && !getValues('siteStateCode')) {
+          setValue('siteStateCode', code);
+        }
+      }
+
       // Show status feedback
       if (!details.isActive) {
         setGstFetchError(`Warning: This GSTIN is ${details.status}`);
@@ -212,12 +239,12 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
           : 'Failed to fetch GST details';
       setGstFetchError(errorMessage);
     }
-  }, [currentBusinessId, getValues, lookupGstin, setValue, generateCode]);
+  }, [currentBusinessId, getValues, lookupGstin, setValue, generateCode, initialData]);
 
   const handleFormSubmit = async (data: FormData) => {
     if (codeError) return;
     
-    await onSubmit({
+    const payload: CreatePartyInput = {
       code: data.code.toUpperCase(),
       name: data.name,
       roles: data.roles,
@@ -227,13 +254,18 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
         email: data.email || undefined,
         address: data.address || undefined,
         gst: data.gst || undefined,
+        stateCode: data.stateCode?.trim() || undefined,
       },
       notes: data.notes || undefined,
-      initialSite: {
-        code: data.siteCode ? data.siteCode.toUpperCase() : undefined,
-        address: data.siteAddress || '',
-      },
-    });
+      initialSite: initialData
+        ? { address: '' }
+        : {
+            code: data.siteCode ? data.siteCode.toUpperCase() : undefined,
+            address: data.siteAddress || '',
+            stateCode: data.siteStateCode?.trim() || undefined,
+          },
+    };
+    await onSubmit(payload);
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -271,6 +303,22 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
             {gstFetchSuccess}
           </span>
         )}
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="stateCode">State Code</label>
+        <input
+          id="stateCode"
+          {...register('stateCode')}
+          disabled={isLoading}
+          placeholder="e.g. 27"
+          maxLength={2}
+          className={styles.uppercaseInput}
+          style={{ width: 80 }}
+        />
+        <small style={{ display: 'block', color: '#666', fontSize: 12, marginTop: 4 }}>
+          2-digit GST state code (auto-filled from GSTIN)
+        </small>
       </div>
 
       <div className="form-row">
@@ -382,21 +430,21 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
             </label>
           </div>
 
-          <div className="form-row">
-            <div className={`form-group ${styles.siteAddressGroup}`}>
-              <label htmlFor="siteAddress">Site Address *</label>
-              <textarea
-                id="siteAddress"
-                {...register('siteAddress')}
-                rows={2}
-                disabled={isLoading || siteIsSameAsOffice}
-                placeholder="Enter site address"
-              />
-              {errors.siteAddress && (
-                <span className="error-message">{errors.siteAddress.message}</span>
-              )}
-            </div>
+          <div className={`form-group ${styles.siteAddressGroup}`}>
+            <label htmlFor="siteAddress">Site Address *</label>
+            <textarea
+              id="siteAddress"
+              {...register('siteAddress')}
+              rows={2}
+              disabled={isLoading || siteIsSameAsOffice}
+              placeholder="Enter site address"
+            />
+            {errors.siteAddress && (
+              <span className="error-message">{errors.siteAddress.message}</span>
+            )}
+          </div>
 
+          <div className="form-row">
             <div className={`form-group ${styles.siteCodeGroup}`}>
               <label htmlFor="siteCode">Site Code</label>
               <input
@@ -409,8 +457,24 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
               {errors.siteCode && (
                 <span className="error-message">{errors.siteCode.message}</span>
               )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="siteStateCode">Site State Code</label>
+              <input
+                id="siteStateCode"
+                {...register('siteStateCode')}
+                disabled={isLoading}
+                placeholder="e.g. 27"
+                maxLength={2}
+                className={styles.uppercaseInput}
+                style={{ width: 80 }}
+              />
+              <small style={{ display: 'block', color: '#666', fontSize: 12, marginTop: 4 }}>
+                Defaults from party state code
+              </small>
+            </div>
           </div>
-        </div>
       </fieldset>
       )}
         </div>

@@ -2,7 +2,7 @@
  * AddSiteModal component
  * Modal form for adding a new site to an existing party
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,6 +14,7 @@ import styles from './AddSiteModal.module.css';
 const addSiteSchema = z.object({
   code: z.string().max(20).optional(),
   address: z.string().min(1, 'Site address is required').max(500),
+  stateCode: z.string().regex(/^[0-9]{2}$/).max(2).optional().or(z.literal('')),
 });
 
 type FormData = z.infer<typeof addSiteSchema>;
@@ -36,6 +37,8 @@ export function AddSiteModal({ isOpen, onClose, businessId, party }: AddSiteModa
   const [addSite, { isLoading }] = useAddSiteMutation();
   const [error, setError] = useState<string | null>(null);
 
+  const defaultStateCode = party?.contact?.stateCode ?? (party?.contact?.gst?.length === 15 ? party.contact.gst.substring(0, 2) : undefined);
+
   const {
     register,
     handleSubmit,
@@ -46,8 +49,17 @@ export function AddSiteModal({ isOpen, onClose, businessId, party }: AddSiteModa
     defaultValues: {
       code: '',
       address: '',
+      stateCode: defaultStateCode || '',
     },
   });
+
+  // Reset form with party's state code when modal opens
+  useEffect(() => {
+    if (isOpen && party) {
+      const stateCode = party.contact?.stateCode ?? (party.contact?.gst?.length === 15 ? party.contact.gst.substring(0, 2) : '');
+      reset({ code: '', address: '', stateCode: stateCode || '' });
+    }
+  }, [isOpen, party, reset]);
 
   const handleFormSubmit = async (data: FormData) => {
     setError(null);
@@ -58,6 +70,7 @@ export function AddSiteModal({ isOpen, onClose, businessId, party }: AddSiteModa
         data: {
           code: data.code || undefined,
           address: data.address,
+          stateCode: data.stateCode?.trim() || undefined,
         },
       }).unwrap();
 
@@ -125,6 +138,22 @@ export function AddSiteModal({ isOpen, onClose, businessId, party }: AddSiteModa
           )}
           <small className={styles.helpText}>
             Leave empty to auto-generate from address
+          </small>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="siteStateCode">State Code</label>
+          <input
+            id="siteStateCode"
+            {...register('stateCode')}
+            disabled={isLoading}
+            placeholder="e.g. 27"
+            maxLength={2}
+            className={styles.uppercaseInput}
+            style={{ width: 80 }}
+          />
+          <small className={styles.helpText}>
+            Defaults from party state code
           </small>
         </div>
         </div>

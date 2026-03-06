@@ -3,7 +3,7 @@
  * @description Form for creating a new business.
  * Supports GSTIN lookup to auto-fill business name and address.
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,6 +17,7 @@ const businessSchema = z.object({
   phone: z.string().max(20).optional(),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
   gst: z.string().max(20).optional(),
+  stateCode: z.string().regex(/^[0-9]{2}$/).max(2).optional().or(z.literal('')),
   billingCycle: z.enum(['monthly', 'weekly', 'yearly']).optional(),
   currency: z.string().max(10).optional(),
   defaultSgstRate: z.number().min(0).max(100).optional(),
@@ -58,6 +59,14 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
   });
 
   const gstValue = watch('gst') || '';
+  const stateCodeValue = watch('stateCode') || '';
+
+  // Auto-fill state code from GSTIN when 15 chars and stateCode is empty
+  useEffect(() => {
+    if (gstValue.trim().length === 15 && !stateCodeValue) {
+      setValue('stateCode', gstValue.trim().substring(0, 2));
+    }
+  }, [gstValue, stateCodeValue, setValue]);
 
   /**
    * Handle GSTIN fetch button click.
@@ -83,6 +92,11 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
       // Auto-fill address
       if (details.address) {
         setValue('address', details.address);
+      }
+
+      // Auto-fill state code from GSTIN (first 2 digits) when empty
+      if (!getValues('stateCode') && details.gstin?.length === 15) {
+        setValue('stateCode', details.gstin.substring(0, 2));
       }
 
       // Show status feedback
@@ -111,6 +125,7 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
       phone: data.phone || undefined,
       email: data.email || undefined,
       gst: data.gst || undefined,
+      stateCode: data.stateCode?.trim() || undefined,
       settings: {
         billingCycle: data.billingCycle,
         currency: data.currency || 'INR',
@@ -159,6 +174,21 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
             {gstFetchSuccess}
           </span>
         )}
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="stateCode">State Code</label>
+        <input
+          id="stateCode"
+          {...register('stateCode')}
+          disabled={isLoading}
+          placeholder="e.g. 27"
+          maxLength={2}
+          style={{ width: 80 }}
+        />
+        <small style={{ display: 'block', color: '#666', fontSize: 12, marginTop: 4 }}>
+          2-digit GST state code (auto-filled from GSTIN)
+        </small>
       </div>
 
       <div className="form-group">

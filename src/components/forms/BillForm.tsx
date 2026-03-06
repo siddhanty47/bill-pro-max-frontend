@@ -60,9 +60,22 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
   });
 
   const selectedPartyId = watch('partyId');
+  const agreementId = watch('agreementId');
   const taxMode = watch('taxMode');
   const selectedParty = parties.find((p) => p._id === selectedPartyId);
   const activeAgreements = selectedParty?.agreements?.filter((a) => a.status === 'active') || [];
+  const selectedAgreement = activeAgreements.find((a) => a.agreementId === agreementId);
+
+  // Auto-select tax mode based on business and site state codes
+  useEffect(() => {
+    if (!currentBusiness || !selectedParty || !selectedAgreement) return;
+    const businessStateCode = currentBusiness.stateCode ?? (currentBusiness.gst?.length === 15 ? currentBusiness.gst.substring(0, 2) : undefined);
+    const site = selectedParty.sites?.find((s) => s.code === selectedAgreement.siteCode);
+    const siteStateCode = site?.stateCode ?? (selectedParty.contact?.gst?.length === 15 ? selectedParty.contact.gst.substring(0, 2) : undefined);
+    if (businessStateCode && siteStateCode) {
+      setValue('taxMode', businessStateCode === siteStateCode ? 'intra' : 'inter');
+    }
+  }, [currentBusiness, selectedParty, selectedAgreement, setValue]);
 
   useEffect(() => {
     if (!currentBusiness) return;

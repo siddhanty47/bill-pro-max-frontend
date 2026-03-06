@@ -106,6 +106,7 @@ export interface Business {
   phone?: string;
   email?: string;
   gst?: string;
+  stateCode?: string;
   settings: BusinessSettings;
   isActive: boolean;
   createdAt: string;
@@ -118,6 +119,7 @@ export interface CreateBusinessInput {
   phone?: string;
   email?: string;
   gst?: string;
+  stateCode?: string;
   settings?: Partial<BusinessSettings>;
 }
 
@@ -129,6 +131,7 @@ export interface PartyContact {
   email?: string;
   address?: string;
   gst?: string;
+  stateCode?: string;
 }
 
 /**
@@ -137,6 +140,7 @@ export interface PartyContact {
 export interface Site {
   code: string;
   address: string;
+  stateCode?: string;
 }
 
 export interface AgreementRate {
@@ -193,6 +197,7 @@ export interface CreatePartyInput {
   initialSite: {
     code?: string;
     address: string;
+    stateCode?: string;
   };
 }
 
@@ -233,6 +238,7 @@ export interface AgreementWithParty {
   /** Site code - references a site in party.sites */
   siteCode: string;
   siteAddress?: string;
+  siteStateCode?: string;
   partyId: string;
   partyName: string;
   startDate: string;
@@ -266,6 +272,7 @@ export interface UpdateAgreementRateInput {
 export interface AddSiteInput {
   code?: string;
   address: string;
+  stateCode?: string;
 }
 
 /**
@@ -274,6 +281,7 @@ export interface AddSiteInput {
 export interface UpdateSiteInput {
   code?: string;
   address?: string;
+  stateCode?: string;
 }
 
 // ============ Inventory ============

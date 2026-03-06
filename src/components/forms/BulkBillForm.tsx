@@ -60,6 +60,25 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
 
   const taxMode = watch('taxMode');
 
+  const activeAgreements = useMemo(
+    () => agreements.filter(a => a.status === 'active'),
+    [agreements],
+  );
+
+  // Auto-select tax mode based on business and selected agreements' site state codes
+  useEffect(() => {
+    if (!currentBusiness || selectedIds.size === 0) return;
+    const businessStateCode = currentBusiness.stateCode ?? (currentBusiness.gst?.length === 15 ? currentBusiness.gst.substring(0, 2) : undefined);
+    const selectedAgreements = activeAgreements.filter(a => selectedIds.has(a.agreementId));
+    const anyDifferentState = selectedAgreements.some(a => {
+      const siteStateCode = a.siteStateCode ?? undefined;
+      return siteStateCode && businessStateCode && siteStateCode !== businessStateCode;
+    });
+    if (businessStateCode && selectedAgreements.length > 0) {
+      setValue('taxMode', anyDifferentState ? 'inter' : 'intra');
+    }
+  }, [currentBusiness, selectedIds, activeAgreements, setValue]);
+
   useEffect(() => {
     if (!currentBusiness) return;
     const settings = currentBusiness.settings;
@@ -68,11 +87,6 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
     setValue('cgstRate', settings.defaultCgstRate ?? legacyRate / 2);
     setValue('igstRate', settings.defaultIgstRate ?? legacyRate);
   }, [currentBusiness, setValue]);
-
-  const activeAgreements = useMemo(
-    () => agreements.filter(a => a.status === 'active'),
-    [agreements],
-  );
 
   const filtered = useMemo(() => {
     if (!search) return activeAgreements;

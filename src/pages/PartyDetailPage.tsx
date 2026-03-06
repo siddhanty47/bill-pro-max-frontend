@@ -74,6 +74,7 @@ export function PartyDetailPage() {
   /** Tracks which site code is currently being inline-edited (null = none) */
   const [editingSiteCode, setEditingSiteCode] = useState<string | null>(null);
   const [editSiteAddress, setEditSiteAddress] = useState('');
+  const [editSiteStateCode, setEditSiteStateCode] = useState('');
   const [editSiteError, setEditSiteError] = useState<string | null>(null);
 
   /** Save handler for top-level party fields (e.g. name, notes) */
@@ -125,6 +126,7 @@ export function PartyDetailPage() {
   const startEditingSite = (site: Site) => {
     setEditingSiteCode(site.code);
     setEditSiteAddress(site.address);
+    setEditSiteStateCode(site.stateCode ?? '');
     setEditSiteError(null);
   };
 
@@ -149,6 +151,7 @@ export function PartyDetailPage() {
           siteCode: originalCode,
           data: {
             address: editSiteAddress.trim(),
+            stateCode: editSiteStateCode?.trim() || undefined,
           },
         }).unwrap();
         setEditingSiteCode(null);
@@ -156,7 +159,7 @@ export function PartyDetailPage() {
         setEditSiteError(getErrorMessage(err));
       }
     },
-    [currentBusinessId, partyId, editSiteAddress, updateSite],
+    [currentBusinessId, partyId, editSiteAddress, editSiteStateCode, updateSite],
   );
 
   const sidebar = party ? (
@@ -253,6 +256,16 @@ export function PartyDetailPage() {
                 isSaving,
               }}
             />
+            <DetailField
+              label="State Code"
+              value={party.contact.stateCode}
+              editable={{
+                rawValue: party.contact.stateCode ?? '',
+                inputType: 'text',
+                onSave: (v) => handleContactSave('stateCode', v),
+                isSaving,
+              }}
+            />
           </DetailSection>
 
           {/* Sites */}
@@ -271,6 +284,7 @@ export function PartyDetailPage() {
                     <tr>
                       <th>Site Code</th>
                       <th>Address</th>
+                      <th>State Code</th>
                       <th style={{ width: '120px' }}>Actions</th>
                     </tr>
                   </thead>
@@ -286,6 +300,17 @@ export function PartyDetailPage() {
                               value={editSiteAddress}
                               onChange={(e) => setEditSiteAddress(e.target.value)}
                               style={{ width: '100%', padding: '4px 8px', fontSize: '13px' }}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              className="form-input"
+                              value={editSiteStateCode}
+                              onChange={(e) => setEditSiteStateCode(e.target.value)}
+                              placeholder="e.g. 27"
+                              maxLength={2}
+                              style={{ width: 60, padding: '4px 8px', fontSize: '13px' }}
                             />
                           </td>
                           <td>
@@ -311,6 +336,7 @@ export function PartyDetailPage() {
                         <tr key={site.code}>
                           <td>{site.code}</td>
                           <td>{site.address}</td>
+                          <td>{site.stateCode || '-'}</td>
                           <td>
                             <button
                               className="btn btn-sm btn-secondary"
