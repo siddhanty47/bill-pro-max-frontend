@@ -15,6 +15,7 @@ import {
   useLazyGetBillPdfQuery,
 } from '../api/billApi';
 import { useGetPartiesQuery } from '../api/partyApi';
+import { useGetPaymentsByBillQuery } from '../api/paymentApi';
 import {
   DetailPageShell,
   DetailSection,
@@ -65,6 +66,11 @@ export function BillDetailPage() {
   const { data: parties } = useGetPartiesQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
   });
+
+  const { data: payments } = useGetPaymentsByBillQuery(
+    { businessId: currentBusinessId!, billId: billId! },
+    { skip: !currentBusinessId || !billId },
+  );
 
   const [updateBillStatus, { isLoading: isSaving }] = useUpdateBillStatusMutation();
   const [deleteBill] = useDeleteBillMutation();
@@ -378,6 +384,54 @@ export function BillDetailPage() {
                 </strong>
               }
             />
+          </DetailSection>
+
+          {/* Payments */}
+          <DetailSection title={`Payments (${(payments || []).length})`}>
+            {(payments || []).length > 0 ? (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                    <th>Reference</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...(payments || [])]
+                    .sort(
+                      (a, b) =>
+                        new Date(b.date).getTime() - new Date(a.date).getTime(),
+                    )
+                    .map((payment) => (
+                      <tr key={payment._id}>
+                        <td>
+                          <Link
+                            to={`/payments/${payment._id}`}
+                            style={{ color: '#0066cc', textDecoration: 'none' }}
+                          >
+                            {formatDate(payment.date)}
+                          </Link>
+                        </td>
+                        <td>{formatCurrency(payment.amount)}</td>
+                        <td>{payment.method.replace('_', ' ')}</td>
+                        <td>
+                          <span className={`status status-${payment.status}`}>
+                            {payment.status}
+                          </span>
+                        </td>
+                        <td>{payment.reference || '-'}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            ) : (
+              <p style={{ color: '#999', fontStyle: 'italic' }}>
+                No payments recorded for this bill.
+              </p>
+            )}
           </DetailSection>
 
           {/* Notes */}

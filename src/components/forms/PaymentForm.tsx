@@ -1,9 +1,11 @@
 /**
  * Payment form component
  */
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
 import type { Party, Bill, CreatePaymentInput } from '../../types';
 
 const paymentSchema = z.object({
@@ -28,10 +30,12 @@ interface PaymentFormProps {
 }
 
 export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: PaymentFormProps) {
+  const [partySearchValue, setPartySearchValue] = useState('');
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(paymentSchema),
@@ -44,6 +48,60 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
 
   const selectedPartyId = watch('partyId');
   const paymentType = watch('type');
+
+  // Filter parties by payment type (client for receivable, supplier for payable)
+  const filteredParties = useMemo(
+    () =>
+      parties.filter((p) =>
+        paymentType === 'receivable'
+          ? p.roles.includes('client')
+          : p.roles.includes('supplier')
+      ),
+    [parties, paymentType]
+  );
+
+  const partyAutocompleteItems: AutocompleteItem[] = useMemo(
+    () =>
+      filteredParties.map((party) => ({
+        code: party.code || party.name.substring(0, 4).toUpperCase(),
+        label: party.name,
+        sublabel: party.contact?.person,
+        id: party._id,
+      })),
+    [filteredParties]
+  );
+
+  const handlePartySelect = useCallback(
+    (item: AutocompleteItem) => {
+      setValue('partyId', item.id);
+      setValue('billId', '');
+      setPartySearchValue(item.code);
+    },
+    [setValue]
+  );
+
+  // Sync partySearchValue when selectedPartyId changes (e.g. from payment type switch)
+  useEffect(() => {
+    if (selectedPartyId) {
+      const party = filteredParties.find((p) => p._id === selectedPartyId);
+      if (party) {
+        setPartySearchValue(party.code || party.name.substring(0, 4).toUpperCase());
+      }
+    } else {
+      setPartySearchValue('');
+    }
+  }, [selectedPartyId, filteredParties]);
+
+  // Clear party and bill when payment type changes (not on initial mount)
+  const prevPaymentTypeRef = useRef(paymentType);
+  useEffect(() => {
+    if (prevPaymentTypeRef.current !== paymentType) {
+      prevPaymentTypeRef.current = paymentType;
+      setValue('partyId', '');
+      setValue('billId', '');
+      setPartySearchValue('');
+    }
+  }, [paymentType, setValue]);
 
   // Filter bills by party (only unpaid/partial bills for receivables)
   const partyBills = bills.filter(
@@ -90,29 +148,27 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
       </div>
 
       <div className="form-group">
-        <label htmlFor="partyId">Party *</label>
-        <select id="partyId" {...register('partyId')} disabled={isLoading}>
-          <option value="">Select party...</option>
-          {parties
-            .filter((p) =>
-              paymentType === 'receivable'
-                ? p.roles.includes('client')
-                : p.roles.includes('supplier')
-            )
-            .map((party) => (
-              <option key={party._id} value={party._id}>
-                {party.name}
-              </option>
-            ))}
-        </select>
-        {errors.partyId && <span className="error-message">{errors.partyId.message}</span>}
+        <CodeAutocomplete
+          label="Party *"
+          placeholder="Type party code or name..."
+          value={partySearchValue}
+          onChange={setPartySearchValue}
+          items={partyAutocompleteItems}
+          onSelect={handlePartySelect}
+          disabled={isLoading}
+          error={errors.partyId?.message}
+          required
+        />
+        <input type="hidden" {...register('partyId')} />
       </div>
 
-      {paymentType === 'receivable' && partyBills.length > 0 && (
+      {paymentType === 'receivable' && selectedPartyId && (
         <div className="form-group">
           <label htmlFor="billId">Link to Bill (optional)</label>
           <select id="billId" {...register('billId')} disabled={isLoading}>
-            <option value="">No bill linked</option>
+            <option value="">
+              {partyBills.length > 0 ? 'No bill linked' : 'No bills available'}
+            </option>
             {partyBills.map((bill) => (
               <option key={bill._id} value={bill._id}>
                 {bill.billNumber} - ₹{(bill.totalAmount - bill.amountPaid).toLocaleString()} due

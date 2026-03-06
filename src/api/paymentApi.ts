@@ -19,6 +19,13 @@ export const paymentApi = baseApi.injectEndpoints({
       providesTags: ['Payment'],
     }),
 
+    getPaymentsByBill: builder.query<Payment[], { businessId: string; billId: string }>({
+      query: ({ businessId, billId }) =>
+        `/businesses/${businessId}/payments?billId=${encodeURIComponent(billId)}&pageSize=100`,
+      transformResponse: (response: PaginatedResponse<Payment>) => response.data,
+      providesTags: (_result, _error, { billId }) => ['Payment', { type: 'Bill', id: billId }],
+    }),
+
     getPayment: builder.query<Payment, { businessId: string; paymentId: string }>({
       query: ({ businessId, paymentId }) => `/businesses/${businessId}/payments/${paymentId}`,
       transformResponse: (response: ApiResponse<Payment>) => response.data,
@@ -45,6 +52,7 @@ export const paymentApi = baseApi.injectEndpoints({
 export const {
   useGetPaymentsQuery,
   useGetPaymentsByPartyQuery,
+  useGetPaymentsByBillQuery,
   useGetPaymentQuery,
   useGetPaymentStatsQuery,
   useCreatePaymentMutation,
