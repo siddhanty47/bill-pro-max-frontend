@@ -57,11 +57,18 @@ export function ChallansPage() {
   const [createChallan, { isLoading: isCreating }] = useCreateChallanMutation();
   const [confirmChallan] = useConfirmChallanMutation();
 
-  const handleCreate = () => {
+  const handleCreateDelivery = () => {
+    setModalVariant('delivery');
     setIsModalOpen(true);
   };
 
-  useHotkey('alt+n', () => { if (!isModalOpen) handleCreate(); });
+  const handleCreateReturn = () => {
+    setModalVariant('return');
+    setIsModalOpen(true);
+  };
+
+  useHotkey('alt+d', () => { if (!isModalOpen) handleCreateDelivery(); });
+  useHotkey('alt+r', () => { if (!isModalOpen) handleCreateReturn(); });
   useHotkey('/', () => searchRef.current?.focus());
 
   const handleSubmit = async (data: CreateChallanInput) => {
@@ -92,6 +99,13 @@ export function ChallansPage() {
   // Get party name by ID
   const getPartyName = (partyId: string) => {
     return parties?.find((p) => p._id === partyId)?.name || 'Unknown';
+  };
+
+  // Get site code from party's agreement
+  const getSiteCode = (challan: Challan) => {
+    const party = parties?.find((p) => p._id === challan.partyId);
+    const agreement = party?.agreements?.find((a) => a.agreementId === challan.agreementId);
+    return agreement?.siteCode ?? '—';
   };
 
   // Filter challans
@@ -125,6 +139,14 @@ export function ChallansPage() {
       render: (row: TableItem) => {
         const challan = row as unknown as Challan;
         return getPartyName(challan.partyId);
+      },
+    },
+    {
+      key: 'siteCode',
+      header: 'Site',
+      render: (row: TableItem) => {
+        const challan = row as unknown as Challan;
+        return getSiteCode(challan);
       },
     },
     {
@@ -189,9 +211,14 @@ export function ChallansPage() {
     <div>
       <div className="page-header">
         <h1>Challans</h1>
-        <button className="btn btn-primary" onClick={handleCreate}>
-          + Create Challan <kbd className="kbd-hint">{modLabel}+N</kbd>
-        </button>
+        <div className={styles.createButtons}>
+          <button className={`btn ${styles.btnDelivery}`} onClick={handleCreateDelivery}>
+            + Delivery Challan <kbd className="kbd-hint">{modLabel}+D</kbd>
+          </button>
+          <button className={`btn ${styles.btnReturn}`} onClick={handleCreateReturn}>
+            + Return Challan <kbd className="kbd-hint">{modLabel}+R</kbd>
+          </button>
+        </div>
       </div>
 
       <div className="filters">
@@ -254,12 +281,12 @@ export function ChallansPage() {
       >
         <ChallanForm
           businessId={currentBusinessId!}
+          type={modalVariant}
           parties={parties || []}
           inventoryItems={inventory || []}
           challans={challans || []}
           onSubmit={handleSubmit}
           onCancel={() => setIsModalOpen(false)}
-          onTypeChange={setModalVariant}
           isLoading={isCreating}
         />
       </Modal>

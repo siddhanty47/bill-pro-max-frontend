@@ -43,82 +43,202 @@
   flex: 1;
 }
 
-/* ---- Items section ---- */
+/* ---- Items section (table/spreadsheet style) ---- */
 
-.itemHeader {
-  display: flex;
-  gap: 15px;
-  padding: 6px 0;
-  margin-bottom: 4px;
-  border-bottom: 1px solid #e0e0e0;
-  font-size: 12px;
+.itemsTableWrap {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.itemsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.itemsTable th,
+.itemsTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e8e8e8;
+  vertical-align: middle;
+}
+
+.itemsTable thead th {
+  background: #f5f5f5;
+  font-size: 11px;
   font-weight: 600;
-  color: #777;
+  color: #666;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  align-items: center;
 }
 
-.itemHeaderName {
-  flex: 2;
+.itemsTable tbody tr:last-child td {
+  border-bottom: none;
 }
 
-.itemHeaderQty {
-  flex: 0 0 70px;
+.itemsTable tbody tr:hover {
+  background: #fafafa;
+}
+
+.itemsTable .colItem {
+  width: 40%;
+  min-width: 140px;
+}
+
+.itemsTable .colQty {
+  width: 80px;
   text-align: center;
 }
 
-.itemHeaderRunning {
-  flex: 0 0 60px;
+.itemsTable .colRunning {
+  width: 70px;
   text-align: center;
 }
 
-.itemHeaderCondition {
-  flex: 1;
+.itemsTable .colAction {
+  width: 44px;
+  text-align: center;
+  padding: 4px;
 }
 
-.itemHeaderAction {
-  flex: 0 0 70px;
+.itemsTable input[type="number"] {
+  width: 100%;
+  min-width: 50px;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
 }
 
-.itemRow {
+.itemsTable input[type="number"]:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.15);
+}
+
+.addRowBtn {
+  margin-top: 4px;
+}
+
+/* ---- Loss section (table style) ---- */
+
+.lossTableWrap {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  overflow: hidden;
   margin-bottom: 8px;
-  align-items: flex-start;
 }
 
-.itemAutocomplete {
-  flex: 2;
+.lossTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
 }
 
-.qtyGroup {
-  flex: 0 0 70px !important;
+.lossTable th,
+.lossTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e8e8e8;
+  vertical-align: middle;
 }
 
-.runningQty {
-  flex: 0 0 60px;
-  display: flex;
+.lossTable thead th {
+  background: #f5f5f5;
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.lossTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.lossTable tbody tr:hover {
+  background: #fafafa;
+}
+
+.lossTable .colItem {
+  width: 30%;
+  min-width: 120px;
+}
+
+.lossTable .colType {
+  width: 110px;
+}
+
+.lossTable .colQty {
+  width: 70px;
+  text-align: center;
+}
+
+.lossTable .colRate {
+  width: 80px;
+  text-align: center;
+}
+
+.lossTable .colNote {
+  min-width: 100px;
+}
+
+.lossTable .colAction {
+  width: 44px;
+  text-align: center;
+  padding: 4px;
+}
+
+.lossTable input[type="number"],
+.lossTable input[type="text"],
+.lossTable select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.lossTable input:focus,
+.lossTable select:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.15);
+}
+
+.addLossRowBtn {
+  margin-top: 4px;
+}
+
+/* ---- Delete icon button ---- */
+
+.deleteIconBtn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding-top: 4px;
-}
-
-.runningQtyValue {
-  display: inline-block;
-  min-width: 32px;
-  text-align: center;
-  padding: 4px 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #555;
-  background: #f0f0f0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #999;
   border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
 }
 
-.conditionGroup {
-  flex: 1 !important;
+.deleteIconBtn:hover {
+  color: #c00;
+  background: #fee;
 }
 
-.removeButton {
-  margin-top: 2px;
-  flex: 0 0 70px;
+.deleteIconBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Autocomplete in table cell */
+.tableCellAutocomplete {
+  min-width: 0;
 }

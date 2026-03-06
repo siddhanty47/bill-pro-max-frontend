@@ -111,13 +111,14 @@ type FormData = z.infer<typeof challanSchema>;
 
 interface ChallanFormProps {
   businessId: string;
+  /** Challan type — determined by which button opened the form. */
+  type: 'delivery' | 'return';
   parties: Party[];
   inventoryItems: Inventory[];
   /** Existing challans used as fallback for client-side number prediction. */
   challans: Challan[];
   onSubmit: (data: CreateChallanInput) => Promise<void>;
   onCancel: () => void;
-  onTypeChange?: (type: 'delivery' | 'return') => void;
   isLoading?: boolean;
 }
 
@@ -128,12 +129,12 @@ interface ChallanFormProps {
  */
 export function ChallanForm({
   businessId,
+  type: challanType,
   parties,
   inventoryItems,
   challans,
   onSubmit,
   onCancel,
-  onTypeChange,
   isLoading,
 }: ChallanFormProps) {
   const [partySearchValue, setPartySearchValue] = useState('');
@@ -150,7 +151,7 @@ export function ChallanForm({
   } = useForm<FormData>({
     resolver: zodResolver(challanSchema),
     defaultValues: {
-      type: 'delivery',
+      type: challanType,
       date: new Date().toISOString().split('T')[0],
       items: [{ itemId: '', itemName: '', quantity: 1 }],
       damagedItems: [],
@@ -175,7 +176,6 @@ export function ChallanForm({
   const selectedAgreementId = watch('agreementId');
   const selectedParty = parties.find((p) => p._id === selectedPartyId);
   const activeAgreements = selectedParty?.agreements?.filter((a) => a.status === 'active') || [];
-  const challanType = watch('type');
   const challanDate = watch('date');
 
   /** Fetch transporter employees for the business */
@@ -214,11 +214,6 @@ export function ChallanForm({
     },
     [transporters, setValue]
   );
-
-  /** Notify parent whenever the challan type changes so the modal variant can update. */
-  useEffect(() => {
-    onTypeChange?.(challanType);
-  }, [challanType, onTypeChange]);
 
   /** Fetch predicted next challan number; fall back to client-side estimation. */
   const {
@@ -382,19 +377,12 @@ export function ChallanForm({
 
       <div className="form-row">
         <div className="form-group">
-          <label htmlFor="type">Challan Type *</label>
-          <select id="type" {...register('type')} disabled={isLoading}>
-            <option value="delivery">Delivery</option>
-            <option value="return">Return</option>
-          </select>
-        </div>
-
-        <div className="form-group">
           <label htmlFor="date">Date *</label>
           <input id="date" type="date" {...register('date')} disabled={isLoading} />
           {errors.date && <span className="error-message">{errors.date.message}</span>}
         </div>
       </div>
+      <input type="hidden" {...register('type')} />
 
       <div className="form-row">
         <div className={`form-group ${styles.flexGroup}`}>
@@ -426,66 +414,80 @@ export function ChallanForm({
         </div>
       </div>
 
-      {/* Items section with column headers */}
+      {/* Items section — table/spreadsheet style */}
       <div className="form-group">
         <label>Items *</label>
-        <div className={styles.itemHeader}>
-          <span className={styles.itemHeaderName}>Item</span>
-          <span className={styles.itemHeaderQty}>Qty</span>
-          <span className={styles.itemHeaderRunning}>Running</span>
-          <span className={styles.itemHeaderAction}></span>
+        <div className={styles.itemsTableWrap}>
+          <table className={styles.itemsTable}>
+            <thead>
+              <tr>
+                <th className={styles.colItem}>Item</th>
+                <th className={styles.colQty}>Qty</th>
+                <th className={styles.colRunning}>Running</th>
+                <th className={styles.colAction}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {fields.map((field, index) => {
+                const currentItemId = watch(`items.${index}.itemId`);
+                const runningQty = getRunningQty(currentItemId);
+
+                return (
+                  <tr key={field.id}>
+                    <td className={styles.colItem}>
+                      <div className={styles.tableCellAutocomplete}>
+                        <CodeAutocomplete
+                          label=""
+                          placeholder="Type item code or name..."
+                          value={itemSearchValues[index] || ''}
+                          onChange={(value) => handleItemSearchChange(index, value)}
+                          items={inventoryAutocompleteItems}
+                          onSelect={(item) => handleInventorySelect(index, item)}
+                          disabled={isLoading}
+                        />
+                        <input type="hidden" {...register(`items.${index}.itemId`)} />
+                        <input type="hidden" {...register(`items.${index}.itemName`)} />
+                      </div>
+                    </td>
+                    <td className={styles.colQty}>
+                      <input
+                        type="number"
+                        placeholder="Qty"
+                        {...register(`items.${index}.quantity`, { valueAsNumber: true })}
+                        disabled={isLoading}
+                      />
+                    </td>
+                    <td className={styles.colRunning}>
+                      <span style={{ display: 'inline-block', padding: '4px 8px', fontSize: 13, fontWeight: 600, color: '#555', background: '#f0f0f0', borderRadius: 4 }}>
+                        {runningQty}
+                      </span>
+                    </td>
+                    <td className={styles.colAction}>
+                      <button
+                        type="button"
+                        className={styles.deleteIconBtn}
+                        onClick={() => remove(index)}
+                        disabled={isLoading || fields.length <= 1}
+                        title="Delete row"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          <line x1="10" y1="11" x2="10" y2="17" />
+                          <line x1="14" y1="11" x2="14" y2="17" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-
-        {fields.map((field, index) => {
-          const currentItemId = watch(`items.${index}.itemId`);
-          const runningQty = getRunningQty(currentItemId);
-
-          return (
-            <div key={field.id} className={`form-row ${styles.itemRow}`}>
-              <div className={styles.itemAutocomplete}>
-                <CodeAutocomplete
-                  label=""
-                  placeholder="Type item code or name..."
-                  value={itemSearchValues[index] || ''}
-                  onChange={(value) => handleItemSearchChange(index, value)}
-                  items={inventoryAutocompleteItems}
-                  onSelect={(item) => handleInventorySelect(index, item)}
-                  disabled={isLoading}
-                />
-                <input type="hidden" {...register(`items.${index}.itemId`)} />
-                <input type="hidden" {...register(`items.${index}.itemName`)} />
-              </div>
-
-              <div className={`form-group ${styles.qtyGroup}`}>
-                <input
-                  type="number"
-                  placeholder="Qty"
-                  {...register(`items.${index}.quantity`, { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className={styles.runningQty}>
-                <span className={styles.runningQtyValue}>{runningQty}</span>
-              </div>
-
-              {fields.length > 1 && (
-                <button
-                  type="button"
-                  className={`btn btn-danger btn-sm ${styles.removeButton}`}
-                  onClick={() => remove(index)}
-                  disabled={isLoading}
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-          );
-        })}
         {errors.items && <span className="error-message">{errors.items.message}</span>}
         <button
           type="button"
-          className="btn btn-secondary btn-sm"
+          className={`btn btn-secondary btn-sm ${styles.addRowBtn}`}
           onClick={() => append({ itemId: '', itemName: '', quantity: 1 })}
           disabled={isLoading}
         >
@@ -498,83 +500,104 @@ export function ChallanForm({
         <textarea id="notes" {...register('notes')} rows={2} disabled={isLoading} />
       </div>
 
-      {/* Loss section (return challans only) */}
+      {/* Loss section (return challans only) — table style */}
       {challanType === 'return' && (
         <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: '12px 16px', marginBottom: 16 }}>
           <legend style={{ fontSize: 13, fontWeight: 600, color: '#555', padding: '0 6px' }}>
             Loss
           </legend>
 
-          {damagedFields.map((field, index) => (
-            <div key={field.id} className={`form-row ${styles.itemRow}`}>
-              <div className={styles.itemAutocomplete}>
-                <CodeAutocomplete
-                  label=""
-                  placeholder="Type item code or name..."
-                  value={damagedItemSearchValues[index] || ''}
-                  onChange={(value) => handleDamagedItemSearchChange(index, value)}
-                  items={inventoryAutocompleteItems}
-                  onSelect={(item) => handleDamagedItemSelect(index, item)}
-                  disabled={isLoading}
-                />
-                <input type="hidden" {...register(`damagedItems.${index}.itemId`)} />
-                <input type="hidden" {...register(`damagedItems.${index}.itemName`)} />
-              </div>
-
-              <div className={`form-group ${styles.qtyGroup}`}>
-                <select
-                  {...register(`damagedItems.${index}.lossType`)}
-                  disabled={isLoading}
-                  title="Damage = received damaged; Short = missing/less; Need Repair = can be fixed"
-                >
-                  <option value="damage">Damaged</option>
-                  <option value="short">Short</option>
-                  <option value="need_repair">Need Repair</option>
-                </select>
-              </div>
-
-              <div className={`form-group ${styles.qtyGroup}`}>
-                <input
-                  type="number"
-                  placeholder="Qty"
-                  {...register(`damagedItems.${index}.quantity`, { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className={`form-group ${styles.qtyGroup}`}>
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="Rate"
-                  {...register(`damagedItems.${index}.damageRate`, { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="form-group" style={{ flex: 2 }}>
-                <input
-                  type="text"
-                  placeholder="Note (optional)"
-                  {...register(`damagedItems.${index}.note`)}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <button
-                type="button"
-                className={`btn btn-danger btn-sm ${styles.removeButton}`}
-                onClick={() => removeDamaged(index)}
-                disabled={isLoading}
-              >
-                Remove
-              </button>
-            </div>
-          ))}
+          <div className={styles.lossTableWrap}>
+            <table className={styles.lossTable}>
+              <thead>
+                <tr>
+                  <th className={styles.colItem}>Item</th>
+                  <th className={styles.colType}>Type</th>
+                  <th className={styles.colQty}>Qty</th>
+                  <th className={styles.colRate}>Rate</th>
+                  <th className={styles.colNote}>Note</th>
+                  <th className={styles.colAction}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {damagedFields.map((field, index) => (
+                  <tr key={field.id}>
+                    <td className={styles.colItem}>
+                      <div className={styles.tableCellAutocomplete}>
+                        <CodeAutocomplete
+                          label=""
+                          placeholder="Type item code or name..."
+                          value={damagedItemSearchValues[index] || ''}
+                          onChange={(value) => handleDamagedItemSearchChange(index, value)}
+                          items={inventoryAutocompleteItems}
+                          onSelect={(item) => handleDamagedItemSelect(index, item)}
+                          disabled={isLoading}
+                        />
+                        <input type="hidden" {...register(`damagedItems.${index}.itemId`)} />
+                        <input type="hidden" {...register(`damagedItems.${index}.itemName`)} />
+                      </div>
+                    </td>
+                    <td className={styles.colType}>
+                      <select
+                        {...register(`damagedItems.${index}.lossType`)}
+                        disabled={isLoading}
+                        title="Damage = received damaged; Short = missing/less; Need Repair = can be fixed"
+                      >
+                        <option value="damage">Damaged</option>
+                        <option value="short">Short</option>
+                        <option value="need_repair">Need Repair</option>
+                      </select>
+                    </td>
+                    <td className={styles.colQty}>
+                      <input
+                        type="number"
+                        placeholder="Qty"
+                        {...register(`damagedItems.${index}.quantity`, { valueAsNumber: true })}
+                        disabled={isLoading}
+                      />
+                    </td>
+                    <td className={styles.colRate}>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Rate"
+                        {...register(`damagedItems.${index}.damageRate`, { valueAsNumber: true })}
+                        disabled={isLoading}
+                      />
+                    </td>
+                    <td className={styles.colNote}>
+                      <input
+                        type="text"
+                        placeholder="Note (optional)"
+                        {...register(`damagedItems.${index}.note`)}
+                        disabled={isLoading}
+                      />
+                    </td>
+                    <td className={styles.colAction}>
+                      <button
+                        type="button"
+                        className={styles.deleteIconBtn}
+                        onClick={() => removeDamaged(index)}
+                        disabled={isLoading}
+                        title="Delete row"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          <line x1="10" y1="11" x2="10" y2="17" />
+                          <line x1="14" y1="11" x2="14" y2="17" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           <button
             type="button"
-            className="btn btn-secondary btn-sm"
+            className={`btn btn-secondary btn-sm ${styles.addLossRowBtn}`}
             onClick={() => appendDamaged({ itemId: '', itemName: '', quantity: 1, damageRate: 0, note: '', lossType: 'damage' })}
             disabled={isLoading}
           >
