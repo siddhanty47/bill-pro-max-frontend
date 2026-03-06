@@ -35,7 +35,7 @@ export function useBillGenerationProgress() {
   const [batches, setBatches] = useState<Map<string, BatchProgress>>(new Map());
 
   const pendingInvalidation = useRef(false);
-  const invalidationTimer = useRef<ReturnType<typeof setTimeout>>();
+  const invalidationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scheduleInvalidation = useCallback(() => {
     if (pendingInvalidation.current) return;
