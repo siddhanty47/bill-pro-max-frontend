@@ -14,6 +14,8 @@ import {
   useCreateAgreementMutation,
   useUpdateSiteMutation,
 } from '../api/partyApi';
+import { useGetBillsByPartyQuery } from '../api/billApi';
+import { useGetPaymentsByPartyQuery } from '../api/paymentApi';
 import { useGetInventoryQuery } from '../api/inventoryApi';
 import {
   DetailPageShell,
@@ -57,6 +59,17 @@ export function PartyDetailPage() {
 
   const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
   const [isAgreementModalOpen, setIsAgreementModalOpen] = useState(false);
+  const [billSiteFilter, setBillSiteFilter] = useState('');
+
+  const { data: bills } = useGetBillsByPartyQuery(
+    { businessId: currentBusinessId!, partyId: partyId! },
+    { skip: !currentBusinessId || !partyId },
+  );
+
+  const { data: payments } = useGetPaymentsByPartyQuery(
+    { businessId: currentBusinessId!, partyId: partyId! },
+    { skip: !currentBusinessId || !partyId },
+  );
 
   /** Tracks which site code is currently being inline-edited (null = none) */
   const [editingSiteCode, setEditingSiteCode] = useState<string | null>(null);
@@ -367,6 +380,156 @@ export function PartyDetailPage() {
               <p style={{ color: '#999', fontStyle: 'italic' }}>No agreements yet.</p>
             )}
           </DetailSection>
+
+          {/* Bills */}
+          {(() => {
+            const agreementIdToSiteCode = Object.fromEntries(
+              (party.agreements || []).map((a) => [a.agreementId, a.siteCode]),
+            );
+            const filteredBills = (bills || []).filter(
+              (bill) =>
+                billSiteFilter === '' ||
+                agreementIdToSiteCode[bill.agreementId] === billSiteFilter,
+            );
+            const sortedBills = [...filteredBills].sort((a, b) => {
+              const dateA = a.billDate ?? a.billingPeriod?.start ?? a.createdAt ?? '';
+              const dateB = b.billDate ?? b.billingPeriod?.start ?? b.createdAt ?? '';
+              return new Date(dateB).getTime() - new Date(dateA).getTime();
+            });
+            return (
+              <DetailSection title={`Bills (${sortedBills.length})`}>
+                {party.sites && party.sites.length > 0 && (
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ marginRight: 8 }}>Site:</label>
+                    <select
+                      value={billSiteFilter}
+                      onChange={(e) => setBillSiteFilter(e.target.value)}
+                      className="form-input"
+                      style={{ width: 'auto', minWidth: 120 }}
+                    >
+                      <option value="">All</option>
+                      {party.sites.map((s) => (
+                        <option key={s.code} value={s.code}>
+                          {s.code}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {sortedBills.length > 0 ? (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Bill Date</th>
+                        <th>Bill #</th>
+                        <th>Agreement / Site</th>
+                        <th>Period</th>
+                        <th>Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedBills.map((bill) => (
+                        <tr key={bill._id}>
+                          <td>
+                            {formatDate(
+                              bill.billDate ?? bill.billingPeriod?.end ?? bill.createdAt,
+                            )}
+                          </td>
+                          <td>
+                            <Link
+                              to={`/bills/${bill._id}`}
+                              style={{ color: '#0066cc', textDecoration: 'none' }}
+                            >
+                              {bill.billNumber}
+                            </Link>
+                          </td>
+                          <td>
+                            {bill.agreementId}
+                            {agreementIdToSiteCode[bill.agreementId] && (
+                              <> / {agreementIdToSiteCode[bill.agreementId]}</>
+                            )}
+                          </td>
+                          <td>
+                            {bill.billingPeriod
+                              ? `${new Date(bill.billingPeriod.start).toLocaleDateString()} - ${new Date(bill.billingPeriod.end).toLocaleDateString()}`
+                              : '-'}
+                          </td>
+                          <td>₹{bill.totalAmount.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p style={{ color: '#999', fontStyle: 'italic' }}>
+                    No bills found.
+                  </p>
+                )}
+              </DetailSection>
+            );
+          })()}
+
+          {/* Payments */}
+          {(() => {
+            const sortedPayments = [...(payments || [])].sort(
+              (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+            );
+            return (
+              <DetailSection title={`Payments (${sortedPayments.length})`}>
+                {sortedPayments.length > 0 ? (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Bill</th>
+                        <th>Status</th>
+                        <th>Reference</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedPayments.map((payment) => (
+                        <tr key={payment._id}>
+                          <td>
+                            <Link
+                              to={`/payments/${payment._id}`}
+                              style={{ color: '#0066cc', textDecoration: 'none' }}
+                            >
+                              {formatDate(payment.date)}
+                            </Link>
+                          </td>
+                          <td>₹{payment.amount.toLocaleString()}</td>
+                          <td>{payment.method.replace('_', ' ')}</td>
+                          <td>
+                            {payment.billId ? (
+                              <Link
+                                to={`/bills/${payment.billId}`}
+                                style={{ color: '#0066cc', textDecoration: 'none' }}
+                              >
+                                View Bill
+                              </Link>
+                            ) : (
+                              '-'
+                            )}
+                          </td>
+                          <td>
+                            <span className={`status status-${payment.status}`}>
+                              {payment.status}
+                            </span>
+                          </td>
+                          <td>{payment.reference || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p style={{ color: '#999', fontStyle: 'italic' }}>
+                    No payments found.
+                  </p>
+                )}
+              </DetailSection>
+            );
+          })()}
 
           {/* Notes */}
           <DetailSection title="Notes">

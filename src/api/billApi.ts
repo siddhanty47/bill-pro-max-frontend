@@ -24,6 +24,13 @@ export const billApi = baseApi.injectEndpoints({
       providesTags: ['Bill'],
     }),
 
+    getBillsByParty: builder.query<Bill[], { businessId: string; partyId: string }>({
+      query: ({ businessId, partyId }) =>
+        `/businesses/${businessId}/bills?partyId=${encodeURIComponent(partyId)}&pageSize=100`,
+      transformResponse: (response: PaginatedResponse<Bill>) => response.data,
+      providesTags: ['Bill'],
+    }),
+
     getPaymentSummary: builder.query<{ totalDue: number; totalPaid: number; overdue: number }, string>({
       query: (businessId) => `/businesses/${businessId}/bills/payment-summary`,
       transformResponse: (response: ApiResponse<{ totalDue: number; totalPaid: number; overdue: number }>) => response.data,
@@ -84,6 +91,7 @@ export const {
   useGetBillQuery,
   useGetOverdueBillsQuery,
   useGetPaymentSummaryQuery,
+  useGetBillsByPartyQuery,
   useGenerateBillMutation,
   useBulkGenerateBillsMutation,
   useUpdateBillStatusMutation,

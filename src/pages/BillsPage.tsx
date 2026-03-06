@@ -166,6 +166,15 @@ export function BillsPage() {
   const columns = [
     { key: 'billNumber', header: 'Bill #' },
     {
+      key: 'billDate',
+      header: 'Bill Date',
+      render: (row: TableItem) => {
+        const bill = row as unknown as Bill;
+        const date = bill.billDate ?? bill.billingPeriod?.end ?? bill.createdAt;
+        return date ? new Date(date).toLocaleDateString() : '-';
+      },
+    },
+    {
       key: 'partyId',
       header: 'Party',
       render: (row: TableItem) => {
@@ -195,14 +204,6 @@ export function BillsPage() {
       render: (row: TableItem) => {
         const bill = row as unknown as Bill;
         return `₹${bill.amountPaid.toLocaleString()}`;
-      },
-    },
-    {
-      key: 'dueDate',
-      header: 'Due Date',
-      render: (row: TableItem) => {
-        const bill = row as unknown as Bill;
-        return new Date(bill.dueDate).toLocaleDateString();
       },
     },
     {
