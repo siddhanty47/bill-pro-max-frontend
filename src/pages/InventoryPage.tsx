@@ -18,6 +18,7 @@ import { ErrorMessage } from '../components/ErrorMessage';
 import { InventoryForm } from '../components/forms/InventoryForm';
 import { getErrorMessage } from '../api/baseApi';
 import type { Inventory, CreateInventoryInput } from '../types';
+import { computeRentedFromHistory, computeAvailable } from '../utils/inventoryUtils';
 
 type TableItem = Record<string, unknown>;
 
@@ -102,7 +103,8 @@ export function InventoryPage() {
       header: 'Available',
       render: (row: TableItem) => {
         const item = row as unknown as Inventory;
-        return `${item.availableQuantity} ${item.unit}`;
+        const rented = computeRentedFromHistory(item.quantityHistory);
+        return `${computeAvailable(item.totalQuantity, rented)} ${item.unit}`;
       },
     },
     {
@@ -110,7 +112,7 @@ export function InventoryPage() {
       header: 'Rented',
       render: (row: TableItem) => {
         const item = row as unknown as Inventory;
-        return `${item.rentedQuantity} ${item.unit}`;
+        return `${computeRentedFromHistory(item.quantityHistory)} ${item.unit}`;
       },
     },
     {
@@ -126,7 +128,7 @@ export function InventoryPage() {
       header: 'Actions',
       render: (row: TableItem) => {
         const item = row as unknown as Inventory;
-        const canDelete = item.rentedQuantity === 0;
+        const canDelete = computeRentedFromHistory(item.quantityHistory) === 0;
         return (
           <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
             <button

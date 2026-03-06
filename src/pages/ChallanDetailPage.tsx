@@ -24,6 +24,7 @@ import {
 } from '../components/DetailPageShell';
 import { CodeAutocomplete, type AutocompleteItem } from '../components/CodeAutocomplete';
 import type { DamagedItem } from '../types';
+import { computeRentedFromHistory, computeAvailable } from '../utils/inventoryUtils';
 
 /**
  * Formats an ISO date string for display.
@@ -84,12 +85,16 @@ export function ChallanDetailPage() {
   const partyName = parties?.find((p) => p._id === challan?.partyId)?.name || challan?.partyId || '';
 
   const inventoryAutocompleteItems: AutocompleteItem[] = useMemo(() => {
-    return (inventoryItems || []).map((item) => ({
-      code: item.code || item.name.substring(0, 4).toUpperCase(),
-      label: item.name,
-      sublabel: `Avail: ${item.availableQuantity} ${item.unit}`,
-      id: item._id,
-    }));
+    return (inventoryItems || []).map((item) => {
+      const rented = computeRentedFromHistory(item.quantityHistory);
+      const avail = computeAvailable(item.totalQuantity, rented);
+      return {
+        code: item.code || item.name.substring(0, 4).toUpperCase(),
+        label: item.name,
+        sublabel: `Avail: ${avail} ${item.unit}`,
+        id: item._id,
+      };
+    });
   }, [inventoryItems]);
 
   const handleTransportationSave = useCallback(
@@ -161,14 +166,20 @@ export function ChallanDetailPage() {
   );
 
   const startEditingDamage = useCallback(() => {
-    setLocalDamagedItems(challan?.damagedItems ? [...challan.damagedItems] : []);
+    setLocalDamagedItems(
+      challan?.damagedItems
+        ? challan.damagedItems.map((d) => ({ ...d, lossType: d.lossType ?? 'damage' }))
+        : []
+    );
     setDamageItemSearch({});
     setEditingDamage(true);
   }, [challan?.damagedItems]);
 
   const handleSaveDamagedItems = useCallback(async () => {
     if (!currentBusinessId || !challanId) return;
-    const filtered = localDamagedItems.filter((d) => d.itemId);
+    const filtered = localDamagedItems
+      .filter((d) => d.itemId)
+      .map((d) => ({ ...d, lossType: d.lossType ?? 'damage' }));
     try {
       await updateDamagedItems({
         businessId: currentBusinessId,
@@ -377,9 +388,9 @@ export function ChallanDetailPage() {
             )}
           </DetailSection>
 
-          {/* Damaged Items (return challans only) */}
+          {/* Loss (return challans only) */}
           {challan.type === 'return' && (
-            <DetailSection title="Damaged Items">
+            <DetailSection title="Loss">
               {editingDamage ? (
                 <>
                   {localDamagedItems.map((d, idx) => (
@@ -405,6 +416,22 @@ export function ChallanDetailPage() {
                           }}
                         />
                       </div>
+                      <select
+                        value={d.lossType ?? 'damage'}
+                        onChange={(e) => {
+                          const updated = [...localDamagedItems];
+                          updated[idx] = {
+                            ...updated[idx],
+                            lossType: e.target.value as 'damage' | 'short' | 'need_repair',
+                          };
+                          setLocalDamagedItems(updated);
+                        }}
+                        style={{ width: 110, padding: '4px 6px' }}
+                      >
+                        <option value="damage">Damaged</option>
+                        <option value="short">Short</option>
+                        <option value="need_repair">Need Repair</option>
+                      </select>
                       <input
                         type="number"
                         min={1}
@@ -459,11 +486,11 @@ export function ChallanDetailPage() {
                       onClick={() => {
                         setLocalDamagedItems([
                           ...localDamagedItems,
-                          { itemId: '', itemName: '', quantity: 1, damageRate: 0, note: '' },
+                          { itemId: '', itemName: '', quantity: 1, damageRate: 0, note: '', lossType: 'damage' },
                         ]);
                       }}
                     >
-                      + Add Damaged Item
+                      + Add Loss Item
                     </button>
                     <button
                       className="btn btn-primary btn-sm"
@@ -487,6 +514,7 @@ export function ChallanDetailPage() {
                       <thead>
                         <tr>
                           <th>Item</th>
+                          <th>Type</th>
                           <th>Qty</th>
                           <th>Rate</th>
                           <th>Amount</th>
@@ -497,6 +525,13 @@ export function ChallanDetailPage() {
                         {challan.damagedItems.map((d, idx) => (
                           <tr key={`${d.itemId}-${idx}`}>
                             <td>{d.itemName}</td>
+                            <td>
+                              {d.lossType === 'short'
+                                ? 'Short'
+                                : d.lossType === 'need_repair'
+                                  ? 'Need Repair'
+                                  : 'Damaged'}
+                            </td>
                             <td>{d.quantity}</td>
                             <td>₹{d.damageRate}</td>
                             <td>₹{(d.quantity * d.damageRate).toLocaleString()}</td>
@@ -508,14 +543,14 @@ export function ChallanDetailPage() {
                       </tbody>
                     </table>
                   ) : (
-                    <p style={{ color: '#999', fontStyle: 'italic' }}>No damaged items recorded.</p>
+                    <p style={{ color: '#999', fontStyle: 'italic' }}>No loss items recorded.</p>
                   )}
                   <button
                     className="btn btn-secondary btn-sm"
                     style={{ marginTop: 8 }}
                     onClick={startEditingDamage}
                   >
-                    Edit Damaged Items
+                    Edit Loss Items
                   </button>
                 </>
               )}

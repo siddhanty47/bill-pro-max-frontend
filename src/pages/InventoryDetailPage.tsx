@@ -22,6 +22,7 @@ import {
 import { CodeAutocomplete, type AutocompleteItem } from '../components/CodeAutocomplete';
 import type { AdjustQuantityInput, QuantityTransaction } from '../types';
 import { getErrorMessage } from '../api/baseApi';
+import { computeRentedFromHistory, computeAvailable } from '../utils/inventoryUtils';
 
 /** Unit options — must stay in sync with InventoryForm */
 const UNIT_OPTIONS = [
@@ -63,7 +64,69 @@ function transactionTypeBadge(type: QuantityTransaction['type']): string {
       return 'status status-cancelled';
     case 'sold':
       return 'status status-sent';
+    case 'damaged':
+    case 'short':
+      return 'status status-cancelled';
+    case 'challan_loss_edit':
+    case 'challan_item_edit':
+      return 'status status-pending';
+    case 'challan_delivery':
+    case 'challan_return_reversed':
+      return 'status status-sent';
+    case 'challan_return':
+    case 'challan_delivery_reversed':
+      return 'status status-active';
+    default:
+      return 'status status-pending';
   }
+}
+
+/**
+ * Display label for transaction types.
+ */
+function transactionTypeLabel(type: QuantityTransaction['type']): string {
+  switch (type) {
+    case 'challan_delivery':
+      return 'Delivery (Reserved)';
+    case 'challan_return':
+      return 'Return';
+    case 'challan_delivery_reversed':
+      return 'Delivery Reversed';
+    case 'challan_return_reversed':
+      return 'Return Reversed';
+    case 'challan_loss_edit':
+      return 'Challan Loss Edit';
+    case 'challan_item_edit':
+      return 'Challan Item Edit';
+    case 'damaged':
+      return 'Damaged';
+    case 'short':
+      return 'Short';
+    default:
+      return type.charAt(0).toUpperCase() + type.slice(1);
+  }
+}
+
+/**
+ * Quantity display for transaction: + for add/return, - for reduce/reserve.
+ * challan_delivery, challan_return_reversed: Rented + (items went to rented)
+ * challan_return, challan_delivery_reversed: Returned + (items came back)
+ */
+function transactionQuantityDisplay(tx: QuantityTransaction): string {
+  const prefix =
+    tx.type === 'purchase' ||
+    (tx.type === 'challan_loss_edit' && tx.note?.includes('reversed')) ||
+    tx.type === 'challan_return' ||
+    tx.type === 'challan_delivery_reversed'
+      ? '+'
+      : '-';
+  const suffix =
+    tx.type === 'challan_delivery' || tx.type === 'challan_return_reversed'
+      ? ' (rented)'
+      : tx.type === 'challan_return' || tx.type === 'challan_delivery_reversed'
+        ? ' (returned)'
+        : '';
+  return `${prefix}${tx.quantity}${suffix}`;
 }
 
 /**
@@ -151,12 +214,10 @@ export function InventoryDetailPage() {
     [adjType, adjQuantity, adjDate, adjNote, adjustQuantity, currentBusinessId, itemId],
   );
 
-  /** Sorted history: newest first */
+  /** History: latest entry at top (reverse of insertion order) */
   const sortedHistory = useMemo(() => {
     if (!item?.quantityHistory?.length) return [];
-    return [...item.quantityHistory].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
+    return [...item.quantityHistory].reverse();
   }, [item?.quantityHistory]);
 
   const sidebar = item ? (
@@ -322,8 +383,14 @@ export function InventoryDetailPage() {
               {adjError && <p style={{ color: '#dc3545', fontSize: '13px', marginTop: '6px' }}>{adjError}</p>}
             </div>
 
-            <DetailField label="Available" value={`${item.availableQuantity} ${item.unit}`} />
-            <DetailField label="Rented Out" value={`${item.rentedQuantity} ${item.unit}`} />
+            <DetailField
+              label="Available"
+              value={`${computeAvailable(item.totalQuantity, computeRentedFromHistory(item.quantityHistory))} ${item.unit}`}
+            />
+            <DetailField
+              label="Rented Out"
+              value={`${computeRentedFromHistory(item.quantityHistory)} ${item.unit}`}
+            />
           </DetailSection>
 
           {/* Quantity History */}
@@ -349,11 +416,11 @@ export function InventoryDetailPage() {
                         <td>{formatDate(tx.date)}</td>
                         <td>
                           <span className={transactionTypeBadge(tx.type)}>
-                            {tx.type}
+                            {transactionTypeLabel(tx.type)}
                           </span>
                         </td>
                         <td>
-                          {tx.type === 'purchase' ? '+' : '-'}{tx.quantity}
+                          {transactionQuantityDisplay(tx)}
                         </td>
                         <td>{tx.note || '-'}</td>
                       </tr>

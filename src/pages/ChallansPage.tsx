@@ -20,6 +20,7 @@ import { ErrorMessage } from '../components/ErrorMessage';
 import { ChallanForm } from '../components/forms/ChallanForm';
 import { getErrorMessage } from '../api/baseApi';
 import type { Challan, CreateChallanInput } from '../types';
+import styles from './ChallansPage.module.css';
 
 type TableItem = Record<string, unknown>;
 import { useAuth } from '../hooks/useAuth';
@@ -104,22 +105,20 @@ export function ChallansPage() {
     return matchesSearch && matchesType && matchesStatus;
   });
 
+  // Split into delivery and return, sort each by challan number (highest first)
+  const sortByChallanNumberDesc = (a: Challan, b: Challan) =>
+    b.challanNumber.localeCompare(a.challanNumber, undefined, { numeric: true });
+  const deliveryChallans = filteredChallans
+    .filter((c) => c.type === 'delivery')
+    .sort(sortByChallanNumberDesc);
+  const returnChallans = filteredChallans
+    .filter((c) => c.type === 'return')
+    .sort(sortByChallanNumberDesc);
+
   const hasDraftChallans = filteredChallans.some((c) => c.status === 'draft');
 
   const columns = [
     { key: 'challanNumber', header: 'Challan #' },
-    {
-      key: 'type',
-      header: 'Type',
-      render: (row: TableItem) => {
-        const challan = row as unknown as Challan;
-        return (
-          <span className={`status status-${challan.type === 'delivery' ? 'active' : 'pending'}`}>
-            {challan.type}
-          </span>
-        );
-      },
-    },
     {
       key: 'partyId',
       header: 'Party',
@@ -220,13 +219,31 @@ export function ChallansPage() {
         </select>
       </div>
 
-      <DataTable
-        data={filteredChallans as unknown as TableItem[]}
-        columns={columns}
-        keyField="_id"
-        onRowClick={(row) => navigate(`/challans/${String(row._id)}`)}
-        emptyMessage="No challans found. Create your first challan to get started."
-      />
+      <section className={styles.section}>
+        <h2 className={`${styles.sectionHeader} ${styles.sectionHeaderDelivery}`}>
+          Delivery Challans
+        </h2>
+        <DataTable
+          data={deliveryChallans as unknown as TableItem[]}
+          columns={columns}
+          keyField="_id"
+          onRowClick={(row) => navigate(`/challans/${String(row._id)}`)}
+          emptyMessage="No delivery challans found."
+        />
+      </section>
+
+      <section className={styles.section}>
+        <h2 className={`${styles.sectionHeader} ${styles.sectionHeaderReturn}`}>
+          Return Challans
+        </h2>
+        <DataTable
+          data={returnChallans as unknown as TableItem[]}
+          columns={columns}
+          keyField="_id"
+          onRowClick={(row) => navigate(`/challans/${String(row._id)}`)}
+          emptyMessage="No return challans found."
+        />
+      </section>
 
       <Modal
         isOpen={isModalOpen}

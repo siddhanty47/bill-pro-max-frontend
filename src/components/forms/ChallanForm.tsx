@@ -7,6 +7,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Party, Inventory, Challan, CreateChallanInput, Employee } from '../../types';
+import { computeRentedFromHistory, computeAvailable } from '../../utils/inventoryUtils';
 import { useGetNextChallanNumberQuery, useGetItemsWithPartyQuery } from '../../api/challanApi';
 import { useGetEmployeesQuery } from '../../api/employeeApi';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
@@ -93,6 +94,7 @@ const challanSchema = z.object({
         quantity: z.number().int().min(1, 'Quantity must be at least 1'),
         damageRate: z.number().min(0),
         note: z.string().max(500).optional(),
+        lossType: z.enum(['damage', 'short', 'need_repair']),
       })
     )
     .optional(),
@@ -278,12 +280,16 @@ export function ChallanForm({
   }, [parties]);
 
   const inventoryAutocompleteItems: AutocompleteItem[] = useMemo(() => {
-    return inventoryItems.map((item) => ({
-      code: item.code || item.name.substring(0, 4).toUpperCase(),
-      label: item.name,
-      sublabel: `Avail: ${item.availableQuantity} ${item.unit}`,
-      id: item._id,
-    }));
+    return inventoryItems.map((item) => {
+      const rented = computeRentedFromHistory(item.quantityHistory);
+      const avail = computeAvailable(item.totalQuantity, rented);
+      return {
+        code: item.code || item.name.substring(0, 4).toUpperCase(),
+        label: item.name,
+        sublabel: `Avail: ${avail} ${item.unit}`,
+        id: item._id,
+      };
+    });
   }, [inventoryItems]);
 
   const handlePartySelect = useCallback(
@@ -315,6 +321,7 @@ export function ChallanForm({
       setValue(`damagedItems.${index}.itemId`, item.id);
       setValue(`damagedItems.${index}.itemName`, inventoryItem?.name || item.label);
       setValue(`damagedItems.${index}.damageRate`, inventoryItem?.damageRate ?? 0);
+      setValue(`damagedItems.${index}.lossType`, 'damage');
       setDamagedItemSearchValues((prev) => ({ ...prev, [index]: item.code }));
     },
     [inventoryItems, setValue]
@@ -335,6 +342,7 @@ export function ChallanForm({
               quantity: d.quantity,
               damageRate: d.damageRate,
               note: d.note || undefined,
+              lossType: d.lossType || 'damage',
             }))
         : undefined;
 
@@ -490,11 +498,11 @@ export function ChallanForm({
         <textarea id="notes" {...register('notes')} rows={2} disabled={isLoading} />
       </div>
 
-      {/* Damaged Items section (return challans only) */}
+      {/* Loss section (return challans only) */}
       {challanType === 'return' && (
         <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: '12px 16px', marginBottom: 16 }}>
           <legend style={{ fontSize: 13, fontWeight: 600, color: '#555', padding: '0 6px' }}>
-            Damaged Items
+            Loss
           </legend>
 
           {damagedFields.map((field, index) => (
@@ -511,6 +519,18 @@ export function ChallanForm({
                 />
                 <input type="hidden" {...register(`damagedItems.${index}.itemId`)} />
                 <input type="hidden" {...register(`damagedItems.${index}.itemName`)} />
+              </div>
+
+              <div className={`form-group ${styles.qtyGroup}`}>
+                <select
+                  {...register(`damagedItems.${index}.lossType`)}
+                  disabled={isLoading}
+                  title="Damage = received damaged; Short = missing/less; Need Repair = can be fixed"
+                >
+                  <option value="damage">Damaged</option>
+                  <option value="short">Short</option>
+                  <option value="need_repair">Need Repair</option>
+                </select>
               </div>
 
               <div className={`form-group ${styles.qtyGroup}`}>
@@ -555,10 +575,10 @@ export function ChallanForm({
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={() => appendDamaged({ itemId: '', itemName: '', quantity: 1, damageRate: 0, note: '' })}
+            onClick={() => appendDamaged({ itemId: '', itemName: '', quantity: 1, damageRate: 0, note: '', lossType: 'damage' })}
             disabled={isLoading}
           >
-            + Add Damaged Item
+            + Add Loss Item
           </button>
         </fieldset>
       )}

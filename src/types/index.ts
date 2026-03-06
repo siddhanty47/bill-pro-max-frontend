@@ -296,14 +296,16 @@ export interface PurchaseInfo {
 }
 
 /**
- * A single quantity adjustment record (purchase, scraped, or sold)
+ * A single quantity adjustment record (purchase, scraped, sold, damaged, or short)
  */
 export interface QuantityTransaction {
   _id: string;
-  type: 'purchase' | 'scraped' | 'sold';
+  type: 'purchase' | 'scraped' | 'sold' | 'damaged' | 'short' | 'challan_loss_edit' | 'challan_item_edit' | 'challan_delivery' | 'challan_return' | 'challan_delivery_reversed' | 'challan_return_reversed';
   quantity: number;
   note?: string;
   date: string;
+  rentedDelta?: number;
+  challanType?: 'delivery' | 'return';
 }
 
 /**
@@ -324,8 +326,10 @@ export interface Inventory {
   name: string;
   category: string;
   totalQuantity: number;
-  availableQuantity: number;
-  rentedQuantity: number;
+  /** @deprecated Compute from quantityHistory using computeRentedFromHistory */
+  availableQuantity?: number;
+  /** @deprecated Compute from quantityHistory using computeRentedFromHistory */
+  rentedQuantity?: number;
   unit: string;
   description?: string;
   defaultRatePerDay?: number;
@@ -377,6 +381,7 @@ export interface DamagedItem {
   quantity: number;
   damageRate: number;
   note?: string;
+  lossType?: 'damage' | 'short' | 'need_repair';
 }
 
 export interface Challan {
@@ -419,6 +424,7 @@ export interface CreateChallanInput {
     quantity: number;
     damageRate: number;
     note?: string;
+    lossType?: 'damage' | 'short' | 'need_repair';
   }[];
   notes?: string;
   transporterName?: string;
