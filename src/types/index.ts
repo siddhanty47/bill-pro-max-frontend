@@ -123,6 +123,16 @@ export interface CreateBusinessInput {
   settings?: Partial<BusinessSettings>;
 }
 
+export interface UpdateBusinessInput {
+  name?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  gst?: string;
+  stateCode?: string;
+  settings?: Partial<BusinessSettings>;
+}
+
 // ============ Party ============
 
 export interface PartyContact {

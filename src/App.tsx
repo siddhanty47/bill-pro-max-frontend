@@ -20,6 +20,7 @@ import { ChallanDetailPage } from './pages/ChallanDetailPage';
 import { BillDetailPage } from './pages/BillDetailPage';
 import { PaymentDetailPage } from './pages/PaymentDetailPage';
 import { TeamPage } from './pages/TeamPage';
+import { BusinessDetailPage } from './pages/BusinessDetailPage';
 import { InvitationAcceptPage } from './pages/InvitationAcceptPage';
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route path="business" element={<BusinessDetailPage />} />
         <Route path="inventory" element={<InventoryPage />} />
         <Route path="inventory/:itemId" element={<InventoryDetailPage />} />
         <Route path="parties" element={<PartiesPage />} />

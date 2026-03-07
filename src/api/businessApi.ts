@@ -2,7 +2,7 @@
  * Business API endpoints
  */
 import { baseApi } from './baseApi';
-import type { Business, CreateBusinessInput, ApiResponse } from '../types';
+import type { Business, CreateBusinessInput, UpdateBusinessInput, ApiResponse } from '../types';
 
 export const businessApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -27,7 +27,28 @@ export const businessApi = baseApi.injectEndpoints({
       transformResponse: (response: ApiResponse<Business>) => response.data,
       invalidatesTags: ['Business'],
     }),
+
+    updateBusiness: builder.mutation<
+      Business,
+      { businessId: string; data: UpdateBusinessInput }
+    >({
+      query: ({ businessId, data }) => ({
+        url: `/businesses/${businessId}`,
+        method: 'PATCH',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<Business>) => response.data,
+      invalidatesTags: (_result, _error, { businessId }) => [
+        { type: 'Business', id: businessId },
+        'Business',
+      ],
+    }),
   }),
 });
 
-export const { useGetBusinessesQuery, useGetBusinessQuery, useCreateBusinessMutation } = businessApi;
+export const {
+  useGetBusinessesQuery,
+  useGetBusinessQuery,
+  useCreateBusinessMutation,
+  useUpdateBusinessMutation,
+} = businessApi;
