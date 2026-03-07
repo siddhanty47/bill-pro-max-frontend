@@ -150,6 +150,14 @@ export const challanApi = baseApi.injectEndpoints({
       transformResponse: (response: PaginatedResponse<Challan>) => response.data,
       providesTags: ['Challan'],
     }),
+
+    /** Download challan PDF */
+    getChallanPdf: builder.query<Blob, { businessId: string; challanId: string }>({
+      query: ({ businessId, challanId }) => ({
+        url: `/businesses/${businessId}/challans/${challanId}/pdf`,
+        responseHandler: (response) => response.blob(),
+      }),
+    }),
   }),
 });
 
@@ -166,4 +174,5 @@ export const {
   useGetNextChallanNumberQuery,
   useGetItemsWithPartyQuery,
   useGetChallansByAgreementQuery,
+  useLazyGetChallanPdfQuery,
 } = challanApi;
