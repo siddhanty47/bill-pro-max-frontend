@@ -6,6 +6,7 @@
  */
 import { useCallback, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import pageStyles from './BillDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
   useGetBillQuery,
@@ -173,7 +174,7 @@ export function BillDetailPage() {
         value={
           <Link
             to={`/parties/${bill.partyId}`}
-            style={{ color: '#0066cc', textDecoration: 'none' }}
+            className="link-accent"
           >
             {partyName}
           </Link>
@@ -184,7 +185,7 @@ export function BillDetailPage() {
         value={
           <Link
             to={`/agreements/${bill.agreementId}`}
-            style={{ color: '#0066cc', textDecoration: 'none' }}
+            className="link-accent"
           >
             {bill.agreementId}
           </Link>
@@ -216,7 +217,7 @@ export function BillDetailPage() {
             onClick={handleDownloadPdf}
             disabled={isDownloading}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 6 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="icon-inline">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
@@ -230,28 +231,15 @@ export function BillDetailPage() {
         <>
           {/* Stale Warning Banner */}
           {bill.isStale && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '12px 16px',
-                marginBottom: 16,
-                background: '#fff3cd',
-                border: '1px solid #ffc107',
-                borderRadius: 8,
-                color: '#856404',
-              }}
-            >
-              <span style={{ fontSize: 20 }}>&#9888;</span>
-              <span style={{ flex: 1 }}>
+            <div className={pageStyles.staleBanner}>
+              <span className={pageStyles.iconSize20}>&#9888;</span>
+              <span className={pageStyles.flexGrow1}>
                 <strong>Stale bill</strong> &mdash; Underlying challan data has changed since this bill was generated.
               </span>
               <button
                 className="btn btn-primary"
                 onClick={handleRegenerate}
                 disabled={isRegenerating}
-                style={{ whiteSpace: 'nowrap' }}
               >
                 {isRegenerating ? 'Regenerating...' : 'Regenerate Bill'}
               </button>
@@ -280,7 +268,7 @@ export function BillDetailPage() {
                     <th>Qty</th>
                     <th>Rate/Day</th>
                     <th>Days</th>
-                    <th style={{ textAlign: 'right' }}>Amount</th>
+                    <th className="text-right">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -290,13 +278,13 @@ export function BillDetailPage() {
                       <td>{item.quantity}</td>
                       <td>₹{item.ratePerDay}</td>
                       <td>{item.totalDays}</td>
-                      <td style={{ textAlign: 'right' }}>{formatCurrency(item.amount)}</td>
+                      <td className="text-right">{formatCurrency(item.amount)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : (
-              <p style={{ color: '#999', fontStyle: 'italic' }}>No line items.</p>
+              <p className="text-empty">No line items.</p>
             )}
           </DetailSection>
 
@@ -309,7 +297,7 @@ export function BillDetailPage() {
                     <th>Item</th>
                     <th>Qty</th>
                     <th>Rate</th>
-                    <th style={{ textAlign: 'right' }}>Amount</th>
+                    <th className="text-right">Amount</th>
                     <th>Note</th>
                   </tr>
                 </thead>
@@ -319,8 +307,8 @@ export function BillDetailPage() {
                       <td>{d.itemName}</td>
                       <td>{d.quantity}</td>
                       <td>₹{d.damageRate}</td>
-                      <td style={{ textAlign: 'right' }}>{formatCurrency(d.amount)}</td>
-                      <td style={{ color: d.note ? '#333' : '#999', fontStyle: d.note ? 'normal' : 'italic' }}>
+                      <td className="text-right">{formatCurrency(d.amount)}</td>
+                      <td className={d.note ? 'text-notes' : 'text-notes-empty'}>
                         {d.note || '-'}
                       </td>
                     </tr>
@@ -379,7 +367,7 @@ export function BillDetailPage() {
             <DetailField
               label="Outstanding"
               value={
-                <strong style={{ color: outstanding > 0 ? '#dc3545' : '#155724' }}>
+                <strong style={{ color: outstanding > 0 ? 'var(--status-danger-text)' : 'var(--status-success-text)' }}>
                   {formatCurrency(outstanding)}
                 </strong>
               }
@@ -410,7 +398,7 @@ export function BillDetailPage() {
                         <td>
                           <Link
                             to={`/payments/${payment._id}`}
-                            style={{ color: '#0066cc', textDecoration: 'none' }}
+                            className="link-accent"
                           >
                             {formatDate(payment.date)}
                           </Link>
@@ -428,7 +416,7 @@ export function BillDetailPage() {
                 </tbody>
               </table>
             ) : (
-              <p style={{ color: '#999', fontStyle: 'italic' }}>
+              <p className="text-empty">
                 No payments recorded for this bill.
               </p>
             )}
@@ -436,7 +424,7 @@ export function BillDetailPage() {
 
           {/* Notes */}
           <DetailSection title="Notes">
-            <p style={{ color: bill.notes ? '#333' : '#999', fontStyle: bill.notes ? 'normal' : 'italic' }}>
+            <p className={bill.notes ? 'text-notes' : 'text-notes-empty'}>
               {bill.notes || 'No notes.'}
             </p>
           </DetailSection>

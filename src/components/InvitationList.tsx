@@ -4,6 +4,7 @@
  */
 import type { Invitation } from '../types';
 import { useCancelInvitationMutation } from '../api/invitationApi';
+import styles from './InvitationList.module.css';
 
 interface InvitationListProps {
   invitations: Invitation[];
@@ -14,7 +15,7 @@ export function InvitationList({ invitations, businessId }: InvitationListProps)
   const [cancelInvitation] = useCancelInvitationMutation();
 
   if (invitations.length === 0) {
-    return <p style={{ color: '#888' }}>No invitations sent.</p>;
+    return <p className="text-secondary-sm">No invitations sent.</p>;
   }
 
   const handleCancel = async (invitationId: string) => {
@@ -48,9 +49,8 @@ export function InvitationList({ invitations, businessId }: InvitationListProps)
             <td>
               {inv.status === 'pending' && (
                 <button
-                  className="btn btn-danger btn-sm"
+                  className="btn btn-danger btn-sm btn-action-sm"
                   onClick={() => handleCancel(inv._id)}
-                  style={{ fontSize: 12, padding: '4px 8px' }}
                 >
                   Cancel
                 </button>

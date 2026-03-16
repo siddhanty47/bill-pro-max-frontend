@@ -458,7 +458,7 @@ export function ChallanForm({
                       />
                     </td>
                     <td className={styles.colRunning}>
-                      <span style={{ display: 'inline-block', padding: '4px 8px', fontSize: 13, fontWeight: 600, color: '#555', background: '#f0f0f0', borderRadius: 4 }}>
+                      <span className="badge-neutral">
                         {runningQty}
                       </span>
                     </td>
@@ -502,8 +502,8 @@ export function ChallanForm({
 
       {/* Loss section (return challans only) — table style */}
       {challanType === 'return' && (
-        <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: '12px 16px', marginBottom: 16 }}>
-          <legend style={{ fontSize: 13, fontWeight: 600, color: '#555', padding: '0 6px' }}>
+        <fieldset className="form-fieldset">
+          <legend className="form-fieldset-legend">
             Loss
           </legend>
 
@@ -607,13 +607,13 @@ export function ChallanForm({
       )}
 
       {/* Transportation section */}
-      <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: '12px 16px', marginBottom: 16 }}>
-        <legend style={{ fontSize: 13, fontWeight: 600, color: '#555', padding: '0 6px' }}>
+      <fieldset className="form-fieldset">
+        <legend className="form-fieldset-legend">
           Transportation
         </legend>
 
         <div className="form-row">
-          <div className="form-group" style={{ flex: 2 }}>
+          <div className={`form-group ${styles.flexGrow2}`}>
             <label htmlFor="transporterId">Transporter</label>
             <select
               id="transporterId"

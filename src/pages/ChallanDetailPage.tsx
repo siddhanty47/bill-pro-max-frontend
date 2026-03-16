@@ -6,6 +6,7 @@
  */
 import { useState, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import pageStyles from './ChallanDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
   useGetChallanQuery,
@@ -237,7 +238,7 @@ export function ChallanDetailPage() {
         value={
           <Link
             to={`/parties/${challan.partyId}`}
-            style={{ color: '#0066cc', textDecoration: 'none' }}
+            className="link-accent"
           >
             {partyName}
           </Link>
@@ -248,7 +249,7 @@ export function ChallanDetailPage() {
         value={
           <Link
             to={`/agreements/${challan.agreementId}`}
-            style={{ color: '#0066cc', textDecoration: 'none' }}
+            className="link-accent"
           >
             {challan.agreementId}
           </Link>
@@ -280,7 +281,7 @@ export function ChallanDetailPage() {
             onClick={handleDownloadPdf}
             disabled={isDownloading}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 6 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="icon-inline">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
@@ -309,7 +310,7 @@ export function ChallanDetailPage() {
                       <td>{item.itemName}</td>
                       <td>
                         {editingItemId === item.itemId ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <span className={pageStyles.statusBadge}>
                             <input
                               type="number"
                               min={1}
@@ -321,13 +322,13 @@ export function ChallanDetailPage() {
                                 if (e.key === 'Escape') setEditingItemId(null);
                               }}
                               disabled={isSavingItem}
-                              style={{ width: 70, padding: '2px 6px' }}
+                              className={pageStyles.inputSmall}
                               autoFocus
                             />
                             <button
                               onClick={() => handleItemQuantitySave(item.itemId)}
                               disabled={isSavingItem}
-                              style={{ padding: '2px 6px', cursor: 'pointer', fontSize: 14 }}
+                              className={pageStyles.inlineSaveBtn}
                               title="Save"
                             >
                               {isSavingItem ? '...' : '✓'}
@@ -335,7 +336,7 @@ export function ChallanDetailPage() {
                             <button
                               onClick={() => setEditingItemId(null)}
                               disabled={isSavingItem}
-                              style={{ padding: '2px 6px', cursor: 'pointer', fontSize: 14 }}
+                              className={pageStyles.inlineSaveBtn}
                               title="Cancel"
                             >
                               ✕
@@ -344,7 +345,7 @@ export function ChallanDetailPage() {
                         ) : (
                           <span
                             onClick={() => { setEditingItemId(item.itemId); setEditQty(item.quantity); }}
-                            style={{ cursor: 'pointer', borderBottom: '1px dashed #999', paddingBottom: 1 }}
+                            className={pageStyles.editableText}
                             title="Click to edit"
                           >
                             {item.quantity}
@@ -355,7 +356,7 @@ export function ChallanDetailPage() {
                         {challan.items.length > 1 && (
                           <button
                             onClick={() => handleDeleteItem(item.itemId)}
-                            style={{ padding: '2px 8px', cursor: 'pointer', fontSize: 12, color: '#dc2626' }}
+                            className={pageStyles.inlineDeleteBtn}
                             title="Delete item"
                           >
                             Delete
@@ -367,13 +368,13 @@ export function ChallanDetailPage() {
                 </tbody>
               </table>
             ) : (
-              <p style={{ color: '#999', fontStyle: 'italic' }}>No items in this challan.</p>
+              <p className="text-empty">No items in this challan.</p>
             )}
 
             {/* Add item row */}
             {showAddItem ? (
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginTop: 8 }}>
-                <div style={{ flex: 2 }}>
+              <div className={pageStyles.inlineEditRow}>
+                <div className={pageStyles.flexGrow2}>
                   <CodeAutocomplete
                     label=""
                     placeholder="Type item code or name..."
@@ -397,7 +398,7 @@ export function ChallanDetailPage() {
                     min={1}
                     value={addItemData.quantity}
                     onChange={(e) => setAddItemData({ ...addItemData, quantity: Number(e.target.value) })}
-                    style={{ width: 70, padding: '4px 6px' }}
+                    className={pageStyles.inputSmall}
                   />
                 )}
                 <button
@@ -416,8 +417,7 @@ export function ChallanDetailPage() {
               </div>
             ) : (
               <button
-                className="btn btn-secondary btn-sm"
-                style={{ marginTop: 8 }}
+                className={`btn btn-secondary btn-sm ${pageStyles.marginTop8}`}
                 onClick={() => setShowAddItem(true)}
               >
                 + Add Item
@@ -431,8 +431,8 @@ export function ChallanDetailPage() {
               {editingDamage ? (
                 <>
                   {localDamagedItems.map((d, idx) => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 8 }}>
-                      <div style={{ flex: 2 }}>
+                    <div key={idx} className={pageStyles.inlineEditRowBottom}>
+                      <div className={pageStyles.flexGrow2}>
                         <CodeAutocomplete
                           label=""
                           placeholder="Item..."
@@ -463,7 +463,7 @@ export function ChallanDetailPage() {
                           };
                           setLocalDamagedItems(updated);
                         }}
-                        style={{ width: 110, padding: '4px 6px' }}
+                        className={pageStyles.inputMedium}
                       >
                         <option value="damage">Damaged</option>
                         <option value="short">Short</option>
@@ -479,7 +479,7 @@ export function ChallanDetailPage() {
                           updated[idx] = { ...updated[idx], quantity: Number(e.target.value) };
                           setLocalDamagedItems(updated);
                         }}
-                        style={{ width: 70, padding: '4px 6px' }}
+                        className={pageStyles.inputSmall}
                       />
                       <input
                         type="number"
@@ -492,7 +492,7 @@ export function ChallanDetailPage() {
                           updated[idx] = { ...updated[idx], damageRate: Number(e.target.value) };
                           setLocalDamagedItems(updated);
                         }}
-                        style={{ width: 90, padding: '4px 6px' }}
+                        className={pageStyles.inputSmMd}
                       />
                       <input
                         type="text"
@@ -503,7 +503,7 @@ export function ChallanDetailPage() {
                           updated[idx] = { ...updated[idx], note: e.target.value };
                           setLocalDamagedItems(updated);
                         }}
-                        style={{ flex: 1, padding: '4px 6px' }}
+                        className={pageStyles.flexGrow1}
                       />
                       <button
                         onClick={() => {
@@ -511,13 +511,13 @@ export function ChallanDetailPage() {
                           updated.splice(idx, 1);
                           setLocalDamagedItems(updated);
                         }}
-                        style={{ padding: '2px 8px', cursor: 'pointer', fontSize: 12, color: '#dc2626' }}
+                        className={pageStyles.inlineDeleteBtn}
                       >
                         Remove
                       </button>
                     </div>
                   ))}
-                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <div className={pageStyles.inlineEditRow}>
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={() => {
@@ -572,7 +572,7 @@ export function ChallanDetailPage() {
                             <td>{d.quantity}</td>
                             <td>₹{d.damageRate}</td>
                             <td>₹{(d.quantity * d.damageRate).toLocaleString()}</td>
-                            <td style={{ color: d.note ? '#333' : '#999', fontStyle: d.note ? 'normal' : 'italic' }}>
+                            <td className={d.note ? 'text-notes' : 'text-notes-empty'}>
                               {d.note || '-'}
                             </td>
                           </tr>
@@ -580,11 +580,10 @@ export function ChallanDetailPage() {
                       </tbody>
                     </table>
                   ) : (
-                    <p style={{ color: '#999', fontStyle: 'italic' }}>No loss items recorded.</p>
+                    <p className="text-empty">No loss items recorded.</p>
                   )}
                   <button
-                    className="btn btn-secondary btn-sm"
-                    style={{ marginTop: 8 }}
+                    className={`btn btn-secondary btn-sm ${pageStyles.marginTop8}`}
                     onClick={startEditingDamage}
                   >
                     Edit Loss Items
@@ -665,7 +664,7 @@ export function ChallanDetailPage() {
 
           {/* Notes */}
           <DetailSection title="Notes">
-            <p style={{ color: challan.notes ? '#333' : '#999', fontStyle: challan.notes ? 'normal' : 'italic' }}>
+            <p className={challan.notes ? 'text-notes' : 'text-notes-empty'}>
               {challan.notes || 'No notes.'}
             </p>
           </DetailSection>

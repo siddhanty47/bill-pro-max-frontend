@@ -1,8 +1,9 @@
 .errorBox {
-  background: #f8d7da;
-  color: #721c24;
+  background: transparent;
+  color: var(--status-danger-text);
+  border: 1px solid var(--status-danger-text);
   padding: 20px;
-  border-radius: 8px;
+  border-radius: 0;
   text-align: center;
 }
 

@@ -217,17 +217,7 @@ export function BillsPage() {
             {bill.isStale && (
               <span
                 title="Stale — underlying challan data changed"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '1px 6px',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  background: '#fff3cd',
-                  color: '#856404',
-                  border: '1px solid #ffc107',
-                  borderRadius: 4,
-                }}
+                className="badge-warning"
               >
                 &#9888; Stale
               </span>
@@ -252,7 +242,7 @@ export function BillsPage() {
               title="Download invoice PDF"
               disabled={isDownloading}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: 4 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="icon-inline">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />

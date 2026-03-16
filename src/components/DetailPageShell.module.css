@@ -8,7 +8,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #0066cc;
+  color: var(--accent);
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
@@ -16,11 +16,12 @@
   border: none;
   background: none;
   cursor: pointer;
+  transition: color var(--transition-fast);
 }
 
 .backLink:hover {
   text-decoration: underline;
-  color: #0052a3;
+  color: var(--accent-hover);
 }
 
 .backArrow {
@@ -52,15 +53,16 @@
 }
 
 .title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #1a1a1a;
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-heading);
   margin: 0;
 }
 
 .subtitle {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -103,9 +105,9 @@
 
 /* Section */
 .section {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: transparent;
+  border-radius: 0;
+  border: 1px solid var(--border-default);
   overflow: hidden;
 }
 
@@ -114,11 +116,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 20px;
-  background: #f8f8f8;
-  border-bottom: 1px solid #e0e0e0;
-  font-size: 14px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .sectionActions {
@@ -134,7 +138,7 @@
 .field {
   display: flex;
   padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-subtle);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -146,18 +150,18 @@
 .fieldLabel {
   width: 160px;
   flex-shrink: 0;
-  color: #666;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .fieldValue {
   flex: 1;
-  color: #1a1a1a;
+  color: var(--text-primary);
   word-break: break-word;
 }
 
 .fieldEmpty {
-  color: #999;
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -184,6 +188,6 @@
   }
 
   .title {
-    font-size: 20px;
+    font-size: 14px;
   }
 }

@@ -7,6 +7,7 @@
  */
 import { useCallback, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import pageStyles from './PartyDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
   useGetPartyQuery,
@@ -296,25 +297,23 @@ export function PartyDetailPage() {
                           <td>
                             <input
                               type="text"
-                              className="form-input"
+                              className={`form-input ${pageStyles.siteEditInput}`}
                               value={editSiteAddress}
                               onChange={(e) => setEditSiteAddress(e.target.value)}
-                              style={{ width: '100%', padding: '4px 8px', fontSize: '13px' }}
                             />
                           </td>
                           <td>
                             <input
                               type="text"
-                              className="form-input"
+                              className={`form-input ${pageStyles.siteCodeInput}`}
                               value={editSiteStateCode}
                               onChange={(e) => setEditSiteStateCode(e.target.value)}
                               placeholder="e.g. 27"
                               maxLength={2}
-                              style={{ width: 60, padding: '4px 8px', fontSize: '13px' }}
                             />
                           </td>
                           <td>
-                            <div className="action-buttons" style={{ gap: '4px' }}>
+                            <div className={`action-buttons ${pageStyles.inlineEditRow}`}>
                               <button
                                 className="btn btn-sm btn-primary"
                                 onClick={() => handleSaveSite(site.code)}
@@ -351,11 +350,11 @@ export function PartyDetailPage() {
                   </tbody>
                 </table>
                 {editSiteError && (
-                  <p style={{ color: '#dc3545', fontSize: '13px', marginTop: '6px' }}>{editSiteError}</p>
+                  <p className="text-error-inline">{editSiteError}</p>
                 )}
               </>
             ) : (
-              <p style={{ color: '#999', fontStyle: 'italic' }}>No sites added yet.</p>
+              <p className="text-empty">No sites added yet.</p>
             )}
           </DetailSection>
 
@@ -385,7 +384,7 @@ export function PartyDetailPage() {
                       <td>
                         <Link
                           to={`/agreements/${agreement.agreementId}`}
-                          style={{ color: '#0066cc', textDecoration: 'none' }}
+                          className="link-accent"
                         >
                           {agreement.agreementId}
                         </Link>
@@ -403,7 +402,7 @@ export function PartyDetailPage() {
                 </tbody>
               </table>
             ) : (
-              <p style={{ color: '#999', fontStyle: 'italic' }}>No agreements yet.</p>
+              <p className="text-empty">No agreements yet.</p>
             )}
           </DetailSection>
 
@@ -425,13 +424,12 @@ export function PartyDetailPage() {
             return (
               <DetailSection title={`Bills (${sortedBills.length})`}>
                 {party.sites && party.sites.length > 0 && (
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={{ marginRight: 8 }}>Site:</label>
+                  <div className={pageStyles.siteFilterRow}>
+                    <label>Site:</label>
                     <select
                       value={billSiteFilter}
                       onChange={(e) => setBillSiteFilter(e.target.value)}
-                      className="form-input"
-                      style={{ width: 'auto', minWidth: 120 }}
+                      className={`form-input ${pageStyles.siteFilterSelect}`}
                     >
                       <option value="">All</option>
                       {party.sites.map((s) => (
@@ -464,7 +462,7 @@ export function PartyDetailPage() {
                           <td>
                             <Link
                               to={`/bills/${bill._id}`}
-                              style={{ color: '#0066cc', textDecoration: 'none' }}
+                              className="link-accent"
                             >
                               {bill.billNumber}
                             </Link>
@@ -486,7 +484,7 @@ export function PartyDetailPage() {
                     </tbody>
                   </table>
                 ) : (
-                  <p style={{ color: '#999', fontStyle: 'italic' }}>
+                  <p className="text-empty">
                     No bills found.
                   </p>
                 )}
@@ -519,7 +517,7 @@ export function PartyDetailPage() {
                           <td>
                             <Link
                               to={`/payments/${payment._id}`}
-                              style={{ color: '#0066cc', textDecoration: 'none' }}
+                              className="link-accent"
                             >
                               {formatDate(payment.date)}
                             </Link>
@@ -530,7 +528,7 @@ export function PartyDetailPage() {
                             {payment.billId ? (
                               <Link
                                 to={`/bills/${payment.billId}`}
-                                style={{ color: '#0066cc', textDecoration: 'none' }}
+                                className="link-accent"
                               >
                                 View Bill
                               </Link>
@@ -549,7 +547,7 @@ export function PartyDetailPage() {
                     </tbody>
                   </table>
                 ) : (
-                  <p style={{ color: '#999', fontStyle: 'italic' }}>
+                  <p className="text-empty">
                     No payments found.
                   </p>
                 )}

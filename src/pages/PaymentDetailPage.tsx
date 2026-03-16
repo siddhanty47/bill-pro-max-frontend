@@ -86,7 +86,7 @@ export function PaymentDetailPage() {
         value={
           <Link
             to={`/parties/${payment.partyId}`}
-            style={{ color: '#0066cc', textDecoration: 'none' }}
+            className="link-accent"
           >
             {partyName}
           </Link>
@@ -98,7 +98,7 @@ export function PaymentDetailPage() {
           value={
             <Link
               to={`/bills/${payment.billId}`}
-              style={{ color: '#0066cc', textDecoration: 'none' }}
+              className="link-accent"
             >
               {payment.billId}
             </Link>
@@ -127,10 +127,7 @@ export function PaymentDetailPage() {
       {payment && (
         <DetailSection title="Notes">
           <p
-            style={{
-              color: payment.notes ? '#333' : '#999',
-              fontStyle: payment.notes ? 'normal' : 'italic',
-            }}
+            className={payment.notes ? 'text-notes' : 'text-notes-empty'}
           >
             {payment.notes || 'No notes.'}
           </p>

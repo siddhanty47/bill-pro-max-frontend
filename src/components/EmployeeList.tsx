@@ -5,6 +5,7 @@
  */
 import type { Employee } from '../types';
 import { useDeleteEmployeeMutation } from '../api/employeeApi';
+import styles from './EmployeeList.module.css';
 
 interface EmployeeListProps {
   employees: Employee[];
@@ -16,7 +17,7 @@ export function EmployeeList({ employees, businessId, onEdit }: EmployeeListProp
   const [deleteEmployee] = useDeleteEmployeeMutation();
 
   if (employees.length === 0) {
-    return <p style={{ color: '#888' }}>No employees yet. Add one to get started.</p>;
+    return <p className="text-secondary-sm">No employees yet. Add one to get started.</p>;
   }
 
   const handleDelete = async (employee: Employee) => {
@@ -28,7 +29,7 @@ export function EmployeeList({ employees, businessId, onEdit }: EmployeeListProp
   const transporters = employees.filter((e) => e.type === 'transporter');
 
   if (transporters.length === 0) {
-    return <p style={{ color: '#888' }}>No transporters found.</p>;
+    return <p className="text-secondary-sm">No transporters found.</p>;
   }
 
   return (
@@ -54,19 +55,17 @@ export function EmployeeList({ employees, businessId, onEdit }: EmployeeListProp
               </span>
             </td>
             <td>
-              <div style={{ display: 'flex', gap: 4 }}>
+              <div className={styles.actionRow}>
                 <button
-                  className="btn btn-secondary btn-sm"
+                  className="btn btn-secondary btn-sm btn-action-sm"
                   onClick={() => onEdit(emp)}
-                  style={{ fontSize: 12, padding: '4px 8px' }}
                 >
                   Edit
                 </button>
                 {emp.isActive && (
                   <button
-                    className="btn btn-danger btn-sm"
+                    className="btn btn-danger btn-sm btn-action-sm"
                     onClick={() => handleDelete(emp)}
-                    style={{ fontSize: 12, padding: '4px 8px' }}
                   >
                     Remove
                   </button>

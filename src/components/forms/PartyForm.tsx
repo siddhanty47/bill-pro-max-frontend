@@ -313,10 +313,9 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
           disabled={isLoading}
           placeholder="e.g. 27"
           maxLength={2}
-          className={styles.uppercaseInput}
-          style={{ width: 80 }}
+          className={`${styles.uppercaseInput} input-state-code`}
         />
-        <small style={{ display: 'block', color: '#666', fontSize: 12, marginTop: 4 }}>
+        <small className="text-help">
           2-digit GST state code (auto-filled from GSTIN)
         </small>
       </div>
@@ -467,10 +466,9 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
                 disabled={isLoading}
                 placeholder="e.g. 27"
                 maxLength={2}
-                className={styles.uppercaseInput}
-                style={{ width: 80 }}
+                className={`${styles.uppercaseInput} input-state-code`}
               />
-              <small style={{ display: 'block', color: '#666', fontSize: 12, marginTop: 4 }}>
+              <small className="text-help">
                 Defaults from party state code
               </small>
             </div>

@@ -19,7 +19,7 @@
 
 .section h2 {
   font-size: 16px;
-  color: #555;
+  color: var(--text-secondary);
   margin-bottom: 12px;
   font-weight: 600;
 }
@@ -27,7 +27,7 @@
 .tabs {
   display: flex;
   gap: 0;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid var(--border-default);
   margin-bottom: 24px;
 }
 
@@ -40,23 +40,24 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  color: #666;
-  transition: color 0.15s, border-color 0.15s;
+  color: var(--text-muted);
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  font-family: var(--font-body);
 }
 
 .tab:hover {
-  color: #333;
+  color: var(--text-primary);
 }
 
 .tabActive {
-  color: #0066cc;
-  border-bottom-color: #0066cc;
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 
 .empty {
   text-align: center;
   padding: 60px 20px;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .empty h2 {

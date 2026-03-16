@@ -6,6 +6,7 @@ import { useState } from 'react';
 import type { BusinessMember } from '../types';
 import { useUpdateMemberRoleMutation, useRemoveMemberMutation } from '../api/memberApi';
 import { useAuth } from '../hooks/useAuth';
+import styles from './MemberList.module.css';
 
 interface MemberListProps {
   members: BusinessMember[];
@@ -27,7 +28,7 @@ export function MemberList({ members, businessId }: MemberListProps) {
   const [removeMember] = useRemoveMemberMutation();
 
   if (members.length === 0) {
-    return <p style={{ color: '#888' }}>No members yet. Invite someone to get started.</p>;
+    return <p className="text-secondary-sm">No members yet. Invite someone to get started.</p>;
   }
 
   const handleRoleChange = async (memberId: string, newRole: string) => {
@@ -87,9 +88,8 @@ export function MemberList({ members, businessId }: MemberListProps) {
               <td>
                 {!isOwner && !isCurrentUser && (
                   <button
-                    className="btn btn-danger btn-sm"
+                    className="btn btn-danger btn-sm btn-action-sm"
                     onClick={() => handleRemove(member._id)}
-                    style={{ fontSize: 12, padding: '4px 8px' }}
                   >
                     Remove
                   </button>

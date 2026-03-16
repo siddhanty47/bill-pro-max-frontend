@@ -6,6 +6,8 @@
   margin-bottom: 24px;
   max-height: 300px;
   overflow-y: auto;
+  border: 1px solid var(--border-default);
+  border-radius: 0;
 }
 
 .editRateInline {
@@ -16,8 +18,10 @@
 .editRateInput {
   width: 100px;
   padding: 4px 8px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-medium);
   border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .editActions {
@@ -26,13 +30,14 @@
 }
 
 .addItemSection {
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-subtle);
   padding-top: 16px;
 }
 
 .addItemSection h4 {
   margin-bottom: 16px;
   font-size: 1rem;
+  color: var(--text-heading);
 }
 
 .addItemForm {
@@ -57,13 +62,13 @@
 }
 
 .errorText {
-  color: #dc3545;
+  color: var(--status-danger-text);
   font-size: 0.875rem;
   margin-top: 8px;
 }
 
 .emptyMessage {
   text-align: center;
-  color: #666;
+  color: var(--text-muted);
   padding: 24px;
 }

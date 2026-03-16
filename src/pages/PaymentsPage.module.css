@@ -3,9 +3,9 @@
 }
 
 .valueReceived {
-  color: #28a745;
+  color: var(--status-success-text);
 }
 
 .valuePaid {
-  color: #dc3545;
+  color: var(--status-danger-text);
 }

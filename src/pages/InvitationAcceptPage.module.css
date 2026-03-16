@@ -1,0 +1,10 @@
+/* Classes for inline style migration from InvitationAcceptPage.tsx */
+
+.centerText {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.marginTop12 {
+  margin-top: 12px;
+}

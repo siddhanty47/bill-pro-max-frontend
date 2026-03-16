@@ -4,15 +4,11 @@
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #e0e0e0;
-  border-top-color: #0066cc;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+  font-size: 24px;
+  color: var(--accent);
+  font-family: var(--font-body);
   margin: 0 auto 15px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
 }

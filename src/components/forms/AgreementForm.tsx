@@ -266,8 +266,8 @@ export function AgreementForm({
         </div>
         <div>
       {/* Transportation Charges */}
-      <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: '12px 16px', marginBottom: 16 }}>
-        <legend style={{ fontSize: 13, fontWeight: 600, color: '#555', padding: '0 6px' }}>
+      <fieldset className="form-fieldset">
+        <legend className="form-fieldset-legend">
           Transportation Charges (optional)
         </legend>
         <div className="form-row">

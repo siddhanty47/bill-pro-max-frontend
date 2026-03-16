@@ -143,7 +143,7 @@ export function AgreementDetailPage() {
         value={
           <Link
             to={`/parties/${agreement.partyId}`}
-            style={{ color: '#0066cc', textDecoration: 'none' }}
+            className="link-accent"
           >
             {agreement.partyName}
           </Link>
@@ -340,7 +340,7 @@ export function AgreementDetailPage() {
                       <td>{rate.itemCode}</td>
                       <td>{rate.itemName}</td>
                       <td>{rate.itemCategory}</td>
-                      <td style={{ padding: 0 }}>
+                      <td className="cell-compact">
                         <EditableField
                           label=""
                           value={rate.ratePerDay}
@@ -367,7 +367,7 @@ export function AgreementDetailPage() {
                   {agreement.rates.map((rate) => (
                     <tr key={rate.itemId}>
                       <td>{rate.itemId}</td>
-                      <td style={{ padding: 0 }}>
+                      <td className="cell-compact">
                         <EditableField
                           label=""
                           value={rate.ratePerDay}
@@ -383,7 +383,7 @@ export function AgreementDetailPage() {
                 </tbody>
               </table>
             ) : (
-              <p style={{ color: '#999', fontStyle: 'italic' }}>No items/rates configured.</p>
+              <p className="text-empty">No items/rates configured.</p>
             )}
           </DetailSection>
 
@@ -407,7 +407,7 @@ export function AgreementDetailPage() {
                 </tbody>
               </table>
             ) : (
-              <p style={{ color: '#999', fontStyle: 'italic' }}>No items currently at site.</p>
+              <p className="text-empty">No items currently at site.</p>
             )}
           </DetailSection>
 
@@ -430,7 +430,7 @@ export function AgreementDetailPage() {
                       <td>
                         <Link
                           to={`/challans/${challan._id}`}
-                          style={{ color: '#0066cc', textDecoration: 'none' }}
+                          className="link-accent"
                         >
                           {challan.challanNumber}
                         </Link>
@@ -452,7 +452,7 @@ export function AgreementDetailPage() {
                 </tbody>
               </table>
             ) : (
-              <p style={{ color: '#999', fontStyle: 'italic' }}>No challans yet.</p>
+              <p className="text-empty">No challans yet.</p>
             )}
           </DetailSection>
         </>

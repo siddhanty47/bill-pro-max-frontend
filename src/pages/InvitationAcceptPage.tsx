@@ -14,6 +14,7 @@ import { useVerifyInvitationQuery, useAcceptInvitationMutation, useDeclineInvita
 import { baseApi } from '../api/baseApi';
 import { refreshToken as refreshTokenApi } from '../api/authApi';
 import styles from './LoginPage.module.css';
+import invStyles from './InvitationAcceptPage.module.css';
 
 export function InvitationAcceptPage() {
   const { token } = useParams<{ token: string }>();
@@ -119,7 +120,7 @@ export function InvitationAcceptPage() {
         <h1>BillProMax</h1>
         <h2>You&apos;re invited!</h2>
 
-        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+        <div className={invStyles.centerText}>
           <p>
             You have been invited to join <strong>{invitation.businessName}</strong> as{' '}
             <strong>{invitation.role}</strong>.
@@ -136,10 +137,9 @@ export function InvitationAcceptPage() {
               {accepting ? 'Accepting...' : 'Accept Invitation'}
             </button>
             <button
-              className="btn btn-secondary"
+              className={`btn btn-secondary ${invStyles.marginTop12}`}
               onClick={handleDecline}
               disabled={accepting || declining}
-              style={{ marginTop: 12 }}
             >
               {declining ? 'Declining...' : 'Decline'}
             </button>
@@ -153,9 +153,8 @@ export function InvitationAcceptPage() {
               Sign In to Accept
             </button>
             <button
-              className="btn btn-secondary"
+              className={`btn btn-secondary ${invStyles.marginTop12}`}
               onClick={() => login({ registrationHint: true, invitationToken: token })}
-              style={{ marginTop: 12 }}
             >
               Create Account to Accept
             </button>

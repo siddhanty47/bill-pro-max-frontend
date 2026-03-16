@@ -7,6 +7,7 @@
  */
 import { useCallback, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import pageStyles from './InventoryDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
   useGetInventoryItemQuery,
@@ -325,8 +326,8 @@ export function InventoryDetailPage() {
 
             {/* Inline stock adjustment form — anchored to total quantity */}
             <div style={{ padding: '12px 0 4px' }}>
-              <form onSubmit={handleAdjustQuantity} className="form-row" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <div className="form-group" style={{ margin: 0, minWidth: '130px' }}>
+              <form onSubmit={handleAdjustQuantity} className={`form-row ${pageStyles.adjustForm}`}>
+                <div className={`form-group ${pageStyles.adjustFormGroup}`}>
                   <label className="form-label">Type</label>
                   <select
                     className="form-select"
@@ -339,7 +340,7 @@ export function InventoryDetailPage() {
                   </select>
                 </div>
 
-                <div className="form-group" style={{ margin: 0, minWidth: '80px', maxWidth: '110px' }}>
+                <div className={`form-group ${pageStyles.adjustFormGroup}`}>
                   <label className="form-label">Qty</label>
                   <input
                     type="number"
@@ -352,7 +353,7 @@ export function InventoryDetailPage() {
                   />
                 </div>
 
-                <div className="form-group" style={{ margin: 0, minWidth: '140px' }}>
+                <div className={`form-group ${pageStyles.adjustFormGroup}`}>
                   <label className="form-label">Date</label>
                   <input
                     type="date"
@@ -364,7 +365,7 @@ export function InventoryDetailPage() {
                   />
                 </div>
 
-                <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '120px' }}>
+                <div className={`form-group ${pageStyles.adjustFormGroupWide}`}>
                   <label className="form-label">Note (optional)</label>
                   <input
                     type="text"
@@ -376,11 +377,11 @@ export function InventoryDetailPage() {
                   />
                 </div>
 
-                <button type="submit" className="btn btn-primary btn-sm" disabled={isAdjusting} style={{ height: '36px' }}>
+                <button type="submit" className={`btn btn-primary btn-sm ${pageStyles.adjustButton}`} disabled={isAdjusting}>
                   {isAdjusting ? 'Saving...' : 'Update Stock'}
                 </button>
               </form>
-              {adjError && <p style={{ color: '#dc3545', fontSize: '13px', marginTop: '6px' }}>{adjError}</p>}
+              {adjError && <p className="text-error-inline">{adjError}</p>}
             </div>
 
             <DetailField
@@ -396,12 +397,12 @@ export function InventoryDetailPage() {
           {/* Quantity History */}
           <DetailSection title="Quantity History">
             {sortedHistory.length === 0 ? (
-              <p style={{ color: '#999', fontStyle: 'italic', fontSize: '14px', margin: 0 }}>
+              <p className="text-empty">
                 No quantity adjustments recorded.
               </p>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table className="data-table" style={{ width: '100%', fontSize: '13px' }}>
+              <div className={pageStyles.historyTableWrap}>
+                <table className={`data-table ${pageStyles.historyTable}`}>
                   <thead>
                     <tr>
                       <th>Date</th>

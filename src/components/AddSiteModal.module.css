@@ -1,7 +1,10 @@
 .errorAlert {
   margin-bottom: 15px;
   padding: 10px;
-  background-color: #fee;
+  background-color: var(--status-danger-bg);
+  border: 1px solid var(--status-danger-border);
+  border-radius: 0;
+  color: var(--status-danger-text);
 }
 
 .existingSitesInfo {
@@ -10,7 +13,7 @@
 
 .existingSitesText {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .uppercaseInput {
@@ -18,7 +21,7 @@
 }
 
 .helpText {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 

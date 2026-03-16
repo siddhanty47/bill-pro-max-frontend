@@ -4,20 +4,20 @@
   font-size: 1.1rem;
   margin: 0 0 0.5rem 0;
   padding: 12px 16px;
-  border-radius: 8px 8px 0 0;
+  border-radius: 0;
   font-weight: 600;
 }
 
 .sectionHeaderDelivery {
-  background: #e8f4fd;
-  color: #004a99;
-  border-top: 4px solid #0066cc;
+  background: transparent;
+  color: var(--delivery-accent);
+  border-top: 1px solid var(--delivery-accent);
 }
 
 .sectionHeaderReturn {
-  background: #fff8e1;
-  color: #b35c00;
-  border-top: 4px solid #e67e22;
+  background: transparent;
+  color: var(--return-accent);
+  border-top: 1px solid var(--return-accent);
 }
 
 .section {
@@ -35,21 +35,21 @@
 }
 
 .btnDelivery {
-  background: #e8f4fd;
-  color: #004a99;
-  border: 2px solid #0066cc;
+  background: transparent;
+  color: var(--delivery-accent);
+  border: 1px solid var(--delivery-accent);
 }
 
 .btnDelivery:hover {
-  background: #d0eaf9;
+  background: rgba(59, 130, 246, 0.15);
 }
 
 .btnReturn {
-  background: #fff8e1;
-  color: #b35c00;
-  border: 2px solid #e67e22;
+  background: transparent;
+  color: var(--return-accent);
+  border: 1px solid var(--return-accent);
 }
 
 .btnReturn:hover {
-  background: #ffecb3;
+  background: rgba(245, 158, 11, 0.15);
 }

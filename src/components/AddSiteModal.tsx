@@ -149,8 +149,7 @@ export function AddSiteModal({ isOpen, onClose, businessId, party }: AddSiteModa
             disabled={isLoading}
             placeholder="e.g. 27"
             maxLength={2}
-            className={styles.uppercaseInput}
-            style={{ width: 80 }}
+            className={`${styles.uppercaseInput} input-state-code`}
           />
           <small className={styles.helpText}>
             Defaults from party state code

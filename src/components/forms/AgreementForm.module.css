@@ -1,11 +1,12 @@
 .warningText {
-  color: #e74c3c;
+  color: var(--status-danger-text);
 }
 
 .categoryPanel {
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--border-default);
+  border-radius: 0;
   padding: 12px;
+  background: transparent;
 }
 
 .selectAllLabel {
@@ -14,7 +15,7 @@
   gap: 8px;
   font-weight: 600;
   padding-bottom: 8px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-subtle);
   margin-bottom: 8px;
   cursor: pointer;
 }
@@ -28,15 +29,16 @@
 }
 
 .categoryCount {
-  color: #888;
+  color: var(--text-muted);
   font-size: 0.85em;
 }
 
 .previewContainer {
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--border-default);
+  border-radius: 0;
   max-height: 300px;
   overflow-y: auto;
+  background: transparent;
 }
 
 .previewTable {
@@ -46,12 +48,13 @@
 }
 
 .previewTable thead tr {
-  border-bottom: 2px solid #eee;
+  border-bottom: 2px solid var(--border-default);
   text-align: left;
 }
 
 .previewTable th {
   padding: 8px 12px;
+  color: var(--text-secondary);
 }
 
 .rateColumn {
@@ -59,12 +62,13 @@
 }
 
 .previewTable tbody tr {
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .codeCell {
   padding: 6px 12px;
-  font-family: monospace;
+  font-family: var(--font-mono);
+  color: var(--accent);
 }
 
 .cell {

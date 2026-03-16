@@ -6,18 +6,23 @@
 }
 
 .header {
-  background: #1a1a2e;
-  color: white;
+  background: #000000;
+  backdrop-filter: none;
+  color: var(--text-primary);
   padding: 0 20px;
-  height: 60px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-bottom: 1px solid var(--border-default);
 }
 
 .header h1 {
-  font-size: 20px;
-  font-weight: 600;
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.5px;
 }
 
 .headerBrand {
@@ -29,7 +34,12 @@
 .businessNameWrapper {
   position: relative;
   padding-left: 20px;
-  border-left: 1px solid rgba(255,255,255,0.3);
+  border-left: none;
+}
+
+.businessNameWrapper::before {
+  content: ' > ';
+  color: var(--text-muted);
 }
 
 .businessNameTrigger {
@@ -55,7 +65,7 @@
 
 .businessNameChevron {
   opacity: 0.7;
-  transition: transform 0.2s;
+  transition: transform var(--transition-default);
 }
 
 .businessNameTrigger[aria-expanded="true"] .businessNameChevron {
@@ -68,9 +78,11 @@
   left: 0;
   min-width: 160px;
   margin-top: 8px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  background: #111111;
+  border: 1px solid var(--border-default);
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
   z-index: 1000;
   overflow: hidden;
 }
@@ -78,14 +90,15 @@
 .businessMenuItem {
   display: block;
   padding: 10px 16px;
-  color: #333;
+  color: var(--text-primary);
   text-decoration: none;
   font-size: 14px;
-  transition: background 0.15s;
+  transition: background var(--transition-fast);
 }
 
 .businessMenuItem:hover {
-  background: #f0f0f0;
+  background: var(--bg-hover);
+  color: var(--text-heading);
 }
 
 .headerActions {
@@ -96,6 +109,7 @@
 
 .userName {
   font-size: 13px;
+  color: var(--text-secondary);
 }
 
 .mainContainer {
@@ -107,8 +121,8 @@
 
 .sidebar {
   width: 200px;
-  background: white;
-  border-right: 1px solid #e0e0e0;
+  background: #000000;
+  border-right: 1px solid var(--border-default);
   padding: 20px 0;
 }
 
@@ -119,20 +133,32 @@
 .navLink {
   display: block;
   padding: 10px 20px;
-  color: #555;
+  color: var(--text-secondary);
   text-decoration: none;
   border-left: 3px solid transparent;
+  transition: all var(--transition-fast);
+}
+
+.navLink::before {
+  content: '  ';
+  white-space: pre;
 }
 
 .navLink:hover {
-  background: #f0f0f0;
+  background: transparent;
+  color: var(--text-primary);
 }
 
 .navLinkActive {
-  background: #e8f4ff;
-  color: #0066cc;
-  border-left-color: #0066cc;
+  background: transparent;
+  color: var(--accent);
+  border-left-color: transparent;
   font-weight: 500;
+}
+
+.navLinkActive::before {
+  content: '> ';
+  color: var(--accent);
 }
 
 .content {
@@ -140,27 +166,29 @@
   padding: 20px;
   overflow-y: auto;
   min-height: 0;
+  background: #0a0a0a;
 }
 
 .businessSelect {
   padding: 6px 10px;
-  border-radius: 4px;
-  border: 1px solid rgba(255,255,255,0.3);
-  background: rgba(255,255,255,0.1);
-  color: white;
+  border-radius: 0;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-input);
+  color: var(--text-primary);
   font-size: 13px;
+  font-family: var(--font-body);
 }
 
 .businessSelect option {
-  background: #1a1a2e;
-  color: white;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
 }
 
 .hamburger {
   display: none;
   background: none;
   border: none;
-  color: white;
+  color: inherit;
   font-size: 24px;
   cursor: pointer;
   padding: 4px 8px;
@@ -197,10 +225,10 @@
 
   .sidebar {
     position: fixed;
-    top: 60px;
+    top: 48px;
     left: -200px;
     width: 200px;
-    height: calc(100vh - 60px);
+    height: calc(100vh - 48px);
     z-index: 100;
     transition: left 0.25s ease;
     overflow-y: auto;
@@ -213,11 +241,12 @@
   .sidebarOverlay {
     display: block;
     position: fixed;
-    top: 60px;
+    top: 48px;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: none;
     z-index: 99;
   }
 

@@ -1,0 +1,23 @@
+/* Classes for inline style migration from BillDetailPage.tsx */
+
+.staleBanner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--status-warning-bg);
+  border: 1px solid var(--status-warning-border);
+  border-radius: 0;
+  color: var(--status-warning-text);
+}
+
+.flexGrow1 {
+  flex: 1;
+}
+
+.iconSize20 {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
