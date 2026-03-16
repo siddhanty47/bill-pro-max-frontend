@@ -4,7 +4,6 @@
  */
 import type { Invitation } from '../types';
 import { useCancelInvitationMutation } from '../api/invitationApi';
-import styles from './InvitationList.module.css';
 
 interface InvitationListProps {
   invitations: Invitation[];

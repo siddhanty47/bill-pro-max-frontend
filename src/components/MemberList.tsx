@@ -6,7 +6,6 @@ import { useState } from 'react';
 import type { BusinessMember } from '../types';
 import { useUpdateMemberRoleMutation, useRemoveMemberMutation } from '../api/memberApi';
 import { useAuth } from '../hooks/useAuth';
-import styles from './MemberList.module.css';
 
 interface MemberListProps {
   members: BusinessMember[];
