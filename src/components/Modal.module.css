@@ -90,3 +90,17 @@
 .return .header h2 {
   color: #b35c00;
 }
+
+@media (max-width: 768px) {
+  .modal.formSize {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .body {
+    padding: 12px;
+  }
+}

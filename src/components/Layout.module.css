@@ -155,3 +155,73 @@
   background: #1a1a2e;
   color: white;
 }
+
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.sidebarOverlay {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .hamburger {
+    display: block;
+  }
+
+  .header {
+    padding: 0 12px;
+  }
+
+  .headerActions {
+    gap: 8px;
+  }
+
+  .userName {
+    display: none;
+  }
+
+  .businessName {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 60px;
+    left: -200px;
+    width: 200px;
+    height: calc(100vh - 60px);
+    z-index: 100;
+    transition: left 0.25s ease;
+    overflow-y: auto;
+  }
+
+  .sidebarOpen {
+    left: 0;
+  }
+
+  .sidebarOverlay {
+    display: block;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 99;
+  }
+
+  .content {
+    padding: 12px;
+  }
+}

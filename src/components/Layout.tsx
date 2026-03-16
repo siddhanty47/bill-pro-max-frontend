@@ -15,6 +15,7 @@ export function Layout() {
   const { user, logout } = useAuth();
   const { businesses, currentBusiness, selectBusiness, hasMultipleBusinesses } = useCurrentBusiness();
   const [isBusinessMenuOpen, setIsBusinessMenuOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const businessMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,6 +29,11 @@ export function Layout() {
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [isBusinessMenuOpen]);
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
 
   const navItems = [
     { path: '/', label: 'Dashboard' },
@@ -50,6 +56,14 @@ export function Layout() {
       <div className={styles.layout}>
         <header className={styles.header}>
           <div className={styles.headerBrand}>
+            <button
+              type="button"
+              className={styles.hamburger}
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              aria-label="Toggle navigation"
+            >
+              ☰
+            </button>
             <h1>BillProMax</h1>
             {currentBusiness && (
               <div className={styles.businessNameWrapper} ref={businessMenuRef}>
@@ -112,7 +126,13 @@ export function Layout() {
         </header>
 
         <div className={styles.mainContainer}>
-          <nav className={styles.sidebar}>
+          {isSidebarOpen && (
+            <div
+              className={styles.sidebarOverlay}
+              onClick={() => setIsSidebarOpen(false)}
+            />
+          )}
+          <nav className={`${styles.sidebar} ${isSidebarOpen ? styles.sidebarOpen : ''}`}>
             <ul>
               {navItems.map((item) => (
                 <li key={item.path}>

@@ -160,3 +160,30 @@
   color: #999;
   font-style: italic;
 }
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .headerActions {
+    width: 100%;
+  }
+
+  .fieldLabel {
+    width: 120px;
+  }
+
+  .sectionBody {
+    padding: 12px 14px;
+  }
+
+  .sectionHeader {
+    padding: 12px 14px;
+  }
+
+  .title {
+    font-size: 20px;
+  }
+}

@@ -242,3 +242,30 @@
 .tableCellAutocomplete {
   min-width: 0;
 }
+
+@media (max-width: 768px) {
+  .itemsTableWrap,
+  .lossTableWrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .itemsTable .colItem {
+    min-width: 100px;
+  }
+
+  .lossTable .colItem {
+    min-width: 80px;
+  }
+
+  .lossTable .colNote {
+    min-width: 60px;
+  }
+
+  .itemsTable th,
+  .itemsTable td,
+  .lossTable th,
+  .lossTable td {
+    padding: 6px 6px;
+  }
+}
