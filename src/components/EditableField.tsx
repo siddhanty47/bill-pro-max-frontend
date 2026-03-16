@@ -252,19 +252,19 @@ export function EditableField({
               type="button"
               className={`${styles.actionBtn} ${styles.saveBtn}`}
               onClick={commitEdit}
-              title="Save"
+              title="Save (Enter)"
               disabled={isSaving}
             >
-              {isSaving ? <span className={styles.spinner} /> : '✓'}
+              {isSaving ? <span className={styles.spinner} /> : '[ok]'}
             </button>
             <button
               type="button"
               className={`${styles.actionBtn} ${styles.cancelBtn}`}
               onClick={cancelEdit}
-              title="Cancel"
+              title="Cancel (Esc)"
               disabled={isSaving}
             >
-              ✕
+              [x]
             </button>
           </div>
         </div>

@@ -66,14 +66,14 @@
 
 .editRow {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   gap: 4px;
 }
 
 .editRow input,
 .editRow select,
 .editRow textarea {
-  flex: 1;
+  width: 100%;
   padding: 6px 0;
   border: none;
   border-bottom: 1px solid var(--accent);
@@ -98,14 +98,12 @@
 
 .editActions {
   display: flex;
-  gap: 2px;
-  flex-shrink: 0;
-  padding-top: 2px;
+  gap: 4px;
 }
 
 .actionBtn {
-  width: 28px;
-  height: 28px;
+  width: auto;
+  height: auto;
   border: 1px solid var(--border-medium);
   border-radius: 0;
   background: var(--bg-card);
@@ -113,8 +111,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  padding: 0;
+  font-size: 12px;
+  padding: 2px 6px;
+  white-space: nowrap;
   color: var(--text-secondary);
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }

@@ -35,6 +35,8 @@
   position: relative;
   padding-left: 20px;
   border-left: none;
+  display: flex;
+  gap: 8px;
 }
 
 .businessNameWrapper::before {

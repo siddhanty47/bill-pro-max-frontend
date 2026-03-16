@@ -329,17 +329,17 @@ export function ChallanDetailPage() {
                               onClick={() => handleItemQuantitySave(item.itemId)}
                               disabled={isSavingItem}
                               className={pageStyles.inlineSaveBtn}
-                              title="Save"
+                              title="Save (Enter)"
                             >
-                              {isSavingItem ? '...' : '✓'}
+                              {isSavingItem ? '...' : '[ok]'}
                             </button>
                             <button
                               onClick={() => setEditingItemId(null)}
                               disabled={isSavingItem}
                               className={pageStyles.inlineSaveBtn}
-                              title="Cancel"
+                              title="Cancel (Esc)"
                             >
-                              ✕
+                              [x]
                             </button>
                           </span>
                         ) : (
