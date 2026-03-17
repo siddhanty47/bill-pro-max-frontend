@@ -469,6 +469,16 @@ export interface DamageBillItem {
   damageRate: number;
   amount: number;
   note?: string;
+  challanNumber?: string;
+}
+
+export interface TransportationBreakupItem {
+  challanNumber: string;
+  challanType: 'delivery' | 'return';
+  cartageCharge: number;
+  loadingCharge: number;
+  unloadingCharge: number;
+  totalCharge: number;
 }
 
 export interface Bill {
@@ -508,6 +518,7 @@ export interface Bill {
   transportationCharges?: number;
   damageItems?: DamageBillItem[];
   damageCharges?: number;
+  transportationBreakup?: TransportationBreakupItem[];
   isStale?: boolean;
   createdAt: string;
   updatedAt: string;

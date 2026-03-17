@@ -294,6 +294,7 @@ export function BillDetailPage() {
               <table className="data-table">
                 <thead>
                   <tr>
+                    <th>Challan</th>
                     <th>Item</th>
                     <th>Qty</th>
                     <th>Rate</th>
@@ -304,6 +305,7 @@ export function BillDetailPage() {
                 <tbody>
                   {bill.damageItems.map((d, idx) => (
                     <tr key={`${d.itemId}-${idx}`}>
+                      <td>{d.challanNumber || '-'}</td>
                       <td>{d.itemName}</td>
                       <td>{d.quantity}</td>
                       <td>₹{d.damageRate}</td>
@@ -314,6 +316,44 @@ export function BillDetailPage() {
                     </tr>
                   ))}
                 </tbody>
+              </table>
+            </DetailSection>
+          )}
+
+          {/* Transportation Breakup */}
+          {bill.transportationBreakup && bill.transportationBreakup.length > 0 && (
+            <DetailSection title="Transportation Breakup">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Challan No</th>
+                    <th>Type</th>
+                    <th className="text-right">Cartage</th>
+                    <th className="text-right">Loading</th>
+                    <th className="text-right">Unloading</th>
+                    <th className="text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bill.transportationBreakup.map((t, idx) => (
+                    <tr key={`${t.challanNumber}-${idx}`}>
+                      <td>{t.challanNumber}</td>
+                      <td>{t.challanType === 'delivery' ? 'Delivery' : 'Return'}</td>
+                      <td className="text-right">{formatCurrency(t.cartageCharge)}</td>
+                      <td className="text-right">{formatCurrency(t.loadingCharge)}</td>
+                      <td className="text-right">{formatCurrency(t.unloadingCharge)}</td>
+                      <td className="text-right">{formatCurrency(t.totalCharge)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={5}><strong>Total</strong></td>
+                    <td className="text-right">
+                      <strong>{formatCurrency(bill.transportationCharges || 0)}</strong>
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </DetailSection>
           )}
