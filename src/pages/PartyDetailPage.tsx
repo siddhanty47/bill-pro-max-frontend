@@ -18,6 +18,7 @@ import {
 import { useGetBillsByPartyQuery } from '../api/billApi';
 import { useGetPaymentsByPartyQuery } from '../api/paymentApi';
 import { useGetInventoryQuery } from '../api/inventoryApi';
+import { useLazyGetStatementPdfQuery } from '../api/statementApi';
 import {
   DetailPageShell,
   DetailSection,
@@ -61,6 +62,13 @@ export function PartyDetailPage() {
   const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
   const [isAgreementModalOpen, setIsAgreementModalOpen] = useState(false);
   const [billSiteFilter, setBillSiteFilter] = useState('');
+
+  // Statement PDF state
+  const [statementType, setStatementType] = useState<'ledger' | 'bills' | 'items' | 'aging'>('ledger');
+  const [statementFrom, setStatementFrom] = useState('');
+  const [statementTo, setStatementTo] = useState('');
+  const [statementAgreementId, setStatementAgreementId] = useState('');
+  const [triggerStatementPdf, { isFetching: isDownloadingStatement }] = useLazyGetStatementPdfQuery();
 
   const { data: bills } = useGetBillsByPartyQuery(
     { businessId: currentBusinessId!, partyId: partyId! },
@@ -162,6 +170,28 @@ export function PartyDetailPage() {
     },
     [currentBusinessId, partyId, editSiteAddress, editSiteStateCode, updateSite],
   );
+
+  const handleDownloadStatement = useCallback(async () => {
+    if (!currentBusinessId || !partyId || !statementFrom || !statementTo) return;
+    try {
+      const blob = await triggerStatementPdf({
+        businessId: currentBusinessId,
+        partyId,
+        type: statementType,
+        from: statementFrom,
+        to: statementTo,
+        agreementId: statementAgreementId || undefined,
+      }).unwrap();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${statementType}-statement.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(getErrorMessage(err));
+    }
+  }, [currentBusinessId, partyId, statementType, statementFrom, statementTo, statementAgreementId, triggerStatementPdf]);
 
   const sidebar = party ? (
     <DetailSection title="Details">
@@ -554,6 +584,69 @@ export function PartyDetailPage() {
               </DetailSection>
             );
           })()}
+
+          {/* Statements */}
+          <DetailSection title="Statements">
+            <div className={pageStyles.statementForm}>
+              <div className={pageStyles.statementRow}>
+                <label className={pageStyles.statementLabel}>Type</label>
+                <select
+                  value={statementType}
+                  onChange={(e) => setStatementType(e.target.value as typeof statementType)}
+                  className={`form-input ${pageStyles.statementSelect}`}
+                >
+                  <option value="ledger">Ledger</option>
+                  <option value="bills">Bills</option>
+                  <option value="items">Items</option>
+                  <option value="aging">Aging / Outstanding</option>
+                </select>
+              </div>
+              <div className={pageStyles.statementRow}>
+                <label className={pageStyles.statementLabel}>From</label>
+                <input
+                  type="date"
+                  value={statementFrom}
+                  onChange={(e) => setStatementFrom(e.target.value)}
+                  className={`form-input ${pageStyles.statementDateInput}`}
+                />
+              </div>
+              <div className={pageStyles.statementRow}>
+                <label className={pageStyles.statementLabel}>To</label>
+                <input
+                  type="date"
+                  value={statementTo}
+                  onChange={(e) => setStatementTo(e.target.value)}
+                  className={`form-input ${pageStyles.statementDateInput}`}
+                />
+              </div>
+              {party.agreements && party.agreements.length > 0 && (
+                <div className={pageStyles.statementRow}>
+                  <label className={pageStyles.statementLabel}>Agreement</label>
+                  <select
+                    value={statementAgreementId}
+                    onChange={(e) => setStatementAgreementId(e.target.value)}
+                    className={`form-input ${pageStyles.statementSelect}`}
+                  >
+                    <option value="">All Agreements</option>
+                    {party.agreements.map((a) => (
+                      <option key={a.agreementId} value={a.agreementId}>
+                        {a.agreementId} ({a.siteCode})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className={pageStyles.statementRow}>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleDownloadStatement}
+                  disabled={isDownloadingStatement || !statementFrom || !statementTo}
+                >
+                  {isDownloadingStatement ? 'Generating...' : 'Download PDF'}
+                </button>
+              </div>
+            </div>
+          </DetailSection>
 
           {/* Notes */}
           <DetailSection title="Notes">

@@ -41,3 +41,44 @@
   align-items: center;
   gap: 6px;
 }
+
+/* Statement form styles */
+.statementForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 400px;
+}
+
+.statementRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.statementLabel {
+  width: 80px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.statementSelect {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border-medium);
+  border-radius: 0;
+  font-size: 13px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.statementDateInput {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border-medium);
+  border-radius: 0;
+  font-size: 13px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
