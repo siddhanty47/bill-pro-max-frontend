@@ -1,0 +1,126 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.createRow {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.input {
+  padding: 6px 10px;
+  border: 1px solid var(--border-medium);
+  border-radius: 0;
+  font-size: 13px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.select {
+  padding: 6px 10px;
+  border: 1px solid var(--border-medium);
+  border-radius: 0;
+  font-size: 13px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.linkRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-surface);
+}
+
+.linkInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.linkLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.linkMeta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.linkActions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.copyBtn {
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border-radius: 0;
+}
+
+.copyBtn:hover {
+  background: var(--bg-hover);
+}
+
+.revokeBtn {
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid var(--color-error, #dc3545);
+  background: transparent;
+  color: var(--color-error, #dc3545);
+  border-radius: 0;
+}
+
+.revokeBtn:hover {
+  background: var(--color-error, #dc3545);
+  color: #fff;
+}
+
+.revokedBadge {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--bg-muted, #eee);
+  color: var(--text-secondary);
+}
+
+.expiredBadge {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--color-warning-bg, #fff3cd);
+  color: var(--color-warning, #856404);
+}
+
+.copied {
+  color: var(--color-success, #28a745);
+}

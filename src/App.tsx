@@ -22,6 +22,7 @@ import { PaymentDetailPage } from './pages/PaymentDetailPage';
 import { TeamPage } from './pages/TeamPage';
 import { BusinessDetailPage } from './pages/BusinessDetailPage';
 import { InvitationAcceptPage } from './pages/InvitationAcceptPage';
+import { SharedPortalPage } from './pages/SharedPortalPage';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route path="/invitations/:token" element={<InvitationAcceptPage />} />
+      <Route path="/share/:token" element={<SharedPortalPage />} />
 
       {/* Protected routes */}
       <Route

@@ -704,3 +704,88 @@ export interface UpdateEmployeeInput {
   phone?: string;
   details?: Partial<TransporterDetails>;
 }
+
+// ============ ShareLink ============
+
+export type ShareLinkStatus = 'active' | 'revoked';
+
+export interface ShareLink {
+  _id: string;
+  businessId: string;
+  partyId: string;
+  token: string;
+  siteCode?: string;
+  label?: string;
+  expiresAt?: string;
+  status: ShareLinkStatus;
+  createdBy: string;
+  lastAccessedAt?: string;
+  accessCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateShareLinkInput {
+  siteCode?: string;
+  expiresAt?: string;
+  label?: string;
+}
+
+export interface UpdateShareLinkInput {
+  expiresAt?: string | null;
+  label?: string;
+}
+
+export interface PortalInfo {
+  partyName: string;
+  partyCode: string;
+  businessName: string;
+  siteCode: string | null;
+  siteName: string | null;
+}
+
+export interface PortalSummary {
+  totalOutstanding: number;
+  totalBilled: number;
+  totalPaid: number;
+  totalItemsInUse: number;
+  itemsBreakdown: PortalRunningItem[];
+  billCount: number;
+  overdueBills: number;
+}
+
+export interface PortalChallan {
+  _id: string;
+  challanNumber: string;
+  type: 'delivery' | 'return';
+  date: string;
+  agreementId: string;
+  items: { itemName: string; quantity: number }[];
+  status: string;
+}
+
+export interface PortalBill {
+  _id: string;
+  billNumber: string;
+  billingPeriod: { start: string; end: string };
+  billDate?: string;
+  totalAmount: number;
+  amountPaid: number;
+  status: string;
+  dueDate: string;
+}
+
+export interface PortalRunningItem {
+  itemName: string;
+  quantity: number;
+}
+
+export interface PortalPayment {
+  _id: string;
+  amount: number;
+  method: 'cash' | 'bank_transfer' | 'upi' | 'cheque' | 'other';
+  date: string;
+  status: 'pending' | 'completed' | 'failed' | 'cancelled';
+  reference: string | null;
+  notes: string | null;
+}

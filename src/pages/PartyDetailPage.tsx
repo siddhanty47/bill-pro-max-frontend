@@ -28,6 +28,7 @@ import { Modal } from '../components/Modal';
 import { AddSiteModal } from '../components/AddSiteModal';
 import { AgreementForm } from '../components/forms/AgreementForm';
 import { getErrorMessage } from '../api/baseApi';
+import { ShareLinkManager } from '../components/ShareLinkManager';
 import type { CreateAgreementInput, Site } from '../types';
 
 /**
@@ -434,6 +435,11 @@ export function PartyDetailPage() {
             ) : (
               <p className="text-empty">No agreements yet.</p>
             )}
+          </DetailSection>
+
+          {/* Share Links */}
+          <DetailSection title="Share Links">
+            <ShareLinkManager partyId={partyId!} sites={party.sites || []} />
           </DetailSection>
 
           {/* Bills */}
