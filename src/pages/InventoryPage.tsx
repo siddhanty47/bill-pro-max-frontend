@@ -16,6 +16,8 @@ import { Modal } from '../components/Modal';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { InventoryForm } from '../components/forms/InventoryForm';
+import { ImportPresetModal } from '../components/ImportPresetModal';
+import { CreatePresetModal } from '../components/CreatePresetModal';
 import { getErrorMessage } from '../api/baseApi';
 import type { Inventory, CreateInventoryInput } from '../types';
 import { computeRentedFromHistory, computeAvailable } from '../utils/inventoryUtils';
@@ -27,6 +29,8 @@ export function InventoryPage() {
   const { modLabel } = usePlatform();
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportPresetOpen, setIsImportPresetOpen] = useState(false);
+  const [isCreatePresetOpen, setIsCreatePresetOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
@@ -161,9 +165,17 @@ export function InventoryPage() {
     <div>
       <div className="page-header">
         <h1>Inventory</h1>
-        <button className="btn btn-primary" onClick={handleAdd}>
-          + Add Item <kbd className="kbd-hint">{modLabel}+N</kbd>
-        </button>
+        <div className="action-buttons">
+          <button className="btn btn-secondary" onClick={() => setIsImportPresetOpen(true)}>
+            Import Preset
+          </button>
+          <button className="btn btn-secondary" onClick={() => setIsCreatePresetOpen(true)}>
+            Create Preset
+          </button>
+          <button className="btn btn-primary" onClick={handleAdd}>
+            + Add Item <kbd className="kbd-hint">{modLabel}+N</kbd>
+          </button>
+        </div>
       </div>
 
       <div className="filters">
@@ -208,6 +220,20 @@ export function InventoryPage() {
           isLoading={isCreating}
         />
       </Modal>
+
+      <ImportPresetModal
+        isOpen={isImportPresetOpen}
+        onClose={() => setIsImportPresetOpen(false)}
+        businessId={currentBusinessId!}
+        existingInventory={inventory || []}
+      />
+
+      <CreatePresetModal
+        isOpen={isCreatePresetOpen}
+        onClose={() => setIsCreatePresetOpen(false)}
+        businessId={currentBusinessId!}
+        inventory={inventory || []}
+      />
     </div>
   );
 }

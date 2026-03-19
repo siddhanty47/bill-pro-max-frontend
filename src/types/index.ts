@@ -780,6 +780,66 @@ export interface PortalRunningItem {
   quantity: number;
 }
 
+// ============ Inventory Preset ============
+
+export interface PresetItem {
+  code: string;
+  name: string;
+  category: string;
+  unit: string;
+  description?: string;
+  defaultRatePerDay?: number;
+  damageRate?: number;
+}
+
+export interface InventoryPreset {
+  _id: string;
+  name: string;
+  description?: string;
+  tags: string[];
+  items: PresetItem[];
+  isSystem: boolean;
+  isPublic: boolean;
+  createdBy?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PresetSummary {
+  _id: string;
+  name: string;
+  description?: string;
+  tags: string[];
+  itemCount: number;
+  isSystem: boolean;
+  isPublic: boolean;
+  createdBy?: string;
+}
+
+export interface ImportPresetResult {
+  imported: number;
+  skipped: number;
+  total: number;
+  importedItems: Array<{ code: string; name: string }>;
+  skippedItems: Array<{ code: string; name: string; reason: string }>;
+}
+
+export interface CreatePresetInput {
+  name: string;
+  description?: string;
+  tags?: string[];
+  items: Array<{
+    code: string;
+    name: string;
+    category: string;
+    unit: string;
+    description?: string;
+    defaultRatePerDay?: number;
+    damageRate?: number;
+  }>;
+}
+
 export interface PortalPayment {
   _id: string;
   amount: number;

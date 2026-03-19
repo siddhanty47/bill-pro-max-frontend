@@ -1,0 +1,105 @@
+.errorAlert {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: var(--status-danger-bg);
+  border: 1px solid var(--status-danger-border);
+  color: var(--status-danger-text);
+}
+
+.searchInput {
+  width: 100%;
+  padding: 6px 0;
+  border: none;
+  border-bottom: 1px solid var(--border-medium);
+  font-size: 13px;
+  font-family: var(--font-body);
+  background: transparent;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+}
+
+.itemList {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+}
+
+.itemRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.itemRow:hover {
+  background: var(--bg-hover);
+}
+
+.itemRow:last-child {
+  border-bottom: none;
+}
+
+.itemCheckbox {
+  accent-color: var(--accent);
+}
+
+.itemCode {
+  color: var(--text-muted);
+  min-width: 80px;
+}
+
+.itemName {
+  flex: 1;
+  color: var(--text-primary);
+}
+
+.itemCategory {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.selectionCount {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-default);
+}
+
+.selectActions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.selectBtn {
+  font-size: 11px;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.selectBtn:hover {
+  text-decoration: underline;
+}
