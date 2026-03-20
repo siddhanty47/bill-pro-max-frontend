@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#0a0a0a"/>
+  <rect x="40" y="40" width="432" height="432" rx="48" fill="#111" stroke="#00e676" stroke-width="8"/>
+  <rect x="40" y="40" width="432" height="80" rx="48" fill="#1a1a1a"/>
+  <rect x="40" y="112" width="432" height="8" rx="0" fill="#00e676" opacity="0.15"/>
+  <circle cx="88" cy="80" r="12" fill="#ff5f56"/>
+  <circle cx="128" cy="80" r="12" fill="#ffbd2e"/>
+  <circle cx="168" cy="80" r="12" fill="#27c93f"/>
+  <text x="100" y="270" font-family="monospace" font-weight="bold" font-size="160" fill="#00e676">$_</text>
+</svg>
