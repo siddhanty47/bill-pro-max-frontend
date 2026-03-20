@@ -840,6 +840,167 @@ export interface CreatePresetInput {
   }>;
 }
 
+// ============ Statement Preview ============
+
+export interface StatementBusiness {
+  name: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  gst?: string;
+}
+
+export interface StatementParty {
+  name: string;
+  code: string;
+  address?: string;
+  phone?: string;
+  gst?: string;
+}
+
+export interface StatementPeriod {
+  from: string;
+  to: string;
+}
+
+export interface LedgerEntry {
+  date: string;
+  description: string;
+  reference: string;
+  debit: number;
+  credit: number;
+  balance: number;
+  billId?: string;
+}
+
+export interface LedgerStatementData {
+  type: 'ledger';
+  business: StatementBusiness;
+  party: StatementParty;
+  period: StatementPeriod;
+  openingBalance: number;
+  entries: LedgerEntry[];
+  totalDebits: number;
+  totalCredits: number;
+  closingBalance: number;
+  currency: string;
+}
+
+export interface BillStatementRow {
+  billId: string;
+  billNumber: string;
+  billDate: string;
+  periodStart?: string;
+  periodEnd?: string;
+  siteCode: string;
+  rentCharges: number;
+  transportationCharges: number;
+  damageCharges: number;
+  subtotal: number;
+  taxAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+}
+
+export interface BillStatementTotals {
+  rentCharges: number;
+  transportationCharges: number;
+  damageCharges: number;
+  subtotal: number;
+  taxAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+  billCount: number;
+}
+
+export interface BillStatementData {
+  type: 'bills';
+  business: StatementBusiness;
+  party: StatementParty;
+  period: StatementPeriod;
+  siteCode?: string;
+  bills: BillStatementRow[];
+  totals: BillStatementTotals;
+  currency: string;
+}
+
+export interface ItemEvent {
+  date: string;
+  challanNumber: string;
+  challanId: string;
+  type: 'delivery' | 'return';
+  quantity: number;
+  runningQty: number;
+}
+
+export interface ItemDamages {
+  damaged: number;
+  short: number;
+  needRepair: number;
+}
+
+export interface ItemStatementItem {
+  itemName: string;
+  itemId: string;
+  openingQty: number;
+  events: ItemEvent[];
+  totalDelivered: number;
+  totalReturned: number;
+  closingQty: number;
+  damages: ItemDamages;
+}
+
+export interface ItemStatementData {
+  type: 'items';
+  business: StatementBusiness;
+  party: StatementParty;
+  period: StatementPeriod;
+  items: ItemStatementItem[];
+  grandTotals: {
+    totalDelivered: number;
+    totalReturned: number;
+    netHeld: number;
+    totalDamaged: number;
+    totalShort: number;
+  };
+}
+
+export interface AgingBill {
+  billId: string;
+  billNumber: string;
+  billDate: string;
+  dueDate: string;
+  daysOverdue: number;
+  totalAmount: number;
+  amountPaid: number;
+  balanceDue: number;
+  bucket: string;
+}
+
+export interface AgingBuckets {
+  current: number;
+  days31_60: number;
+  days61_90: number;
+  days90Plus: number;
+}
+
+export interface AgingStatementData {
+  type: 'aging';
+  business: StatementBusiness;
+  party: StatementParty;
+  asOfDate: string;
+  bills: AgingBill[];
+  buckets: AgingBuckets;
+  grandTotal: number;
+  currency: string;
+}
+
+export type StatementData =
+  | LedgerStatementData
+  | BillStatementData
+  | ItemStatementData
+  | AgingStatementData;
+
 export interface PortalPayment {
   _id: string;
   amount: number;

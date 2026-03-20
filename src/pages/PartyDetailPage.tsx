@@ -18,7 +18,8 @@ import {
 import { useGetBillsByPartyQuery } from '../api/billApi';
 import { useGetPaymentsByPartyQuery } from '../api/paymentApi';
 import { useGetInventoryQuery } from '../api/inventoryApi';
-import { useLazyGetStatementPdfQuery } from '../api/statementApi';
+import { useLazyGetStatementPdfQuery, useLazyGetStatementDataQuery } from '../api/statementApi';
+import { StatementPreview } from '../components/statements/StatementPreview';
 import {
   DetailPageShell,
   DetailSection,
@@ -71,6 +72,7 @@ export function PartyDetailPage() {
   const [statementTo, setStatementTo] = useState('');
   const [statementAgreementId, setStatementAgreementId] = useState('');
   const [triggerStatementPdf, { isFetching: isDownloadingStatement }] = useLazyGetStatementPdfQuery();
+  const [triggerStatementData, { data: previewData, isFetching: isLoadingPreview }] = useLazyGetStatementDataQuery();
 
   const { data: bills } = useGetBillsByPartyQuery(
     { businessId: currentBusinessId!, partyId: partyId! },
@@ -205,6 +207,22 @@ export function PartyDetailPage() {
       alert(getErrorMessage(err));
     }
   }, [currentBusinessId, partyId, statementType, statementFrom, statementTo, statementAgreementId, triggerStatementPdf]);
+
+  const handlePreviewStatement = useCallback(async () => {
+    if (!currentBusinessId || !partyId || !statementFrom || !statementTo) return;
+    try {
+      await triggerStatementData({
+        businessId: currentBusinessId,
+        partyId,
+        type: statementType,
+        from: statementFrom,
+        to: statementTo,
+        agreementId: statementAgreementId || undefined,
+      }).unwrap();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    }
+  }, [currentBusinessId, partyId, statementType, statementFrom, statementTo, statementAgreementId, triggerStatementData]);
 
   const sidebar = party ? (
     <DetailSection title="Details">
@@ -683,7 +701,14 @@ export function PartyDetailPage() {
                   </select>
                 </div>
               )}
-              <div className={pageStyles.statementRow}>
+              <div className={`${pageStyles.statementRow} ${pageStyles.statementButtons}`}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={handlePreviewStatement}
+                  disabled={isLoadingPreview || !statementFrom || !statementTo}
+                >
+                  {isLoadingPreview ? 'Loading...' : 'Preview'}
+                </button>
                 <button
                   className="btn btn-primary"
                   onClick={handleDownloadStatement}
@@ -693,6 +718,7 @@ export function PartyDetailPage() {
                 </button>
               </div>
             </div>
+            {previewData && <StatementPreview data={previewData} />}
           </DetailSection>
           )}
 

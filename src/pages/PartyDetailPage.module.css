@@ -82,3 +82,8 @@
   background: var(--bg-input);
   color: var(--text-primary);
 }
+
+.statementButtons {
+  display: flex;
+  gap: 8px;
+}

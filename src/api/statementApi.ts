@@ -2,6 +2,7 @@
  * Statement API endpoints
  */
 import { baseApi } from './baseApi';
+import type { ApiResponse, StatementData } from '../types';
 
 export interface StatementPdfParams {
   businessId: string;
@@ -24,7 +25,16 @@ export const statementApi = baseApi.injectEndpoints({
         };
       },
     }),
+
+    getStatementData: builder.query<StatementData, StatementPdfParams>({
+      query: ({ businessId, partyId, type, from, to, agreementId }) => {
+        const params = new URLSearchParams({ type, from, to });
+        if (agreementId) params.set('agreementId', agreementId);
+        return `/businesses/${businessId}/parties/${partyId}/statements/data?${params.toString()}`;
+      },
+      transformResponse: (response: ApiResponse<StatementData>) => response.data,
+    }),
   }),
 });
 
-export const { useLazyGetStatementPdfQuery } = statementApi;
+export const { useLazyGetStatementPdfQuery, useLazyGetStatementDataQuery } = statementApi;
