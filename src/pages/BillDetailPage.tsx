@@ -24,6 +24,7 @@ import {
   DetailField,
 } from '../components/DetailPageShell';
 import { getErrorMessage } from '../api/baseApi';
+import { Tabs } from '../components/Tabs';
 import type { Bill } from '../types';
 
 /** Bill status options — matches the Bill type union */
@@ -80,12 +81,19 @@ export function BillDetailPage() {
   const [downloadPdf, { isLoading: isDownloading }] = useLazyGetBillPdfQuery();
   const [sendBillEmail, { isLoading: isSending }] = useSendBillEmailMutation();
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [activeTab, setActiveTab] = useState('about');
 
   const partyName = parties?.find((p) => p._id === bill?.partyId)?.name || bill?.partyId || '';
   const outstanding = bill ? bill.totalAmount - bill.amountPaid : 0;
   const rentalSubtotal = bill
     ? bill.subtotal - (bill.transportationCharges || 0) - (bill.damageCharges || 0)
     : 0;
+
+  const TABS = [
+    { id: 'about', label: 'About' },
+    { id: 'line-items', label: 'Line Items' },
+    { id: 'payments', label: 'Payments' },
+  ];
 
   /** Save handler for bill status changes */
   const handleStatusSave = useCallback(
@@ -254,7 +262,7 @@ export function BillDetailPage() {
     >
       {bill && (
         <>
-          {/* Stale Warning Banner */}
+          {/* Stale Warning Banner — always visible */}
           {bill.isStale && (
             <div className={pageStyles.staleBanner}>
               <span className={pageStyles.iconSize20}>&#9888;</span>
@@ -271,228 +279,242 @@ export function BillDetailPage() {
             </div>
           )}
 
-          {/* Billing Period */}
-          <DetailSection title="Billing Period">
-            <DetailField label="Period Start" value={formatDate(bill.billingPeriod.start)} />
-            <DetailField label="Period End" value={formatDate(bill.billingPeriod.end)} />
-            <DetailField
-              label="Bill Date"
-              value={formatDate(
-                bill.billDate || bill.billingPeriod?.end || bill.createdAt
-              )}
-            />
-          </DetailSection>
+          <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
 
-          {/* Line Items */}
-          <DetailSection title={`Line Items (${bill.items.length})`}>
-            {bill.items.length > 0 ? (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Item</th>
-                    <th>Qty</th>
-                    <th>Rate/Day</th>
-                    <th>Days</th>
-                    <th className="text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bill.items.map((item, idx) => (
-                    <tr key={`${item.itemId}-${idx}`}>
-                      <td>{item.itemName}</td>
-                      <td>{item.quantity}</td>
-                      <td>₹{item.ratePerDay}</td>
-                      <td>{item.totalDays}</td>
-                      <td className="text-right">{formatCurrency(item.amount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="text-empty">No line items.</p>
-            )}
-          </DetailSection>
-
-          {/* Damage Items (if any) */}
-          {bill.damageItems && bill.damageItems.length > 0 && (
-            <DetailSection title={`Damage Items (${bill.damageItems.length})`}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Challan</th>
-                    <th>Item</th>
-                    <th>Qty</th>
-                    <th>Rate</th>
-                    <th className="text-right">Amount</th>
-                    <th>Note</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bill.damageItems.map((d, idx) => (
-                    <tr key={`${d.itemId}-${idx}`}>
-                      <td>{d.challanNumber || '-'}</td>
-                      <td>{d.itemName}</td>
-                      <td>{d.quantity}</td>
-                      <td>₹{d.damageRate}</td>
-                      <td className="text-right">{formatCurrency(d.amount)}</td>
-                      <td className={d.note ? 'text-notes' : 'text-notes-empty'}>
-                        {d.note || '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </DetailSection>
-          )}
-
-          {/* Transportation Breakup */}
-          {bill.transportationBreakup && bill.transportationBreakup.length > 0 && (
-            <DetailSection title="Transportation Breakup">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Challan No</th>
-                    <th>Type</th>
-                    <th className="text-right">Cartage</th>
-                    <th className="text-right">Loading</th>
-                    <th className="text-right">Unloading</th>
-                    <th className="text-right">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bill.transportationBreakup.map((t, idx) => (
-                    <tr key={`${t.challanNumber}-${idx}`}>
-                      <td>{t.challanNumber}</td>
-                      <td>{t.challanType === 'delivery' ? 'Delivery' : 'Return'}</td>
-                      <td className="text-right">{formatCurrency(t.cartageCharge)}</td>
-                      <td className="text-right">{formatCurrency(t.loadingCharge)}</td>
-                      <td className="text-right">{formatCurrency(t.unloadingCharge)}</td>
-                      <td className="text-right">{formatCurrency(t.totalCharge)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan={5}><strong>Total</strong></td>
-                    <td className="text-right">
-                      <strong>{formatCurrency(bill.transportationCharges || 0)}</strong>
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </DetailSection>
-          )}
-
-          {/* Financial Summary */}
-          <DetailSection title="Financial Summary">
-            <DetailField label="Rental Subtotal" value={formatCurrency(rentalSubtotal)} />
-            <DetailField
-              label="Transportation Charges"
-              value={formatCurrency(bill.transportationCharges || 0)}
-            />
-            <DetailField
-              label="Damage Charges"
-              value={formatCurrency(bill.damageCharges || 0)}
-            />
-            <DetailField label="Subtotal" value={formatCurrency(bill.subtotal)} />
-            {bill.taxMode === 'intra' ? (
-              <>
+          {/* About Tab */}
+          {activeTab === 'about' && (
+            <>
+              {/* Billing Period */}
+              <DetailSection title="Billing Period">
+                <DetailField label="Period Start" value={formatDate(bill.billingPeriod.start)} />
+                <DetailField label="Period End" value={formatDate(bill.billingPeriod.end)} />
                 <DetailField
-                  label="SGST"
-                  value={`${formatCurrency(bill.sgstAmount || 0)} (${bill.sgstRate || 0}%)`}
+                  label="Bill Date"
+                  value={formatDate(
+                    bill.billDate || bill.billingPeriod?.end || bill.createdAt
+                  )}
+                />
+              </DetailSection>
+
+              {/* Financial Summary */}
+              <DetailSection title="Financial Summary">
+                <DetailField label="Rental Subtotal" value={formatCurrency(rentalSubtotal)} />
+                <DetailField
+                  label="Transportation Charges"
+                  value={formatCurrency(bill.transportationCharges || 0)}
                 />
                 <DetailField
-                  label="CGST"
-                  value={`${formatCurrency(bill.cgstAmount || 0)} (${bill.cgstRate || 0}%)`}
+                  label="Damage Charges"
+                  value={formatCurrency(bill.damageCharges || 0)}
                 />
-              </>
-            ) : bill.taxMode === 'inter' ? (
-              <DetailField
-                label="IGST"
-                value={`${formatCurrency(bill.igstAmount || 0)} (${bill.igstRate || 0}%)`}
-              />
-            ) : (
-              <DetailField
-                label="Tax"
-                value={`${formatCurrency(bill.taxAmount)} (${bill.taxRate || 0}%)`}
-              />
-            )}
-            {(bill.taxMode === 'intra' || bill.taxMode === 'inter') && (
-              <DetailField label="Total Tax" value={formatCurrency(bill.taxAmount)} />
-            )}
-            <DetailField
-              label="Discount"
-              value={`${formatCurrency(bill.discountAmount)} (${bill.discountRate}%)`}
-            />
-            <DetailField
-              label="Total Amount"
-              value={<strong>{formatCurrency(bill.totalAmount)}</strong>}
-            />
-            <DetailField label="Amount Paid" value={formatCurrency(bill.amountPaid)} />
-            <DetailField
-              label="Outstanding"
-              value={
-                <strong style={{ color: outstanding > 0 ? 'var(--status-danger-text)' : 'var(--status-success-text)' }}>
-                  {formatCurrency(outstanding)}
-                </strong>
-              }
-            />
-          </DetailSection>
+                <DetailField label="Subtotal" value={formatCurrency(bill.subtotal)} />
+                {bill.taxMode === 'intra' ? (
+                  <>
+                    <DetailField
+                      label="SGST"
+                      value={`${formatCurrency(bill.sgstAmount || 0)} (${bill.sgstRate || 0}%)`}
+                    />
+                    <DetailField
+                      label="CGST"
+                      value={`${formatCurrency(bill.cgstAmount || 0)} (${bill.cgstRate || 0}%)`}
+                    />
+                  </>
+                ) : bill.taxMode === 'inter' ? (
+                  <DetailField
+                    label="IGST"
+                    value={`${formatCurrency(bill.igstAmount || 0)} (${bill.igstRate || 0}%)`}
+                  />
+                ) : (
+                  <DetailField
+                    label="Tax"
+                    value={`${formatCurrency(bill.taxAmount)} (${bill.taxRate || 0}%)`}
+                  />
+                )}
+                {(bill.taxMode === 'intra' || bill.taxMode === 'inter') && (
+                  <DetailField label="Total Tax" value={formatCurrency(bill.taxAmount)} />
+                )}
+                <DetailField
+                  label="Discount"
+                  value={`${formatCurrency(bill.discountAmount)} (${bill.discountRate}%)`}
+                />
+                <DetailField
+                  label="Total Amount"
+                  value={<strong>{formatCurrency(bill.totalAmount)}</strong>}
+                />
+                <DetailField label="Amount Paid" value={formatCurrency(bill.amountPaid)} />
+                <DetailField
+                  label="Outstanding"
+                  value={
+                    <strong className={outstanding > 0 ? pageStyles.outstandingDanger : pageStyles.outstandingSuccess}>
+                      {formatCurrency(outstanding)}
+                    </strong>
+                  }
+                />
+              </DetailSection>
 
-          {/* Payments */}
-          <DetailSection title={`Payments (${(payments || []).length})`}>
-            {(payments || []).length > 0 ? (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Amount</th>
-                    <th>Method</th>
-                    <th>Status</th>
-                    <th>Reference</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...(payments || [])]
-                    .sort(
-                      (a, b) =>
-                        new Date(b.date).getTime() - new Date(a.date).getTime(),
-                    )
-                    .map((payment) => (
-                      <tr key={payment._id}>
-                        <td>
-                          <Link
-                            to={`/payments/${payment._id}`}
-                            className="link-accent"
-                          >
-                            {formatDate(payment.date)}
-                          </Link>
-                        </td>
-                        <td>{formatCurrency(payment.amount)}</td>
-                        <td>{payment.method.replace('_', ' ')}</td>
-                        <td>
-                          <span className={`status status-${payment.status}`}>
-                            {payment.status}
-                          </span>
-                        </td>
-                        <td>{payment.reference || '-'}</td>
+              {/* Notes */}
+              <DetailSection title="Notes">
+                <p className={bill.notes ? 'text-notes' : 'text-notes-empty'}>
+                  {bill.notes || 'No notes.'}
+                </p>
+              </DetailSection>
+            </>
+          )}
+
+          {/* Line Items Tab */}
+          {activeTab === 'line-items' && (
+            <>
+              {/* Line Items */}
+              <DetailSection title={`Line Items (${bill.items.length})`}>
+                {bill.items.length > 0 ? (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Rate/Day</th>
+                        <th>Days</th>
+                        <th className="text-right">Amount</th>
                       </tr>
-                    ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="text-empty">
-                No payments recorded for this bill.
-              </p>
-            )}
-          </DetailSection>
+                    </thead>
+                    <tbody>
+                      {bill.items.map((item, idx) => (
+                        <tr key={`${item.itemId}-${idx}`}>
+                          <td>{item.itemName}</td>
+                          <td>{item.quantity}</td>
+                          <td>₹{item.ratePerDay}</td>
+                          <td>{item.totalDays}</td>
+                          <td className="text-right">{formatCurrency(item.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="text-empty">No line items.</p>
+                )}
+              </DetailSection>
 
-          {/* Notes */}
-          <DetailSection title="Notes">
-            <p className={bill.notes ? 'text-notes' : 'text-notes-empty'}>
-              {bill.notes || 'No notes.'}
-            </p>
-          </DetailSection>
+              {/* Damage Items (if any) */}
+              {bill.damageItems && bill.damageItems.length > 0 && (
+                <DetailSection title={`Damage Items (${bill.damageItems.length})`}>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Challan</th>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Rate</th>
+                        <th className="text-right">Amount</th>
+                        <th>Note</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bill.damageItems.map((d, idx) => (
+                        <tr key={`${d.itemId}-${idx}`}>
+                          <td>{d.challanNumber || '-'}</td>
+                          <td>{d.itemName}</td>
+                          <td>{d.quantity}</td>
+                          <td>₹{d.damageRate}</td>
+                          <td className="text-right">{formatCurrency(d.amount)}</td>
+                          <td className={d.note ? 'text-notes' : 'text-notes-empty'}>
+                            {d.note || '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </DetailSection>
+              )}
+
+              {/* Transportation Breakup */}
+              {bill.transportationBreakup && bill.transportationBreakup.length > 0 && (
+                <DetailSection title="Transportation Breakup">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Challan No</th>
+                        <th>Type</th>
+                        <th className="text-right">Cartage</th>
+                        <th className="text-right">Loading</th>
+                        <th className="text-right">Unloading</th>
+                        <th className="text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bill.transportationBreakup.map((t, idx) => (
+                        <tr key={`${t.challanNumber}-${idx}`}>
+                          <td>{t.challanNumber}</td>
+                          <td>{t.challanType === 'delivery' ? 'Delivery' : 'Return'}</td>
+                          <td className="text-right">{formatCurrency(t.cartageCharge)}</td>
+                          <td className="text-right">{formatCurrency(t.loadingCharge)}</td>
+                          <td className="text-right">{formatCurrency(t.unloadingCharge)}</td>
+                          <td className="text-right">{formatCurrency(t.totalCharge)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <td colSpan={5}><strong>Total</strong></td>
+                        <td className="text-right">
+                          <strong>{formatCurrency(bill.transportationCharges || 0)}</strong>
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </DetailSection>
+              )}
+            </>
+          )}
+
+          {/* Payments Tab */}
+          {activeTab === 'payments' && (
+            <DetailSection title={`Payments (${(payments || []).length})`}>
+              {(payments || []).length > 0 ? (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Amount</th>
+                      <th>Method</th>
+                      <th>Status</th>
+                      <th>Reference</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...(payments || [])]
+                      .sort(
+                        (a, b) =>
+                          new Date(b.date).getTime() - new Date(a.date).getTime(),
+                      )
+                      .map((payment) => (
+                        <tr key={payment._id}>
+                          <td>
+                            <Link
+                              to={`/payments/${payment._id}`}
+                              className="link-accent"
+                            >
+                              {formatDate(payment.date)}
+                            </Link>
+                          </td>
+                          <td>{formatCurrency(payment.amount)}</td>
+                          <td>{payment.method.replace('_', ' ')}</td>
+                          <td>
+                            <span className={`status status-${payment.status}`}>
+                              {payment.status}
+                            </span>
+                          </td>
+                          <td>{payment.reference || '-'}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-empty">
+                  No payments recorded for this bill.
+                </p>
+              )}
+            </DetailSection>
+          )}
         </>
       )}
     </DetailPageShell>

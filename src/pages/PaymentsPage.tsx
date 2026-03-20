@@ -138,20 +138,6 @@ export function PaymentsPage() {
         return <span className={`status status-${payment.status}`}>{payment.status}</span>;
       },
     },
-    {
-      key: 'actions',
-      header: 'Actions',
-      render: (row: TableItem) => {
-        const payment = row as unknown as Payment;
-        return (
-          <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
-            <button className="btn btn-sm btn-secondary" onClick={() => navigate(`/payments/${payment._id}`)}>
-              View
-            </button>
-          </div>
-        );
-      },
-    },
   ];
 
   if (!currentBusinessId) {

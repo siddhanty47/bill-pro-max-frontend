@@ -1,0 +1,49 @@
+/* Shared tab navigation — extracted from SharedPortalPage */
+
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border-default);
+  margin-bottom: 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overflow-y: hidden;
+}
+
+.tab {
+  padding: 10px 20px;
+  font-size: 13px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.tab:hover {
+  color: var(--text-primary);
+}
+
+.tabActive {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 500;
+}
+
+/* Mobile breakpoints */
+@media (max-width: 768px) {
+  .tab {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tab {
+    padding: 8px 10px;
+  }
+}

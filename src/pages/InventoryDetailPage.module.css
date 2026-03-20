@@ -1,5 +1,9 @@
 /* Classes for inline style migration from InventoryDetailPage.tsx */
 
+.adjustFormWrap {
+  padding: 12px 0 4px;
+}
+
 .adjustForm {
   display: flex;
   gap: 12px;

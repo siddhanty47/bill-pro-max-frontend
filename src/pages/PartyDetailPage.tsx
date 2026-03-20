@@ -25,6 +25,7 @@ import {
   DetailField,
 } from '../components/DetailPageShell';
 import { Modal } from '../components/Modal';
+import { Tabs } from '../components/Tabs';
 import { AddSiteModal } from '../components/AddSiteModal';
 import { AgreementForm } from '../components/forms/AgreementForm';
 import { getErrorMessage } from '../api/baseApi';
@@ -80,6 +81,17 @@ export function PartyDetailPage() {
     { businessId: currentBusinessId!, partyId: partyId! },
     { skip: !currentBusinessId || !partyId },
   );
+
+  const [activeTab, setActiveTab] = useState('about');
+
+  const TABS = [
+    { id: 'about', label: 'About' },
+    { id: 'sites-agreements', label: 'Sites & Agreements' },
+    { id: 'bills', label: 'Bills' },
+    { id: 'payments', label: 'Payments' },
+    { id: 'statements', label: 'Statements' },
+    { id: 'share-links', label: 'Share Links' },
+  ];
 
   /** Tracks which site code is currently being inline-edited (null = none) */
   const [editingSiteCode, setEditingSiteCode] = useState<string | null>(null);
@@ -226,6 +238,10 @@ export function PartyDetailPage() {
     >
       {party && (
         <>
+          <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+
+          {activeTab === 'about' && (
+            <>
           {/* Contact Info */}
           <DetailSection title="Contact Information">
             <DetailField
@@ -300,6 +316,25 @@ export function PartyDetailPage() {
             />
           </DetailSection>
 
+          {/* Notes */}
+          <DetailSection title="Notes">
+            <DetailField
+              label=""
+              value={party.notes || undefined}
+              emptyText="No notes."
+              editable={{
+                rawValue: party.notes ?? '',
+                inputType: 'textarea',
+                onSave: (v) => handleSave('notes', v),
+                isSaving,
+              }}
+            />
+          </DetailSection>
+            </>
+          )}
+
+          {activeTab === 'sites-agreements' && (
+            <>
           {/* Sites */}
           <DetailSection
             title={`Sites (${party.sites?.length || 0})`}
@@ -436,12 +471,11 @@ export function PartyDetailPage() {
               <p className="text-empty">No agreements yet.</p>
             )}
           </DetailSection>
+            </>
+          )}
 
-          {/* Share Links */}
-          <DetailSection title="Share Links">
-            <ShareLinkManager partyId={partyId!} sites={party.sites || []} />
-          </DetailSection>
-
+          {activeTab === 'bills' && (
+          <>
           {/* Bills */}
           {(() => {
             const agreementIdToSiteCode = Object.fromEntries(
@@ -527,7 +561,11 @@ export function PartyDetailPage() {
               </DetailSection>
             );
           })()}
+          </>
+          )}
 
+          {activeTab === 'payments' && (
+          <>
           {/* Payments */}
           {(() => {
             const sortedPayments = [...(payments || [])].sort(
@@ -590,8 +628,11 @@ export function PartyDetailPage() {
               </DetailSection>
             );
           })()}
+          </>
+          )}
 
           {/* Statements */}
+          {activeTab === 'statements' && (
           <DetailSection title="Statements">
             <div className={pageStyles.statementForm}>
               <div className={pageStyles.statementRow}>
@@ -653,21 +694,14 @@ export function PartyDetailPage() {
               </div>
             </div>
           </DetailSection>
+          )}
 
-          {/* Notes */}
-          <DetailSection title="Notes">
-            <DetailField
-              label=""
-              value={party.notes || undefined}
-              emptyText="No notes."
-              editable={{
-                rawValue: party.notes ?? '',
-                inputType: 'textarea',
-                onSave: (v) => handleSave('notes', v),
-                isSaving,
-              }}
-            />
+          {/* Share Links */}
+          {activeTab === 'share-links' && (
+          <DetailSection title="Share Links">
+            <ShareLinkManager partyId={partyId!} sites={party.sites || []} />
           </DetailSection>
+          )}
 
           {/* Add Site Modal */}
           {currentBusinessId && (

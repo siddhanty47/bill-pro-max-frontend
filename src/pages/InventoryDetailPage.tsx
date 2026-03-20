@@ -20,6 +20,7 @@ import {
   DetailSection,
   DetailField,
 } from '../components/DetailPageShell';
+import { Tabs } from '../components/Tabs';
 import { CodeAutocomplete, type AutocompleteItem } from '../components/CodeAutocomplete';
 import type { AdjustQuantityInput, QuantityTransaction } from '../types';
 import { getErrorMessage } from '../api/baseApi';
@@ -215,6 +216,13 @@ export function InventoryDetailPage() {
     [adjType, adjQuantity, adjDate, adjNote, adjustQuantity, currentBusinessId, itemId],
   );
 
+  const [activeTab, setActiveTab] = useState('about');
+
+  const TABS = [
+    { id: 'about', label: 'About' },
+    { id: 'history', label: 'History' },
+  ];
+
   /** History: latest entry at top (reverse of insertion order) */
   const sortedHistory = useMemo(() => {
     if (!item?.quantityHistory?.length) return [];
@@ -317,155 +325,162 @@ export function InventoryDetailPage() {
     >
       {item && (
         <>
-          {/* Stock Info */}
-          <DetailSection title="Stock Information">
-            <DetailField
-              label="Total Quantity"
-              value={`${item.totalQuantity} ${item.unit}`}
-            />
+          <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
 
-            {/* Inline stock adjustment form — anchored to total quantity */}
-            <div style={{ padding: '12px 0 4px' }}>
-              <form onSubmit={handleAdjustQuantity} className={`form-row ${pageStyles.adjustForm}`}>
-                <div className={`form-group ${pageStyles.adjustFormGroup}`}>
-                  <label className="form-label">Type</label>
-                  <select
-                    className="form-select"
-                    value={adjType}
-                    onChange={(e) => setAdjType(e.target.value as AdjustQuantityInput['type'])}
-                  >
-                    {TRANSACTION_TYPE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+          {activeTab === 'about' && (
+            <>
+              {/* Stock Info */}
+              <DetailSection title="Stock Information">
+                <DetailField
+                  label="Total Quantity"
+                  value={`${item.totalQuantity} ${item.unit}`}
+                />
+
+                {/* Inline stock adjustment form — anchored to total quantity */}
+                <div className={pageStyles.adjustFormWrap}>
+                  <form onSubmit={handleAdjustQuantity} className={`form-row ${pageStyles.adjustForm}`}>
+                    <div className={`form-group ${pageStyles.adjustFormGroup}`}>
+                      <label className="form-label">Type</label>
+                      <select
+                        className="form-select"
+                        value={adjType}
+                        onChange={(e) => setAdjType(e.target.value as AdjustQuantityInput['type'])}
+                      >
+                        {TRANSACTION_TYPE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className={`form-group ${pageStyles.adjustFormGroup}`}>
+                      <label className="form-label">Qty</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        min={1}
+                        value={adjQuantity}
+                        onChange={(e) => setAdjQuantity(e.target.value)}
+                        placeholder="0"
+                        required
+                      />
+                    </div>
+
+                    <div className={`form-group ${pageStyles.adjustFormGroup}`}>
+                      <label className="form-label">Date</label>
+                      <input
+                        type="date"
+                        className="form-input"
+                        value={adjDate}
+                        max={getTodayISO()}
+                        onChange={(e) => setAdjDate(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className={`form-group ${pageStyles.adjustFormGroupWide}`}>
+                      <label className="form-label">Note (optional)</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={adjNote}
+                        onChange={(e) => setAdjNote(e.target.value)}
+                        placeholder="e.g. batch #12"
+                        maxLength={500}
+                      />
+                    </div>
+
+                    <button type="submit" className={`btn btn-primary btn-sm ${pageStyles.adjustButton}`} disabled={isAdjusting}>
+                      {isAdjusting ? 'Saving...' : 'Update Stock'}
+                    </button>
+                  </form>
+                  {adjError && <p className="text-error-inline">{adjError}</p>}
                 </div>
 
-                <div className={`form-group ${pageStyles.adjustFormGroup}`}>
-                  <label className="form-label">Qty</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    min={1}
-                    value={adjQuantity}
-                    onChange={(e) => setAdjQuantity(e.target.value)}
-                    placeholder="0"
-                    required
+                <DetailField
+                  label="Available"
+                  value={`${computeAvailable(item.totalQuantity, computeRentedFromHistory(item.quantityHistory))} ${item.unit}`}
+                />
+                <DetailField
+                  label="Rented Out"
+                  value={`${computeRentedFromHistory(item.quantityHistory)} ${item.unit}`}
+                />
+              </DetailSection>
+
+              {/* Purchase Info */}
+              {item.purchaseInfo && (
+                <DetailSection title="Purchase Information">
+                  <DetailField label="Supplier" value={item.purchaseInfo.supplierName} />
+                  <DetailField
+                    label="Cost Per Unit"
+                    value={`₹${item.purchaseInfo.costPerUnit}`}
                   />
-                </div>
-
-                <div className={`form-group ${pageStyles.adjustFormGroup}`}>
-                  <label className="form-label">Date</label>
-                  <input
-                    type="date"
-                    className="form-input"
-                    value={adjDate}
-                    max={getTodayISO()}
-                    onChange={(e) => setAdjDate(e.target.value)}
-                    required
+                  <DetailField label="Purchase Date" value={formatDate(item.purchaseInfo.date)} />
+                  <DetailField
+                    label="Payment Status"
+                    value={
+                      <span className={`status status-${item.purchaseInfo.paymentStatus}`}>
+                        {item.purchaseInfo.paymentStatus}
+                      </span>
+                    }
                   />
-                </div>
+                </DetailSection>
+              )}
 
-                <div className={`form-group ${pageStyles.adjustFormGroupWide}`}>
-                  <label className="form-label">Note (optional)</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={adjNote}
-                    onChange={(e) => setAdjNote(e.target.value)}
-                    placeholder="e.g. batch #12"
-                    maxLength={500}
-                  />
-                </div>
-
-                <button type="submit" className={`btn btn-primary btn-sm ${pageStyles.adjustButton}`} disabled={isAdjusting}>
-                  {isAdjusting ? 'Saving...' : 'Update Stock'}
-                </button>
-              </form>
-              {adjError && <p className="text-error-inline">{adjError}</p>}
-            </div>
-
-            <DetailField
-              label="Available"
-              value={`${computeAvailable(item.totalQuantity, computeRentedFromHistory(item.quantityHistory))} ${item.unit}`}
-            />
-            <DetailField
-              label="Rented Out"
-              value={`${computeRentedFromHistory(item.quantityHistory)} ${item.unit}`}
-            />
-          </DetailSection>
-
-          {/* Quantity History */}
-          <DetailSection title="Quantity History">
-            {sortedHistory.length === 0 ? (
-              <p className="text-empty">
-                No quantity adjustments recorded.
-              </p>
-            ) : (
-              <div className={pageStyles.historyTableWrap}>
-                <table className={`data-table ${pageStyles.historyTable}`}>
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Type</th>
-                      <th>Quantity</th>
-                      <th>Note</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedHistory.map((tx) => (
-                      <tr key={tx._id}>
-                        <td>{formatDate(tx.date)}</td>
-                        <td>
-                          <span className={transactionTypeBadge(tx.type)}>
-                            {transactionTypeLabel(tx.type)}
-                          </span>
-                        </td>
-                        <td>
-                          {transactionQuantityDisplay(tx)}
-                        </td>
-                        <td>{tx.note || '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </DetailSection>
-
-          {/* Purchase Info */}
-          {item.purchaseInfo && (
-            <DetailSection title="Purchase Information">
-              <DetailField label="Supplier" value={item.purchaseInfo.supplierName} />
-              <DetailField
-                label="Cost Per Unit"
-                value={`₹${item.purchaseInfo.costPerUnit}`}
-              />
-              <DetailField label="Purchase Date" value={formatDate(item.purchaseInfo.date)} />
-              <DetailField
-                label="Payment Status"
-                value={
-                  <span className={`status status-${item.purchaseInfo.paymentStatus}`}>
-                    {item.purchaseInfo.paymentStatus}
-                  </span>
-                }
-              />
-            </DetailSection>
+              {/* Description */}
+              <DetailSection title="Description">
+                <DetailField
+                  label=""
+                  value={item.description || undefined}
+                  emptyText="No description provided."
+                  editable={{
+                    rawValue: item.description ?? '',
+                    inputType: 'textarea',
+                    onSave: (v) => handleSave('description', v),
+                    isSaving,
+                  }}
+                />
+              </DetailSection>
+            </>
           )}
 
-          {/* Description */}
-          <DetailSection title="Description">
-            <DetailField
-              label=""
-              value={item.description || undefined}
-              emptyText="No description provided."
-              editable={{
-                rawValue: item.description ?? '',
-                inputType: 'textarea',
-                onSave: (v) => handleSave('description', v),
-                isSaving,
-              }}
-            />
-          </DetailSection>
+          {activeTab === 'history' && (
+            <DetailSection title="Quantity History">
+              {sortedHistory.length === 0 ? (
+                <p className="text-empty">
+                  No quantity adjustments recorded.
+                </p>
+              ) : (
+                <div className={pageStyles.historyTableWrap}>
+                  <table className={`data-table ${pageStyles.historyTable}`}>
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Quantity</th>
+                        <th>Note</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedHistory.map((tx) => (
+                        <tr key={tx._id}>
+                          <td>{formatDate(tx.date)}</td>
+                          <td>
+                            <span className={transactionTypeBadge(tx.type)}>
+                              {transactionTypeLabel(tx.type)}
+                            </span>
+                          </td>
+                          <td>
+                            {transactionQuantityDisplay(tx)}
+                          </td>
+                          <td>{tx.note || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </DetailSection>
+          )}
         </>
       )}
     </DetailPageShell>

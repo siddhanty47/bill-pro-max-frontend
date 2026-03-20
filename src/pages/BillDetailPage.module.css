@@ -21,3 +21,11 @@
   height: 20px;
   flex-shrink: 0;
 }
+
+.outstandingDanger {
+  color: var(--status-danger-text);
+}
+
+.outstandingSuccess {
+  color: var(--status-success-text);
+}

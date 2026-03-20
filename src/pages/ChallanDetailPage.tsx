@@ -5,6 +5,7 @@
  * vehicle details, and notes.
  */
 import { useState, useCallback, useMemo } from 'react';
+import { Tabs } from '../components/Tabs';
 import { useParams, Link } from 'react-router-dom';
 import pageStyles from './ChallanDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
@@ -81,10 +82,17 @@ export function ChallanDetailPage() {
   const [addItemSearch, setAddItemSearch] = useState('');
   const [addItemData, setAddItemData] = useState<{ itemId: string; itemName: string; quantity: number } | null>(null);
 
+  const [activeTab, setActiveTab] = useState('about');
+
   // Damaged items editing state
   const [editingDamage, setEditingDamage] = useState(false);
   const [localDamagedItems, setLocalDamagedItems] = useState<DamagedItem[]>([]);
   const [damageItemSearch, setDamageItemSearch] = useState<Record<number, string>>({});
+
+  const TABS = [
+    { id: 'about', label: 'About' },
+    { id: 'items', label: 'Items' },
+  ];
 
   const partyName = parties?.find((p) => p._id === challan?.partyId)?.name || challan?.partyId || '';
 
@@ -293,6 +301,10 @@ export function ChallanDetailPage() {
     >
       {challan && (
         <>
+          <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+
+          {activeTab === 'items' && (
+            <>
           {/* Items */}
           <DetailSection title={`Items (${challan.items.length})`}>
             {challan.items.length > 0 ? (
@@ -301,7 +313,7 @@ export function ChallanDetailPage() {
                   <tr>
                     <th>Item</th>
                     <th>Quantity</th>
-                    <th style={{ width: 80 }}></th>
+                    <th className={pageStyles.colActions}></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -592,7 +604,11 @@ export function ChallanDetailPage() {
               )}
             </DetailSection>
           )}
+            </>
+          )}
 
+          {activeTab === 'about' && (
+            <>
           {/* Transportation */}
           <DetailSection title="Transportation">
             <DetailField
@@ -674,6 +690,8 @@ export function ChallanDetailPage() {
             <DetailSection title="Signature">
               <p>{challan.signature}</p>
             </DetailSection>
+          )}
+            </>
           )}
         </>
       )}

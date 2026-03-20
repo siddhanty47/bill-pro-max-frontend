@@ -20,6 +20,7 @@ import {
   DetailField,
 } from '../components/DetailPageShell';
 import { EditableField } from '../components/EditableField';
+import { Tabs } from '../components/Tabs';
 
 /** Status options matching EditAgreementForm */
 const STATUS_OPTIONS = [
@@ -84,6 +85,13 @@ export function AgreementDetailPage() {
 
   /** Tracks which rate row is currently being saved */
   const [savingRateItemId, setSavingRateItemId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('about');
+
+  const TABS = [
+    { id: 'about', label: 'About' },
+    { id: 'site-items', label: 'Site Items' },
+    { id: 'challans', label: 'Challans' },
+  ];
 
   /**
    * Save handler for top-level agreement fields (status, dates).
@@ -298,6 +306,10 @@ export function AgreementDetailPage() {
     >
       {agreement && (
         <>
+          <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+
+          {activeTab === 'about' && (
+            <>
           {/* Period — editable dates */}
           <DetailSection title="Agreement Period">
             <DetailField
@@ -386,75 +398,81 @@ export function AgreementDetailPage() {
               <p className="text-empty">No items/rates configured.</p>
             )}
           </DetailSection>
+            </>
+          )}
 
           {/* Items currently deployed at the site under this agreement */}
-          <DetailSection title={`Items at Site (${itemsAtSite?.length || 0})`}>
-            {itemsAtSite && itemsAtSite.length > 0 ? (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Item</th>
-                    <th>Quantity at Site</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {itemsAtSite.map((item) => (
-                    <tr key={item.itemId}>
-                      <td>{item.itemName}</td>
-                      <td>{item.quantity}</td>
+          {activeTab === 'site-items' && (
+            <DetailSection title={`Items at Site (${itemsAtSite?.length || 0})`}>
+              {itemsAtSite && itemsAtSite.length > 0 ? (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Quantity at Site</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="text-empty">No items currently at site.</p>
-            )}
-          </DetailSection>
+                  </thead>
+                  <tbody>
+                    {itemsAtSite.map((item) => (
+                      <tr key={item.itemId}>
+                        <td>{item.itemName}</td>
+                        <td>{item.quantity}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-empty">No items currently at site.</p>
+              )}
+            </DetailSection>
+          )}
 
           {/* Challans linked to this agreement */}
-          <DetailSection title={`Challans (${challans?.length || 0})`}>
-            {challans && challans.length > 0 ? (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Challan #</th>
-                    <th>Type</th>
-                    <th>Date</th>
-                    <th>Items</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {challans.map((challan) => (
-                    <tr key={challan._id}>
-                      <td>
-                        <Link
-                          to={`/challans/${challan._id}`}
-                          className="link-accent"
-                        >
-                          {challan.challanNumber}
-                        </Link>
-                      </td>
-                      <td>
-                        <span className={`status status-${challan.type === 'delivery' ? 'active' : 'pending'}`}>
-                          {challan.type}
-                        </span>
-                      </td>
-                      <td>{formatDate(challan.date)}</td>
-                      <td>{challan.items.length}</td>
-                      <td>
-                        <span className={`status status-${challan.status}`}>
-                          {challan.status}
-                        </span>
-                      </td>
+          {activeTab === 'challans' && (
+            <DetailSection title={`Challans (${challans?.length || 0})`}>
+              {challans && challans.length > 0 ? (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Challan #</th>
+                      <th>Type</th>
+                      <th>Date</th>
+                      <th>Items</th>
+                      <th>Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="text-empty">No challans yet.</p>
-            )}
-          </DetailSection>
+                  </thead>
+                  <tbody>
+                    {challans.map((challan) => (
+                      <tr key={challan._id}>
+                        <td>
+                          <Link
+                            to={`/challans/${challan._id}`}
+                            className="link-accent"
+                          >
+                            {challan.challanNumber}
+                          </Link>
+                        </td>
+                        <td>
+                          <span className={`status status-${challan.type === 'delivery' ? 'active' : 'pending'}`}>
+                            {challan.type}
+                          </span>
+                        </td>
+                        <td>{formatDate(challan.date)}</td>
+                        <td>{challan.items.length}</td>
+                        <td>
+                          <span className={`status status-${challan.status}`}>
+                            {challan.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-empty">No challans yet.</p>
+              )}
+            </DetailSection>
+          )}
         </>
       )}
     </DetailPageShell>
