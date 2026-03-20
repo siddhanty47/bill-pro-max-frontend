@@ -12,6 +12,7 @@ import {
   useBulkGenerateBillsMutation,
   useUpdateBillStatusMutation,
   useDeleteBillMutation,
+  useSendBillEmailMutation,
   useLazyGetBillPdfQuery,
 } from '../api/billApi';
 import { useGetPartiesQuery } from '../api/partyApi';
@@ -60,6 +61,7 @@ export function BillsPage() {
   const [bulkGenerateBills, { isLoading: isBulkGenerating }] = useBulkGenerateBillsMutation();
   const [updateBillStatus] = useUpdateBillStatusMutation();
   const [deleteBill] = useDeleteBillMutation();
+  const [sendBillEmail] = useSendBillEmailMutation();
   const [downloadPdf, { isLoading: isDownloading }] = useLazyGetBillPdfQuery();
 
   const { batches, startBatch, dismissBatch } = useBillGenerationProgress();
@@ -107,6 +109,18 @@ export function BillsPage() {
         businessId: currentBusinessId!,
         billId: bill._id,
         status: newStatus,
+      }).unwrap();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    }
+  };
+
+  const handleSendEmail = async (bill: Bill) => {
+    if (!currentBusinessId) return;
+    try {
+      await sendBillEmail({
+        businessId: currentBusinessId,
+        billId: bill._id,
       }).unwrap();
     } catch (err) {
       alert(getErrorMessage(err));
@@ -252,7 +266,7 @@ export function BillsPage() {
             {bill.status === 'draft' && (
               <button
                 className="btn btn-sm btn-primary"
-                onClick={() => handleStatusChange(bill, 'sent')}
+                onClick={() => handleSendEmail(bill)}
               >
                 Send
               </button>

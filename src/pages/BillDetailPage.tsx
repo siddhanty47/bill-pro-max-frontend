@@ -13,6 +13,7 @@ import {
   useUpdateBillStatusMutation,
   useDeleteBillMutation,
   useGenerateBillMutation,
+  useSendBillEmailMutation,
   useLazyGetBillPdfQuery,
 } from '../api/billApi';
 import { useGetPartiesQuery } from '../api/partyApi';
@@ -77,6 +78,7 @@ export function BillDetailPage() {
   const [deleteBill] = useDeleteBillMutation();
   const [generateBill] = useGenerateBillMutation();
   const [downloadPdf, { isLoading: isDownloading }] = useLazyGetBillPdfQuery();
+  const [sendBillEmail, { isLoading: isSending }] = useSendBillEmailMutation();
   const [isRegenerating, setIsRegenerating] = useState(false);
 
   const partyName = parties?.find((p) => p._id === bill?.partyId)?.name || bill?.partyId || '';
@@ -129,6 +131,18 @@ export function BillDetailPage() {
       setIsRegenerating(false);
     }
   }, [bill, currentBusinessId, deleteBill, generateBill, navigate]);
+
+  const handleSendEmail = useCallback(async () => {
+    if (!bill || !currentBusinessId) return;
+    try {
+      await sendBillEmail({
+        businessId: currentBusinessId,
+        billId: bill._id,
+      }).unwrap();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    }
+  }, [bill, currentBusinessId, sendBillEmail]);
 
   const handleDownloadPdf = useCallback(async () => {
     if (!bill || !currentBusinessId) return;
@@ -212,18 +226,29 @@ export function BillDetailPage() {
       sidebar={sidebar}
       headerActions={
         bill && currentBusinessId ? (
-          <button
-            className="btn btn-primary"
-            onClick={handleDownloadPdf}
-            disabled={isDownloading}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="icon-inline">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            Download Invoice
-          </button>
+          <>
+            {bill.status !== 'cancelled' && bill.status !== 'paid' && (
+              <button
+                className="btn btn-secondary"
+                onClick={handleSendEmail}
+                disabled={isSending}
+              >
+                {isSending ? 'Sending...' : 'Send Email'}
+              </button>
+            )}
+            <button
+              className="btn btn-primary"
+              onClick={handleDownloadPdf}
+              disabled={isDownloading}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="icon-inline">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Download Invoice
+            </button>
+          </>
         ) : undefined
       }
     >

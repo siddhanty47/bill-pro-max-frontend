@@ -76,6 +76,14 @@ export const billApi = baseApi.injectEndpoints({
       invalidatesTags: ['Bill'],
     }),
 
+    sendBillEmail: builder.mutation<void, { businessId: string; billId: string }>({
+      query: ({ businessId, billId }) => ({
+        url: `/businesses/${businessId}/bills/${billId}/send`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, { billId }) => [{ type: 'Bill', id: billId }, 'Bill'],
+    }),
+
     /** Download bill invoice PDF */
     getBillPdf: builder.query<Blob, { businessId: string; billId: string }>({
       query: ({ businessId, billId }) => ({
@@ -96,5 +104,6 @@ export const {
   useBulkGenerateBillsMutation,
   useUpdateBillStatusMutation,
   useDeleteBillMutation,
+  useSendBillEmailMutation,
   useLazyGetBillPdfQuery,
 } = billApi;
