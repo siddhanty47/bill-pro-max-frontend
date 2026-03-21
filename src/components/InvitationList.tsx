@@ -3,7 +3,7 @@
  * Owner can cancel pending invitations.
  */
 import type { Invitation } from '../types';
-import { useCancelInvitationMutation } from '../api/invitationApi';
+import { useCancelInvitationMutation, useResendInvitationMutation } from '../api/invitationApi';
 
 interface InvitationListProps {
   invitations: Invitation[];
@@ -12,6 +12,7 @@ interface InvitationListProps {
 
 export function InvitationList({ invitations, businessId }: InvitationListProps) {
   const [cancelInvitation] = useCancelInvitationMutation();
+  const [resendInvitation] = useResendInvitationMutation();
 
   if (invitations.length === 0) {
     return <p className="text-secondary-sm">No invitations sent.</p>;
@@ -20,6 +21,12 @@ export function InvitationList({ invitations, businessId }: InvitationListProps)
   const handleCancel = async (invitationId: string) => {
     if (window.confirm('Cancel this invitation?')) {
       await cancelInvitation({ businessId, invitationId });
+    }
+  };
+
+  const handleResend = async (invitationId: string) => {
+    if (window.confirm('Resend this invitation?')) {
+      await resendInvitation({ businessId, invitationId });
     }
   };
 
@@ -47,11 +54,27 @@ export function InvitationList({ invitations, businessId }: InvitationListProps)
             <td>{new Date(inv.createdAt).toLocaleDateString()}</td>
             <td>
               {inv.status === 'pending' && (
+                <>
+                  <button
+                    className="btn btn-danger btn-sm btn-action-sm"
+                    onClick={() => handleCancel(inv._id)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btn btn-secondary btn-sm btn-action-sm"
+                    onClick={() => handleResend(inv._id)}
+                  >
+                    Resend
+                  </button>
+                </>
+              )}
+              {(inv.status === 'expired' || inv.status === 'cancelled') && (
                 <button
-                  className="btn btn-danger btn-sm btn-action-sm"
-                  onClick={() => handleCancel(inv._id)}
+                  className="btn btn-secondary btn-sm btn-action-sm"
+                  onClick={() => handleResend(inv._id)}
                 >
-                  Cancel
+                  Resend
                 </button>
               )}
             </td>

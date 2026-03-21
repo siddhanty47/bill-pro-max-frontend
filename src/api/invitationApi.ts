@@ -58,6 +58,20 @@ export const invitationApi = baseApi.injectEndpoints({
       ],
     }),
 
+    /** Resend an invitation */
+    resendInvitation: builder.mutation<
+      ApiResponse<Invitation>,
+      { businessId: string; invitationId: string }
+    >({
+      query: ({ businessId, invitationId }) => ({
+        url: `/businesses/${businessId}/invitations/${invitationId}/resend`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, { businessId }) => [
+        { type: 'Invitation' as const, id: businessId },
+      ],
+    }),
+
     /** Verify an invitation token (public) */
     verifyInvitation: builder.query<ApiResponse<Invitation>, string>({
       query: (token) => `/invitations/verify/${token}`,
@@ -87,6 +101,7 @@ export const {
   useCreateInvitationMutation,
   useUpdateInvitationRoleMutation,
   useCancelInvitationMutation,
+  useResendInvitationMutation,
   useVerifyInvitationQuery,
   useAcceptInvitationMutation,
   useDeclineInvitationMutation,
