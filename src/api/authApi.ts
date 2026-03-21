@@ -2,7 +2,7 @@
  * @file Auth API for Keycloak OIDC Authorization Code + PKCE flow
  *
  * Configure in .env:
- * - VITE_KEYCLOAK_URL: Full Keycloak base URL for production (e.g. https://auth.billpromax.in).
+ * - VITE_KEYCLOAK_URL: Full Keycloak base URL for production (e.g. https://auth.billpromax.com).
  *   Leave empty in development to use the Vite /auth proxy.
  * - VITE_KEYCLOAK_REALM: Keycloak realm name
  * - VITE_KEYCLOAK_CLIENT_ID: Client ID (public client for SPA)
@@ -12,7 +12,7 @@ import type { TokenResponse } from '../types';
 
 /**
  * Keycloak base URL.
- * - Production: full URL from VITE_KEYCLOAK_URL (e.g. https://auth.billpromax.in)
+ * - Production: full URL from VITE_KEYCLOAK_URL (e.g. https://auth.billpromax.com)
  * - Development: defaults to localhost:8080
  */
 const KEYCLOAK_BASE = import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080';

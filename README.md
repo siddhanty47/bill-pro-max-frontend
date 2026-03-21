@@ -41,8 +41,8 @@ The app will be available at **http://localhost:5174**.
 
 | Variable | Dev Default | Production Example | Description |
 |----------|-------------|-------------------|-------------|
-| `VITE_API_URL` | _(empty - uses Vite proxy)_ | `https://api.billpromax.in/api/v1` | Backend API base URL |
-| `VITE_KEYCLOAK_URL` | _(empty - uses Vite proxy)_ | `https://auth.billpromax.in` | Keycloak base URL |
+| `VITE_API_URL` | _(empty - uses Vite proxy)_ | `https://api.billpromax.com/api/v1` | Backend API base URL |
+| `VITE_KEYCLOAK_URL` | _(empty - uses Vite proxy)_ | `https://auth.billpromax.com` | Keycloak base URL |
 | `VITE_KEYCLOAK_REALM` | `billpromax` | `billpromax` | Keycloak realm name |
 | `VITE_KEYCLOAK_CLIENT_ID` | `billpromax-backend` | `billpromax-backend` | Keycloak client ID |
 | `VITE_KEYCLOAK_CLIENT_SECRET` | _(set in .env)_ | _(set in hosting env)_ | Keycloak client secret |
@@ -109,8 +109,8 @@ src/
 
 Vercel auto-detects Vite projects. Set these environment variables in the Vercel dashboard:
 
-- `VITE_API_URL` = `https://api.billpromax.in/api/v1`
-- `VITE_KEYCLOAK_URL` = `https://auth.billpromax.in`
+- `VITE_API_URL` = `https://api.billpromax.com/api/v1`
+- `VITE_KEYCLOAK_URL` = `https://auth.billpromax.com`
 - `VITE_KEYCLOAK_REALM` = `billpromax`
 - `VITE_KEYCLOAK_CLIENT_ID` = `billpromax-backend`
 
@@ -118,8 +118,8 @@ Vercel auto-detects Vite projects. Set these environment variables in the Vercel
 
 ```bash
 docker build \
-  --build-arg VITE_API_URL=https://api.billpromax.in/api/v1 \
-  --build-arg VITE_KEYCLOAK_URL=https://auth.billpromax.in \
+  --build-arg VITE_API_URL=https://api.billpromax.com/api/v1 \
+  --build-arg VITE_KEYCLOAK_URL=https://auth.billpromax.com \
   -t billpromax-frontend .
 
 docker run -p 8081:80 billpromax-frontend
