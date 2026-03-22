@@ -16,6 +16,7 @@
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border-default);
+  gap: 12px;
 }
 
 .header h1 {
@@ -24,25 +25,23 @@
   font-weight: 700;
   color: var(--accent);
   letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .headerBrand {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
-.businessNameWrapper {
+/* --- Business control (unified dropdown, right-aligned) --- */
+
+.businessControl {
   position: relative;
-  padding-left: 20px;
-  border-left: none;
   display: flex;
-  gap: 8px;
-}
-
-.businessNameWrapper::before {
-  content: ' > ';
-  color: var(--text-muted);
+  align-items: center;
+  min-width: 0;
 }
 
 .businessNameTrigger {
@@ -56,6 +55,8 @@
   padding: 4px 0;
   font-size: 14px;
   opacity: 0.9;
+  min-width: 0;
+  max-width: 200px;
 }
 
 .businessNameTrigger:hover {
@@ -64,10 +65,15 @@
 
 .businessName {
   font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .businessNameChevron {
   opacity: 0.7;
+  flex-shrink: 0;
   transition: transform var(--transition-default);
 }
 
@@ -78,8 +84,8 @@
 .businessMenu {
   position: absolute;
   top: 100%;
-  left: 0;
-  min-width: 160px;
+  right: 0;
+  min-width: 200px;
   margin-top: 8px;
   background: #111111;
   border: 1px solid var(--border-default);
@@ -90,12 +96,36 @@
   overflow: hidden;
 }
 
+.businessMenuSection {
+  /* Groups related items visually */
+}
+
+.businessMenuLabel {
+  padding: 8px 16px 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.businessMenuDivider {
+  height: 1px;
+  background: var(--border-default);
+  margin: 4px 0;
+}
+
 .businessMenuItem {
   display: block;
+  width: 100%;
   padding: 10px 16px;
   color: var(--text-primary);
   text-decoration: none;
   font-size: 14px;
+  font-family: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
   transition: background var(--transition-fast);
 }
 
@@ -104,16 +134,95 @@
   color: var(--text-heading);
 }
 
+/* --- Header actions --- */
+
 .headerActions {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 12px;
+  min-width: 0;
 }
 
-.userName {
-  font-size: 13px;
-  color: var(--text-secondary);
+/* --- Profile avatar + dropdown --- */
+
+.profileWrapper {
+  position: relative;
 }
+
+.profileTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border-default);
+  cursor: pointer;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+}
+
+.profileTrigger:hover {
+  border-color: var(--border-medium);
+}
+
+.profileAvatar {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1;
+  letter-spacing: 0.5px;
+}
+
+.profileMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 180px;
+  margin-top: 8px;
+  background: #111111;
+  border: 1px solid var(--border-default);
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.profileMenuEmail {
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profileMenuDivider {
+  height: 1px;
+  background: var(--border-default);
+}
+
+.profileMenuItem {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 14px;
+  font-family: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+
+.profileMenuItem:hover {
+  background: var(--bg-hover);
+  color: var(--text-heading);
+}
+
+/* --- Main container / sidebar / content --- */
 
 .mainContainer {
   display: flex;
@@ -172,21 +281,6 @@
   background: #0a0a0a;
 }
 
-.businessSelect {
-  padding: 6px 10px;
-  border-radius: 0;
-  border: 1px solid var(--border-medium);
-  background: var(--bg-input);
-  color: var(--text-primary);
-  font-size: 13px;
-  font-family: var(--font-body);
-}
-
-.businessSelect option {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-}
-
 .hamburger {
   display: none;
   background: none;
@@ -202,6 +296,8 @@
   display: none;
 }
 
+/* --- Mobile --- */
+
 @media (max-width: 768px) {
   .hamburger {
     display: block;
@@ -211,19 +307,16 @@
     padding: 0 12px;
   }
 
+  .headerBrand {
+    gap: 8px;
+  }
+
   .headerActions {
     gap: 8px;
   }
 
-  .userName {
-    display: none;
-  }
-
-  .businessName {
+  .businessNameTrigger {
     max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .sidebar {
