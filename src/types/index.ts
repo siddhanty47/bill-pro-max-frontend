@@ -423,6 +423,7 @@ export interface CreateChallanInput {
   partyId: string;
   agreementId: string;
   date: string;
+  challanSequence?: number;
   items: {
     itemId: string;
     itemName: string;

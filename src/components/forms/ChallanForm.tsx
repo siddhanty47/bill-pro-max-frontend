@@ -77,6 +77,7 @@ const challanSchema = z.object({
   partyId: z.string().min(1, 'Select a party'),
   agreementId: z.string().min(1, 'Select an agreement'),
   date: z.string().min(1, 'Date is required'),
+  challanSequence: z.number().int().min(1).max(9999).optional(),
   items: z
     .array(
       z.object({
@@ -233,6 +234,28 @@ export function ChallanForm({
     return undefined;
   }, [apiPredictedNumber, isPredictedError, isPredictedLoading, challans, challanType, challanDate]);
 
+  /** Parse predicted number into prefix and default sequence */
+  const challanPrefix = useMemo(() => {
+    if (!predictedNumber) return '';
+    const parts = predictedNumber.split('-');
+    // Remove the last segment (sequence) to get the prefix
+    return parts.slice(0, -1).join('-') + '-';
+  }, [predictedNumber]);
+
+  const defaultSequence = useMemo(() => {
+    if (!predictedNumber) return undefined;
+    const parts = predictedNumber.split('-');
+    const seq = parseInt(parts[parts.length - 1], 10);
+    return isNaN(seq) ? undefined : seq;
+  }, [predictedNumber]);
+
+  /** Set the default challan sequence when predicted number loads */
+  useEffect(() => {
+    if (defaultSequence != null) {
+      setValue('challanSequence', defaultSequence);
+    }
+  }, [defaultSequence, setValue]);
+
   /**
    * Fetch items currently with the selected party for the chosen agreement.
    * Falls back to client-side computation from the loaded challans list
@@ -346,6 +369,7 @@ export function ChallanForm({
       partyId: data.partyId,
       agreementId: data.agreementId,
       date: data.date,
+      challanSequence: data.challanSequence,
       items: data.items.map((item) => ({
         itemId: item.itemId,
         itemName: item.itemName,
@@ -367,12 +391,23 @@ export function ChallanForm({
   return (
     <form onSubmit={onFormSubmit}>
       <div className="form-content">
-      {/* Predicted challan number badge */}
+      {/* Challan number: prefix (read-only) + editable sequence */}
       <div className={styles.challanNumberBadge}>
         <span className={styles.challanNumberLabel}>Challan #</span>
         <span className={`${styles.challanNumberValue} ${styles[challanType]}`}>
-          {isPredictedLoading ? '...' : predictedNumber ?? '—'}
+          {isPredictedLoading ? '...' : challanPrefix}
         </span>
+        <input
+          type="number"
+          min={1}
+          max={9999}
+          className={styles.challanSequenceInput}
+          {...register('challanSequence', { valueAsNumber: true })}
+          disabled={isLoading || isPredictedLoading}
+        />
+        {errors.challanSequence && (
+          <span className="error-message">{errors.challanSequence.message}</span>
+        )}
       </div>
 
       <div className="form-row">

@@ -16,6 +16,7 @@ import {
   useAddChallanItemMutation,
   useDeleteChallanItemMutation,
   useUpdateChallanDamagedItemsMutation,
+  useUpdateChallanDateMutation,
   useLazyGetChallanPdfQuery,
 } from '../api/challanApi';
 import { useGetPartiesQuery } from '../api/partyApi';
@@ -72,6 +73,7 @@ export function ChallanDetailPage() {
   const [addItem, { isLoading: isAddingItem }] = useAddChallanItemMutation();
   const [deleteItem] = useDeleteChallanItemMutation();
   const [updateDamagedItems, { isLoading: isSavingDamage }] = useUpdateChallanDamagedItemsMutation();
+  const [updateChallanDate, { isLoading: isSavingDate }] = useUpdateChallanDateMutation();
   const [downloadPdf, { isLoading: isDownloading }] = useLazyGetChallanPdfQuery();
 
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -187,6 +189,18 @@ export function ChallanDetailPage() {
     setEditingDamage(true);
   }, [challan?.damagedItems]);
 
+  const handleDateSave = useCallback(
+    async (_field: string, newValue: string | number) => {
+      if (!currentBusinessId || !challanId) return;
+      await updateChallanDate({
+        businessId: currentBusinessId,
+        challanId,
+        date: String(newValue),
+      }).unwrap();
+    },
+    [currentBusinessId, challanId, updateChallanDate]
+  );
+
   const handleDownloadPdf = useCallback(async () => {
     if (!challan || !currentBusinessId) return;
     try {
@@ -263,7 +277,16 @@ export function ChallanDetailPage() {
           </Link>
         }
       />
-      <DetailField label="Date" value={formatDate(challan.date)} />
+      <DetailField
+        label="Date"
+        value={formatDate(challan.date)}
+        editable={{
+          rawValue: challan.date ? new Date(challan.date).toISOString().split('T')[0] : '',
+          inputType: 'date',
+          onSave: (v) => handleDateSave('date', v),
+          isSaving: isSavingDate,
+        }}
+      />
       <DetailField label="Confirmed By" value={challan.confirmedBy} />
       <DetailField label="Confirmed At" value={formatDateTime(challan.confirmedAt)} />
       <DetailField label="Created" value={formatDateTime(challan.createdAt)} />

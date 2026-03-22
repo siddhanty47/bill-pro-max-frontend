@@ -144,6 +144,23 @@ export const challanApi = baseApi.injectEndpoints({
       ],
     }),
 
+    updateChallanDate: builder.mutation<
+      Challan,
+      { businessId: string; challanId: string; date: string }
+    >({
+      query: ({ businessId, challanId, date }) => ({
+        url: `/businesses/${businessId}/challans/${challanId}/date`,
+        method: 'PATCH',
+        body: { date },
+      }),
+      transformResponse: (response: ApiResponse<Challan>) => response.data,
+      invalidatesTags: (_result, _error, { challanId }) => [
+        { type: 'Challan', id: challanId },
+        'Challan',
+        'Bill',
+      ],
+    }),
+
     getChallansByAgreement: builder.query<Challan[], { businessId: string; agreementId: string }>({
       query: ({ businessId, agreementId }) =>
         `/businesses/${businessId}/challans?agreementId=${encodeURIComponent(agreementId)}&pageSize=100`,
@@ -171,6 +188,7 @@ export const {
   useAddChallanItemMutation,
   useDeleteChallanItemMutation,
   useUpdateChallanDamagedItemsMutation,
+  useUpdateChallanDateMutation,
   useGetNextChallanNumberQuery,
   useGetItemsWithPartyQuery,
   useGetChallansByAgreementQuery,

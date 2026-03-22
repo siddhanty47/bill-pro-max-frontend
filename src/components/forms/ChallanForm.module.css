@@ -37,6 +37,27 @@
   background: var(--return-bg);
 }
 
+/* ---- Challan sequence input ---- */
+
+.challanSequenceInput {
+  width: 80px;
+  padding: 4px 8px;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  border: 1px solid var(--border-medium);
+  border-radius: 0;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.challanSequenceInput:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: none;
+}
+
 /* ---- Layout helpers ---- */
 
 .flexGroup {
