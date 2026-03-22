@@ -1,0 +1,64 @@
+/* ---- Document number badge (shared by Challan & Bill forms) ---- */
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 0;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.value {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  padding: 2px 10px;
+  border-radius: 0;
+}
+
+.value.delivery {
+  color: var(--delivery-accent);
+  background: var(--delivery-bg);
+}
+
+.value.return {
+  color: var(--return-accent);
+  background: var(--return-bg);
+}
+
+.value.bill {
+  color: var(--accent);
+  background: var(--accent-bg, rgba(var(--accent-rgb, 99, 102, 241), 0.1));
+}
+
+/* ---- Sequence input ---- */
+
+.sequenceInput {
+  width: 80px;
+  padding: 4px 8px;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  border: 1px solid var(--border-medium);
+  border-radius: 0;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.sequenceInput:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: none;
+}

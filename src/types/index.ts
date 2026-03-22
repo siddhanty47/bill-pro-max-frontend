@@ -533,6 +533,7 @@ export interface GenerateBillInput {
     start: string;
     end: string;
   };
+  billSequence?: number;
   taxMode?: 'intra' | 'inter';
   taxRate?: number;
   sgstRate?: number;

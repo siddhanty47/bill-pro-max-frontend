@@ -11,6 +11,7 @@ import { computeRentedFromHistory, computeAvailable } from '../../utils/inventor
 import { useGetNextChallanNumberQuery, useGetItemsWithPartyQuery } from '../../api/challanApi';
 import { useGetEmployeesQuery } from '../../api/employeeApi';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
+import { DocumentNumberBadge } from '../DocumentNumberBadge';
 import styles from './ChallanForm.module.css';
 
 /**
@@ -392,23 +393,15 @@ export function ChallanForm({
     <form onSubmit={onFormSubmit}>
       <div className="form-content">
       {/* Challan number: prefix (read-only) + editable sequence */}
-      <div className={styles.challanNumberBadge}>
-        <span className={styles.challanNumberLabel}>Challan #</span>
-        <span className={`${styles.challanNumberValue} ${styles[challanType]}`}>
-          {isPredictedLoading ? '...' : challanPrefix}
-        </span>
-        <input
-          type="number"
-          min={1}
-          max={9999}
-          className={styles.challanSequenceInput}
-          {...register('challanSequence', { valueAsNumber: true })}
-          disabled={isLoading || isPredictedLoading}
-        />
-        {errors.challanSequence && (
-          <span className="error-message">{errors.challanSequence.message}</span>
-        )}
-      </div>
+      <DocumentNumberBadge
+        label="Challan #"
+        prefix={challanPrefix}
+        isLoading={isPredictedLoading}
+        disabled={isLoading || isPredictedLoading}
+        variant={challanType}
+        register={register('challanSequence', { valueAsNumber: true })}
+        error={errors.challanSequence?.message}
+      />
 
       <div className="form-row">
         <div className="form-group">

@@ -4,10 +4,12 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
+import { DocumentNumberBadge } from '../DocumentNumberBadge';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Party, GenerateBillInput } from '../../types';
 import { useCurrentBusiness } from '../../hooks/useCurrentBusiness';
+import { useGetNextBillNumberQuery } from '../../api/billApi';
 
 const billSchema = z.object({
   billDate: z.string().min(1, 'Bill date is required'),
@@ -15,6 +17,7 @@ const billSchema = z.object({
   agreementId: z.string().min(1, 'Select an agreement'),
   periodStart: z.string().min(1, 'Start date is required'),
   periodEnd: z.string().min(1, 'End date is required'),
+  billSequence: z.number().int().min(1).max(9999).optional(),
   taxMode: z.enum(['intra', 'inter']),
   taxRate: z.number().min(0).max(100).optional(),
   sgstRate: z.number().min(0).max(100).optional(),
@@ -61,10 +64,47 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
 
   const selectedPartyId = watch('partyId');
   const agreementId = watch('agreementId');
+  const periodStart = watch('periodStart');
   const taxMode = watch('taxMode');
   const selectedParty = parties.find((p) => p._id === selectedPartyId);
   const activeAgreements = selectedParty?.agreements?.filter((a) => a.status === 'active') || [];
   const selectedAgreement = activeAgreements.find((a) => a.agreementId === agreementId);
+
+  // Fetch predicted next bill number
+  const canFetchBillNumber = !!(currentBusiness?._id && selectedPartyId && agreementId && periodStart);
+  const {
+    data: predictedBillNumber,
+    isFetching: isBillNumberLoading,
+  } = useGetNextBillNumberQuery(
+    {
+      businessId: currentBusiness?._id ?? '',
+      partyId: selectedPartyId,
+      agreementId,
+      periodStart,
+    },
+    { skip: !canFetchBillNumber }
+  );
+
+  // Parse predicted number into prefix + default sequence
+  const billPrefix = useMemo(() => {
+    if (!predictedBillNumber) return '';
+    const parts = predictedBillNumber.split('-');
+    return parts.slice(0, -1).join('-') + '-';
+  }, [predictedBillNumber]);
+
+  const defaultBillSequence = useMemo(() => {
+    if (!predictedBillNumber) return undefined;
+    const parts = predictedBillNumber.split('-');
+    const seq = parseInt(parts[parts.length - 1], 10);
+    return isNaN(seq) ? undefined : seq;
+  }, [predictedBillNumber]);
+
+  // Set default bill sequence when predicted number loads
+  useEffect(() => {
+    if (defaultBillSequence != null) {
+      setValue('billSequence', defaultBillSequence);
+    }
+  }, [defaultBillSequence, setValue]);
 
   // Auto-select tax mode based on business and site state codes
   useEffect(() => {
@@ -109,6 +149,7 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
         start: data.periodStart,
         end: data.periodEnd,
       },
+      billSequence: data.billSequence,
       taxMode: data.taxMode,
       taxRate,
       sgstRate: data.taxMode === 'intra' ? sgstRate : undefined,
@@ -164,6 +205,17 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
   return (
     <form onSubmit={onFormSubmit}>
       <div className="form-content">
+      {canFetchBillNumber && (
+        <DocumentNumberBadge
+          label="Bill #"
+          prefix={billPrefix}
+          isLoading={isBillNumberLoading}
+          disabled={isLoading || isBillNumberLoading}
+          variant="bill"
+          register={register('billSequence', { valueAsNumber: true })}
+          error={errors.billSequence?.message}
+        />
+      )}
       <div className="form-columns">
         <div>
       <div className="form-group">
