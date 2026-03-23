@@ -18,20 +18,10 @@ export interface User {
 export interface AuthState {
   user: User | null;
   token: string | null;
-  refreshToken: string | null;
-  idToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
   currentBusinessId: string | null;
-}
-
-export interface TokenResponse {
-  access_token: string;
-  refresh_token: string;
-  id_token?: string;
-  expires_in: number;
-  token_type: string;
 }
 
 // ============ Business Member ============
@@ -190,7 +180,7 @@ export interface Party {
   /** Site addresses for the party */
   sites: Site[];
   agreements: Agreement[];
-  keycloakUserId?: string;
+  authProviderId?: string;
   isActive: boolean;
   notes?: string;
   createdAt: string;

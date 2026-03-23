@@ -10,10 +10,8 @@ COPY . .
 
 # Accept build-time environment variables for Vite
 ARG VITE_API_URL
-ARG VITE_KEYCLOAK_URL
-ARG VITE_KEYCLOAK_REALM=billpromax
-ARG VITE_KEYCLOAK_CLIENT_ID=billpromax-backend
-ARG VITE_KEYCLOAK_CLIENT_SECRET
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
 
 RUN npm run build
 

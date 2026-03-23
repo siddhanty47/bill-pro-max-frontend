@@ -1,47 +1,11 @@
 /**
- * Auth slice for managing authentication state
+ * Auth slice for managing authentication state.
+ * With Supabase, the client manages tokens internally.
+ * We store the access_token for API calls and user data from /auth/sync.
  */
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { User, AuthState } from '../types';
-
-/**
- * Parse JWT token to extract user info
- */
-function parseJwt(token: string): Record<string, unknown> | null {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Extract user from Keycloak token payload
- */
-function extractUserFromToken(token: string): User | null {
-  const payload = parseJwt(token);
-  if (!payload) return null;
-
-  return {
-    id: (payload.sub as string) || '',
-    username: (payload.preferred_username as string) || '',
-    email: (payload.email as string) || '',
-    name: (payload.name as string) || '',
-    firstName: (payload.given_name as string) || '',
-    lastName: (payload.family_name as string) || '',
-    roles: ((payload.realm_access as { roles?: string[] })?.roles || []),
-    businessIds: (payload.businessIds as string[]) || [],
-  };
-}
 
 /**
  * Load auth state from localStorage
@@ -49,19 +13,19 @@ function extractUserFromToken(token: string): User | null {
 function loadAuthState(): Partial<AuthState> {
   try {
     const token = localStorage.getItem('token');
-    const refreshToken = localStorage.getItem('refreshToken');
-    const idToken = localStorage.getItem('idToken');
     const currentBusinessId = localStorage.getItem('currentBusinessId');
-    if (token) {
-      const user = extractUserFromToken(token);
+    const userJson = localStorage.getItem('user');
+    if (token && userJson) {
+      const user = JSON.parse(userJson) as User;
       return {
         token,
-        refreshToken,
-        idToken,
         user,
-        isAuthenticated: !!user,
+        isAuthenticated: true,
         currentBusinessId,
       };
+    }
+    if (token) {
+      return { token, currentBusinessId };
     }
     return { currentBusinessId };
   } catch {
@@ -73,10 +37,8 @@ function loadAuthState(): Partial<AuthState> {
 const initialState: AuthState = {
   user: null,
   token: null,
-  refreshToken: null,
-  idToken: null,
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: true,
   error: null,
   currentBusinessId: null,
   ...loadAuthState(),
@@ -88,58 +50,46 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (
       state,
-      action: PayloadAction<{ token: string; refreshToken: string; idToken?: string }>
+      action: PayloadAction<{ token: string }>
     ) => {
-      const { token, refreshToken, idToken } = action.payload;
-      state.token = token;
-      state.refreshToken = refreshToken;
-      if (idToken) {
-        state.idToken = idToken;
-        localStorage.setItem('idToken', idToken);
-      }
-      state.user = extractUserFromToken(token);
+      state.token = action.payload.token;
       state.isAuthenticated = true;
       state.error = null;
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('refreshToken', refreshToken);
+      localStorage.setItem('token', action.payload.token);
     },
-    
+
+    setUser: (state, action: PayloadAction<User>) => {
+      state.user = action.payload;
+      localStorage.setItem('user', JSON.stringify(action.payload));
+    },
+
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
     },
-    
+
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
       state.isLoading = false;
     },
-    
+
     logout: (state) => {
       state.user = null;
       state.token = null;
-      state.refreshToken = null;
-      state.idToken = null;
       state.isAuthenticated = false;
       state.error = null;
       state.currentBusinessId = null;
-      
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('idToken');
-      localStorage.removeItem('currentBusinessId');
 
-      sessionStorage.removeItem('pkce_code_verifier');
-      sessionStorage.removeItem('oauth_state');
-      sessionStorage.removeItem('invitation_token');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('currentBusinessId');
     },
 
     setCurrentBusiness: (state, action: PayloadAction<string>) => {
       state.currentBusinessId = action.payload;
-      // Also persist to localStorage
       localStorage.setItem('currentBusinessId', action.payload);
     },
   },
 });
 
-export const { setCredentials, setLoading, setError, logout, setCurrentBusiness } = authSlice.actions;
+export const { setCredentials, setUser, setLoading, setError, logout, setCurrentBusiness } = authSlice.actions;
 export default authSlice.reducer;

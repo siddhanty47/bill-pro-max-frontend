@@ -2,17 +2,14 @@
  * @file Invitation accept/decline page.
  * Public route (with optional auth). Shows invitation details and
  * lets authenticated users accept or decline. Unauthenticated users
- * are prompted to sign up first.
+ * are prompted to sign in or create an account.
  */
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import type { RootState } from '../store';
-import { setCredentials } from '../store/authSlice';
+import { useDispatch } from 'react-redux';
 import { useAuth } from '../hooks/useAuth';
 import { useVerifyInvitationQuery, useAcceptInvitationMutation, useDeclineInvitationMutation } from '../api/invitationApi';
 import { baseApi } from '../api/baseApi';
-import { refreshToken as refreshTokenApi } from '../api/authApi';
 import styles from './LoginPage.module.css';
 import invStyles from './InvitationAcceptPage.module.css';
 
@@ -20,8 +17,7 @@ export function InvitationAcceptPage() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const currentRefreshToken = useSelector((state: RootState) => state.auth.refreshToken);
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [actionDone, setActionDone] = useState(false);
 
   const { data: verifyResponse, isLoading, error: verifyError } = useVerifyInvitationQuery(
@@ -46,19 +42,6 @@ export function InvitationAcceptPage() {
     try {
       await acceptInvitation(token).unwrap();
 
-      // Refresh the JWT so the new businessId is included in the token
-      if (currentRefreshToken) {
-        try {
-          const newTokens = await refreshTokenApi(currentRefreshToken);
-          dispatch(setCredentials({
-            token: newTokens.access_token,
-            refreshToken: newTokens.refresh_token,
-          }));
-        } catch {
-          // Token refresh failed -- user can log out and back in
-        }
-      }
-
       // Invalidate business cache so the new business appears
       dispatch(baseApi.util.invalidateTags(['Business']));
 
@@ -76,6 +59,14 @@ export function InvitationAcceptPage() {
     } catch {
       // Error handled by RTK Query
     }
+  };
+
+  const handleSignIn = () => {
+    navigate(`/login?invitation=${token}`);
+  };
+
+  const handleCreateAccount = () => {
+    navigate(`/register?invitation=${token}`);
   };
 
   if (isLoading) {
@@ -148,13 +139,13 @@ export function InvitationAcceptPage() {
           <>
             <button
               className="btn btn-primary"
-              onClick={() => login({ invitationToken: token })}
+              onClick={handleSignIn}
             >
               Sign In to Accept
             </button>
             <button
               className={`btn btn-secondary ${invStyles.marginTop12}`}
-              onClick={() => login({ registrationHint: true, invitationToken: token })}
+              onClick={handleCreateAccount}
             >
               Create Account to Accept
             </button>

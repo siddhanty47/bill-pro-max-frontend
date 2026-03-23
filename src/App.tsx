@@ -1,11 +1,16 @@
 /**
  * @file Main App component with routing
  */
+import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { supabase } from './lib/supabase';
+import { setCredentials, setUser, setLoading, logout } from './store/authSlice';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
-import { AuthCallbackPage } from './pages/AuthCallbackPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { PartiesPage } from './pages/PartiesPage';
@@ -24,12 +29,79 @@ import { BusinessDetailPage } from './pages/BusinessDetailPage';
 import { InvitationAcceptPage } from './pages/InvitationAcceptPage';
 import { SharedPortalPage } from './pages/SharedPortalPage';
 
+const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
+
 function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    // Hydrate session on app load
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        dispatch(setCredentials({ token: session.access_token }));
+        // Sync with backend
+        fetch(`${API_BASE}/auth/sync`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((json) => {
+            if (json.data?.user) {
+              dispatch(setUser(json.data.user));
+            }
+          })
+          .catch(() => {});
+      }
+      dispatch(setLoading(false));
+    });
+
+    // Listen for auth state changes (token refresh, sign in after Google OAuth, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        dispatch(setCredentials({ token: session.access_token }));
+        // Sync user
+        fetch(`${API_BASE}/auth/sync`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((json) => {
+            if (json.data?.user) {
+              dispatch(setUser(json.data.user));
+            }
+          })
+          .catch(() => {});
+
+        // Check for invitation token (stored before Google OAuth redirect)
+        const invitationToken = localStorage.getItem('invitation_token');
+        if (invitationToken) {
+          localStorage.removeItem('invitation_token');
+          window.location.href = `/invitations/${invitationToken}`;
+        }
+      } else if (event === 'TOKEN_REFRESHED' && session) {
+        dispatch(setCredentials({ token: session.access_token }));
+      } else if (event === 'SIGNED_OUT') {
+        dispatch(logout());
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [dispatch]);
+
   return (
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/auth/callback" element={<AuthCallbackPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/invitations/:token" element={<InvitationAcceptPage />} />
       <Route path="/share/:token" element={<SharedPortalPage />} />
 
