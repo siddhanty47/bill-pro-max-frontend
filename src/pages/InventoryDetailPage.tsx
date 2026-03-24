@@ -150,7 +150,7 @@ export function InventoryDetailPage() {
   const { data: openingBalances } = useGetOpeningBalancesQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
   });
-  const itemOpeningBalance = (itemId && openingBalances?.[itemId]) ?? 0;
+  const itemOpeningBalance: number = (itemId && openingBalances?.[itemId]) ? Number(openingBalances[itemId]) : 0;
 
   const { data: existingCategories } = useGetInventoryCategoriesQuery(
     currentBusinessId || '',

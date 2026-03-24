@@ -28,7 +28,7 @@ const agreementSchema = z.object({
       z.object({
         itemId: z.string().min(1, 'Select an item'),
         ratePerDay: z.number().min(0, 'Rate must be positive'),
-        openingBalance: z.number().min(0, 'Opening balance must be non-negative').optional().default(0),
+        openingBalance: z.number().min(0, 'Opening balance must be non-negative'),
       })
     )
     .min(1, 'Add at least one item rate'),
