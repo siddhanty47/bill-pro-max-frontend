@@ -491,10 +491,16 @@ export function ChallanDetailPage() {
                       <select
                         value={d.lossType ?? 'damage'}
                         onChange={(e) => {
+                          const lossType = e.target.value as 'damage' | 'short' | 'need_repair';
+                          const inv = inventoryItems?.find((i) => i._id === d.itemId);
+                          const rate = inv
+                            ? (lossType === 'short' ? (inv.costPrice ?? 0) : (inv.damageRate ?? 0))
+                            : d.damageRate;
                           const updated = [...localDamagedItems];
                           updated[idx] = {
                             ...updated[idx],
-                            lossType: e.target.value as 'damage' | 'short' | 'need_repair',
+                            lossType,
+                            damageRate: rate,
                           };
                           setLocalDamagedItems(updated);
                         }}

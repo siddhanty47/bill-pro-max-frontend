@@ -110,6 +110,11 @@ export function AgreementForm({
       startDate: new Date().toISOString().split('T')[0],
       billingCycle: 'monthly',
       paymentDueDays: 15,
+      securityDeposit: 0,
+      deliveryCartage: 0,
+      returnCartage: 0,
+      loadingCharge: 0,
+      unloadingCharge: 0,
       rates: [],
     },
   });

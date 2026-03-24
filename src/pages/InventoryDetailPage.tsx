@@ -302,6 +302,19 @@ export function InventoryDetailPage() {
         }}
       />
 
+      {/* Cost Price — used when item is lost (short) */}
+      <DetailField
+        label="Cost Price (₹)"
+        value={item.costPrice != null && item.costPrice > 0 ? `₹${item.costPrice}` : undefined}
+        editable={{
+          rawValue: item.costPrice ?? 0,
+          inputType: 'number',
+          prefix: '₹',
+          onSave: (v) => handleSave('costPrice', v),
+          isSaving,
+        }}
+      />
+
       <DetailField
         label="Status"
         value={

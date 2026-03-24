@@ -20,6 +20,7 @@ const inventorySchema = z.object({
   description: z.string().max(500).optional(),
   defaultRatePerDay: z.number().min(0).optional(),
   damageRate: z.number().min(0).optional(),
+  costPrice: z.number().min(0).optional(),
 });
 
 type FormData = z.infer<typeof inventorySchema>;
@@ -70,6 +71,7 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
           description: initialData.description || '',
           defaultRatePerDay: initialData.defaultRatePerDay,
           damageRate: initialData.damageRate,
+          costPrice: initialData.costPrice,
         }
       : {
           code: '',
@@ -125,6 +127,7 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
       description: data.description,
       defaultRatePerDay: data.defaultRatePerDay,
       damageRate: data.damageRate,
+      costPrice: data.costPrice,
     });
   };
 
@@ -222,6 +225,17 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
             type="number"
             step="0.01"
             {...register('damageRate', { valueAsNumber: true })}
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="costPrice">Cost Price (₹)</label>
+          <input
+            id="costPrice"
+            type="number"
+            step="0.01"
+            {...register('costPrice', { valueAsNumber: true })}
             disabled={isLoading}
           />
         </div>

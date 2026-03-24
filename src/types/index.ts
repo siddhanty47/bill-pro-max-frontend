@@ -338,6 +338,7 @@ export interface Inventory {
   description?: string;
   defaultRatePerDay?: number;
   damageRate?: number;
+  costPrice?: number;
   purchaseInfo?: PurchaseInfo;
   quantityHistory?: QuantityTransaction[];
   isActive: boolean;
@@ -354,6 +355,7 @@ export interface CreateInventoryInput {
   description?: string;
   defaultRatePerDay?: number;
   damageRate?: number;
+  costPrice?: number;
   purchaseInfo?: {
     supplierPartyId?: string;
     supplierName?: string;
@@ -786,6 +788,7 @@ export interface PresetItem {
   description?: string;
   defaultRatePerDay?: number;
   damageRate?: number;
+  costPrice?: number;
 }
 
 export interface InventoryPreset {
@@ -833,6 +836,7 @@ export interface CreatePresetInput {
     description?: string;
     defaultRatePerDay?: number;
     damageRate?: number;
+    costPrice?: number;
   }>;
 }
 

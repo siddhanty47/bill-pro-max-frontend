@@ -577,7 +577,17 @@ export function ChallanForm({
                     </td>
                     <td className={styles.colType}>
                       <select
-                        {...register(`damagedItems.${index}.lossType`)}
+                        {...register(`damagedItems.${index}.lossType`, {
+                          onChange: (e) => {
+                            const lossType = e.target.value as 'damage' | 'short' | 'need_repair';
+                            const itemId = watch(`damagedItems.${index}.itemId`);
+                            const inv = inventoryItems.find((i) => i._id === itemId);
+                            if (inv) {
+                              const rate = lossType === 'short' ? (inv.costPrice ?? 0) : (inv.damageRate ?? 0);
+                              setValue(`damagedItems.${index}.damageRate`, rate);
+                            }
+                          },
+                        })}
                         disabled={isLoading}
                         title="Damage = received damaged; Short = missing/less; Need Repair = can be fixed"
                       >
