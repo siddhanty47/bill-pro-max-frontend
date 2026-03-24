@@ -143,6 +143,25 @@ export function AgreementDetailPage() {
     [currentBusinessId, agreementId, updateRate],
   );
 
+  const [savingOpeningBalItemId, setSavingOpeningBalItemId] = useState<string | null>(null);
+
+  const handleOpeningBalanceSave = useCallback(
+    async (itemId: string, newBalance: number) => {
+      setSavingOpeningBalItemId(itemId);
+      try {
+        await updateRate({
+          businessId: currentBusinessId!,
+          agreementId: agreementId!,
+          itemId,
+          data: { openingBalance: newBalance },
+        }).unwrap();
+      } finally {
+        setSavingOpeningBalItemId(null);
+      }
+    },
+    [currentBusinessId, agreementId, updateRate],
+  );
+
   const sidebar = agreement ? (
     <DetailSection title="Details">
       <DetailField label="Agreement ID" value={agreement.agreementId} />
@@ -343,7 +362,8 @@ export function AgreementDetailPage() {
                     <th>Item Code</th>
                     <th>Item Name</th>
                     <th>Category</th>
-                    <th>Rate/Day</th>
+                    <th className="col-editable-num">Rate/Day</th>
+                    <th className="col-editable-num">Opening Bal.</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -361,6 +381,18 @@ export function AgreementDetailPage() {
                           prefix="₹"
                           onSave={async (v) => handleRateSave(rate.itemId, Number(v))}
                           isSaving={savingRateItemId === rate.itemId}
+                          compact
+                        />
+                      </td>
+                      <td className="cell-compact">
+                        <EditableField
+                          label=""
+                          value={rate.openingBalance}
+                          displayValue={`${rate.openingBalance}`}
+                          inputType="number"
+                          onSave={async (v) => handleOpeningBalanceSave(rate.itemId, Number(v))}
+                          isSaving={savingOpeningBalItemId === rate.itemId}
+                          compact
                         />
                       </td>
                     </tr>
@@ -372,7 +404,8 @@ export function AgreementDetailPage() {
                 <thead>
                   <tr>
                     <th>Item ID</th>
-                    <th>Rate/Day</th>
+                    <th className="col-editable-num">Rate/Day</th>
+                    <th className="col-editable-num">Opening Bal.</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -388,6 +421,18 @@ export function AgreementDetailPage() {
                           prefix="₹"
                           onSave={async (v) => handleRateSave(rate.itemId, Number(v))}
                           isSaving={savingRateItemId === rate.itemId}
+                          compact
+                        />
+                      </td>
+                      <td className="cell-compact">
+                        <EditableField
+                          label=""
+                          value={rate.openingBalance ?? 0}
+                          displayValue={`${rate.openingBalance ?? 0}`}
+                          inputType="number"
+                          onSave={async (v) => handleOpeningBalanceSave(rate.itemId, Number(v))}
+                          isSaving={savingOpeningBalItemId === rate.itemId}
+                          compact
                         />
                       </td>
                     </tr>

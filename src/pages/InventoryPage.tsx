@@ -10,6 +10,7 @@ import {
   useGetInventoryQuery,
   useCreateInventoryMutation,
   useDeleteInventoryMutation,
+  useGetOpeningBalancesQuery,
 } from '../api/inventoryApi';
 import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
@@ -41,6 +42,10 @@ export function InventoryPage() {
     error,
     refetch,
   } = useGetInventoryQuery(currentBusinessId || '', {
+    skip: !currentBusinessId,
+  });
+
+  const { data: openingBalances } = useGetOpeningBalancesQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
   });
 
@@ -116,7 +121,8 @@ export function InventoryPage() {
       header: 'Rented',
       render: (row: TableItem) => {
         const item = row as unknown as Inventory;
-        return `${computeRentedFromHistory(item.quantityHistory)} ${item.unit}`;
+        const rented = computeRentedFromHistory(item.quantityHistory) + (openingBalances?.[item._id] ?? 0);
+        return `${rented} ${item.unit}`;
       },
     },
     {
@@ -132,7 +138,7 @@ export function InventoryPage() {
       header: 'Actions',
       render: (row: TableItem) => {
         const item = row as unknown as Inventory;
-        const canDelete = computeRentedFromHistory(item.quantityHistory) === 0;
+        const canDelete = (computeRentedFromHistory(item.quantityHistory) + (openingBalances?.[item._id] ?? 0)) === 0;
         return (
           <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
             <button

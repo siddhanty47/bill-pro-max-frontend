@@ -146,6 +146,7 @@ export interface Site {
 export interface AgreementRate {
   itemId: string;
   ratePerDay: number;
+  openingBalance?: number;
 }
 
 export interface AgreementTerms {
@@ -255,15 +256,18 @@ export interface AgreementRateWithItem {
   itemName: string;
   itemCategory: string;
   ratePerDay: number;
+  openingBalance: number;
 }
 
 export interface AddAgreementRateInput {
   itemId: string;
   ratePerDay: number;
+  openingBalance?: number;
 }
 
 export interface UpdateAgreementRateInput {
-  ratePerDay: number;
+  ratePerDay?: number;
+  openingBalance?: number;
 }
 
 /**

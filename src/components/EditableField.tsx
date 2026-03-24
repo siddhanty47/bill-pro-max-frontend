@@ -44,6 +44,8 @@ interface EditableFieldProps {
    * Use this for specialized components like CodeAutocomplete.
    */
   renderEditInput?: (props: RenderEditInputProps) => React.ReactNode;
+  /** Compact mode for table cells — hides label, inline edit row */
+  compact?: boolean;
 }
 
 /**
@@ -68,6 +70,7 @@ export function EditableField({
   suffix,
   prefix,
   renderEditInput,
+  compact = false,
 }: EditableFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState<string | number>(value ?? '');
@@ -161,9 +164,11 @@ export function EditableField({
 
   // ── View mode ──
 
+  const wrapperClassName = `${styles.wrapper}${compact ? ` ${styles.compact}` : ''}`;
+
   if (!isEditing) {
     return (
-      <div className={styles.wrapper}>
+      <div className={wrapperClassName}>
         <span className={styles.label}>{label}</span>
         <span
           className={styles.valueDisplay}
@@ -231,7 +236,7 @@ export function EditableField({
   };
 
   return (
-    <div className={styles.wrapper}>
+    <div className={wrapperClassName}>
       <span className={styles.label}>{label}</span>
       <div className={styles.editContainer}>
         <div className={styles.editRow}>

@@ -14,6 +14,7 @@ import {
   useUpdateInventoryMutation,
   useGetInventoryCategoriesQuery,
   useAdjustQuantityMutation,
+  useGetOpeningBalancesQuery,
 } from '../api/inventoryApi';
 import {
   DetailPageShell,
@@ -146,6 +147,10 @@ export function InventoryDetailPage() {
 
   const [updateInventory, { isLoading: isSaving }] = useUpdateInventoryMutation();
   const [adjustQuantity, { isLoading: isAdjusting }] = useAdjustQuantityMutation();
+  const { data: openingBalances } = useGetOpeningBalancesQuery(currentBusinessId || '', {
+    skip: !currentBusinessId,
+  });
+  const itemOpeningBalance = (itemId && openingBalances?.[itemId]) ?? 0;
 
   const { data: existingCategories } = useGetInventoryCategoriesQuery(
     currentBusinessId || '',
@@ -402,7 +407,7 @@ export function InventoryDetailPage() {
                 />
                 <DetailField
                   label="Rented Out"
-                  value={`${computeRentedFromHistory(item.quantityHistory)} ${item.unit}`}
+                  value={`${computeRentedFromHistory(item.quantityHistory) + itemOpeningBalance} ${item.unit}`}
                 />
               </DetailSection>
 

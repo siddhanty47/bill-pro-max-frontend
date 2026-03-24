@@ -168,3 +168,23 @@
 .customInputWrapper {
   flex: 1;
 }
+
+/* Compact variant for use inside table cells — prevents column width shifts */
+.compact .label {
+  display: none;
+}
+
+.compact {
+  border-bottom: none;
+  padding: 4px 8px;
+}
+
+.compact .editRow {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.compact .editRow input {
+  width: 100%;
+  min-width: 0;
+}

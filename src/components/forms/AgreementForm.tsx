@@ -28,6 +28,7 @@ const agreementSchema = z.object({
       z.object({
         itemId: z.string().min(1, 'Select an item'),
         ratePerDay: z.number().min(0, 'Rate must be positive'),
+        openingBalance: z.number().min(0, 'Opening balance must be non-negative').optional().default(0),
       })
     )
     .min(1, 'Add at least one item rate'),
@@ -58,6 +59,8 @@ export function AgreementForm({
 
   /** Preserves user rate edits across category toggles (itemId -> rate) */
   const rateOverridesRef = useRef<Record<string, number>>({});
+  /** Preserves user opening balance edits across category toggles (itemId -> qty) */
+  const openingBalanceOverridesRef = useRef<Record<string, number>>({});
 
   /** Group inventory items by category */
   const categorizedItems = useMemo(() => {
@@ -119,13 +122,14 @@ export function AgreementForm({
   /** Build rates array from a set of selected categories, preserving user overrides */
   const buildRatesFromCategories = useCallback(
     (categories: Set<string>) => {
-      const rates: Array<{ itemId: string; ratePerDay: number }> = [];
+      const rates: Array<{ itemId: string; ratePerDay: number; openingBalance: number }> = [];
       for (const category of Array.from(categories).sort()) {
         const items = categorizedItems.get(category) || [];
         for (const item of items) {
           rates.push({
             itemId: item._id,
             ratePerDay: rateOverridesRef.current[item._id] ?? item.defaultRatePerDay ?? 0,
+            openingBalance: openingBalanceOverridesRef.current[item._id] ?? 0,
           });
         }
       }
@@ -169,6 +173,15 @@ export function AgreementForm({
     (index: number, itemId: string, rate: number) => {
       rateOverridesRef.current[itemId] = rate;
       setValue(`rates.${index}.ratePerDay`, rate);
+    },
+    [setValue]
+  );
+
+  /** Track user opening balance edits so they survive category re-toggles */
+  const handleOpeningBalanceChange = useCallback(
+    (index: number, itemId: string, qty: number) => {
+      openingBalanceOverridesRef.current[itemId] = qty;
+      setValue(`rates.${index}.openingBalance`, qty);
     },
     [setValue]
   );
@@ -387,6 +400,7 @@ export function AgreementForm({
                   <th>Name</th>
                   <th>Category</th>
                   <th className={styles.rateColumn}>Rate/day (₹)</th>
+                  <th className={styles.rateColumn}>Opening Bal.</th>
                 </tr>
               </thead>
               <tbody>
@@ -411,6 +425,20 @@ export function AgreementForm({
                           className={styles.rateInput}
                         />
                         <input type="hidden" {...register(`rates.${index}.itemId`)} />
+                      </td>
+                      <td className={styles.cell}>
+                        <input
+                          type="number"
+                          step="1"
+                          min="0"
+                          {...register(`rates.${index}.openingBalance`, { valueAsNumber: true })}
+                          onChange={(e) =>
+                            handleOpeningBalanceChange(index, field.itemId, parseFloat(e.target.value) || 0)
+                          }
+                          disabled={isLoading}
+                          className={styles.rateInput}
+                          placeholder="0"
+                        />
                       </td>
                     </tr>
                   );

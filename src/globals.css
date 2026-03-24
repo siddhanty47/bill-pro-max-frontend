@@ -722,6 +722,9 @@ a:hover {
 /* Table cell zero padding */
 .cell-compact { padding: 0 !important; }
 
+/* Fixed-width column for inline-editable numeric fields */
+.col-editable-num { width: 140px; }
+
 /* SVG icon inline alignment */
 .icon-inline { vertical-align: middle; margin-right: 6px; }
 .icon-inline-sm { vertical-align: middle; margin-right: 4px; }

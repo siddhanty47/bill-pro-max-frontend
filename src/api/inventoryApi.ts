@@ -23,6 +23,12 @@ export const inventoryApi = baseApi.injectEndpoints({
       transformResponse: (response: ApiResponse<InventoryStats>) => response.data,
     }),
 
+    getOpeningBalances: builder.query<Record<string, number>, string>({
+      query: (businessId) => `/businesses/${businessId}/inventory/opening-balances`,
+      transformResponse: (response: ApiResponse<Record<string, number>>) => response.data,
+      providesTags: ['Agreement'],
+    }),
+
     getInventoryCategories: builder.query<string[], string>({
       query: (businessId) => `/businesses/${businessId}/inventory/categories`,
       transformResponse: (response: ApiResponse<string[]>) => response.data,
@@ -77,6 +83,7 @@ export const {
   useGetInventoryQuery,
   useGetInventoryItemQuery,
   useGetInventoryStatsQuery,
+  useGetOpeningBalancesQuery,
   useGetInventoryCategoriesQuery,
   useCreateInventoryMutation,
   useUpdateInventoryMutation,

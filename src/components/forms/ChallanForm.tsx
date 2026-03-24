@@ -272,8 +272,18 @@ export function ChallanForm({
 
   const localItemsMap = useMemo(() => {
     if (!selectedPartyId || !selectedAgreementId) return new Map<string, number>();
-    return computeItemsWithPartyLocally(challans, selectedPartyId, selectedAgreementId);
-  }, [challans, selectedPartyId, selectedAgreementId]);
+    const map = computeItemsWithPartyLocally(challans, selectedPartyId, selectedAgreementId);
+    // Merge opening balances from agreement rates
+    if (selectedAgreement) {
+      for (const rate of selectedAgreement.rates) {
+        const openingBal = rate.openingBalance ?? 0;
+        if (openingBal > 0) {
+          map.set(rate.itemId, (map.get(rate.itemId) ?? 0) + openingBal);
+        }
+      }
+    }
+    return map;
+  }, [challans, selectedPartyId, selectedAgreementId, selectedAgreement]);
 
   /** Look up the running quantity for a given itemId, preferring API data. */
   const getRunningQty = useCallback(
