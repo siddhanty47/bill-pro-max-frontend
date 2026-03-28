@@ -18,7 +18,7 @@ React SPA for scaffolding rental business management. See README.md for setup. T
 - Auto-logout on 401 responses
 - Tag types for cache invalidation
 
-**Tag types:** `Business`, `Party`, `Inventory`, `Challan`, `Bill`, `Payment`, `Agreement`, `Member`, `Invitation`, `Notification`, `Employee`, `ShareLink`, `Preset`
+**Tag types:** `Business`, `Party`, `Inventory`, `Challan`, `Bill`, `Payment`, `Agreement`, `Member`, `Invitation`, `Notification`, `Employee`, `ShareLink`, `Preset`, `AuditLog`
 
 Each entity has its own API file in `src/api/` that injects endpoints via `baseApi.injectEndpoints()`. Follow the pattern in `partyApi.ts` when creating new ones.
 
@@ -80,6 +80,7 @@ Defined in `src/App.tsx`.
 - `DocumentNumberBadge.tsx` — Styled document number display
 - `EditableField.tsx` — Inline-editable field component
 - `ShareLinkManager.tsx` — Share link CRUD (embedded in PartyDetailPage)
+- `ChangeHistoryTable.tsx` — Shared Jira-style audit history table (used in all detail pages)
 
 ### Statement Previews
 - Located in `src/components/statements/`

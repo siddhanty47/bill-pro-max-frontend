@@ -21,6 +21,7 @@ import {
 } from '../components/DetailPageShell';
 import { EditableField } from '../components/EditableField';
 import { Tabs } from '../components/Tabs';
+import ChangeHistoryTable from '../components/ChangeHistoryTable';
 
 /** Status options matching EditAgreementForm */
 const STATUS_OPTIONS = [
@@ -91,6 +92,7 @@ export function AgreementDetailPage() {
     { id: 'about', label: 'About' },
     { id: 'site-items', label: 'Site Items' },
     { id: 'challans', label: 'Challans' },
+    { id: 'change-history', label: 'Change History' },
   ];
 
   /**
@@ -518,6 +520,8 @@ export function AgreementDetailPage() {
               )}
             </DetailSection>
           )}
+
+          {activeTab === 'change-history' && <ChangeHistoryTable documentType="agreement" documentId={agreementId!} />}
         </>
       )}
     </DetailPageShell>

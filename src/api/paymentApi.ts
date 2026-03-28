@@ -44,7 +44,7 @@ export const paymentApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Payment>) => response.data,
-      invalidatesTags: ['Payment', 'Bill'],
+      invalidatesTags: ['Payment', 'Bill', 'AuditLog'],
     }),
   }),
 });

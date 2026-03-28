@@ -1,0 +1,61 @@
+.wrap {
+  overflow-x: auto;
+}
+
+.changesList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.changeRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.fieldName {
+  font-weight: 500;
+  color: var(--text-primary);
+  min-width: 100px;
+}
+
+.fieldName::after {
+  content: ':';
+}
+
+.oldValue {
+  color: var(--danger-text);
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+
+.arrow {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.newValue {
+  color: var(--success-text);
+}
+
+.summaryText {
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 13px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 0 4px;
+}
+
+.pageInfo {
+  font-size: 13px;
+  color: var(--text-secondary);
+}

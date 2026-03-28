@@ -1,26 +1,3 @@
-/* Classes for inline style migration from PartyDetailPage.tsx */
-
-.siteEditInput {
-  width: 100%;
-  padding: 4px 8px;
-  font-size: 13px;
-  border: 1px solid var(--border-medium);
-  border-radius: 0;
-  background: var(--bg-input);
-  color: var(--text-primary);
-}
-
-.siteCodeInput {
-  width: 80px;
-  padding: 4px 8px;
-  font-size: 13px;
-  border: 1px solid var(--border-medium);
-  border-radius: 0;
-  background: var(--bg-input);
-  color: var(--text-primary);
-  text-transform: uppercase;
-}
-
 .siteFilterRow {
   display: flex;
   gap: 10px;
@@ -34,12 +11,6 @@
   font-size: 13px;
   background: var(--bg-input);
   color: var(--text-primary);
-}
-
-.inlineEditRow {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 /* Statement form styles */

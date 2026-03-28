@@ -30,6 +30,7 @@ import { CodeAutocomplete, type AutocompleteItem } from '../components/CodeAutoc
 import type { DamagedItem } from '../types';
 import { getErrorMessage } from '../api/baseApi';
 import { computeRentedFromHistory, computeAvailable } from '../utils/inventoryUtils';
+import ChangeHistoryTable from '../components/ChangeHistoryTable';
 
 /**
  * Formats an ISO date string for display.
@@ -94,6 +95,7 @@ export function ChallanDetailPage() {
   const TABS = [
     { id: 'about', label: 'About' },
     { id: 'items', label: 'Items' },
+    { id: 'change-history', label: 'Change History' },
   ];
 
   const partyName = parties?.find((p) => p._id === challan?.partyId)?.name || challan?.partyId || '';
@@ -635,6 +637,8 @@ export function ChallanDetailPage() {
           )}
             </>
           )}
+
+          {activeTab === 'change-history' && <ChangeHistoryTable documentType="challan" documentId={challanId!} />}
 
           {activeTab === 'about' && (
             <>

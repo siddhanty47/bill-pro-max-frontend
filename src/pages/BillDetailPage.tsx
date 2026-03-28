@@ -25,6 +25,7 @@ import {
 } from '../components/DetailPageShell';
 import { getErrorMessage } from '../api/baseApi';
 import { Tabs } from '../components/Tabs';
+import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import type { Bill } from '../types';
 
 /** Bill status options — matches the Bill type union */
@@ -93,6 +94,7 @@ export function BillDetailPage() {
     { id: 'about', label: 'About' },
     { id: 'line-items', label: 'Line Items' },
     { id: 'payments', label: 'Payments' },
+    { id: 'change-history', label: 'Change History' },
   ];
 
   /** Save handler for bill status changes */
@@ -515,6 +517,8 @@ export function BillDetailPage() {
               )}
             </DetailSection>
           )}
+
+          {activeTab === 'change-history' && <ChangeHistoryTable documentType="bill" documentId={billId!} />}
         </>
       )}
     </DetailPageShell>

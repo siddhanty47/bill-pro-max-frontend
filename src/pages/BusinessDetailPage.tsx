@@ -4,7 +4,7 @@
  * contact details, and settings. Supports Jira-style inline editing for all fields.
  * Route: /business
  */
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
@@ -16,6 +16,8 @@ import {
   DetailSection,
   DetailField,
 } from '../components/DetailPageShell';
+import { Tabs } from '../components/Tabs';
+import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import type { BusinessSettings } from '../types';
 
 const BILLING_CYCLE_OPTIONS = [
@@ -45,6 +47,13 @@ export function BusinessDetailPage() {
   );
 
   const [updateBusiness, { isLoading: isSaving }] = useUpdateBusinessMutation();
+
+  const [activeTab, setActiveTab] = useState('about');
+
+  const TABS = [
+    { id: 'about', label: 'About' },
+    { id: 'change-history', label: 'Change History' },
+  ];
 
   if (!currentBusinessId) {
     return <Navigate to="/" replace />;
@@ -107,6 +116,10 @@ export function BusinessDetailPage() {
     >
       {business && (
         <>
+          <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+
+          {activeTab === 'about' && (
+          <>
           {/* Contact & Address */}
           <DetailSection title="Contact & Address">
             <DetailField
@@ -254,6 +267,10 @@ export function BusinessDetailPage() {
               }}
             />
           </DetailSection>
+          </>
+          )}
+
+          {activeTab === 'change-history' && <ChangeHistoryTable documentType="business" documentId={currentBusinessId} />}
         </>
       )}
     </DetailPageShell>

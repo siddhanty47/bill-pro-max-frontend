@@ -25,7 +25,7 @@ export const businessApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Business>) => response.data,
-      invalidatesTags: ['Business'],
+      invalidatesTags: ['Business', 'AuditLog'],
     }),
 
     updateBusiness: builder.mutation<
@@ -41,6 +41,7 @@ export const businessApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { businessId }) => [
         { type: 'Business', id: businessId },
         'Business',
+        'AuditLog',
       ],
     }),
   }),

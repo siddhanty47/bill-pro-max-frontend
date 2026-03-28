@@ -26,6 +26,7 @@ import { CodeAutocomplete, type AutocompleteItem } from '../components/CodeAutoc
 import type { AdjustQuantityInput, QuantityTransaction } from '../types';
 import { getErrorMessage } from '../api/baseApi';
 import { computeRentedFromHistory, computeAvailable } from '../utils/inventoryUtils';
+import ChangeHistoryTable from '../components/ChangeHistoryTable';
 
 /** Unit options — must stay in sync with InventoryForm */
 const UNIT_OPTIONS = [
@@ -225,7 +226,8 @@ export function InventoryDetailPage() {
 
   const TABS = [
     { id: 'about', label: 'About' },
-    { id: 'history', label: 'History' },
+    { id: 'quantity-timeline', label: 'Quantity Timeline' },
+    { id: 'change-history', label: 'Change History' },
   ];
 
   /** History: latest entry at top (reverse of insertion order) */
@@ -461,7 +463,7 @@ export function InventoryDetailPage() {
             </>
           )}
 
-          {activeTab === 'history' && (
+          {activeTab === 'quantity-timeline' && (
             <DetailSection title="Quantity History">
               {sortedHistory.length === 0 ? (
                 <p className="text-empty">
@@ -499,6 +501,8 @@ export function InventoryDetailPage() {
               )}
             </DetailSection>
           )}
+
+          {activeTab === 'change-history' && <ChangeHistoryTable documentType="inventory" documentId={itemId!} />}
         </>
       )}
     </DetailPageShell>

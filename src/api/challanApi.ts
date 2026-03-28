@@ -25,7 +25,7 @@ export const challanApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Challan>) => response.data,
-      invalidatesTags: ['Challan', 'Inventory'],
+      invalidatesTags: ['Challan', 'Inventory', 'AuditLog'],
     }),
 
     confirmChallan: builder.mutation<Challan, { businessId: string; challanId: string; confirmedBy: string }>({
@@ -35,7 +35,7 @@ export const challanApi = baseApi.injectEndpoints({
         body: { confirmedBy },
       }),
       transformResponse: (response: ApiResponse<Challan>) => response.data,
-      invalidatesTags: (_result, _error, { challanId }) => [{ type: 'Challan', id: challanId }, 'Challan', 'Inventory'],
+      invalidatesTags: (_result, _error, { challanId }) => [{ type: 'Challan', id: challanId }, 'Challan', 'Inventory', 'AuditLog'],
     }),
 
     updateChallanItem: builder.mutation<
@@ -52,6 +52,7 @@ export const challanApi = baseApi.injectEndpoints({
         { type: 'Challan', id: challanId },
         'Challan',
         'Bill',
+        'AuditLog',
       ],
     }),
 
@@ -75,7 +76,7 @@ export const challanApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Challan>) => response.data,
-      invalidatesTags: (_result, _error, { challanId }) => [{ type: 'Challan', id: challanId }, 'Challan', 'Bill'],
+      invalidatesTags: (_result, _error, { challanId }) => [{ type: 'Challan', id: challanId }, 'Challan', 'Bill', 'AuditLog'],
     }),
 
     getNextChallanNumber: builder.query<string, { businessId: string; type: 'delivery' | 'return'; date: string }>({
@@ -108,6 +109,7 @@ export const challanApi = baseApi.injectEndpoints({
         { type: 'Challan', id: challanId },
         'Challan',
         'Bill',
+        'AuditLog',
       ],
     }),
 
@@ -124,6 +126,7 @@ export const challanApi = baseApi.injectEndpoints({
         { type: 'Challan', id: challanId },
         'Challan',
         'Bill',
+        'AuditLog',
       ],
     }),
 
@@ -158,6 +161,7 @@ export const challanApi = baseApi.injectEndpoints({
         { type: 'Challan', id: challanId },
         'Challan',
         'Bill',
+        'AuditLog',
       ],
     }),
 

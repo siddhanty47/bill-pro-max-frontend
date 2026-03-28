@@ -41,7 +41,7 @@ export const inventoryApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Inventory>) => response.data,
-      invalidatesTags: ['Inventory'],
+      invalidatesTags: ['Inventory', 'AuditLog'],
     }),
 
     updateInventory: builder.mutation<Inventory, { businessId: string; itemId: string; data: Partial<CreateInventoryInput> }>({
@@ -51,7 +51,7 @@ export const inventoryApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Inventory>) => response.data,
-      invalidatesTags: (_result, _error, { itemId }) => [{ type: 'Inventory', id: itemId }, 'Inventory'],
+      invalidatesTags: (_result, _error, { itemId }) => [{ type: 'Inventory', id: itemId }, 'Inventory', 'AuditLog'],
     }),
 
     adjustQuantity: builder.mutation<Inventory, { businessId: string; itemId: string; data: AdjustQuantityInput }>({
@@ -61,7 +61,7 @@ export const inventoryApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Inventory>) => response.data,
-      invalidatesTags: (_result, _error, { itemId }) => [{ type: 'Inventory', id: itemId }, 'Inventory'],
+      invalidatesTags: (_result, _error, { itemId }) => [{ type: 'Inventory', id: itemId }, 'Inventory', 'AuditLog'],
     }),
 
     checkInventoryCodeExists: builder.query<boolean, { businessId: string; code: string }>({
@@ -74,7 +74,7 @@ export const inventoryApi = baseApi.injectEndpoints({
         url: `/businesses/${businessId}/inventory/${itemId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, { itemId }) => [{ type: 'Inventory', id: itemId }, 'Inventory'],
+      invalidatesTags: (_result, _error, { itemId }) => [{ type: 'Inventory', id: itemId }, 'Inventory', 'AuditLog'],
     }),
   }),
 });

@@ -1001,6 +1001,28 @@ export type StatementData =
   | ItemStatementData
   | AgingStatementData;
 
+// ============ Audit Log ============
+
+export interface AuditFieldChange {
+  field: string;
+  oldValue: unknown;
+  newValue: unknown;
+}
+
+export interface AuditLogEntry {
+  _id: string;
+  businessId: string;
+  documentId: string;
+  documentType: string;
+  action: 'created' | 'updated' | 'deleted';
+  changes: AuditFieldChange[];
+  performedBy: {
+    userId: string;
+    name: string;
+  };
+  createdAt: string;
+}
+
 export interface PortalPayment {
   _id: string;
   amount: number;

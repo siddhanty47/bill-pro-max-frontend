@@ -31,7 +31,9 @@ import { AddSiteModal } from '../components/AddSiteModal';
 import { AgreementForm } from '../components/forms/AgreementForm';
 import { getErrorMessage } from '../api/baseApi';
 import { ShareLinkManager } from '../components/ShareLinkManager';
-import type { CreateAgreementInput, Site } from '../types';
+import ChangeHistoryTable from '../components/ChangeHistoryTable';
+import { EditableField } from '../components/EditableField';
+import type { CreateAgreementInput } from '../types';
 
 /**
  * Formats an ISO date string for display.
@@ -93,13 +95,8 @@ export function PartyDetailPage() {
     { id: 'payments', label: 'Payments' },
     { id: 'statements', label: 'Statements' },
     { id: 'share-links', label: 'Share Links' },
+    { id: 'change-history', label: 'Change History' },
   ];
-
-  /** Tracks which site code is currently being inline-edited (null = none) */
-  const [editingSiteCode, setEditingSiteCode] = useState<string | null>(null);
-  const [editSiteAddress, setEditSiteAddress] = useState('');
-  const [editSiteStateCode, setEditSiteStateCode] = useState('');
-  const [editSiteError, setEditSiteError] = useState<string | null>(null);
 
   /** Save handler for top-level party fields (e.g. name, notes) */
   const handleSave = useCallback(
@@ -144,46 +141,6 @@ export function PartyDetailPage() {
       }
     },
     [createAgreement, currentBusinessId, partyId],
-  );
-
-  /** Enter inline edit mode for a site row */
-  const startEditingSite = (site: Site) => {
-    setEditingSiteCode(site.code);
-    setEditSiteAddress(site.address);
-    setEditSiteStateCode(site.stateCode ?? '');
-    setEditSiteError(null);
-  };
-
-  /** Cancel inline site editing */
-  const cancelEditingSite = () => {
-    setEditingSiteCode(null);
-    setEditSiteError(null);
-  };
-
-  /** Save the inline site edit */
-  const handleSaveSite = useCallback(
-    async (originalCode: string) => {
-      setEditSiteError(null);
-      if (!editSiteAddress.trim()) {
-        setEditSiteError('Address is required');
-        return;
-      }
-      try {
-        await updateSite({
-          businessId: currentBusinessId!,
-          partyId: partyId!,
-          siteCode: originalCode,
-          data: {
-            address: editSiteAddress.trim(),
-            stateCode: editSiteStateCode?.trim() || undefined,
-          },
-        }).unwrap();
-        setEditingSiteCode(null);
-      } catch (err) {
-        setEditSiteError(getErrorMessage(err));
-      }
-    },
-    [currentBusinessId, partyId, editSiteAddress, editSiteStateCode, updateSite],
   );
 
   const handleDownloadStatement = useCallback(async () => {
@@ -363,80 +320,57 @@ export function PartyDetailPage() {
             }
           >
             {party.sites && party.sites.length > 0 ? (
-              <>
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Site Code</th>
-                      <th>Address</th>
-                      <th>State Code</th>
-                      <th style={{ width: '120px' }}>Actions</th>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Site Code</th>
+                    <th>Address</th>
+                    <th>State Code</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {party.sites.map((site) => (
+                    <tr key={site.code}>
+                      <td>{site.code}</td>
+                      <td>
+                        <EditableField
+                          label="Address"
+                          value={site.address}
+                          inputType="text"
+                          compact
+                          onSave={async (newValue: string | number) => {
+                            await updateSite({
+                              businessId: currentBusinessId!,
+                              partyId: partyId!,
+                              siteCode: site.code,
+                              data: { address: String(newValue).trim() },
+                            }).unwrap();
+                          }}
+                          isSaving={isUpdatingSite}
+                        />
+                      </td>
+                      <td>
+                        <EditableField
+                          label="State Code"
+                          value={site.stateCode ?? ''}
+                          inputType="text"
+                          compact
+                          emptyText="-"
+                          onSave={async (newValue: string | number) => {
+                            await updateSite({
+                              businessId: currentBusinessId!,
+                              partyId: partyId!,
+                              siteCode: site.code,
+                              data: { stateCode: String(newValue).trim() || undefined },
+                            }).unwrap();
+                          }}
+                          isSaving={isUpdatingSite}
+                        />
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {party.sites.map((site) =>
-                      editingSiteCode === site.code ? (
-                        <tr key={site.code}>
-                          <td>{site.code}</td>
-                          <td>
-                            <input
-                              type="text"
-                              className={`form-input ${pageStyles.siteEditInput}`}
-                              value={editSiteAddress}
-                              onChange={(e) => setEditSiteAddress(e.target.value)}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              type="text"
-                              className={`form-input ${pageStyles.siteCodeInput}`}
-                              value={editSiteStateCode}
-                              onChange={(e) => setEditSiteStateCode(e.target.value)}
-                              placeholder="e.g. 27"
-                              maxLength={2}
-                            />
-                          </td>
-                          <td>
-                            <div className={`action-buttons ${pageStyles.inlineEditRow}`}>
-                              <button
-                                className="btn btn-sm btn-primary"
-                                onClick={() => handleSaveSite(site.code)}
-                                disabled={isUpdatingSite}
-                              >
-                                {isUpdatingSite ? '...' : 'Save'}
-                              </button>
-                              <button
-                                className="btn btn-sm btn-secondary"
-                                onClick={cancelEditingSite}
-                                disabled={isUpdatingSite}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ) : (
-                        <tr key={site.code}>
-                          <td>{site.code}</td>
-                          <td>{site.address}</td>
-                          <td>{site.stateCode || '-'}</td>
-                          <td>
-                            <button
-                              className="btn btn-sm btn-secondary"
-                              onClick={() => startEditingSite(site)}
-                            >
-                              Edit
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    )}
-                  </tbody>
-                </table>
-                {editSiteError && (
-                  <p className="text-error-inline">{editSiteError}</p>
-                )}
-              </>
+                  ))}
+                </tbody>
+              </table>
             ) : (
               <p className="text-empty">No sites added yet.</p>
             )}
@@ -728,6 +662,8 @@ export function PartyDetailPage() {
             <ShareLinkManager partyId={partyId!} sites={party.sites || []} />
           </DetailSection>
           )}
+
+          {activeTab === 'change-history' && <ChangeHistoryTable documentType="party" documentId={partyId!} />}
 
           {/* Add Site Modal */}
           {currentBusinessId && (

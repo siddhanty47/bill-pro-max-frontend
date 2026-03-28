@@ -50,6 +50,7 @@ export const billApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<BillGenerationResponse>) => response.data,
+      invalidatesTags: ['Bill', 'AuditLog'],
     }),
 
     bulkGenerateBills: builder.mutation<BillGenerationResponse, { businessId: string; data: BulkGenerateBillInput }>({
@@ -59,6 +60,7 @@ export const billApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<BillGenerationResponse>) => response.data,
+      invalidatesTags: ['Bill', 'AuditLog'],
     }),
 
     updateBillStatus: builder.mutation<Bill, { businessId: string; billId: string; status: Bill['status'] }>({
@@ -68,7 +70,7 @@ export const billApi = baseApi.injectEndpoints({
         body: { status },
       }),
       transformResponse: (response: ApiResponse<Bill>) => response.data,
-      invalidatesTags: (_result, _error, { billId }) => [{ type: 'Bill', id: billId }, 'Bill'],
+      invalidatesTags: (_result, _error, { billId }) => [{ type: 'Bill', id: billId }, 'Bill', 'AuditLog'],
     }),
 
     /**
@@ -80,7 +82,7 @@ export const billApi = baseApi.injectEndpoints({
         url: `/businesses/${businessId}/bills/${billId}${force ? '?force=true' : ''}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['Bill'],
+      invalidatesTags: ['Bill', 'AuditLog'],
     }),
 
     sendBillEmail: builder.mutation<void, { businessId: string; billId: string }>({

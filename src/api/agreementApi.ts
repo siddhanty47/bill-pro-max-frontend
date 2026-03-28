@@ -48,6 +48,7 @@ export const agreementApi = baseApi.injectEndpoints({
         { type: 'Agreement', id: agreementId },
         'Agreement',
         'Party',
+        'AuditLog',
       ],
     }),
 
@@ -83,6 +84,7 @@ export const agreementApi = baseApi.injectEndpoints({
         { type: 'Agreement', id: agreementId },
         { type: 'Agreement', id: `${agreementId}-rates` },
         'Agreement',
+        'AuditLog',
       ],
     }),
 
@@ -103,6 +105,7 @@ export const agreementApi = baseApi.injectEndpoints({
         { type: 'Agreement', id: agreementId },
         { type: 'Agreement', id: `${agreementId}-rates` },
         'Agreement',
+        'AuditLog',
       ],
     }),
   }),

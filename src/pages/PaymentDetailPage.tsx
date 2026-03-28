@@ -3,6 +3,7 @@
  * @description Read-only detail page showing all information for a single payment,
  * including type, method, amount, linked bill, and notes.
  */
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useGetPaymentQuery } from '../api/paymentApi';
@@ -12,6 +13,8 @@ import {
   DetailSection,
   DetailField,
 } from '../components/DetailPageShell';
+import { Tabs } from '../components/Tabs';
+import ChangeHistoryTable from '../components/ChangeHistoryTable';
 
 /**
  * Formats an ISO date string for display.
@@ -52,6 +55,13 @@ export function PaymentDetailPage() {
   const { data: parties } = useGetPartiesQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
   });
+
+  const [activeTab, setActiveTab] = useState('about');
+
+  const TABS = [
+    { id: 'about', label: 'About' },
+    { id: 'change-history', label: 'Change History' },
+  ];
 
   const partyName =
     parties?.find((p) => p._id === payment?.partyId)?.name || payment?.partyId || '';
@@ -125,13 +135,21 @@ export function PaymentDetailPage() {
       sidebar={sidebar}
     >
       {payment && (
-        <DetailSection title="Notes">
-          <p
-            className={payment.notes ? 'text-notes' : 'text-notes-empty'}
-          >
-            {payment.notes || 'No notes.'}
-          </p>
-        </DetailSection>
+        <>
+          <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+
+          {activeTab === 'about' && (
+            <DetailSection title="Notes">
+              <p
+                className={payment.notes ? 'text-notes' : 'text-notes-empty'}
+              >
+                {payment.notes || 'No notes.'}
+              </p>
+            </DetailSection>
+          )}
+
+          {activeTab === 'change-history' && <ChangeHistoryTable documentType="payment" documentId={paymentId!} />}
+        </>
       )}
     </DetailPageShell>
   );
