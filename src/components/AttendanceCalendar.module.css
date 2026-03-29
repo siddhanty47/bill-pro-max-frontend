@@ -1,0 +1,348 @@
+/* AttendanceCalendar — terminal pro theme */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Summary bar ── */
+
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+.summaryItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.summaryDivider {
+  width: 1px;
+  height: 14px;
+  background: var(--border-default);
+}
+
+.summaryEffective {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ── Dots ── */
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+}
+
+.dotPresent {
+  background: var(--status-success-text);
+}
+
+.dotAbsent {
+  background: var(--status-danger-text);
+}
+
+.dotHalfDay,
+.dotHalfday {
+  background: var(--status-warning-text);
+}
+
+.dotLeave {
+  background: var(--status-info-text);
+}
+
+/* ── Month navigation ── */
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.navLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.navBtn {
+  background: none;
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.navBtn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.navBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ── Calendar grid ── */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: var(--border-subtle);
+  border: 1px solid var(--border-subtle);
+}
+
+.weekdayHeader {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: center;
+  padding: 8px 0;
+  font-weight: 500;
+}
+
+.weekdaySunday {
+  color: var(--status-info-text);
+  opacity: 0.7;
+}
+
+/* ── Day cells ── */
+
+.dayCell {
+  position: relative;
+  background: var(--bg-card);
+  min-height: 64px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transition: background 0.15s;
+}
+
+.dayCellClickable {
+  cursor: pointer;
+}
+
+.dayCellClickable:hover {
+  background: var(--bg-hover);
+}
+
+.dayCellOutside {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.dayCellToday {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.dayCellSunday {
+  background: rgba(59, 130, 246, 0.04);
+}
+
+.dayNumber {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+.dayCellToday .dayNumber {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ── Status badges ── */
+
+.statusBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.status-present {
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+  border: 1px solid var(--status-success-border);
+}
+
+.status-absent {
+  background: var(--status-danger-bg);
+  color: var(--status-danger-text);
+  border: 1px solid var(--status-danger-border);
+}
+
+.status-half-day {
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+  border: 1px solid var(--status-warning-border);
+}
+
+.status-leave {
+  background: var(--status-info-bg);
+  color: var(--status-info-text);
+  border: 1px solid var(--status-info-border);
+}
+
+/* Implicit (non-marked) badges — dimmed */
+.statusImplicit {
+  opacity: 0.35;
+  border-style: dashed;
+}
+
+/* Sunday worked — special accent glow */
+.sundayWorked {
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* ── Overtime indicator ── */
+
+.overtimeIndicator {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--accent);
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* ── Dropdown ── */
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  min-width: 160px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  padding: 4px 0;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.dropdownItem:hover {
+  background: var(--bg-hover);
+}
+
+.dropdownItemActive {
+  color: var(--accent);
+}
+
+.dropdownItemClear {
+  color: var(--status-danger-text);
+}
+
+.dropdownDivider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 4px 0;
+}
+
+/* ── Overtime input row in dropdown ── */
+
+.dropdownOvertimeRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+}
+
+.overtimeLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.overtimeInput {
+  width: 48px;
+  padding: 2px 4px;
+  background: var(--bg-input);
+  border: none;
+  border-bottom: 1px solid var(--border-default);
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.overtimeInput:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+}
+
+.overtimeSaveBtn {
+  padding: 2px 8px;
+  background: none;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: background 0.1s;
+}
+
+.overtimeSaveBtn:hover {
+  background: var(--accent-muted);
+}
+
+/* ── Loading ── */
+
+.loading {
+  text-align: center;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  padding: 12px;
+}

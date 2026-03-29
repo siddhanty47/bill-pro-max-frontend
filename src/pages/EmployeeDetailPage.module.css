@@ -1,0 +1,160 @@
+.placeholderTab {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.deleteConfirm {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ── Salary tab ── */
+
+.salaryTab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.monthNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.monthNavLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.monthNavBtn {
+  background: none;
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.monthNavBtn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.monthNavBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.salaryLoading {
+  text-align: center;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  padding: 24px 0;
+}
+
+.salaryEmptyState {
+  text-align: center;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  padding: 40px 0;
+  font-style: italic;
+}
+
+.salaryCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.salarySection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.salarySectionTitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.salaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.salaryGridItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.salaryGridLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.salaryGridValue {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.salaryDivider {
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+.salaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.salaryLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.salaryValue {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.salaryTotal {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+}

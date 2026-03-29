@@ -6,20 +6,34 @@ import type { Employee, CreateEmployeeInput, UpdateEmployeeInput, PaginatedRespo
 
 export const employeeApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    /** List employees for a business (supports ?type= filter) */
+    /** List employees for a business (supports ?type=, ?search=, ?isActive= filters) */
     getEmployees: builder.query<
       PaginatedResponse<Employee>,
-      { businessId: string; type?: string }
+      { businessId: string; type?: string; search?: string; isActive?: string }
     >({
-      query: ({ businessId, type }) => {
+      query: ({ businessId, type, search, isActive }) => {
         const params = new URLSearchParams();
         if (type) params.set('type', type);
+        if (search) params.set('search', search);
+        if (isActive) params.set('isActive', isActive);
         params.set('pageSize', '100');
         const qs = params.toString();
         return `/businesses/${businessId}/employees${qs ? `?${qs}` : ''}`;
       },
       providesTags: (_result, _error, { businessId }) => [
         { type: 'Employee' as const, id: businessId },
+      ],
+    }),
+
+    /** Get a single employee by ID */
+    getEmployeeById: builder.query<
+      { success: boolean; data: Employee },
+      { businessId: string; employeeId: string }
+    >({
+      query: ({ businessId, employeeId }) =>
+        `/businesses/${businessId}/employees/${employeeId}`,
+      providesTags: (_result, _error, { employeeId }) => [
+        { type: 'Employee' as const, id: employeeId },
       ],
     }),
 
@@ -35,6 +49,7 @@ export const employeeApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { businessId }) => [
         { type: 'Employee' as const, id: businessId },
+        { type: 'AuditLog' as const },
       ],
     }),
 
@@ -48,8 +63,10 @@ export const employeeApi = baseApi.injectEndpoints({
         method: 'PATCH',
         body: data,
       }),
-      invalidatesTags: (_result, _error, { businessId }) => [
+      invalidatesTags: (_result, _error, { businessId, employeeId }) => [
         { type: 'Employee' as const, id: businessId },
+        { type: 'Employee' as const, id: employeeId },
+        { type: 'AuditLog' as const },
       ],
     }),
 
@@ -62,8 +79,10 @@ export const employeeApi = baseApi.injectEndpoints({
         url: `/businesses/${businessId}/employees/${employeeId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, { businessId }) => [
+      invalidatesTags: (_result, _error, { businessId, employeeId }) => [
         { type: 'Employee' as const, id: businessId },
+        { type: 'Employee' as const, id: employeeId },
+        { type: 'AuditLog' as const },
       ],
     }),
   }),
@@ -71,6 +90,7 @@ export const employeeApi = baseApi.injectEndpoints({
 
 export const {
   useGetEmployeesQuery,
+  useGetEmployeeByIdQuery,
   useCreateEmployeeMutation,
   useUpdateEmployeeMutation,
   useDeleteEmployeeMutation,

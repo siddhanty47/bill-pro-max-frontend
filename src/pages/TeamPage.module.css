@@ -63,3 +63,24 @@
 .empty h2 {
   margin-bottom: 8px;
 }
+
+/* ── Employee table styles ── */
+
+.typeBadge {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.salaryInfo {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.salaryLabel {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}

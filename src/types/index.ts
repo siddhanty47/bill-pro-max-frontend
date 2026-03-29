@@ -672,10 +672,17 @@ export interface ApiError {
 
 // ============ Employee ============
 
-export type EmployeeType = 'transporter';
+export type EmployeeType = 'transporter' | 'general' | 'worker' | 'operator' | 'supervisor';
+
+export type SalaryType = 'monthly' | 'daily';
 
 export interface TransporterDetails {
   vehicleNumber: string;
+}
+
+export interface EmergencyContact {
+  name: string;
+  phone: string;
 }
 
 export interface Employee {
@@ -684,7 +691,16 @@ export interface Employee {
   name: string;
   phone?: string;
   type: EmployeeType;
-  details: TransporterDetails;
+  details?: TransporterDetails;
+  designation?: string;
+  address?: string;
+  joiningDate?: string;
+  salaryType?: SalaryType;
+  monthlySalary?: number;
+  dailyRate?: number;
+  overtimeRatePerHour?: number;
+  emergencyContact?: EmergencyContact;
+  notes?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -694,13 +710,82 @@ export interface CreateEmployeeInput {
   name: string;
   phone?: string;
   type: EmployeeType;
-  details: TransporterDetails;
+  details?: TransporterDetails;
+  designation?: string;
+  address?: string;
+  joiningDate?: string;
+  salaryType?: SalaryType;
+  monthlySalary?: number;
+  dailyRate?: number;
+  overtimeRatePerHour?: number;
+  emergencyContact?: EmergencyContact;
+  notes?: string;
 }
 
 export interface UpdateEmployeeInput {
   name?: string;
   phone?: string;
   details?: Partial<TransporterDetails>;
+  designation?: string;
+  address?: string;
+  joiningDate?: string;
+  salaryType?: SalaryType;
+  monthlySalary?: number;
+  dailyRate?: number;
+  overtimeRatePerHour?: number;
+  emergencyContact?: Partial<EmergencyContact>;
+  notes?: string;
+}
+
+// ============ Attendance ============
+
+export type AttendanceStatus = 'present' | 'absent' | 'half-day' | 'leave';
+
+export interface Attendance {
+  _id: string;
+  businessId: string;
+  employeeId: string;
+  date: string;
+  status: AttendanceStatus;
+  overtimeHours?: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MarkAttendanceInput {
+  date: string;
+  status: AttendanceStatus;
+  overtimeHours?: number;
+  notes?: string;
+}
+
+export interface AttendanceSummary {
+  present: number;
+  absent: number;
+  halfDay: number;
+  leave: number;
+  totalDays: number;
+  workingDays: number;
+  effectiveDays: number;
+  overtimeHours: number;
+  sundaysWorked: number;
+}
+
+export interface SalaryBreakdown {
+  month: number;
+  year: number;
+  workingDays: number;
+  effectiveDays: number;
+  overtimeHours: number;
+  sundaysWorked: number;
+  salaryType: 'monthly' | 'daily' | null;
+  monthlySalary: number;
+  dailyRate: number;
+  overtimeRatePerHour: number;
+  baseSalary: number;
+  overtimePay: number;
+  totalPay: number;
 }
 
 // ============ ShareLink ============

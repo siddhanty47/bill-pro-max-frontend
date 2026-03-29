@@ -28,6 +28,7 @@ import { TeamPage } from './pages/TeamPage';
 import { BusinessDetailPage } from './pages/BusinessDetailPage';
 import { InvitationAcceptPage } from './pages/InvitationAcceptPage';
 import { SharedPortalPage } from './pages/SharedPortalPage';
+import { EmployeeDetailPage } from './pages/EmployeeDetailPage';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -129,6 +130,7 @@ function App() {
         <Route path="payments" element={<PaymentsPage />} />
         <Route path="payments/:paymentId" element={<PaymentDetailPage />} />
         <Route path="team" element={<TeamPage />} />
+        <Route path="team/employees/:employeeId" element={<EmployeeDetailPage />} />
       </Route>
 
       {/* Fallback */}

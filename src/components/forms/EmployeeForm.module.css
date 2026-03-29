@@ -1,0 +1,49 @@
+.typeSelect {
+  appearance: none;
+  cursor: pointer;
+}
+
+.salaryRadioGroup {
+  display: flex;
+  gap: 20px;
+  margin-top: 2px;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-primary);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+.radioLabel input[type="radio"] {
+  width: auto;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.emergencyFieldset {
+  border: 1px solid var(--border-default);
+  padding: 12px 16px;
+  border-radius: 0;
+  margin-top: 4px;
+  background: transparent;
+}
+
+.emergencyFieldset legend {
+  padding: 0 8px;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.uppercaseInput {
+  text-transform: uppercase;
+}
