@@ -374,29 +374,13 @@ export function ChallanForm({
         setValue('partyId', result.partyId);
         const party = parties.find((p) => p._id === result.partyId);
         if (party) {
-          setPartySearchValue(party.code || party.name.substring(0, 4).toUpperCase());
-
-          // Try to find matching agreement using site name
-          if (result.siteName && party.agreements) {
-            const matchingAgreement = party.agreements.find((a) => {
-              if (a.status !== 'active') return false;
-              const site = party.sites.find((s) => s.code === a.siteCode);
-              if (!site) return false;
-              return site.address.toLowerCase().includes(result.siteName!.toLowerCase()) ||
-                result.siteName!.toLowerCase().includes(site.address.toLowerCase());
-            });
-            if (matchingAgreement) {
-              setValue('agreementId', matchingAgreement.agreementId);
-            }
-          }
-          // If only one active agreement, auto-select it
-          if (!result.siteName) {
-            const activeAgrs = party.agreements?.filter((a) => a.status === 'active') || [];
-            if (activeAgrs.length === 1) {
-              setValue('agreementId', activeAgrs[0].agreementId);
-            }
-          }
+          setPartySearchValue(party.code || party.name);
         }
+      }
+
+      // Agreement — defer to next render so the select options populate after partyId change
+      if (result.agreementId) {
+        setTimeout(() => setValue('agreementId', result.agreementId!), 0);
       }
 
       if (result.challanNumber) {
@@ -421,12 +405,9 @@ export function ChallanForm({
 
         const newSearchValues: Record<number, string> = {};
         result.items.forEach((item, index) => {
-          if (item.itemId) {
-            const inv = inventoryItems.find((i) => i._id === item.itemId);
-            if (inv) {
-              newSearchValues[index] = inv.code || inv.name.substring(0, 4).toUpperCase();
-            }
-          }
+          // Always set search value so CodeAutocomplete input is never blank
+          const inv = item.itemId ? inventoryItems.find((i) => i._id === item.itemId) : null;
+          newSearchValues[index] = inv?.code || inv?.name || item.itemName;
         });
         setItemSearchValues(newSearchValues);
       }
@@ -448,10 +429,8 @@ export function ChallanForm({
 
         const newDamagedSearchValues: Record<number, string> = {};
         result.damagedItems.forEach((item, index) => {
-          const inv = inventoryItems.find((i) => i._id === item.itemId);
-          if (item.itemId && inv) {
-            newDamagedSearchValues[index] = inv.code || inv.name.substring(0, 4).toUpperCase();
-          }
+          const inv = item.itemId ? inventoryItems.find((i) => i._id === item.itemId) : null;
+          newDamagedSearchValues[index] = inv?.code || inv?.name || item.itemName;
         });
         setDamagedItemSearchValues(newDamagedSearchValues);
       }

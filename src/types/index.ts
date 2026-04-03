@@ -462,7 +462,7 @@ export interface ExtractedChallanData {
   date: string | null;
   partyName: string | null;
   partyId: string | null;
-  siteName: string | null;
+  agreementId: string | null;
   items: ExtractedChallanItem[];
   transporterName: string | null;
   vehicleNumber: string | null;
