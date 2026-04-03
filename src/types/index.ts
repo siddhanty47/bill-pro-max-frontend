@@ -448,6 +448,30 @@ export interface ItemWithParty {
   quantity: number;
 }
 
+// ============ Challan Extraction ============
+
+export interface ExtractedChallanItem {
+  itemName: string;
+  itemId: string | null;
+  quantity: number;
+}
+
+export interface ExtractedChallanData {
+  type: 'delivery' | 'return';
+  challanNumber: string | null;
+  date: string | null;
+  partyName: string | null;
+  partyId: string | null;
+  siteName: string | null;
+  items: ExtractedChallanItem[];
+  transporterName: string | null;
+  vehicleNumber: string | null;
+  cartageAmount: number | null;
+  damagedItems: ExtractedChallanItem[];
+  confidence: 'high' | 'medium' | 'low';
+  warnings: string[];
+}
+
 // ============ Bill ============
 
 export interface BillItem {

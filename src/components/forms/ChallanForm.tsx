@@ -6,9 +6,10 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { Party, Inventory, Challan, CreateChallanInput, Employee } from '../../types';
+import type { Party, Inventory, Challan, CreateChallanInput, Employee, ExtractedChallanData } from '../../types';
 import { computeRentedFromHistory, computeAvailable } from '../../utils/inventoryUtils';
-import { useGetNextChallanNumberQuery, useGetItemsWithPartyQuery } from '../../api/challanApi';
+import { useGetNextChallanNumberQuery, useGetItemsWithPartyQuery, useExtractChallanFromPhotoMutation } from '../../api/challanApi';
+import { getErrorMessage } from '../../api/baseApi';
 import { useGetEmployeesQuery } from '../../api/employeeApi';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
 import { DocumentNumberBadge } from '../DocumentNumberBadge';
@@ -142,6 +143,9 @@ export function ChallanForm({
   const [partySearchValue, setPartySearchValue] = useState('');
   const [itemSearchValues, setItemSearchValues] = useState<Record<number, string>>({});
   const [damagedItemSearchValues, setDamagedItemSearchValues] = useState<Record<number, string>>({});
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
+  const [extractChallanFromPhoto] = useExtractChallanFromPhotoMutation();
 
   const {
     register,
@@ -160,7 +164,7 @@ export function ChallanForm({
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace: replaceItems } = useFieldArray({
     control,
     name: 'items',
   });
@@ -169,6 +173,7 @@ export function ChallanForm({
     fields: damagedFields,
     append: appendDamaged,
     remove: removeDamaged,
+    replace: replaceDamagedItems,
   } = useFieldArray({
     control,
     name: 'damagedItems',
@@ -360,6 +365,131 @@ export function ChallanForm({
     setDamagedItemSearchValues((prev) => ({ ...prev, [index]: value }));
   }, []);
 
+  /** Apply extracted data from a photo to the form fields */
+  const applyExtractedData = useCallback(
+    (result: ExtractedChallanData) => {
+      if (result.date) setValue('date', result.date);
+
+      if (result.partyId) {
+        setValue('partyId', result.partyId);
+        const party = parties.find((p) => p._id === result.partyId);
+        if (party) {
+          setPartySearchValue(party.code || party.name.substring(0, 4).toUpperCase());
+
+          // Try to find matching agreement using site name
+          if (result.siteName && party.agreements) {
+            const matchingAgreement = party.agreements.find((a) => {
+              if (a.status !== 'active') return false;
+              const site = party.sites.find((s) => s.code === a.siteCode);
+              if (!site) return false;
+              return site.address.toLowerCase().includes(result.siteName!.toLowerCase()) ||
+                result.siteName!.toLowerCase().includes(site.address.toLowerCase());
+            });
+            if (matchingAgreement) {
+              setValue('agreementId', matchingAgreement.agreementId);
+            }
+          }
+          // If only one active agreement, auto-select it
+          if (!result.siteName) {
+            const activeAgrs = party.agreements?.filter((a) => a.status === 'active') || [];
+            if (activeAgrs.length === 1) {
+              setValue('agreementId', activeAgrs[0].agreementId);
+            }
+          }
+        }
+      }
+
+      if (result.challanNumber) {
+        const seq = parseInt(result.challanNumber.replace(/\D/g, ''), 10);
+        if (!isNaN(seq) && seq > 0 && seq <= 9999) {
+          setValue('challanSequence', seq);
+        }
+      }
+
+      if (result.vehicleNumber) setValue('vehicleNumber', result.vehicleNumber);
+      if (result.transporterName) setValue('transporterName', result.transporterName);
+      if (result.cartageAmount != null) setValue('cartageCharge', result.cartageAmount);
+
+      // Replace items array atomically (avoid per-item remove/append re-renders)
+      if (result.items.length > 0) {
+        const newItems = result.items.map((item) => ({
+          itemId: item.itemId || '',
+          itemName: item.itemName,
+          quantity: item.quantity,
+        }));
+        replaceItems(newItems);
+
+        const newSearchValues: Record<number, string> = {};
+        result.items.forEach((item, index) => {
+          if (item.itemId) {
+            const inv = inventoryItems.find((i) => i._id === item.itemId);
+            if (inv) {
+              newSearchValues[index] = inv.code || inv.name.substring(0, 4).toUpperCase();
+            }
+          }
+        });
+        setItemSearchValues(newSearchValues);
+      }
+
+      // Handle damaged items for returns
+      if (result.damagedItems.length > 0 && challanType === 'return') {
+        const newDamagedItems = result.damagedItems.map((item) => {
+          const inv = inventoryItems.find((i) => i._id === item.itemId);
+          return {
+            itemId: item.itemId || '',
+            itemName: item.itemName,
+            quantity: item.quantity,
+            damageRate: inv?.damageRate ?? 0,
+            note: '',
+            lossType: 'damage' as const,
+          };
+        });
+        replaceDamagedItems(newDamagedItems);
+
+        const newDamagedSearchValues: Record<number, string> = {};
+        result.damagedItems.forEach((item, index) => {
+          const inv = inventoryItems.find((i) => i._id === item.itemId);
+          if (item.itemId && inv) {
+            newDamagedSearchValues[index] = inv.code || inv.name.substring(0, 4).toUpperCase();
+          }
+        });
+        setDamagedItemSearchValues(newDamagedSearchValues);
+      }
+
+      if (result.warnings.length > 0) {
+        setExtractionWarnings(result.warnings);
+      }
+    },
+    [parties, inventoryItems, challanType, setValue, replaceItems, replaceDamagedItems]
+  );
+
+  /** Upload a challan photo and auto-fill the form with extracted data */
+  const handlePhotoUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      if (file.size > 5 * 1024 * 1024) {
+        setExtractionWarnings(['Image must be under 5MB. Please use a smaller photo.']);
+        return;
+      }
+
+      setIsExtracting(true);
+      setExtractionWarnings([]);
+
+      try {
+        const result = await extractChallanFromPhoto({ businessId, photo: file }).unwrap();
+        applyExtractedData(result);
+      } catch (err) {
+        setExtractionWarnings([getErrorMessage(err)]);
+      } finally {
+        setIsExtracting(false);
+        e.target.value = '';
+      }
+    },
+    [businessId, extractChallanFromPhoto, applyExtractedData]
+  );
+
   const handleFormSubmit = async (data: FormData) => {
     const damagedItems =
       data.type === 'return' && data.damagedItems?.length
@@ -402,6 +532,28 @@ export function ChallanForm({
   return (
     <form onSubmit={onFormSubmit}>
       <div className="form-content">
+      {/* Photo upload for auto-fill */}
+      <div className={styles.photoUpload}>
+        <input
+          type="file"
+          id="challan-photo"
+          accept="image/jpeg,image/png,image/webp"
+          className={styles.hiddenFileInput}
+          onChange={handlePhotoUpload}
+          disabled={isLoading || isExtracting}
+        />
+        <label htmlFor="challan-photo" className={`btn btn-secondary ${styles.uploadBtn}`}>
+          {isExtracting ? 'Extracting...' : 'Scan from Photo'}
+        </label>
+        {extractionWarnings.length > 0 && (
+          <div className={styles.extractionWarnings}>
+            {extractionWarnings.map((w, i) => (
+              <span key={i} className={styles.warning}>{w}</span>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Challan number: prefix (read-only) + editable sequence */}
       <DocumentNumberBadge
         label="Challan #"

@@ -2,7 +2,7 @@
  * Challan API endpoints
  */
 import { baseApi } from './baseApi';
-import type { Challan, CreateChallanInput, DamagedItem, ItemWithParty, ApiResponse, PaginatedResponse } from '../types';
+import type { Challan, CreateChallanInput, DamagedItem, ItemWithParty, ExtractedChallanData, ApiResponse, PaginatedResponse } from '../types';
 
 export const challanApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -172,6 +172,19 @@ export const challanApi = baseApi.injectEndpoints({
       providesTags: ['Challan'],
     }),
 
+    extractChallanFromPhoto: builder.mutation<ExtractedChallanData, { businessId: string; photo: File }>({
+      query: ({ businessId, photo }) => {
+        const formData = new FormData();
+        formData.append('photo', photo);
+        return {
+          url: `/businesses/${businessId}/challans/extract-from-photo`,
+          method: 'POST',
+          body: formData,
+        };
+      },
+      transformResponse: (response: ApiResponse<ExtractedChallanData>) => response.data,
+    }),
+
     /** Download challan PDF */
     getChallanPdf: builder.query<Blob, { businessId: string; challanId: string }>({
       query: ({ businessId, challanId }) => ({
@@ -197,4 +210,5 @@ export const {
   useGetItemsWithPartyQuery,
   useGetChallansByAgreementQuery,
   useLazyGetChallanPdfQuery,
+  useExtractChallanFromPhotoMutation,
 } = challanApi;

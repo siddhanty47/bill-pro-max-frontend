@@ -1,3 +1,32 @@
+/* ---- Photo upload ---- */
+
+.photoUpload {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.hiddenFileInput {
+  display: none;
+}
+
+.uploadBtn {
+  cursor: pointer;
+}
+
+.extractionWarnings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.warning {
+  color: var(--status-warning-text, #b45309);
+  font-size: 0.85rem;
+}
+
 /* ---- Layout helpers ---- */
 
 .flexGroup {
