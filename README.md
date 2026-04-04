@@ -102,6 +102,44 @@ src/
     └── index.ts            # Shared TypeScript interfaces
 ```
 
+## Scan Photo to Auto-Fill Challan
+
+The challan form includes a "Scan from Photo" feature that uses the backend's Claude Vision API integration to extract structured data from photos of handwritten challans.
+
+### Flow
+
+1. User clicks "Scan from Photo" in `ChallanForm` and uploads a photo (JPEG/PNG/WebP, ≤5MB)
+2. `useExtractChallanFromPhotoMutation()` (from `challanApi.ts`) sends the photo as `FormData` to the backend
+3. Backend processes the image via Claude Vision API and returns `ExtractedChallanData`
+4. `applyExtractedData()` in `ChallanForm.tsx` populates form fields via `setValue()` / `replaceItems()`
+5. Extraction warnings (if any) are displayed to the user
+6. User reviews, edits, and submits the form normally
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/api/challanApi.ts` | `useExtractChallanFromPhotoMutation` — RTK Query mutation |
+| `src/components/forms/ChallanForm.tsx` | `handlePhotoUpload()`, `applyExtractedData()` — upload + form fill |
+| `src/types/index.ts` | `ExtractedChallanData`, `ExtractedChallanItem` — response types |
+| `src/components/forms/ChallanForm.module.css` | `.photoUpload`, `.uploadBtn`, `.extractionWarnings` |
+
+### Extracted Fields
+
+| Field | Form Action |
+|-------|-------------|
+| `type` | Sets delivery/return mode |
+| `date` | Sets date picker |
+| `partyId` | Selects party in dropdown |
+| `agreementId` | Selects agreement in dropdown |
+| `challanNumber` | Extracts sequence number |
+| `items[]` | Populates item rows (itemId + quantity) |
+| `damagedItems[]` | Populates damaged items (return challans only) |
+| `transporterName`, `vehicleNumber`, `cartageAmount` | Sets transport fields |
+| `confidence`, `warnings[]` | Displays extraction quality info |
+
+---
+
 ## Production Build
 
 ### Build for Vercel
