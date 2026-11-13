@@ -88,10 +88,14 @@ Defined in `src/App.tsx`.
 
 ## Styling Rules
 
+**Before building or restyling ANY component, invoke the `frontend-design` skill** (`.claude/skills/frontend-design/`). It documents the dark terminal design system — the exact CSS tokens, reusable global classes, and ghost-button/form/badge recipes every component must follow. The app has one deliberate visual language (green-on-black, monospace, 2px corners, no shadows, hairline borders); components that ignore it look bolted-on.
+
 **MANDATORY: Never use inline `style={}` attributes in JSX.**
 
 - Component styles: CSS modules (`.module.css` files) — `import styles from './Component.module.css'`
-- Global styles: `src/globals.css`
+- Global styles: `src/globals.css` — all design tokens live in `:root`
+- **Never hardcode colors/fonts/radii** — always use `var(--…)` tokens from `globals.css`. A literal hex, `white`, non-2px radius, or `box-shadow` will not match the theme.
+- Prefer existing global classes (`.btn`, `.form-group`, `.data-table`, `.status`, `.card`) over re-styling from scratch
 - If you encounter existing inline styles, refactor them into CSS class definitions
 - Class names: `className={styles.myClass}` or `className="global-class"`
 

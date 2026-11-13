@@ -1145,3 +1145,67 @@ export interface PortalPayment {
   reference: string | null;
   notes: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// AI Assistant (conversational agent)
+// Mirrors backend models/Conversation.ts + services/AssistantService.ts
+// ---------------------------------------------------------------------------
+
+export type AssistantRole = 'user' | 'assistant' | 'tool';
+
+export interface AssistantToolCall {
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+}
+
+export interface AssistantToolResult {
+  toolCallId: string;
+  content: string;
+  isError?: boolean;
+}
+
+export interface AssistantMessage {
+  role: AssistantRole;
+  content?: string;
+  toolCalls?: AssistantToolCall[];
+  toolResults?: AssistantToolResult[];
+  createdAt?: string;
+}
+
+export interface AssistantPendingAction {
+  toolCalls: AssistantToolCall[];
+  summary: string;
+  createdAt: string;
+}
+
+export interface AssistantConversationSummary {
+  _id: string;
+  title?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AssistantConversation extends AssistantConversationSummary {
+  messages: AssistantMessage[];
+  pendingAction?: AssistantPendingAction | null;
+}
+
+/** A proposed (write) action awaiting the user's confirmation. */
+export interface AssistantProposedAction {
+  summary: string;
+  calls: Array<{ name: string; input: Record<string, unknown> }>;
+}
+
+/** Result of a chat/confirm turn (HTTP response data). */
+export type AssistantRunResult =
+  | { status: 'completed'; conversationId: string; message: string }
+  | { status: 'awaiting_confirmation'; conversationId: string; action: AssistantProposedAction }
+  | { status: 'error'; conversationId: string; error: string };
+
+/** WebSocket streaming event payloads (room: user:${userId}). */
+export interface AssistantDeltaEvent { conversationId: string; text: string }
+export interface AssistantToolEvent { conversationId: string; name: string; status: 'running' | 'done' }
+export interface AssistantConfirmEvent { conversationId: string; action: AssistantProposedAction }
+export interface AssistantMessageEvent { conversationId: string; message: string }
+export interface AssistantErrorEvent { conversationId: string; error: string }

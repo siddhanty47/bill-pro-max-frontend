@@ -8,7 +8,9 @@ export default defineConfig({
     port: 5174,
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        // Override with VITE_PROXY_TARGET to point at a local dev backend on a
+        // non-default port (3001 is usually taken by the prod Docker container).
+        target: process.env.VITE_PROXY_TARGET || 'http://localhost:3001',
         changeOrigin: true,
       },
     },

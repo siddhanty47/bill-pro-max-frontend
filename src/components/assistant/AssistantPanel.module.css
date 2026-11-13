@@ -1,0 +1,262 @@
+/* Docked right-hand side panel — sits inside the flex row beside page content,
+   below the header. Matches the app's dark terminal theme (black bg, green
+   accent, monospace, 2px radius, hairline borders). */
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  flex: 0 0 400px;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-default);
+  font-family: var(--font-body);
+}
+
+/* Closed: collapse out of the flex row so content reclaims the width. */
+.closed {
+  display: none;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  padding: 0 14px;
+  background: var(--bg-deepest);
+  border-bottom: 1px solid var(--border-default);
+}
+.title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+}
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.headerBtn {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.headerBtn:hover {
+  color: var(--accent);
+  border-color: var(--border-medium);
+}
+
+/* Messages */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg-surface);
+}
+
+.message {
+  max-width: 88%;
+  padding: 8px 11px;
+  border-radius: var(--radius-md);
+  font-size: 12.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-primary);
+}
+.user {
+  align-self: flex-end;
+  background: var(--accent-muted);
+  border: 1px solid var(--accent);
+  color: var(--text-heading);
+}
+.assistant {
+  align-self: flex-start;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Assistant tables/markdown render as plain text (pre-wrap) — keep readable. */
+
+.status {
+  align-self: flex-start;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 2px 2px;
+}
+
+/* Blinking cursor while streaming */
+.caret {
+  display: inline-block;
+  width: 7px;
+  height: 14px;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--accent);
+  animation: blink 1s steps(2, start) infinite;
+}
+@keyframes blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+/* Empty state + suggestions */
+.empty {
+  margin: auto 0;
+  text-align: center;
+  color: var(--text-secondary);
+}
+.emptyTitle {
+  font-size: 12.5px;
+  margin: 0 0 14px;
+  color: var(--text-secondary);
+}
+.suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.suggestion {
+  text-align: left;
+  padding: 9px 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+.suggestion:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Confirmation gate */
+.confirm {
+  align-self: stretch;
+  border: 1px solid var(--status-warning-border);
+  background: var(--status-warning-bg);
+  border-radius: var(--radius-md);
+  padding: 10px 11px;
+}
+.confirmTitle {
+  margin: 0 0 5px;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: var(--status-warning-text);
+}
+.confirmSummary {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+.confirmActions {
+  display: flex;
+  gap: 8px;
+}
+.approve,
+.decline {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  transition: background var(--transition-fast);
+}
+.approve {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+.approve:hover {
+  background: var(--accent-muted);
+}
+.decline {
+  border: 1px solid var(--border-medium);
+  color: var(--text-secondary);
+}
+.decline:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.error {
+  align-self: stretch;
+  font-size: 12px;
+  color: var(--status-danger-text);
+  background: var(--status-danger-bg);
+  border: 1px solid var(--status-danger-border);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+}
+
+/* Input row */
+.inputRow {
+  display: flex;
+  gap: 8px;
+  padding: 11px 12px;
+  border-top: 1px solid var(--border-default);
+  background: var(--bg-deepest);
+}
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--text-primary);
+  background: var(--bg-input);
+}
+.input::placeholder {
+  color: var(--text-muted);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.input:disabled {
+  opacity: 0.6;
+}
+.sendBtn {
+  padding: 8px 14px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--accent);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.sendBtn:hover:not(:disabled) {
+  background: var(--accent-muted);
+}
+.sendBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

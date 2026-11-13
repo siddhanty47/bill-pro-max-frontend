@@ -8,6 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { NotificationBell } from './NotificationBell';
 import { WebSocketProvider } from '../context/WebSocketContext';
+import AssistantPanel from './assistant/AssistantPanel';
 import styles from './Layout.module.css';
 
 export function Layout() {
@@ -17,6 +18,7 @@ export function Layout() {
   const [isBusinessMenuOpen, setIsBusinessMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const businessMenuRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -149,6 +151,16 @@ export function Layout() {
               </div>
             )}
 
+            <button
+              type="button"
+              className={`${styles.assistantToggle} ${isAssistantOpen ? styles.assistantToggleActive : ''}`}
+              onClick={() => setIsAssistantOpen((v) => !v)}
+              aria-pressed={isAssistantOpen}
+              title="Toggle AI assistant"
+            >
+              <span className={styles.assistantSpark}>✦</span> Assistant
+            </button>
+
             <NotificationBell />
 
             <div className={styles.profileWrapper} ref={profileMenuRef}>
@@ -208,6 +220,8 @@ export function Layout() {
           <main className={styles.content}>
             <Outlet />
           </main>
+
+          <AssistantPanel open={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />
         </div>
       </div>
     </WebSocketProvider>
