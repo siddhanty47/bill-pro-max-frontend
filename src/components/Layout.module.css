@@ -351,3 +351,92 @@
     padding: 12px;
   }
 }
+
+/* AI assistant header toggle.
+   Deliberate one-off exception to the accent-only theme: this button is a live AI
+   affordance, so it gets an animated gradient border, glow pulse, and twinkling
+   spark to stand out — while keeping the terminal DNA (monospace, square, black
+   fill). Active (panel-open) state collapses back to the calm solid-accent look. */
+.assistantToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  padding: 5px 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--text-heading);
+  /* Two layers: solid black fill (padding-box) + animated multi-hue gradient (border-box). */
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(var(--bg-deepest), var(--bg-deepest)) padding-box,
+    linear-gradient(90deg, #00cc88, #22d3ee, #7c6cff, #00e699, #00cc88) border-box;
+  background-size: 100% 100%, 260% 100%;
+  background-position: 0 0, 0 0;
+  animation: aiBorderSweep 4s linear infinite, aiGlow 2.8s ease-in-out infinite;
+  transition: color var(--transition-fast);
+}
+.assistantToggle:hover {
+  color: #fff;
+  animation-duration: 1.6s, 1.6s; /* speed up sweep + pulse on hover */
+}
+
+/* Twinkling spark */
+.assistantSpark {
+  display: inline-block;
+  color: #22d3ee;
+  animation: aiSpark 2.4s ease-in-out infinite;
+}
+
+/* Active (panel open): calm, matches rest of header chrome — no animation. */
+.assistantToggleActive,
+.assistantToggleActive:hover {
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  background: var(--accent-muted);
+  animation: none;
+}
+.assistantToggleActive .assistantSpark {
+  color: var(--accent);
+  animation: none;
+  filter: none;
+}
+
+@keyframes aiBorderSweep {
+  to {
+    background-position: 0 0, 260% 0;
+  }
+}
+@keyframes aiGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 204, 136, 0);
+  }
+  50% {
+    box-shadow: 0 0 12px 0 rgba(34, 211, 238, 0.4);
+  }
+}
+@keyframes aiSpark {
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 2px rgba(34, 211, 238, 0.6));
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.3) rotate(90deg);
+    filter: drop-shadow(0 0 6px rgba(124, 108, 255, 0.85));
+  }
+}
+
+/* Respect reduced-motion: keep the gradient, drop the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .assistantToggle,
+  .assistantSpark {
+    animation: none;
+  }
+}
