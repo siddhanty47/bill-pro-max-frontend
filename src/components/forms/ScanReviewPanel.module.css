@@ -1,0 +1,107 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0.875rem;
+  margin-top: 0.5rem;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-default, #e2e8f0);
+  border-radius: 8px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+}
+
+.badgeHigh {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.badgeMedium {
+  color: var(--status-warning-text, #b45309);
+  background: #fef3c7;
+}
+
+.badgeLow {
+  color: var(--status-danger-text, #b91c1c);
+  background: var(--status-danger-bg, #fee2e2);
+}
+
+.dismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--text-muted, #64748b);
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.dismiss:hover {
+  color: var(--text-default, #0f172a);
+}
+
+.readList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+}
+
+.readRow {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.readLabel {
+  flex: 0 0 5.5rem;
+  color: var(--text-muted, #64748b);
+  margin: 0;
+}
+
+.readValue {
+  margin: 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  word-break: break-word;
+}
+
+.flag {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--status-warning-text, #b45309);
+}
+
+.flagItems {
+  font-style: italic;
+}
+
+.warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.warning {
+  font-size: 0.8rem;
+  color: var(--text-muted, #64748b);
+}

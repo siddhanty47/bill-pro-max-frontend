@@ -462,6 +462,10 @@ export interface ExtractedChallanData {
   date: string | null;
   partyName: string | null;
   partyId: string | null;
+  /** Raw GSTIN/PAN read off the challan (exact party key) */
+  partyGstin: string | null;
+  /** Raw site address read off the challan (agreement key) */
+  siteAddress: string | null;
   agreementId: string | null;
   items: ExtractedChallanItem[];
   transporterName: string | null;

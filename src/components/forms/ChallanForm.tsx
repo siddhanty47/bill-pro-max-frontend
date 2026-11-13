@@ -7,6 +7,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Party, Inventory, Challan, CreateChallanInput, Employee, ExtractedChallanData } from '../../types';
+import ScanReviewPanel from './ScanReviewPanel';
 import { computeRentedFromHistory, computeAvailable } from '../../utils/inventoryUtils';
 import { useGetNextChallanNumberQuery, useGetItemsWithPartyQuery, useExtractChallanFromPhotoMutation } from '../../api/challanApi';
 import { getErrorMessage } from '../../api/baseApi';
@@ -145,6 +146,7 @@ export function ChallanForm({
   const [damagedItemSearchValues, setDamagedItemSearchValues] = useState<Record<number, string>>({});
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
+  const [extractionReview, setExtractionReview] = useState<ExtractedChallanData | null>(null);
   const [extractChallanFromPhoto] = useExtractChallanFromPhotoMutation();
 
   const {
@@ -434,10 +436,6 @@ export function ChallanForm({
         });
         setDamagedItemSearchValues(newDamagedSearchValues);
       }
-
-      if (result.warnings.length > 0) {
-        setExtractionWarnings(result.warnings);
-      }
     },
     [parties, inventoryItems, challanType, setValue, replaceItems, replaceDamagedItems]
   );
@@ -455,10 +453,12 @@ export function ChallanForm({
 
       setIsExtracting(true);
       setExtractionWarnings([]);
+      setExtractionReview(null);
 
       try {
         const result = await extractChallanFromPhoto({ businessId, photo: file }).unwrap();
         applyExtractedData(result);
+        setExtractionReview(result);
       } catch (err) {
         setExtractionWarnings([getErrorMessage(err)]);
       } finally {
@@ -530,6 +530,12 @@ export function ChallanForm({
               <span key={i} className={styles.warning}>{w}</span>
             ))}
           </div>
+        )}
+        {extractionReview && (
+          <ScanReviewPanel
+            result={extractionReview}
+            onDismiss={() => setExtractionReview(null)}
+          />
         )}
       </div>
 
