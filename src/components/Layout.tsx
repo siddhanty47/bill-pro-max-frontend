@@ -157,8 +157,10 @@ export function Layout() {
               onClick={() => setIsAssistantOpen((v) => !v)}
               aria-pressed={isAssistantOpen}
               title="Toggle AI assistant"
+              aria-label="Toggle AI assistant"
             >
-              <span className={styles.assistantSpark}>✦</span> Assistant
+              <span className={styles.assistantSpark}>✦</span>
+              <span className={styles.assistantLabel}>Assistant</span>
             </button>
 
             <NotificationBell />
