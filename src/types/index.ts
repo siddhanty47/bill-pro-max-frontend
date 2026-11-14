@@ -1165,12 +1165,25 @@ export interface AssistantToolResult {
   isError?: boolean;
 }
 
+/** Metadata marker for a file attached to a message (bytes are not stored). */
+export interface AssistantAttachmentMeta {
+  kind: 'image' | 'audio';
+  mediaType: string;
+  filename?: string;
+}
+
 export interface AssistantMessage {
   role: AssistantRole;
   content?: string;
+  attachments?: AssistantAttachmentMeta[];
   toolCalls?: AssistantToolCall[];
   toolResults?: AssistantToolResult[];
   createdAt?: string;
+}
+
+/** Response of the voice transcription endpoint. */
+export interface AssistantTranscription {
+  text: string;
 }
 
 export interface AssistantPendingAction {

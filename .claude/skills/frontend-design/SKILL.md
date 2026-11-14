@@ -14,6 +14,7 @@ Black background, monospace everywhere (JetBrains Mono), a single green accent (
 4. **Square + flat.** `border-radius: var(--radius-md)` (2px). `--shadow-*` are `none`; don't add shadows or `backdrop-filter`.
 5. **Prefer existing global classes** over re-styling from scratch — `.btn`/`.btn-primary`/`.btn-secondary`/`.btn-danger`/`.btn-sm`, `.form-group`, `.data-table`, `.status` (+ state variants), `.card`, `.stat-card`, `.page-header`, `.filters`, `.error-message`. Only write module CSS for layout/structure unique to your component.
 6. **Reuse tokens for state**, never raw status colors: warning = `--status-warning-*`, danger = `--status-danger-*`, success = `--status-success-*`, info = `--status-info-*`.
+7. **Icons are inline SVG line-icons, never emoji.** Emoji (🎤 ❏ 📎 ✓) clash with the monospace terminal look and can't inherit theme colors or hover/disabled states. Use a monochrome stroked SVG: `stroke="currentColor"`, `fill="none"` (so it follows the button's text color automatically), `stroke-width` ~1.3, and `stroke-linecap="square"` + `stroke-linejoin="miter"` to match the sharp 2px aesthetic. A deliberately-filled glyph (e.g. a stop square) uses `fill="currentColor" stroke="none"`. Size 14–16px inside icon buttons.
 
 ## Token cheat-sheet (from `globals.css`)
 
@@ -51,6 +52,18 @@ Or just use the global `.btn .btn-primary` / `.btn-secondary` / `.btn-danger`.
 
 **Input focus / selection:** focus ring is `--accent`; never a blue browser default (`outline: none` + accent border).
 
+**Icon (inline SVG line-icon, not emoji):**
+```tsx
+const svgProps = {
+  width: 16, height: 16, viewBox: '0 0 16 16', fill: 'none',
+  stroke: 'currentColor', strokeWidth: 1.3,
+  strokeLinecap: 'square' as const, strokeLinejoin: 'miter' as const, 'aria-hidden': true,
+};
+// paths only, no fill — e.g. mic / paperclip / chevron.
+// filled glyph (stop square): <svg {...svgProps} fill="currentColor" stroke="none">
+```
+The wrapping button centers it and owns the color: `.iconBtn { display:flex; align-items:center; justify-content:center; color: var(--text-secondary) }`, `:hover { color: var(--accent); border-color: var(--accent) }`. Because the SVG uses `currentColor`, it inherits theme + hover + disabled states for free. Reference: `components/assistant/AssistantPanel.tsx`.
+
 ## Checklist for any new component
 
 - [ ] Module CSS file (`X.module.css`), zero inline styles.
@@ -59,6 +72,7 @@ Or just use the global `.btn .btn-primary` / `.btn-secondary` / `.btn-danger`.
 - [ ] Body text `--text-primary`, headings `--text-heading`, labels UPPERCASE `--text-secondary` — all legible on black (no low-contrast grey-on-grey).
 - [ ] Accent used only for interactive/active/primary; state colors via `--status-*`.
 - [ ] 2px radius, no shadow, monospace, hairline borders.
+- [ ] Icons are inline SVG line-icons (`currentColor`, square caps), not emoji.
 - [ ] Looks native beside `DataTable`, `Layout` sidebar, and a form — compare side by side.
 
 ## Notes
