@@ -352,6 +352,17 @@
   }
 }
 
+/* Very narrow phones: header is crowded (brand, business, assistant, bell,
+   avatar) — collapse the assistant toggle to its spark icon. */
+@media (max-width: 480px) {
+  .assistantLabel {
+    display: none;
+  }
+  .assistantToggle {
+    padding: 5px 9px;
+  }
+}
+
 /* AI assistant header toggle.
    Deliberate one-off exception to the accent-only theme: this button is a live AI
    affordance, so it gets an animated gradient border, glow pulse, and twinkling
