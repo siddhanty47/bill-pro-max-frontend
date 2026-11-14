@@ -10,21 +10,45 @@ import type {
   AssistantRunResult,
   AssistantConversation,
   AssistantConversationSummary,
+  AssistantTranscription,
 } from '../types';
 
 export const assistantApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     sendAssistantMessage: builder.mutation<
       AssistantRunResult,
-      { businessId: string; message: string; conversationId?: string }
+      { businessId: string; message: string; conversationId?: string; images?: File[] }
     >({
-      query: ({ businessId, ...body }) => ({
-        url: `/businesses/${businessId}/assistant/chat`,
-        method: 'POST',
-        body,
-      }),
+      // multipart/form-data so optional image attachments ride along with the text.
+      query: ({ businessId, message, conversationId, images }) => {
+        const form = new FormData();
+        form.append('message', message);
+        if (conversationId) form.append('conversationId', conversationId);
+        (images || []).forEach((file) => form.append('images', file));
+        return {
+          url: `/businesses/${businessId}/assistant/chat`,
+          method: 'POST',
+          body: form,
+        };
+      },
       transformResponse: (response: ApiResponse<AssistantRunResult>) => response.data,
       invalidatesTags: ['Assistant'],
+    }),
+
+    transcribeAssistantAudio: builder.mutation<
+      AssistantTranscription,
+      { businessId: string; audio: Blob; filename?: string }
+    >({
+      query: ({ businessId, audio, filename }) => {
+        const form = new FormData();
+        form.append('audio', audio, filename || 'voice.webm');
+        return {
+          url: `/businesses/${businessId}/assistant/transcribe`,
+          method: 'POST',
+          body: form,
+        };
+      },
+      transformResponse: (response: ApiResponse<AssistantTranscription>) => response.data,
     }),
 
     confirmAssistantAction: builder.mutation<
@@ -60,6 +84,7 @@ export const assistantApi = baseApi.injectEndpoints({
 
 export const {
   useSendAssistantMessageMutation,
+  useTranscribeAssistantAudioMutation,
   useConfirmAssistantActionMutation,
   useListAssistantConversationsQuery,
   useGetAssistantConversationQuery,
