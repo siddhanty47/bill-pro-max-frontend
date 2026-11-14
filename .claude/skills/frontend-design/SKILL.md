@@ -16,6 +16,24 @@ Black background, monospace everywhere (JetBrains Mono), a single green accent (
 6. **Reuse tokens for state**, never raw status colors: warning = `--status-warning-*`, danger = `--status-danger-*`, success = `--status-success-*`, info = `--status-info-*`.
 7. **Icons are inline SVG line-icons, never emoji.** Emoji (🎤 ❏ 📎 ✓) clash with the monospace terminal look and can't inherit theme colors or hover/disabled states. Use a monochrome stroked SVG: `stroke="currentColor"`, `fill="none"` (so it follows the button's text color automatically), `stroke-width` ~1.3, and `stroke-linecap="square"` + `stroke-linejoin="miter"` to match the sharp 2px aesthetic. A deliberately-filled glyph (e.g. a stop square) uses `fill="currentColor" stroke="none"`. Size 14–16px inside icon buttons.
 
+## Mobile is part of every change (not a follow-up)
+
+Every component/page/style change must be checked for phones too. The app is used on site by rental staff on phones, so a desktop-only change is incomplete.
+
+**Breakpoints** (match existing `@media` blocks in `globals.css` / `Layout.module.css` — don't invent new ones): `max-width: 768px` = mobile (sidebar becomes a drawer, forms stack); `max-width: 480px` = narrow phone (single-column grids, icon-only chrome).
+
+**Rules:**
+1. Put the mobile overrides in the **same module file**, in a `@media (max-width: 768px)` block at the bottom. Desktop styles stay the base.
+2. **Touch targets ≥ 44px tall** for buttons, inputs, list rows you tap.
+3. **Inputs/textarea `font-size: 16px` minimum** on mobile — anything smaller makes iOS Safari zoom on focus.
+4. Use `100dvh` (with a `100vh` fallback line before it) for full-height surfaces, so the on-screen keyboard doesn't hide the input.
+5. Fixed/full-screen chrome pads with `env(safe-area-inset-top|bottom, 0px)` (the viewport meta already has `viewport-fit=cover`).
+6. Side panels / docked surfaces that can't fit become **full-screen overlays** (`position: fixed; inset: 0;`) with their own close control — see the assistant panel (`components/assistant/AssistantPanel.module.css`). Z-index ladder: sidebar overlay 99, sidebar drawer 100, full-screen panel 200.
+7. No horizontal page scroll. Wide tables stay in their own `overflow-x: auto` wrapper; flex rows `flex-wrap` or stack.
+8. Crowded header/toolbars collapse labels to icons at 480px (keep `aria-label`).
+
+**When unsure, ask before building.** If the mobile treatment isn't obvious from these rules or an existing pattern (e.g. should this table become cards? should this modal go full-screen? what gets hidden on a narrow phone?), stop and ask the user what it should look like on mobile — offer 2–3 concrete options with a short sketch — instead of guessing. Obvious cases (stacking, larger tap targets, the rules above) don't need a question.
+
 ## Token cheat-sheet (from `globals.css`)
 
 **Surfaces (darkest → lightest):** `--bg-deepest #000` (header/sidebar/input-rows) · `--bg-surface #0a0a0a` (page content) · `--bg-elevated #111` · `--bg-card #161616` · `--bg-input #0d0d0d` · `--bg-hover #1a1a1a`.
@@ -73,6 +91,7 @@ The wrapping button centers it and owns the color: `.iconBtn { display:flex; ali
 - [ ] Accent used only for interactive/active/primary; state colors via `--status-*`.
 - [ ] 2px radius, no shadow, monospace, hairline borders.
 - [ ] Icons are inline SVG line-icons (`currentColor`, square caps), not emoji.
+- [ ] Mobile checked at 768px and ~375px: no horizontal scroll, ≥44px tap targets, 16px inputs, `dvh` + safe-area for full-height/fixed UI (or asked the user when the mobile layout wasn't obvious).
 - [ ] Looks native beside `DataTable`, `Layout` sidebar, and a form — compare side by side.
 
 ## Notes

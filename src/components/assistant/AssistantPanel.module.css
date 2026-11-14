@@ -370,3 +370,84 @@
     animation: none;
   }
 }
+
+/* --- Mobile (≤768px): full-screen chat ---
+   No room to dock beside content, so the panel takes over the whole viewport
+   (covering the app header) like a native chat screen. dvh tracks the on-screen
+   keyboard; safe-area insets keep chrome clear of notches / home indicator. */
+@media (max-width: 768px) {
+  .panel {
+    position: fixed;
+    inset: 0;
+    z-index: 200; /* above app header, sidebar (100) and its overlay (99) */
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    flex: none;
+    border-left: none;
+  }
+
+  .closed {
+    display: none;
+  }
+
+  .header {
+    height: calc(52px + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) 12px 0;
+  }
+  .title {
+    font-size: 13px;
+  }
+  .headerActions {
+    gap: 8px;
+  }
+  .headerBtn {
+    min-height: 36px;
+    min-width: 40px;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .messages {
+    padding: 14px 12px;
+    overscroll-behavior: contain;
+  }
+  .message {
+    max-width: 92%;
+    font-size: 14px;
+  }
+  .status,
+  .emptyTitle,
+  .confirmSummary,
+  .error {
+    font-size: 13px;
+  }
+  .suggestion {
+    padding: 12px;
+    font-size: 13px;
+  }
+  .approve,
+  .decline {
+    min-height: 44px;
+    font-size: 13px;
+  }
+
+  .inputRow {
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  .input {
+    min-height: 44px;
+    font-size: 16px; /* ≥16px stops iOS Safari auto-zooming on focus */
+  }
+  .sendBtn {
+    min-height: 44px;
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  /* voice/photo chrome — comfortable tap targets */
+  .iconBtn {
+    min-height: 44px;
+    width: 40px;
+  }
+}
