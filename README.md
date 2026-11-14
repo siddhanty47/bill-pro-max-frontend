@@ -171,6 +171,21 @@ docker compose -f docker-compose.prod.yml up --build
 # Frontend at http://localhost:8081
 ```
 
+## Troubleshooting
+
+### `TypeError: crypto$2.getRandomValues is not a function` during build
+
+Vite 5 requires the Web Crypto API, which is only available on **Node 18+**. On older Node versions (e.g. Node 16) the build falls back to a shim that lacks `getRandomValues`, producing this error.
+
+This usually means the build ran under an old Node binary (e.g. a stray `/usr/local/bin/node`) instead of the expected version. Fix it by selecting Node 20:
+
+```bash
+nvm use        # reads .nvmrc → Node 20
+npm run build
+```
+
+If the wrong version keeps getting picked up, check which Node is on your `PATH` (`which node`, `node --version`) and remove or shadow the old binary.
+
 ## License
 
 Private - All rights reserved.
