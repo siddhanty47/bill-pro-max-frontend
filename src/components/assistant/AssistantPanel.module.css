@@ -212,34 +212,68 @@
   padding: 8px 10px;
 }
 
-/* Input row */
-.inputRow {
+/* Composer — multi-line message box with a tool bar beneath it.
+   The whole box gets the focus ring (via :focus-within), like other chat
+   assistants. Textarea shows 3 lines minimum, grows with content up to ~8
+   lines (where field-sizing is supported), then scrolls inside. */
+.composer {
+  --composer-line: 1.5em;
   display: flex;
-  gap: 8px;
-  padding: 11px 12px;
-  border-top: 1px solid var(--border-default);
-  background: var(--bg-deepest);
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 12px 12px;
+  padding: 8px 8px 6px;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  transition: border-color var(--transition-fast);
+}
+.composer:focus-within {
+  border-color: var(--accent);
 }
 .input {
-  flex: 1;
-  min-width: 0;
-  padding: 8px 10px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  width: 100%;
+  min-height: calc(var(--composer-line) * 3);
+  max-height: calc(var(--composer-line) * 8);
+  field-sizing: content; /* auto-grow between min/max; older browsers keep 3 rows */
+  overflow-y: auto;
+  resize: none;
+  padding: 2px 4px;
+  border: none;
+  background: transparent;
   font-family: var(--font-body);
-  font-size: 12.5px;
+  font-size: 13px;
+  line-height: var(--composer-line);
   color: var(--text-primary);
-  background: var(--bg-input);
 }
 .input::placeholder {
   color: var(--text-muted);
 }
 .input:focus {
   outline: none;
-  border-color: var(--accent);
 }
 .input:disabled {
   opacity: 0.6;
+  cursor: not-allowed;
+}
+.composerBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.composerTools {
+  display: flex;
+  gap: 6px;
+}
+.composerHint {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .sendBtn {
   padding: 8px 14px;
@@ -432,12 +466,15 @@
     font-size: 13px;
   }
 
-  .inputRow {
-    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  .composer {
+    margin: 8px 10px calc(10px + env(safe-area-inset-bottom, 0px));
   }
   .input {
-    min-height: 44px;
     font-size: 16px; /* ≥16px stops iOS Safari auto-zooming on focus */
+    max-height: calc(var(--composer-line) * 6); /* leave room for the chat above the keyboard */
+  }
+  .composerHint {
+    display: none; /* no Shift+Enter on touch keyboards */
   }
   .sendBtn {
     min-height: 44px;

@@ -320,6 +320,18 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
   const inputLocked = busy || !!pending;
   const canSend = !inputLocked && (!!input.trim() || attachments.length > 0);
 
+  /**
+   * Enter sends, Shift+Enter inserts a newline (desktop chat convention). On
+   * touch devices the on-screen Enter key inserts a newline and the user taps
+   * Send instead. Ignore Enter while an IME composition is in progress.
+   */
+  const onInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return;
+    if (window.matchMedia('(pointer: coarse)').matches) return;
+    e.preventDefault();
+    if (canSend) send(input);
+  };
+
   return (
     <aside className={`${styles.panel} ${open ? '' : styles.closed}`} aria-hidden={!open} aria-label="AI assistant">
       <header className={styles.header}>
@@ -409,7 +421,7 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
         </div>
       )}
 
-      <form className={styles.inputRow} onSubmit={onSubmit}>
+      <form className={styles.composer} onSubmit={onSubmit}>
         <input
           ref={fileInputRef}
           type="file"
@@ -418,30 +430,12 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
           className={styles.hiddenFile}
           onChange={onPickImages}
         />
-        <button
-          type="button"
-          className={styles.iconBtn}
-          onClick={() => fileInputRef.current?.click()}
-          disabled={inputLocked || attachments.length >= MAX_IMAGES}
-          title="Attach photo"
-          aria-label="Attach photo"
-        >
-          <AttachIcon />
-        </button>
-        <button
-          type="button"
-          className={`${styles.iconBtn} ${recording ? styles.recording : ''}`}
-          onClick={toggleRecording}
-          disabled={inputLocked || transcribing}
-          title={recording ? 'Stop recording' : 'Record voice'}
-          aria-label={recording ? 'Stop recording' : 'Record voice'}
-        >
-          {recording ? <StopIcon /> : <MicIcon />}
-        </button>
-        <input
+        <textarea
           className={styles.input}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={onInputKeyDown}
+          rows={3}
           placeholder={
             pending
               ? 'Confirm or cancel above…'
@@ -451,11 +445,37 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
                   ? 'Transcribing…'
                   : 'Ask anything…'
           }
+          aria-label="Message the assistant"
           disabled={inputLocked}
         />
-        <button type="submit" className={styles.sendBtn} disabled={!canSend}>
-          Send
-        </button>
+        <div className={styles.composerBar}>
+          <div className={styles.composerTools}>
+            <button
+              type="button"
+              className={styles.iconBtn}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={inputLocked || attachments.length >= MAX_IMAGES}
+              title="Attach photo"
+              aria-label="Attach photo"
+            >
+              <AttachIcon />
+            </button>
+            <button
+              type="button"
+              className={`${styles.iconBtn} ${recording ? styles.recording : ''}`}
+              onClick={toggleRecording}
+              disabled={inputLocked || transcribing}
+              title={recording ? 'Stop recording' : 'Record voice'}
+              aria-label={recording ? 'Stop recording' : 'Record voice'}
+            >
+              {recording ? <StopIcon /> : <MicIcon />}
+            </button>
+          </div>
+          <span className={styles.composerHint}>Shift+Enter for new line</span>
+          <button type="submit" className={styles.sendBtn} disabled={!canSend}>
+            Send
+          </button>
+        </div>
       </form>
     </aside>
   );
