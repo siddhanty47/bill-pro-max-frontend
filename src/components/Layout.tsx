@@ -10,6 +10,7 @@ import { NotificationBell } from './NotificationBell';
 import { WebSocketProvider } from '../context/WebSocketContext';
 import { useSearchIndexSync } from '../hooks/useSearchIndexSync';
 import AssistantPanel from './assistant/AssistantPanel';
+import { GlobalSearch } from './GlobalSearch/GlobalSearch';
 import styles from './Layout.module.css';
 
 /** Mounts the search-index sync hook inside WebSocketProvider (Layout itself sits outside it). */
@@ -100,6 +101,10 @@ export function Layout() {
               ☰
             </button>
             <h1>BillProMax</h1>
+          </div>
+
+          <div className={styles.headerSearch}>
+            <GlobalSearch />
           </div>
 
           <div className={styles.headerActions}>
