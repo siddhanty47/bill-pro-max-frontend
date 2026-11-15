@@ -32,3 +32,6 @@ dist-ssr
 
 # local feature worktrees
 .worktrees/
+
+# test coverage output
+coverage/
