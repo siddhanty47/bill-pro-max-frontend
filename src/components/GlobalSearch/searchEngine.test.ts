@@ -94,6 +94,8 @@ describe('helpers', () => {
     expect(r.map((x) => x.key)).toEqual(['CHALLAN:c1', 'BILL:b1'])
     expect(r[0].score).toBeGreaterThan(r[1].score)
     expect(r[0].href).toBe('/challans/c1')
+    expect(r[0].badge).toBe('delivery')
+    expect(r[1].badge).toBeUndefined()
   })
 })
 

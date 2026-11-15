@@ -48,7 +48,14 @@ export function SearchResultRow({ id, result, query, selected, onHover, onPick }
     >
       <span className={`${styles.tag} ${TAG_CLASS[result.tag]}`}>{result.tag}</span>
       <span className={styles.rowText}>
-        <span className={styles.rowTitle}><Highlighted text={result.title} query={query} /></span>
+        <span className={styles.rowTitle}>
+          <Highlighted text={result.title} query={query} />
+          {result.badge && (
+            <span className={`${styles.badge} ${result.badge === 'delivery' ? styles.badgeDelivery : styles.badgeReturn}`}>
+              {result.badge}
+            </span>
+          )}
+        </span>
         {(lead || result.viaSite) && (
           <span className={styles.rowSub}>
             {lead && <Highlighted text={lead} query={query} />}

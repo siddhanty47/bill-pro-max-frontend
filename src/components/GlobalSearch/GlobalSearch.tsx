@@ -48,9 +48,9 @@ export function GlobalSearch() {
     inputRef.current?.focus()
     inputRef.current?.select()
   }
-  useHotkey('ctrl+k', focusSearch)
-  useHotkey('meta+k', focusSearch)
-  useHotkey('/', focusSearch)
+  // No bare '/' binding: list pages already use '/' to focus their own search.
+  useHotkey('ctrl+k', focusSearch, !s.hidden)
+  useHotkey('meta+k', focusSearch, !s.hidden)
 
   // Focus the input once the mobile overlay is shown.
   useEffect(() => {
@@ -65,6 +65,9 @@ export function GlobalSearch() {
   }
 
   if (s.hidden) return null
+
+  // On mobile the overlay keeps the list visible even after the input blurs.
+  const listOpen = (s.open || mobileOpen) && s.trimmed.length > 0
 
   const closeAll = () => {
     s.setOpen(false)
@@ -87,7 +90,7 @@ export function GlobalSearch() {
         s.move(e.key === 'ArrowDown' ? 1 : -1)
         break
       case 'Enter':
-        if (s.open && s.selected) {
+        if (listOpen && s.selected) {
           e.preventDefault()
           go(s.selected)
         }
@@ -103,7 +106,7 @@ export function GlobalSearch() {
   }
 
   const loadingRow = s.docsLoading && (
-    <li className={styles.loadingRow} aria-hidden="true">Searching bills &amp; challans…</li>
+    <li role="presentation" className={styles.loadingRow}>Searching bills &amp; challans…</li>
   )
   const rows = s.results.map((r) => (
     <SearchResultRow
@@ -117,6 +120,8 @@ export function GlobalSearch() {
     />
   ))
   const empty = s.results.length === 0 && !s.docsLoading && !s.indexing
+  const indexingEmpty = s.indexing && s.results.length === 0
+  const status = !listOpen ? '' : indexingEmpty ? 'Indexing…' : empty ? `No matches for "${s.trimmed}"` : ''
 
   return (
     <div className={`${styles.root} ${mobileOpen ? styles.mobileOpen : ''}`}>
@@ -148,10 +153,10 @@ export function GlobalSearch() {
             onBlur={() => s.setOpen(false)}
             onKeyDown={onKeyDown}
             role="combobox"
-            aria-expanded={s.open}
+            aria-expanded={listOpen}
             aria-controls={listId}
             aria-autocomplete="list"
-            aria-activedescendant={s.open && s.selectedKey ? optionId(s.selectedKey) : undefined}
+            aria-activedescendant={listOpen && s.selectedKey ? optionId(s.selectedKey) : undefined}
             aria-label="Global search"
             autoComplete="off"
             spellCheck={false}
@@ -170,20 +175,21 @@ export function GlobalSearch() {
           id={listId}
           role="listbox"
           aria-label="Search results"
-          className={`${styles.dropdown} ${s.open ? styles.dropdownOpen : ''}`}
+          className={`${styles.dropdown} ${listOpen ? styles.dropdownOpen : ''}`}
           // Keep focus in the input while clicking a row.
           onMouseDown={(e) => e.preventDefault()}
         >
-          {s.open && (
+          {listOpen && (
             <>
               {s.docsFirst && loadingRow}
               {rows}
               {!s.docsFirst && loadingRow}
-              {s.indexing && s.results.length === 0 && <li className={styles.emptyRow}>Indexing…</li>}
-              {empty && <li className={styles.emptyRow}>No matches for &ldquo;{s.trimmed}&rdquo;</li>}
+              {indexingEmpty && <li role="presentation" className={styles.emptyRow}>Indexing…</li>}
+              {empty && <li role="presentation" className={styles.emptyRow}>No matches for &ldquo;{s.trimmed}&rdquo;</li>}
             </>
           )}
         </ul>
+        <div className={styles.srOnly} role="status" aria-live="polite">{status}</div>
       </div>
     </div>
   )

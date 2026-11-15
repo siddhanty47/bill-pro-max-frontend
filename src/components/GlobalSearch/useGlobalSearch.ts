@@ -84,7 +84,7 @@ export function useGlobalSearch() {
   )
 
   // Only trust document hits fetched for exactly this business + debounced query.
-  const docsMatch = docsWanted && !!docData && docArgs?.businessId === businessId && docArgs?.q === debounced
+  const docsMatch = docsWanted && debounced === trimmed && !!docData && docArgs?.businessId === businessId && docArgs?.q === debounced
   const docResults = useMemo(
     () => (docsMatch && docData ? documentsToResults(docData) : EMPTY),
     [docsMatch, docData],
@@ -117,7 +117,7 @@ export function useGlobalSearch() {
     query,
     setQuery,
     trimmed,
-    open: open && trimmed.length > 0,
+    open,
     setOpen,
     results,
     selectedKey,

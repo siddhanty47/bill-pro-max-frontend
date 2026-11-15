@@ -76,7 +76,7 @@ function isTextInput(el: EventTarget | null): boolean {
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
 }
 
-export function useHotkey(combo: string, handler: () => void): void {
+export function useHotkey(combo: string, handler: () => void, enabled = true): void {
   const handlerRef = useRef(handler);
   handlerRef.current = handler;
 
@@ -84,6 +84,7 @@ export function useHotkey(combo: string, handler: () => void): void {
   parsedRef.current = parseCombo(combo);
 
   useEffect(() => {
+    if (!enabled) return;
     const onKeyDown = (e: KeyboardEvent) => {
       const p = parsedRef.current;
 
@@ -101,5 +102,5 @@ export function useHotkey(combo: string, handler: () => void): void {
 
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [combo]);
+  }, [combo, enabled]);
 }

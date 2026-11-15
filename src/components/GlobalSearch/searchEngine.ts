@@ -9,6 +9,8 @@ export interface SearchResult {
   subtitle: string
   href: string
   viaSite?: string
+  /** Challan direction, rendered as a delivery/return badge. */
+  badge?: 'delivery' | 'return'
   score: number
 }
 
@@ -142,7 +144,7 @@ export function documentsToResults(r: DocumentSearchResponse): SearchResult[] {
   let i = 0
   const score = () => total - i++
   const challans = r.challans.map((c): SearchResult => ({
-    key: `CHALLAN:${c.id}`, tag: 'CHALLAN', title: c.challanNumber,
+    key: `CHALLAN:${c.id}`, tag: 'CHALLAN', title: c.challanNumber, badge: c.type,
     subtitle: [c.partyName, fmtDate(c.date), c.status].filter(Boolean).join(' · '), href: `/challans/${c.id}`, score: score(),
   }))
   const bills = r.bills.map((b): SearchResult => ({
