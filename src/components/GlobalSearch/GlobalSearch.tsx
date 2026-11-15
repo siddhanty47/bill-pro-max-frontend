@@ -160,6 +160,7 @@ export function GlobalSearch() {
             aria-label="Global search"
             autoComplete="off"
             spellCheck={false}
+            maxLength={60}
           />
           {s.indexing ? (
             <span className={styles.hint}>Indexing…</span>
@@ -185,7 +186,8 @@ export function GlobalSearch() {
               {rows}
               {!s.docsFirst && loadingRow}
               {indexingEmpty && <li role="presentation" className={styles.emptyRow}>Indexing…</li>}
-              {empty && <li role="presentation" className={styles.emptyRow}>No matches for &ldquo;{s.trimmed}&rdquo;</li>}
+              {s.docsError && <li role="presentation" className={styles.emptyRow}>Couldn&rsquo;t search bills &amp; challans</li>}
+              {empty && !s.docsError && <li role="presentation" className={styles.emptyRow}>No matches for &ldquo;{s.trimmed}&rdquo;</li>}
             </>
           )}
         </ul>

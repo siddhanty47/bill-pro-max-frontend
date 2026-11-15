@@ -76,6 +76,7 @@ export function useGlobalSearch() {
     currentData: docData,
     originalArgs: docArgs,
     isFetching: isDocsFetching,
+    isError: isDocsError,
   } = useSearchDocumentsQuery(docsArg, { skip: !canSearchDocs || !businessId || !hasDocumentToken(debounced) })
 
   const entityResults = useMemo(
@@ -89,6 +90,7 @@ export function useGlobalSearch() {
     () => (docsMatch && docData ? documentsToResults(docData) : EMPTY),
     [docsMatch, docData],
   )
+  const docsError = docsWanted && debounced === trimmed && isDocsError && docArgs?.businessId === businessId && docArgs?.q === debounced
   const docsLoading = docsWanted && (debounced !== trimmed || isDocsFetching)
 
   const results = useMemo(
@@ -126,6 +128,7 @@ export function useGlobalSearch() {
     select,
     reset,
     docsLoading,
+    docsError,
     docsFirst: isDigitHeavy(trimmed),
   }
 }
