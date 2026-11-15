@@ -50,13 +50,10 @@ export function BusinessDetailPage() {
     { id: 'change-history', label: 'Change History' },
   ];
 
-  if (!currentBusinessId) {
-    return <Navigate to="/" replace />;
-  }
-
   /** Save handler for top-level business fields */
   const handleSave = useCallback(
     async (field: string, newValue: string | number) => {
+      if (!currentBusinessId) return;
       await updateBusiness({
         businessId: currentBusinessId,
         data: { [field]: newValue },
@@ -68,7 +65,7 @@ export function BusinessDetailPage() {
   /** Save handler for settings fields */
   const handleSettingsSave = useCallback(
     async (field: keyof BusinessSettings, newValue: string | number) => {
-      if (!business) return;
+      if (!business || !currentBusinessId) return;
       const settings: Partial<BusinessSettings> = {
         ...business.settings,
         [field]: newValue,
@@ -80,6 +77,11 @@ export function BusinessDetailPage() {
     },
     [currentBusinessId, business, updateBusiness]
   );
+
+  // Early return must come after every hook (rules-of-hooks).
+  if (!currentBusinessId) {
+    return <Navigate to="/" replace />;
+  }
 
   const sidebar = business ? (
     <DetailSection title="Details">

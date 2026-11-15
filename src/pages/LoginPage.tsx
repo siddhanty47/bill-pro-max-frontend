@@ -4,6 +4,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../hooks/useAuth';
 import styles from './LoginPage.module.css';
@@ -26,7 +27,7 @@ export function LoginPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginForm>();
+  } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
 
   useEffect(() => {
     if (isAuthenticated) {
