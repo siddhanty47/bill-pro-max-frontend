@@ -14,9 +14,9 @@ export interface SearchResult {
 
 const NON_TOKEN = /[^\p{L}\p{M}\p{N}\s\-/_]+/gu
 const SEPARATORS = /[-/_]+/g
-const LONG_DIGITS = /^\d{10,}$/
+const TRAILING_EPOCH = /_\d{10,}$/
 
-/** Lowercase, split on whitespace and - / _, keep whole + separator-stripped variants, drop epoch-like numbers. */
+/** Lowercase, split on whitespace and - / _, keep whole + separator-stripped variants. */
 export function tokenize(text: string): string[] {
   const out = new Set<string>()
   for (const word of text.toLowerCase().replace(NON_TOKEN, ' ').split(/\s+/)) {
@@ -26,7 +26,7 @@ export function tokenize(text: string): string[] {
     if (parts.length > 1 || word !== parts[0]) {
       candidates.push(word.replace(/^[-/_]+|[-/_]+$/g, ''), parts.join(''))
     }
-    for (const t of candidates) if (t && !LONG_DIGITS.test(t)) out.add(t)
+    for (const t of candidates) if (t) out.add(t)
   }
   return [...out]
 }
@@ -53,7 +53,7 @@ export function createEntityEngine(rows: SearchIndexRow[]): MiniSearch<Doc> {
     extractField: (doc, field) => {
       if (field === 'siteCodes') return doc.t === 'party' ? doc.sites.map((s) => s.code).join(' ') : ''
       if (field === 'siteAddresses') return doc.t === 'party' ? doc.sites.map((s) => s.address).join(' ') : ''
-      if (field === 'agreementId') return doc.t === 'agreement' ? doc.id : ''
+      if (field === 'agreementId') return doc.t === 'agreement' ? doc.id.replace(TRAILING_EPOCH, '') : ''
       const v = (doc as unknown as Record<string, unknown>)[field]
       if (field === 'sites') return v ?? []
       return typeof v === 'string' ? v : ''
@@ -61,12 +61,15 @@ export function createEntityEngine(rows: SearchIndexRow[]): MiniSearch<Doc> {
     searchOptions: {
       tokenize,
       processTerm: (t) => t,
+      boost: { code: 3, agreementId: 3, gst: 3, siteCodes: 2, name: 2, siteAddresses: 1, partyName: 0.5 },
       prefix: true,
       fuzzy: (term) => (term.length >= 4 ? 0.2 : false),
       boostDocument: (_id, _term, stored) => (stored?.t === 'agreement' && stored.status !== 'active' ? 0.6 : 1),
     },
   })
-  engine.addAll(rows.map((r) => ({ ...r, key: `${r.t}:${r.id}` }) as Doc))
+  const byKey = new Map<string, Doc>()
+  for (const r of rows) byKey.set(`${r.t}:${r.id}`, { ...r, key: `${r.t}:${r.id}` } as Doc)
+  engine.addAll([...byKey.values()])
   return engine
 }
 
@@ -84,10 +87,16 @@ function toResult(hit: MiniResult): SearchResult {
   const base = { key: '', score: hit.score }
   if (d.t === 'party') {
     const sites = d.sites ?? []
-    const matching = viaSiteField
-      ? sites.filter((s) => tokenize(`${s.code} ${s.address}`).some((tok) => matchedTerms.has(tok)))
-      : []
-    const extra = [d.gst ? 'GST' : d.phone ? d.phone : ''].filter(Boolean)
+    let matching: typeof sites = []
+    if (viaSiteField) {
+      const toks = (s: (typeof sites)[number]) => tokenize(`${s.code} ${s.address}`).filter((t) => matchedTerms.has(t))
+      matching = sites.filter((s) => {
+        const t = toks(s)
+        return hit.queryTerms.every((q: string) => t.some((x) => x.startsWith(q)))
+      })
+      if (matching.length === 0) matching = sites.filter((s) => toks(s).length > 0)
+    }
+    const extra = [d.gst || d.phone || ''].filter(Boolean)
     return {
       ...base, key: `PARTY:${d.id}`, tag: 'PARTY', title: d.name,
       subtitle: [d.code, ...extra].join(' · '), href: `/parties/${d.id}`,
@@ -134,7 +143,7 @@ export function documentsToResults(r: DocumentSearchResponse): SearchResult[] {
   const score = () => total - i++
   const challans = r.challans.map((c): SearchResult => ({
     key: `CHALLAN:${c.id}`, tag: 'CHALLAN', title: c.challanNumber,
-    subtitle: [c.partyName, fmtDate(c.date), c.status].join(' · '), href: `/challans/${c.id}`, score: score(),
+    subtitle: [c.partyName, fmtDate(c.date), c.status].filter(Boolean).join(' · '), href: `/challans/${c.id}`, score: score(),
   }))
   const bills = r.bills.map((b): SearchResult => ({
     key: `BILL:${b.id}`, tag: 'BILL', title: b.billNumber,

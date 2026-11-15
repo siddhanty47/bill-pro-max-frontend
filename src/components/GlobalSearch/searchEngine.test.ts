@@ -10,6 +10,7 @@ const rows: SearchIndexRow[] = [
   { t: 'agreement', id: 'SHAR_SITE-02_1731654321000', partyId: 'p1', partyName: 'Sharma Contractors', partyCode: 'SHAR', siteCode: 'SITE-02', siteAddress: '12 MG Road, Pune', status: 'active' },
   { t: 'agreement', id: 'SHAR_SITE-09_1600000000000', partyId: 'p1', partyName: 'Sharma Contractors', partyCode: 'SHAR', siteCode: 'SITE-09', status: 'expired' },
   { t: 'party', id: 'p2', name: 'शर्मा ट्रेडर्स', code: 'SHTR', sites: [] },
+  { t: 'party', id: 'p3', name: 'Verma Infra', code: 'VERM', phone: '9876543210', sites: [{ code: 'SITE-02', address: 'Baner' }, { code: 'SITE-03', address: 'Wakad' }] },
   { t: 'item', id: 'i1', name: 'MS Pipe 3m', code: 'ITM-012', category: 'Pipes' },
 ]
 const engine = createEntityEngine(rows)
@@ -39,8 +40,29 @@ describe('searchEntities', () => {
     expect(r[0].key).toBe('AGREEMENT:SHAR_SITE-02_1731654321000')
     expect(r[0].score).toBeGreaterThan(r[1].score)
   })
-  it('drops timestamp tokens', () => {
+  it('does not index agreement timestamps', () => {
     expect(searchEntities(engine, '1731654321000').filter((x) => x.tag === 'AGREEMENT')).toEqual([])
+    expect(searchEntities(engine, '17316543').filter((x) => x.tag === 'AGREEMENT')).toEqual([])
+  })
+  it('finds parties by 10-digit phone', () => {
+    const r = searchEntities(engine, '9876543210')
+    expect(r[0].key).toBe('PARTY:p3')
+    expect(r[0].subtitle).toBe('VERM · 9876543210')
+  })
+  it('ranks party code match above agreement for prefix', () => {
+    const r = searchEntities(engine, 'shar')
+    expect(r[0].key).toBe('PARTY:p1')
+  })
+  it('does not throw on duplicate rows', () => {
+    expect(() => createEntityEngine([rows[0], rows[0]])).not.toThrow()
+  })
+  it('separator-only query returns nothing', () => expect(searchEntities(engine, '--')).toEqual([]))
+  it('viaSite lists only precisely matching sites', () => {
+    const p = searchEntities(engine, 'SITE-02').find((x) => x.key === 'PARTY:p3')
+    expect(p?.viaSite).toBe('SITE-02 · Baner')
+  })
+  it('party subtitle shows GST value', () => {
+    expect(searchEntities(engine, 'Sharma')[0].subtitle).toBe('SHAR · 27ABCDE1234F1Z5')
   })
   it('blank query returns nothing', () => expect(searchEntities(engine, '   ')).toEqual([]))
   it('builds titles, hrefs', () => {
@@ -86,5 +108,6 @@ describe('mergeResults', () => {
     expect(r.filter((x) => x.tag === 'CHALLAN').length).toBeLessThanOrEqual(5)
   })
   it('digit-heavy puts docs first', () => expect(mergeResults(ents, docs, '0042')[0].tag).toBe('CHALLAN'))
+  it('docs fill remaining when few entities', () => expect(mergeResults(ents.slice(0, 2), docs, 'x')).toHaveLength(7))
   it('docs fill when no entities', () => expect(mergeResults([], docs, '42')).toHaveLength(7))
 })
