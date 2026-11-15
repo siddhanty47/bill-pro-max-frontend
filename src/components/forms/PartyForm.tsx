@@ -4,11 +4,14 @@
  * Supports GSTIN lookup to auto-fill name, address, and GST details.
  */
 import { useState, useCallback, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Party, CreatePartyInput } from '../../types';
-import { useLazyGeneratePartyCodeQuery, useLazyCheckPartyCodeExistsQuery } from '../../api/partyApi';
+import {
+  useLazyGeneratePartyCodeQuery,
+  useLazyCheckPartyCodeExistsQuery,
+} from '../../api/partyApi';
 import { useLazyLookupGstinQuery } from '../../api/gstinApi';
 import { useCurrentBusiness } from '../../hooks/useCurrentBusiness';
 import styles from './PartyForm.module.css';
@@ -17,30 +20,40 @@ import styles from './PartyForm.module.css';
  * Create schema factory to handle conditional validation for site fields
  * Site address is required only when creating a new party
  */
-const createPartySchema = (isEditing: boolean) => z.object({
-  code: z.string().min(1, 'Code is required').max(20),
-  name: z.string().min(1, 'Name is required').max(100),
-  roles: z.array(z.enum(['client', 'supplier'])).min(1, 'Select at least one role'),
-  contactPerson: z.string().min(1, 'Contact person is required').max(100),
-  phone: z.string().min(1, 'Phone is required').max(20),
-  email: z.string().email().optional().or(z.literal('')),
-  address: z.string().max(500).optional(),
-  gst: z.string().max(20).optional(),
-  stateCode: z.string().regex(/^[0-9]{2}$/).max(2).optional().or(z.literal('')),
-  notes: z.string().max(1000).optional(),
-  // Site fields - required only for new party
-  siteCode: z.string().max(20).optional(),
-  siteAddress: isEditing 
-    ? z.string().max(500).optional()
-    : z.string().min(1, 'Site address is required').max(500),
-  siteStateCode: z.string().regex(/^[0-9]{2}$/).max(2).optional().or(z.literal('')),
-  siteIsSameAsOffice: z.boolean().optional(),
-});
+const createPartySchema = (isEditing: boolean) =>
+  z.object({
+    code: z.string().min(1, 'Code is required').max(20),
+    name: z.string().min(1, 'Name is required').max(100),
+    roles: z.array(z.enum(['client', 'supplier'])).min(1, 'Select at least one role'),
+    contactPerson: z.string().min(1, 'Contact person is required').max(100),
+    phone: z.string().min(1, 'Phone is required').max(20),
+    email: z.string().email().optional().or(z.literal('')),
+    address: z.string().max(500).optional(),
+    gst: z.string().max(20).optional(),
+    stateCode: z
+      .string()
+      .regex(/^[0-9]{2}$/)
+      .max(2)
+      .optional()
+      .or(z.literal('')),
+    notes: z.string().max(1000).optional(),
+    // Site fields - required only for new party
+    siteCode: z.string().max(20).optional(),
+    siteAddress: isEditing
+      ? z.string().max(500).optional()
+      : z.string().min(1, 'Site address is required').max(500),
+    siteStateCode: z
+      .string()
+      .regex(/^[0-9]{2}$/)
+      .max(2)
+      .optional()
+      .or(z.literal('')),
+    siteIsSameAsOffice: z.boolean().optional(),
+  });
 
 // Default schema type for form data inference
-const partySchema = createPartySchema(false);
 
-type FormData = z.infer<typeof partySchema>;
+type FormData = z.infer<ReturnType<typeof createPartySchema>>;
 
 interface PartyFormProps {
   initialData?: Party;
@@ -59,10 +72,10 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
   const [lookupGstin, { isFetching: isGstLoading }] = useLazyLookupGstinQuery();
 
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors },
-    watch,
     setValue,
     getValues,
   } = useForm<FormData>({
@@ -94,12 +107,12 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
         },
   });
 
-  const roles = watch('roles') || [];
-  const siteIsSameAsOffice = watch('siteIsSameAsOffice');
-  const officeAddress = watch('address');
-  const gstValue = watch('gst') || '';
-  const stateCodeValue = watch('stateCode') || '';
-  const siteStateCodeValue = watch('siteStateCode') || '';
+  const roles = useWatch({ control, name: 'roles' }) || [];
+  const siteIsSameAsOffice = useWatch({ control, name: 'siteIsSameAsOffice' });
+  const officeAddress = useWatch({ control, name: 'address' });
+  const gstValue = useWatch({ control, name: 'gst' }) || '';
+  const stateCodeValue = useWatch({ control, name: 'stateCode' }) || '';
+  const siteStateCodeValue = useWatch({ control, name: 'siteStateCode' }) || '';
 
   // Auto-fill state code and site state code from GSTIN when 15 chars and empty
   useEffect(() => {
@@ -113,9 +126,7 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
   }, [gstValue, stateCodeValue, siteStateCodeValue, initialData, setValue]);
 
   const toggleRole = (role: 'client' | 'supplier') => {
-    const newRoles = roles.includes(role)
-      ? roles.filter((r) => r !== role)
-      : [...roles, role];
+    const newRoles = roles.includes(role) ? roles.filter(r => r !== role) : [...roles, role];
     setValue('roles', newRoles as ('client' | 'supplier')[]);
   };
 
@@ -144,7 +155,7 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
   const handleNameBlur = useCallback(async () => {
     const name = getValues('name');
     const currentCode = getValues('code');
-    
+
     if (!name || currentCode || !currentBusinessId) return;
 
     try {
@@ -161,7 +172,7 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
    */
   const handleCodeBlur = useCallback(async () => {
     const code = getValues('code');
-    
+
     if (!code || !currentBusinessId) return;
 
     // Skip check if editing and code hasn't changed
@@ -204,7 +215,10 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
         // Also auto-generate the party code for the new name
         if (!getValues('code')) {
           try {
-            const code = await generateCode({ businessId: currentBusinessId, name: partyName }).unwrap();
+            const code = await generateCode({
+              businessId: currentBusinessId,
+              name: partyName,
+            }).unwrap();
             setValue('code', code);
           } catch {
             // Silently fail code generation
@@ -235,7 +249,8 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
     } catch (err) {
       const errorMessage =
         err && typeof err === 'object' && 'data' in err
-          ? ((err as { data?: { error?: { message?: string } } }).data?.error?.message || 'Failed to fetch GST details')
+          ? (err as { data?: { error?: { message?: string } } }).data?.error?.message ||
+            'Failed to fetch GST details'
           : 'Failed to fetch GST details';
       setGstFetchError(errorMessage);
     }
@@ -243,7 +258,7 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
 
   const handleFormSubmit = async (data: FormData) => {
     if (codeError) return;
-    
+
     const payload: CreatePartyInput = {
       code: data.code.toUpperCase(),
       name: data.name,
@@ -274,209 +289,200 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
   return (
     <form onSubmit={onFormSubmit}>
       <div className="form-content">
-      <div className="form-columns">
-        <div>
-      {/* GST lookup at the top — enter GSTIN first to auto-fill other fields */}
-      <div className="form-group">
-        <label htmlFor="gst">GST Number</label>
-        <div className={styles.gstRow}>
-          <input
-            id="gst"
-            {...register('gst')}
-            disabled={isLoading}
-            placeholder="e.g. 22AAAAA0000A1Z5"
-            className={styles.gstInput}
-            maxLength={15}
-          />
-          <button
-            type="button"
-            className={`btn btn-secondary ${styles.gstFetchButton}`}
-            onClick={handleFetchGstDetails}
-            disabled={isLoading || isGstLoading || gstValue.trim().length !== 15}
-          >
-            {isGstLoading ? 'Fetching...' : 'Fetch Details'}
-          </button>
-        </div>
-        {gstFetchError && <span className="error-message">{gstFetchError}</span>}
-        {gstFetchSuccess && (
-          <span className={styles.gstSuccess}>
-            {gstFetchSuccess}
-          </span>
-        )}
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="stateCode">State Code</label>
-        <input
-          id="stateCode"
-          {...register('stateCode')}
-          disabled={isLoading}
-          placeholder="e.g. 27"
-          maxLength={2}
-          className={`${styles.uppercaseInput} input-state-code`}
-        />
-        <small className="text-help">
-          2-digit GST state code (auto-filled from GSTIN)
-        </small>
-      </div>
-
-      <div className="form-row">
-        <div className={`form-group ${styles.nameGroup}`}>
-          <label htmlFor="name">Party Name *</label>
-          <input
-            id="name"
-            {...register('name')}
-            onBlur={(e) => {
-              register('name').onBlur(e);
-              handleNameBlur();
-            }}
-            disabled={isLoading}
-          />
-          {errors.name && <span className="error-message">{errors.name.message}</span>}
-        </div>
-
-        <div className={`form-group ${styles.codeGroup}`}>
-          <label htmlFor="code">Party Code *</label>
-          <input
-            id="code"
-            {...register('code')}
-            onBlur={(e) => {
-              register('code').onBlur(e);
-              handleCodeBlur();
-            }}
-            disabled={isLoading}
-            className={styles.uppercaseInput}
-            placeholder="Auto-generated"
-          />
-          {errors.code && <span className="error-message">{errors.code.message}</span>}
-          {codeError && <span className="error-message">{codeError}</span>}
-        </div>
-      </div>
-
-      <div className="form-group">
-        <label>Roles *</label>
-        <div className={styles.rolesContainer}>
-          <label className={styles.checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={roles.includes('client')}
-              onChange={() => toggleRole('client')}
-              disabled={isLoading}
-            />
-            Client
-          </label>
-          <label className={styles.checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={roles.includes('supplier')}
-              onChange={() => toggleRole('supplier')}
-              disabled={isLoading}
-            />
-            Supplier
-          </label>
-        </div>
-        {errors.roles && <span className="error-message">{errors.roles.message}</span>}
-      </div>
-
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="contactPerson">Contact Person *</label>
-          <input id="contactPerson" {...register('contactPerson')} disabled={isLoading} />
-          {errors.contactPerson && (
-            <span className="error-message">{errors.contactPerson.message}</span>
-          )}
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="phone">Phone *</label>
-          <input id="phone" {...register('phone')} disabled={isLoading} />
-          {errors.phone && <span className="error-message">{errors.phone.message}</span>}
-        </div>
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="email">Email</label>
-        <input id="email" type="email" {...register('email')} disabled={isLoading} />
-        {errors.email && <span className="error-message">{errors.email.message}</span>}
-      </div>
-
-        </div>
-        <div>
-      <div className="form-group">
-        <label htmlFor="address">Address</label>
-        <textarea id="address" {...register('address')} rows={2} disabled={isLoading} />
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="notes">Notes</label>
-        <textarea id="notes" {...register('notes')} rows={2} disabled={isLoading} />
-      </div>
-
-      {/* Site section - only show when creating a new party */}
-      {!initialData && (
-        <fieldset className={styles.siteFieldset}>
-          <legend>Initial Site Address</legend>
-          
-          <div className={`form-group ${styles.sameAsOfficeGroup}`}>
-            <label className={styles.sameAsOfficeLabel}>
-              <input
-                type="checkbox"
-                checked={siteIsSameAsOffice || false}
-                onChange={(e) => handleSameAsOfficeChange(e.target.checked)}
-                disabled={isLoading}
-              />
-              Same as office address
-            </label>
-          </div>
-
-          <div className={`form-group ${styles.siteAddressGroup}`}>
-            <label htmlFor="siteAddress">Site Address *</label>
-            <textarea
-              id="siteAddress"
-              {...register('siteAddress')}
-              rows={2}
-              disabled={isLoading || siteIsSameAsOffice}
-              placeholder="Enter site address"
-            />
-            {errors.siteAddress && (
-              <span className="error-message">{errors.siteAddress.message}</span>
-            )}
-          </div>
-
-          <div className="form-row">
-            <div className={`form-group ${styles.siteCodeGroup}`}>
-              <label htmlFor="siteCode">Site Code</label>
-              <input
-                id="siteCode"
-                {...register('siteCode')}
-                disabled={isLoading}
-                className={styles.uppercaseInput}
-                placeholder="Auto-generated"
-              />
-              {errors.siteCode && (
-                <span className="error-message">{errors.siteCode.message}</span>
-              )}
+        <div className="form-columns">
+          <div>
+            {/* GST lookup at the top — enter GSTIN first to auto-fill other fields */}
+            <div className="form-group">
+              <label htmlFor="gst">GST Number</label>
+              <div className={styles.gstRow}>
+                <input
+                  id="gst"
+                  {...register('gst')}
+                  disabled={isLoading}
+                  placeholder="e.g. 22AAAAA0000A1Z5"
+                  className={styles.gstInput}
+                  maxLength={15}
+                />
+                <button
+                  type="button"
+                  className={`btn btn-secondary ${styles.gstFetchButton}`}
+                  onClick={handleFetchGstDetails}
+                  disabled={isLoading || isGstLoading || gstValue.trim().length !== 15}
+                >
+                  {isGstLoading ? 'Fetching...' : 'Fetch Details'}
+                </button>
+              </div>
+              {gstFetchError && <span className="error-message">{gstFetchError}</span>}
+              {gstFetchSuccess && <span className={styles.gstSuccess}>{gstFetchSuccess}</span>}
             </div>
 
             <div className="form-group">
-              <label htmlFor="siteStateCode">Site State Code</label>
+              <label htmlFor="stateCode">State Code</label>
               <input
-                id="siteStateCode"
-                {...register('siteStateCode')}
+                id="stateCode"
+                {...register('stateCode')}
                 disabled={isLoading}
                 placeholder="e.g. 27"
                 maxLength={2}
                 className={`${styles.uppercaseInput} input-state-code`}
               />
-              <small className="text-help">
-                Defaults from party state code
-              </small>
+              <small className="text-help">2-digit GST state code (auto-filled from GSTIN)</small>
+            </div>
+
+            <div className="form-row">
+              <div className={`form-group ${styles.nameGroup}`}>
+                <label htmlFor="name">Party Name *</label>
+                <input
+                  id="name"
+                  {...register('name')}
+                  onBlur={e => {
+                    register('name').onBlur(e);
+                    handleNameBlur();
+                  }}
+                  disabled={isLoading}
+                />
+                {errors.name && <span className="error-message">{errors.name.message}</span>}
+              </div>
+
+              <div className={`form-group ${styles.codeGroup}`}>
+                <label htmlFor="code">Party Code *</label>
+                <input
+                  id="code"
+                  {...register('code')}
+                  onBlur={e => {
+                    register('code').onBlur(e);
+                    handleCodeBlur();
+                  }}
+                  disabled={isLoading}
+                  className={styles.uppercaseInput}
+                  placeholder="Auto-generated"
+                />
+                {errors.code && <span className="error-message">{errors.code.message}</span>}
+                {codeError && <span className="error-message">{codeError}</span>}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Roles *</label>
+              <div className={styles.rolesContainer}>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={roles.includes('client')}
+                    onChange={() => toggleRole('client')}
+                    disabled={isLoading}
+                  />
+                  Client
+                </label>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={roles.includes('supplier')}
+                    onChange={() => toggleRole('supplier')}
+                    disabled={isLoading}
+                  />
+                  Supplier
+                </label>
+              </div>
+              {errors.roles && <span className="error-message">{errors.roles.message}</span>}
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="contactPerson">Contact Person *</label>
+                <input id="contactPerson" {...register('contactPerson')} disabled={isLoading} />
+                {errors.contactPerson && (
+                  <span className="error-message">{errors.contactPerson.message}</span>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="phone">Phone *</label>
+                <input id="phone" {...register('phone')} disabled={isLoading} />
+                {errors.phone && <span className="error-message">{errors.phone.message}</span>}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="email">Email</label>
+              <input id="email" type="email" {...register('email')} disabled={isLoading} />
+              {errors.email && <span className="error-message">{errors.email.message}</span>}
             </div>
           </div>
-      </fieldset>
-      )}
+          <div>
+            <div className="form-group">
+              <label htmlFor="address">Address</label>
+              <textarea id="address" {...register('address')} rows={2} disabled={isLoading} />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="notes">Notes</label>
+              <textarea id="notes" {...register('notes')} rows={2} disabled={isLoading} />
+            </div>
+
+            {/* Site section - only show when creating a new party */}
+            {!initialData && (
+              <fieldset className={styles.siteFieldset}>
+                <legend>Initial Site Address</legend>
+
+                <div className={`form-group ${styles.sameAsOfficeGroup}`}>
+                  <label className={styles.sameAsOfficeLabel}>
+                    <input
+                      type="checkbox"
+                      checked={siteIsSameAsOffice || false}
+                      onChange={e => handleSameAsOfficeChange(e.target.checked)}
+                      disabled={isLoading}
+                    />
+                    Same as office address
+                  </label>
+                </div>
+
+                <div className={`form-group ${styles.siteAddressGroup}`}>
+                  <label htmlFor="siteAddress">Site Address *</label>
+                  <textarea
+                    id="siteAddress"
+                    {...register('siteAddress')}
+                    rows={2}
+                    disabled={isLoading || siteIsSameAsOffice}
+                    placeholder="Enter site address"
+                  />
+                  {errors.siteAddress && (
+                    <span className="error-message">{errors.siteAddress.message}</span>
+                  )}
+                </div>
+
+                <div className="form-row">
+                  <div className={`form-group ${styles.siteCodeGroup}`}>
+                    <label htmlFor="siteCode">Site Code</label>
+                    <input
+                      id="siteCode"
+                      {...register('siteCode')}
+                      disabled={isLoading}
+                      className={styles.uppercaseInput}
+                      placeholder="Auto-generated"
+                    />
+                    {errors.siteCode && (
+                      <span className="error-message">{errors.siteCode.message}</span>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="siteStateCode">Site State Code</label>
+                    <input
+                      id="siteStateCode"
+                      {...register('siteStateCode')}
+                      disabled={isLoading}
+                      placeholder="e.g. 27"
+                      maxLength={2}
+                      className={`${styles.uppercaseInput} input-state-code`}
+                    />
+                    <small className="text-help">Defaults from party state code</small>
+                  </div>
+                </div>
+              </fieldset>
+            )}
+          </div>
         </div>
-      </div>
       </div>
 
       <div className="form-actions">

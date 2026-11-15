@@ -23,7 +23,13 @@ export function BulkBillProgress({ batches, onDismiss }: BulkBillProgressProps) 
   );
 }
 
-function BatchBanner({ batch, onDismiss }: { batch: BatchProgress; onDismiss: (id: string) => void }) {
+function BatchBanner({
+  batch,
+  onDismiss,
+}: {
+  batch: BatchProgress;
+  onDismiss: (id: string) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
   const done = batch.completed + batch.failed;
   const pct = batch.total > 0 ? Math.round((done / batch.total) * 100) : 0;
@@ -31,7 +37,9 @@ function BatchBanner({ batch, onDismiss }: { batch: BatchProgress; onDismiss: (i
   const failures = batch.results.filter(r => r.status === 'failed');
 
   return (
-    <div className={`${styles.banner} ${!batch.isProcessing ? styles.done : ''} ${hasFailures ? styles.hasErrors : ''}`}>
+    <div
+      className={`${styles.banner} ${!batch.isProcessing ? styles.done : ''} ${hasFailures ? styles.hasErrors : ''}`}
+    >
       <div className={styles.header}>
         <div className={styles.info}>
           {batch.isProcessing ? (
@@ -43,18 +51,12 @@ function BatchBanner({ batch, onDismiss }: { batch: BatchProgress; onDismiss: (i
             {batch.isProcessing
               ? `Generating bills: ${batch.completed}/${batch.total} completed`
               : `Bill generation complete: ${batch.completed} succeeded`}
-            {batch.failed > 0 && (
-              <span className={styles.failCount}>, {batch.failed} failed</span>
-            )}
+            {batch.failed > 0 && <span className={styles.failCount}>, {batch.failed} failed</span>}
           </span>
         </div>
         <div className={styles.actions}>
           {hasFailures && (
-            <button
-              type="button"
-              className={styles.toggleBtn}
-              onClick={() => setExpanded(e => !e)}
-            >
+            <button type="button" className={styles.toggleBtn} onClick={() => setExpanded(e => !e)}>
               {expanded ? 'Hide errors' : 'Show errors'}
             </button>
           )}
@@ -73,10 +75,7 @@ function BatchBanner({ batch, onDismiss }: { batch: BatchProgress; onDismiss: (i
 
       {batch.isProcessing && (
         <div className={styles.progressTrack}>
-          <div
-            className={styles.progressBar}
-            style={{ width: `${pct}%` }}
-          />
+          <div className={styles.progressBar} style={{ width: `${pct}%` }} />
         </div>
       )}
 

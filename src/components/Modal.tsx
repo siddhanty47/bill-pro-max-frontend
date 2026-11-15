@@ -20,7 +20,8 @@ interface ModalProps {
   size?: ModalSize;
 }
 
-const FOCUSABLE = 'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])';
+const FOCUSABLE =
+  'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])';
 
 /**
  * Reusable modal dialog with optional color-coded variant
@@ -54,14 +55,19 @@ export function Modal({ isOpen, onClose, title, children, variant, size = 'defau
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={`${styles.modal} ${variant ? styles[variant] : ''} ${size === 'form' ? styles.formSize : ''}`} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`${styles.modal} ${variant ? styles[variant] : ''} ${size === 'form' ? styles.formSize : ''}`}
+        onClick={e => e.stopPropagation()}
+      >
         <div className={styles.header}>
           <h2>{title}</h2>
           <button onClick={onClose} className={styles.closeButton}>
             &times;
           </button>
         </div>
-        <div ref={bodyRef} className={styles.body}>{children}</div>
+        <div ref={bodyRef} className={styles.body}>
+          {children}
+        </div>
       </div>
     </div>
   );

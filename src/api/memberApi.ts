@@ -5,13 +5,11 @@ import { baseApi } from './baseApi';
 import type { ApiResponse, BusinessMember } from '../types';
 
 export const memberApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     /** List all members of a business */
     getMembers: builder.query<ApiResponse<BusinessMember[]>, string>({
-      query: (businessId) => `/businesses/${businessId}/members`,
-      providesTags: (_result, _error, businessId) => [
-        { type: 'Member' as const, id: businessId },
-      ],
+      query: businessId => `/businesses/${businessId}/members`,
+      providesTags: (_result, _error, businessId) => [{ type: 'Member' as const, id: businessId }],
     }),
 
     /** Update a member's role */
@@ -30,10 +28,7 @@ export const memberApi = baseApi.injectEndpoints({
     }),
 
     /** Remove a member from the business */
-    removeMember: builder.mutation<
-      ApiResponse<null>,
-      { businessId: string; memberId: string }
-    >({
+    removeMember: builder.mutation<ApiResponse<null>, { businessId: string; memberId: string }>({
       query: ({ businessId, memberId }) => ({
         url: `/businesses/${businessId}/members/${memberId}`,
         method: 'DELETE',
@@ -45,8 +40,5 @@ export const memberApi = baseApi.injectEndpoints({
   }),
 });
 
-export const {
-  useGetMembersQuery,
-  useUpdateMemberRoleMutation,
-  useRemoveMemberMutation,
-} = memberApi;
+export const { useGetMembersQuery, useUpdateMemberRoleMutation, useRemoveMemberMutation } =
+  memberApi;

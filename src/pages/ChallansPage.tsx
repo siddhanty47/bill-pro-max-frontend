@@ -67,8 +67,12 @@ export function ChallansPage() {
     setIsModalOpen(true);
   };
 
-  useHotkey('alt+d', () => { if (!isModalOpen) handleCreateDelivery(); });
-  useHotkey('alt+r', () => { if (!isModalOpen) handleCreateReturn(); });
+  useHotkey('alt+d', () => {
+    if (!isModalOpen) handleCreateDelivery();
+  });
+  useHotkey('alt+r', () => {
+    if (!isModalOpen) handleCreateReturn();
+  });
   useHotkey('/', () => searchRef.current?.focus());
 
   const handleSubmit = async (data: CreateChallanInput) => {
@@ -98,18 +102,18 @@ export function ChallansPage() {
 
   // Get party name by ID
   const getPartyName = (partyId: string) => {
-    return parties?.find((p) => p._id === partyId)?.name || 'Unknown';
+    return parties?.find(p => p._id === partyId)?.name || 'Unknown';
   };
 
   // Get site code from party's agreement
   const getSiteCode = (challan: Challan) => {
-    const party = parties?.find((p) => p._id === challan.partyId);
-    const agreement = party?.agreements?.find((a) => a.agreementId === challan.agreementId);
+    const party = parties?.find(p => p._id === challan.partyId);
+    const agreement = party?.agreements?.find(a => a.agreementId === challan.agreementId);
     return agreement?.siteCode ?? '—';
   };
 
   // Filter challans
-  const filteredChallans = (challans || []).filter((challan) => {
+  const filteredChallans = (challans || []).filter(challan => {
     const matchesSearch =
       !searchTerm ||
       challan.challanNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -123,13 +127,13 @@ export function ChallansPage() {
   const sortByChallanNumberDesc = (a: Challan, b: Challan) =>
     b.challanNumber.localeCompare(a.challanNumber, undefined, { numeric: true });
   const deliveryChallans = filteredChallans
-    .filter((c) => c.type === 'delivery')
+    .filter(c => c.type === 'delivery')
     .sort(sortByChallanNumberDesc);
   const returnChallans = filteredChallans
-    .filter((c) => c.type === 'return')
+    .filter(c => c.type === 'return')
     .sort(sortByChallanNumberDesc);
 
-  const hasDraftChallans = filteredChallans.some((c) => c.status === 'draft');
+  const hasDraftChallans = filteredChallans.some(c => c.status === 'draft');
 
   const columns = [
     { key: 'challanNumber', header: 'Challan #' },
@@ -181,9 +185,12 @@ export function ChallansPage() {
             render: (row: TableItem) => {
               const challan = row as unknown as Challan;
               return (
-                <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
+                <div className="action-buttons" onClick={e => e.stopPropagation()}>
                   {challan.status === 'draft' && (
-                    <button className="btn btn-sm btn-primary" onClick={() => handleConfirm(challan)}>
+                    <button
+                      className="btn btn-sm btn-primary"
+                      onClick={() => handleConfirm(challan)}
+                    >
                       Confirm
                     </button>
                   )}
@@ -228,17 +235,17 @@ export function ChallansPage() {
             type="text"
             placeholder="Search challans..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             className="search-input"
           />
           <kbd className="kbd-hint search-kbd">/</kbd>
         </div>
-        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
           <option value="">All Types</option>
           <option value="delivery">Delivery</option>
           <option value="return">Return</option>
         </select>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="">All Status</option>
           <option value="draft">Draft</option>
           <option value="confirmed">Confirmed</option>
@@ -254,20 +261,18 @@ export function ChallansPage() {
           data={deliveryChallans as unknown as TableItem[]}
           columns={columns}
           keyField="_id"
-          onRowClick={(row) => navigate(`/challans/${String(row._id)}`)}
+          onRowClick={row => navigate(`/challans/${String(row._id)}`)}
           emptyMessage="No delivery challans found."
         />
       </section>
 
       <section className={styles.section}>
-        <h2 className={`${styles.sectionHeader} ${styles.sectionHeaderReturn}`}>
-          Return Challans
-        </h2>
+        <h2 className={`${styles.sectionHeader} ${styles.sectionHeaderReturn}`}>Return Challans</h2>
         <DataTable
           data={returnChallans as unknown as TableItem[]}
           columns={columns}
           keyField="_id"
-          onRowClick={(row) => navigate(`/challans/${String(row._id)}`)}
+          onRowClick={row => navigate(`/challans/${String(row._id)}`)}
           emptyMessage="No return challans found."
         />
       </section>

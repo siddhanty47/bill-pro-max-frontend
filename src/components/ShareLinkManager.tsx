@@ -33,7 +33,7 @@ export function ShareLinkManager({ partyId, sites }: ShareLinkManagerProps) {
 
   const { data: links } = useGetShareLinksQuery(
     { businessId: currentBusinessId!, partyId },
-    { skip: !currentBusinessId },
+    { skip: !currentBusinessId }
   );
 
   const [createShareLink, { isLoading: isCreating }] = useCreateShareLinkMutation();
@@ -66,14 +66,18 @@ export function ShareLinkManager({ partyId, sites }: ShareLinkManagerProps) {
 
   const handleRevoke = useCallback(
     async (linkId: string) => {
-      if (!currentBusinessId || !confirm('Revoke this share link? It will stop working immediately.')) return;
+      if (
+        !currentBusinessId ||
+        !confirm('Revoke this share link? It will stop working immediately.')
+      )
+        return;
       try {
         await revokeShareLink({ businessId: currentBusinessId, partyId, linkId }).unwrap();
       } catch (err) {
         alert(getErrorMessage(err));
       }
     },
-    [currentBusinessId, partyId, revokeShareLink],
+    [currentBusinessId, partyId, revokeShareLink]
   );
 
   const handleCopy = useCallback((token: string, linkId: string) => {
@@ -94,12 +98,14 @@ export function ShareLinkManager({ partyId, sites }: ShareLinkManagerProps) {
           <span className={styles.fieldLabel}>Site scope</span>
           <select
             value={siteCode}
-            onChange={(e) => setSiteCode(e.target.value)}
+            onChange={e => setSiteCode(e.target.value)}
             className={styles.select}
           >
             <option value="">All sites</option>
-            {sites.map((s) => (
-              <option key={s.code} value={s.code}>{s.code}</option>
+            {sites.map(s => (
+              <option key={s.code} value={s.code}>
+                {s.code}
+              </option>
             ))}
           </select>
         </div>
@@ -108,7 +114,7 @@ export function ShareLinkManager({ partyId, sites }: ShareLinkManagerProps) {
           <input
             type="text"
             value={label}
-            onChange={(e) => setLabel(e.target.value)}
+            onChange={e => setLabel(e.target.value)}
             placeholder="e.g. For Rajesh"
             className={styles.input}
           />
@@ -118,22 +124,18 @@ export function ShareLinkManager({ partyId, sites }: ShareLinkManagerProps) {
           <input
             type="date"
             value={expiresAt}
-            onChange={(e) => setExpiresAt(e.target.value)}
+            onChange={e => setExpiresAt(e.target.value)}
             className={styles.input}
           />
         </div>
-        <button
-          className="btn btn-sm btn-primary"
-          onClick={handleCreate}
-          disabled={isCreating}
-        >
+        <button className="btn btn-sm btn-primary" onClick={handleCreate} disabled={isCreating}>
           {isCreating ? 'Creating...' : '+ Create Link'}
         </button>
       </div>
 
       {/* Links list */}
       {shareLinks.length > 0 ? (
-        shareLinks.map((link) => {
+        shareLinks.map(link => {
           const expired = isExpired(link);
           const revoked = link.status === 'revoked';
           return (
@@ -149,7 +151,9 @@ export function ShareLinkManager({ partyId, sites }: ShareLinkManagerProps) {
                   <span>Views: {link.accessCount}</span>
                   <span>Created: {formatDate(link.createdAt)}</span>
                   {link.expiresAt && <span>Expires: {formatDate(link.expiresAt)}</span>}
-                  {link.lastAccessedAt && <span>Last viewed: {formatDate(link.lastAccessedAt)}</span>}
+                  {link.lastAccessedAt && (
+                    <span>Last viewed: {formatDate(link.lastAccessedAt)}</span>
+                  )}
                 </span>
               </div>
               <div className={styles.linkActions}>
@@ -161,10 +165,7 @@ export function ShareLinkManager({ partyId, sites }: ShareLinkManagerProps) {
                     >
                       {copiedId === link._id ? 'Copied!' : 'Copy URL'}
                     </button>
-                    <button
-                      className={styles.revokeBtn}
-                      onClick={() => handleRevoke(link._id)}
-                    >
+                    <button className={styles.revokeBtn} onClick={() => handleRevoke(link._id)}>
                       Revoke
                     </button>
                   </>

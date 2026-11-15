@@ -42,14 +42,12 @@ export function InvitationList({ invitations, businessId }: InvitationListProps)
         </tr>
       </thead>
       <tbody>
-        {invitations.map((inv) => (
+        {invitations.map(inv => (
           <tr key={inv._id}>
             <td>{inv.email}</td>
             <td>{inv.role}</td>
             <td>
-              <span className={`status-badge status-${inv.status}`}>
-                {inv.status}
-              </span>
+              <span className={`status-badge status-${inv.status}`}>{inv.status}</span>
             </td>
             <td>{new Date(inv.createdAt).toLocaleDateString()}</td>
             <td>

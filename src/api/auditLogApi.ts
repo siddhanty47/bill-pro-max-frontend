@@ -25,7 +25,7 @@ interface AuditHistoryResult {
 }
 
 export const auditLogApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     getAuditHistory: builder.query<AuditHistoryResult, AuditHistoryParams>({
       query: ({ businessId, documentType, documentId, page = 1, pageSize = 20 }) =>
         `/businesses/${businessId}/audit-logs/${documentType}/${documentId}?page=${page}&pageSize=${pageSize}`,

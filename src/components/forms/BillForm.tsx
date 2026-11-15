@@ -2,7 +2,7 @@
  * Bill generation form component
  */
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
 import { DocumentNumberBadge } from '../DocumentNumberBadge';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -40,9 +40,9 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
   const { currentBusiness } = useCurrentBusiness();
   const [partySearchValue, setPartySearchValue] = useState('');
   const {
+    control,
     register,
     handleSubmit,
-    watch,
     setValue,
     formState: { errors },
   } = useForm<FormData>({
@@ -62,20 +62,22 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
     },
   });
 
-  const selectedPartyId = watch('partyId');
-  const agreementId = watch('agreementId');
-  const periodStart = watch('periodStart');
-  const taxMode = watch('taxMode');
-  const selectedParty = parties.find((p) => p._id === selectedPartyId);
-  const activeAgreements = selectedParty?.agreements?.filter((a) => a.status === 'active') || [];
-  const selectedAgreement = activeAgreements.find((a) => a.agreementId === agreementId);
+  const selectedPartyId = useWatch({ control, name: 'partyId' });
+  const agreementId = useWatch({ control, name: 'agreementId' });
+  const periodStart = useWatch({ control, name: 'periodStart' });
+  const taxMode = useWatch({ control, name: 'taxMode' });
+  const selectedParty = parties.find(p => p._id === selectedPartyId);
+  const activeAgreements = selectedParty?.agreements?.filter(a => a.status === 'active') || [];
+  const selectedAgreement = activeAgreements.find(a => a.agreementId === agreementId);
 
   // Fetch predicted next bill number
-  const canFetchBillNumber = !!(currentBusiness?._id && selectedPartyId && agreementId && periodStart);
-  const {
-    data: predictedBillNumber,
-    isFetching: isBillNumberLoading,
-  } = useGetNextBillNumberQuery(
+  const canFetchBillNumber = !!(
+    currentBusiness?._id &&
+    selectedPartyId &&
+    agreementId &&
+    periodStart
+  );
+  const { data: predictedBillNumber, isFetching: isBillNumberLoading } = useGetNextBillNumberQuery(
     {
       businessId: currentBusiness?._id ?? '',
       partyId: selectedPartyId,
@@ -109,9 +111,15 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
   // Auto-select tax mode based on business and site state codes
   useEffect(() => {
     if (!currentBusiness || !selectedParty || !selectedAgreement) return;
-    const businessStateCode = currentBusiness.stateCode ?? (currentBusiness.gst?.length === 15 ? currentBusiness.gst.substring(0, 2) : undefined);
-    const site = selectedParty.sites?.find((s) => s.code === selectedAgreement.siteCode);
-    const siteStateCode = site?.stateCode ?? (selectedParty.contact?.gst?.length === 15 ? selectedParty.contact.gst.substring(0, 2) : undefined);
+    const businessStateCode =
+      currentBusiness.stateCode ??
+      (currentBusiness.gst?.length === 15 ? currentBusiness.gst.substring(0, 2) : undefined);
+    const site = selectedParty.sites?.find(s => s.code === selectedAgreement.siteCode);
+    const siteStateCode =
+      site?.stateCode ??
+      (selectedParty.contact?.gst?.length === 15
+        ? selectedParty.contact.gst.substring(0, 2)
+        : undefined);
     if (businessStateCode && siteStateCode) {
       setValue('taxMode', businessStateCode === siteStateCode ? 'intra' : 'inter');
     }
@@ -137,9 +145,7 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
     const cgstRate = sanitize(data.cgstRate);
     const igstRate = sanitize(data.igstRate);
     const taxRate =
-      data.taxMode === 'intra'
-        ? sanitize((sgstRate ?? 0) + (cgstRate ?? 0))
-        : sanitize(igstRate);
+      data.taxMode === 'intra' ? sanitize((sgstRate ?? 0) + (cgstRate ?? 0)) : sanitize(igstRate);
 
     await onSubmit({
       billDate: data.billDate,
@@ -161,16 +167,13 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
   };
 
   const partiesWithAgreements = useMemo(
-    () =>
-      parties.filter(
-        (p) => p.agreements && p.agreements.some((a) => a.status === 'active')
-      ),
+    () => parties.filter(p => p.agreements && p.agreements.some(a => a.status === 'active')),
     [parties]
   );
 
   const partyAutocompleteItems: AutocompleteItem[] = useMemo(
     () =>
-      partiesWithAgreements.map((party) => ({
+      partiesWithAgreements.map(party => ({
         code: party.code || party.name.substring(0, 4).toUpperCase(),
         label: party.name,
         sublabel: party.contact.person,
@@ -188,16 +191,18 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
     [setValue]
   );
 
-  useEffect(() => {
-    if (selectedPartyId) {
-      const party = partiesWithAgreements.find((p) => p._id === selectedPartyId);
-      if (party) {
-        setPartySearchValue(party.code || party.name.substring(0, 4).toUpperCase());
-      }
-    } else {
-      setPartySearchValue('');
-    }
-  }, [selectedPartyId, partiesWithAgreements]);
+  // Sync the party search box with the selected party (adjust state during render).
+  // undefined = selected party not loaded yet (leave the box alone); null = never synced.
+  const selectedPartyLabel = (() => {
+    if (!selectedPartyId) return '';
+    const party = partiesWithAgreements.find(p => p._id === selectedPartyId);
+    return party ? party.code || party.name.substring(0, 4).toUpperCase() : undefined;
+  })();
+  const [syncedPartyLabel, setSyncedPartyLabel] = useState<string | undefined | null>(null);
+  if (selectedPartyLabel !== syncedPartyLabel) {
+    setSyncedPartyLabel(selectedPartyLabel);
+    if (selectedPartyLabel !== undefined) setPartySearchValue(selectedPartyLabel);
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onFormSubmit = handleSubmit(handleFormSubmit as any);
@@ -205,138 +210,149 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
   return (
     <form onSubmit={onFormSubmit}>
       <div className="form-content">
-      {canFetchBillNumber && (
-        <DocumentNumberBadge
-          label="Bill #"
-          prefix={billPrefix}
-          isLoading={isBillNumberLoading}
-          disabled={isLoading || isBillNumberLoading}
-          variant="bill"
-          register={register('billSequence', { valueAsNumber: true })}
-          error={errors.billSequence?.message}
-        />
-      )}
-      <div className="form-columns">
-        <div>
-      <div className="form-group">
-        <label htmlFor="billDate">Bill Date</label>
-        <input id="billDate" type="date" {...register('billDate')} disabled={isLoading} />
-        {errors.billDate && <span className="error-message">{errors.billDate.message}</span>}
-      </div>
-      <div className="form-row">
-        <div className="form-group">
-          <CodeAutocomplete
-            label="Party *"
-            placeholder="Type party code or name..."
-            value={partySearchValue}
-            onChange={setPartySearchValue}
-            items={partyAutocompleteItems}
-            onSelect={handlePartySelect}
-            disabled={isLoading}
-            error={errors.partyId?.message}
-            required
+        {canFetchBillNumber && (
+          <DocumentNumberBadge
+            label="Bill #"
+            prefix={billPrefix}
+            isLoading={isBillNumberLoading}
+            disabled={isLoading || isBillNumberLoading}
+            variant="bill"
+            register={register('billSequence', { valueAsNumber: true })}
+            error={errors.billSequence?.message}
           />
-          <input type="hidden" {...register('partyId')} />
-        </div>
+        )}
+        <div className="form-columns">
+          <div>
+            <div className="form-group">
+              <label htmlFor="billDate">Bill Date</label>
+              <input id="billDate" type="date" {...register('billDate')} disabled={isLoading} />
+              {errors.billDate && <span className="error-message">{errors.billDate.message}</span>}
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <CodeAutocomplete
+                  label="Party *"
+                  placeholder="Type party code or name..."
+                  value={partySearchValue}
+                  onChange={setPartySearchValue}
+                  items={partyAutocompleteItems}
+                  onSelect={handlePartySelect}
+                  disabled={isLoading}
+                  error={errors.partyId?.message}
+                  required
+                />
+                <input type="hidden" {...register('partyId')} />
+              </div>
 
-        <div className="form-group">
-          <label htmlFor="agreementId">Agreement *</label>
-          <select
-            id="agreementId"
-            {...register('agreementId')}
-            disabled={isLoading || !selectedPartyId}
-          >
-            <option value="">Select agreement...</option>
-            {activeAgreements.map((agreement) => (
-              <option key={agreement.agreementId} value={agreement.agreementId}>
-                {agreement.agreementId} ({agreement.terms.billingCycle})
-              </option>
-            ))}
-          </select>
-          {errors.agreementId && <span className="error-message">{errors.agreementId.message}</span>}
-        </div>
-      </div>
+              <div className="form-group">
+                <label htmlFor="agreementId">Agreement *</label>
+                <select
+                  id="agreementId"
+                  {...register('agreementId')}
+                  disabled={isLoading || !selectedPartyId}
+                >
+                  <option value="">Select agreement...</option>
+                  {activeAgreements.map(agreement => (
+                    <option key={agreement.agreementId} value={agreement.agreementId}>
+                      {agreement.agreementId} ({agreement.terms.billingCycle})
+                    </option>
+                  ))}
+                </select>
+                {errors.agreementId && (
+                  <span className="error-message">{errors.agreementId.message}</span>
+                )}
+              </div>
+            </div>
 
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="periodStart">Period Start *</label>
-          <input id="periodStart" type="date" {...register('periodStart')} disabled={isLoading} />
-          {errors.periodStart && <span className="error-message">{errors.periodStart.message}</span>}
-        </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="periodStart">Period Start *</label>
+                <input
+                  id="periodStart"
+                  type="date"
+                  {...register('periodStart')}
+                  disabled={isLoading}
+                />
+                {errors.periodStart && (
+                  <span className="error-message">{errors.periodStart.message}</span>
+                )}
+              </div>
 
-        <div className="form-group">
-          <label htmlFor="periodEnd">Period End *</label>
-          <input id="periodEnd" type="date" {...register('periodEnd')} disabled={isLoading} />
-          {errors.periodEnd && <span className="error-message">{errors.periodEnd.message}</span>}
-        </div>
-      </div>
-        </div>
-        <div>
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="taxMode">Tax Mode</label>
-          <select id="taxMode" {...register('taxMode')} disabled={isLoading}>
-            <option value="intra">Intra-state (SGST + CGST)</option>
-            <option value="inter">Inter-state (IGST)</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="discountRate">Discount Rate (%)</label>
-          <input
-            id="discountRate"
-            type="number"
-            step="0.01"
-            {...register('discountRate', { valueAsNumber: true })}
-            disabled={isLoading}
-          />
-        </div>
-      </div>
-
-      {taxMode === 'intra' ? (
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="sgstRate">SGST Rate (%)</label>
-            <input
-              id="sgstRate"
-              type="number"
-              step="0.01"
-              {...register('sgstRate', { valueAsNumber: true })}
-              disabled={isLoading}
-            />
+              <div className="form-group">
+                <label htmlFor="periodEnd">Period End *</label>
+                <input id="periodEnd" type="date" {...register('periodEnd')} disabled={isLoading} />
+                {errors.periodEnd && (
+                  <span className="error-message">{errors.periodEnd.message}</span>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="form-group">
-            <label htmlFor="cgstRate">CGST Rate (%)</label>
-            <input
-              id="cgstRate"
-              type="number"
-              step="0.01"
-              {...register('cgstRate', { valueAsNumber: true })}
-              disabled={isLoading}
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="igstRate">IGST Rate (%)</label>
-            <input
-              id="igstRate"
-              type="number"
-              step="0.01"
-              {...register('igstRate', { valueAsNumber: true })}
-              disabled={isLoading}
-            />
-          </div>
-        </div>
-      )}
+          <div>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="taxMode">Tax Mode</label>
+                <select id="taxMode" {...register('taxMode')} disabled={isLoading}>
+                  <option value="intra">Intra-state (SGST + CGST)</option>
+                  <option value="inter">Inter-state (IGST)</option>
+                </select>
+              </div>
 
-      <div className="form-group">
-        <label htmlFor="notes">Notes</label>
-        <textarea id="notes" {...register('notes')} rows={2} disabled={isLoading} />
-      </div>
+              <div className="form-group">
+                <label htmlFor="discountRate">Discount Rate (%)</label>
+                <input
+                  id="discountRate"
+                  type="number"
+                  step="0.01"
+                  {...register('discountRate', { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            {taxMode === 'intra' ? (
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="sgstRate">SGST Rate (%)</label>
+                  <input
+                    id="sgstRate"
+                    type="number"
+                    step="0.01"
+                    {...register('sgstRate', { valueAsNumber: true })}
+                    disabled={isLoading}
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="cgstRate">CGST Rate (%)</label>
+                  <input
+                    id="cgstRate"
+                    type="number"
+                    step="0.01"
+                    {...register('cgstRate', { valueAsNumber: true })}
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="igstRate">IGST Rate (%)</label>
+                  <input
+                    id="igstRate"
+                    type="number"
+                    step="0.01"
+                    {...register('igstRate', { valueAsNumber: true })}
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="form-group">
+              <label htmlFor="notes">Notes</label>
+              <textarea id="notes" {...register('notes')} rows={2} disabled={isLoading} />
+            </div>
+          </div>
         </div>
-      </div>
       </div>
 
       <div className="form-actions">

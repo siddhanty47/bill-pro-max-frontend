@@ -2,10 +2,15 @@
  * @file RTK Query API for employee management.
  */
 import { baseApi } from './baseApi';
-import type { Employee, CreateEmployeeInput, UpdateEmployeeInput, PaginatedResponse } from '../types';
+import type {
+  Employee,
+  CreateEmployeeInput,
+  UpdateEmployeeInput,
+  PaginatedResponse,
+} from '../types';
 
 export const employeeApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     /** List employees for a business (supports ?type=, ?search=, ?isActive= filters) */
     getEmployees: builder.query<
       PaginatedResponse<Employee>,
@@ -30,8 +35,7 @@ export const employeeApi = baseApi.injectEndpoints({
       { success: boolean; data: Employee },
       { businessId: string; employeeId: string }
     >({
-      query: ({ businessId, employeeId }) =>
-        `/businesses/${businessId}/employees/${employeeId}`,
+      query: ({ businessId, employeeId }) => `/businesses/${businessId}/employees/${employeeId}`,
       providesTags: (_result, _error, { employeeId }) => [
         { type: 'Employee' as const, id: employeeId },
       ],

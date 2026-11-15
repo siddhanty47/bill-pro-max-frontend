@@ -110,11 +110,18 @@ export function AttendanceCalendar({ employeeId }: AttendanceCalendarProps) {
   const [deleteAttendance] = useDeleteAttendanceMutation();
 
   const attendanceMap = useMemo(() => {
-    const map = new Map<string, { status: AttendanceStatus; overtimeHours?: number; notes?: string }>();
+    const map = new Map<
+      string,
+      { status: AttendanceStatus; overtimeHours?: number; notes?: string }
+    >();
     if (attendanceResponse?.data) {
       for (const record of attendanceResponse.data) {
         const key = toDateKey(new Date(record.date));
-        map.set(key, { status: record.status, overtimeHours: record.overtimeHours, notes: record.notes });
+        map.set(key, {
+          status: record.status,
+          overtimeHours: record.overtimeHours,
+          notes: record.notes,
+        });
       }
     }
     return map;
@@ -220,7 +227,8 @@ export function AttendanceCalendar({ employeeId }: AttendanceCalendarProps) {
     year: 'numeric',
   });
 
-  const isFutureMonth = viewYear > today.getFullYear() ||
+  const isFutureMonth =
+    viewYear > today.getFullYear() ||
     (viewYear === today.getFullYear() && viewMonth > today.getMonth());
 
   return (
@@ -245,16 +253,10 @@ export function AttendanceCalendar({ employeeId }: AttendanceCalendarProps) {
             L: {summary.leave}
           </span>
           <span className={styles.summaryDivider} />
-          <span className={styles.summaryItem}>
-            OT: {summary.overtimeHours}h
-          </span>
-          <span className={styles.summaryItem}>
-            Sun: {summary.sundaysWorked}
-          </span>
+          <span className={styles.summaryItem}>OT: {summary.overtimeHours}h</span>
+          <span className={styles.summaryItem}>Sun: {summary.sundaysWorked}</span>
           <span className={styles.summaryDivider} />
-          <span className={styles.summaryEffective}>
-            Effective: {summary.effectiveDays} days
-          </span>
+          <span className={styles.summaryEffective}>Effective: {summary.effectiveDays} days</span>
         </div>
       )}
 
@@ -276,8 +278,11 @@ export function AttendanceCalendar({ employeeId }: AttendanceCalendarProps) {
 
       {/* Calendar grid */}
       <div className={styles.grid}>
-        {WEEKDAYS.map((wd) => (
-          <div key={wd} className={`${styles.weekdayHeader} ${wd === 'Sun' ? styles.weekdaySunday : ''}`}>
+        {WEEKDAYS.map(wd => (
+          <div
+            key={wd}
+            className={`${styles.weekdayHeader} ${wd === 'Sun' ? styles.weekdaySunday : ''}`}
+          >
             {wd}
           </div>
         ))}
@@ -320,7 +325,11 @@ export function AttendanceCalendar({ employeeId }: AttendanceCalendarProps) {
               {displayStatus && (
                 <span
                   className={`${styles.statusBadge} ${styles[`status-${displayStatus}`]} ${isImplicit ? styles.statusImplicit : ''} ${isSundayWorked ? styles.sundayWorked : ''}`}
-                  title={isImplicit ? `Implicit ${STATUS_FULL_LABELS[displayStatus]}` : STATUS_FULL_LABELS[displayStatus]}
+                  title={
+                    isImplicit
+                      ? `Implicit ${STATUS_FULL_LABELS[displayStatus]}`
+                      : STATUS_FULL_LABELS[displayStatus]
+                  }
                 >
                   {STATUS_LABELS[displayStatus]}
                 </span>
@@ -329,8 +338,8 @@ export function AttendanceCalendar({ employeeId }: AttendanceCalendarProps) {
                 <span className={styles.overtimeIndicator}>+{otHours}h</span>
               )}
               {activeDropdown === key && (
-                <div className={styles.dropdown} onClick={(e) => e.stopPropagation()}>
-                  {STATUS_CYCLE.map((s) => (
+                <div className={styles.dropdown} onClick={e => e.stopPropagation()}>
+                  {STATUS_CYCLE.map(s => (
                     <button
                       key={s}
                       className={`${styles.dropdownItem} ${record?.status === s ? styles.dropdownItemActive : ''}`}
@@ -349,7 +358,7 @@ export function AttendanceCalendar({ employeeId }: AttendanceCalendarProps) {
                       min="0"
                       step="0.5"
                       value={otHoursInput}
-                      onChange={(e) => setOtHoursInput(e.target.value)}
+                      onChange={e => setOtHoursInput(e.target.value)}
                       className={styles.overtimeInput}
                       placeholder="0"
                     />

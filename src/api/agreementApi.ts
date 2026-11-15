@@ -2,9 +2,9 @@
  * Agreement API endpoints
  */
 import { baseApi } from './baseApi';
-import type { 
-  AgreementWithParty, 
-  UpdateAgreementInput, 
+import type {
+  AgreementWithParty,
+  UpdateAgreementInput,
   ApiResponse,
   AgreementRateWithItem,
   AddAgreementRateInput,
@@ -12,12 +12,12 @@ import type {
 } from '../types';
 
 export const agreementApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     /**
      * Get all agreements for a business
      */
     getAgreements: builder.query<AgreementWithParty[], string>({
-      query: (businessId) => `/businesses/${businessId}/agreements?pageSize=100`,
+      query: businessId => `/businesses/${businessId}/agreements?pageSize=100`,
       transformResponse: (response: ApiResponse<AgreementWithParty[]>) => response.data,
       providesTags: ['Agreement'],
     }),
@@ -60,7 +60,7 @@ export const agreementApi = baseApi.injectEndpoints({
       AgreementRateWithItem[],
       { businessId: string; agreementId: string }
     >({
-      query: ({ businessId, agreementId }) => 
+      query: ({ businessId, agreementId }) =>
         `/businesses/${businessId}/agreements/${agreementId}/rates`,
       transformResponse: (response: ApiResponse<AgreementRateWithItem[]>) => response.data,
       providesTags: (_result, _error, { agreementId }) => [

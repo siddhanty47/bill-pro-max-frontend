@@ -6,10 +6,21 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { Party, Inventory, Challan, CreateChallanInput, Employee, ExtractedChallanData } from '../../types';
+import type {
+  Party,
+  Inventory,
+  Challan,
+  CreateChallanInput,
+  Employee,
+  ExtractedChallanData,
+} from '../../types';
 import ScanReviewPanel from './ScanReviewPanel';
 import { computeRentedFromHistory, computeAvailable } from '../../utils/inventoryUtils';
-import { useGetNextChallanNumberQuery, useGetItemsWithPartyQuery, useExtractChallanFromPhotoMutation } from '../../api/challanApi';
+import {
+  useGetNextChallanNumberQuery,
+  useGetItemsWithPartyQuery,
+  useExtractChallanFromPhotoMutation,
+} from '../../api/challanApi';
 import { getErrorMessage } from '../../api/baseApi';
 import { useGetEmployeesQuery } from '../../api/employeeApi';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
@@ -41,7 +52,7 @@ function predictChallanNumberLocally(
   const prefix = type === 'delivery' ? 'D' : 'R';
   const fy = getFinancialYear(dateStr ? new Date(dateStr) : new Date());
   const pattern = `${prefix}-${fy}-`;
-  const count = challans.filter((c) => c.challanNumber.startsWith(pattern)).length;
+  const count = challans.filter(c => c.challanNumber.startsWith(pattern)).length;
   return `${prefix}-${fy}-${String(count + 1).padStart(4, '0')}`;
 }
 
@@ -58,10 +69,7 @@ function computeItemsWithPartyLocally(
   const qtyMap = new Map<string, number>();
 
   const relevant = challans.filter(
-    (c) =>
-      c.partyId === partyId &&
-      c.agreementId === agreementId &&
-      c.status === 'confirmed'
+    c => c.partyId === partyId && c.agreementId === agreementId && c.status === 'confirmed'
   );
 
   for (const challan of relevant) {
@@ -143,7 +151,9 @@ export function ChallanForm({
 }: ChallanFormProps) {
   const [partySearchValue, setPartySearchValue] = useState('');
   const [itemSearchValues, setItemSearchValues] = useState<Record<number, string>>({});
-  const [damagedItemSearchValues, setDamagedItemSearchValues] = useState<Record<number, string>>({});
+  const [damagedItemSearchValues, setDamagedItemSearchValues] = useState<Record<number, string>>(
+    {}
+  );
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
   const [extractionReview, setExtractionReview] = useState<ExtractedChallanData | null>(null);
@@ -166,7 +176,12 @@ export function ChallanForm({
     },
   });
 
-  const { fields, append, remove, replace: replaceItems } = useFieldArray({
+  const {
+    fields,
+    append,
+    remove,
+    replace: replaceItems,
+  } = useFieldArray({
     control,
     name: 'items',
   });
@@ -183,8 +198,8 @@ export function ChallanForm({
 
   const selectedPartyId = watch('partyId');
   const selectedAgreementId = watch('agreementId');
-  const selectedParty = parties.find((p) => p._id === selectedPartyId);
-  const activeAgreements = selectedParty?.agreements?.filter((a) => a.status === 'active') || [];
+  const selectedParty = parties.find(p => p._id === selectedPartyId);
+  const activeAgreements = selectedParty?.agreements?.filter(a => a.status === 'active') || [];
   const challanDate = watch('date');
 
   /** Fetch transporter employees for the business */
@@ -192,11 +207,14 @@ export function ChallanForm({
     { businessId, type: 'transporter' },
     { skip: !businessId }
   );
-  const transporters: Employee[] = employeesResponse?.data ?? [];
+  const transporters: Employee[] = useMemo(
+    () => employeesResponse?.data ?? [],
+    [employeesResponse]
+  );
 
   /** Auto-fill cartage charges when agreement or challan type changes */
   const selectedAgreement = selectedParty?.agreements?.find(
-    (a) => a.agreementId === selectedAgreementId
+    a => a.agreementId === selectedAgreementId
   );
 
   useEffect(() => {
@@ -212,7 +230,7 @@ export function ChallanForm({
   const handleTransporterChange = useCallback(
     (transporterId: string) => {
       setValue('transporterId', transporterId);
-      const transporter = transporters.find((t) => t._id === transporterId);
+      const transporter = transporters.find(t => t._id === transporterId);
       if (transporter) {
         setValue('transporterName', transporter.name);
         setValue('vehicleNumber', transporter.details?.vehicleNumber ?? '');
@@ -240,7 +258,14 @@ export function ChallanForm({
       return predictChallanNumberLocally(challans, challanType, challanDate);
     }
     return undefined;
-  }, [apiPredictedNumber, isPredictedError, isPredictedLoading, challans, challanType, challanDate]);
+  }, [
+    apiPredictedNumber,
+    isPredictedError,
+    isPredictedLoading,
+    challans,
+    challanType,
+    challanDate,
+  ]);
 
   /** Parse predicted number into prefix and default sequence */
   const challanPrefix = useMemo(() => {
@@ -269,10 +294,7 @@ export function ChallanForm({
    * Falls back to client-side computation from the loaded challans list
    * when the API endpoint is unavailable.
    */
-  const {
-    data: apiItemsWithParty,
-    isError: isItemsWithPartyError,
-  } = useGetItemsWithPartyQuery(
+  const { data: apiItemsWithParty, isError: isItemsWithPartyError } = useGetItemsWithPartyQuery(
     { businessId, partyId: selectedPartyId, agreementId: selectedAgreementId },
     { skip: !businessId || !selectedPartyId || !selectedAgreementId }
   );
@@ -297,7 +319,7 @@ export function ChallanForm({
     (itemId: string): number => {
       if (!itemId) return 0;
       if (apiItemsWithParty && !isItemsWithPartyError) {
-        return apiItemsWithParty.find((i) => i.itemId === itemId)?.quantity ?? 0;
+        return apiItemsWithParty.find(i => i.itemId === itemId)?.quantity ?? 0;
       }
       return localItemsMap.get(itemId) ?? 0;
     },
@@ -306,8 +328,8 @@ export function ChallanForm({
 
   const partyAutocompleteItems: AutocompleteItem[] = useMemo(() => {
     return parties
-      .filter((p) => p.agreements && p.agreements.some((a) => a.status === 'active'))
-      .map((party) => ({
+      .filter(p => p.agreements && p.agreements.some(a => a.status === 'active'))
+      .map(party => ({
         code: party.code || party.name.substring(0, 4).toUpperCase(),
         label: party.name,
         sublabel: party.contact.person,
@@ -316,7 +338,7 @@ export function ChallanForm({
   }, [parties]);
 
   const inventoryAutocompleteItems: AutocompleteItem[] = useMemo(() => {
-    return inventoryItems.map((item) => {
+    return inventoryItems.map(item => {
       const rented = computeRentedFromHistory(item.quantityHistory);
       const avail = computeAvailable(item.totalQuantity, rented);
       return {
@@ -339,32 +361,32 @@ export function ChallanForm({
 
   const handleInventorySelect = useCallback(
     (index: number, item: AutocompleteItem) => {
-      const inventoryItem = inventoryItems.find((i) => i._id === item.id);
+      const inventoryItem = inventoryItems.find(i => i._id === item.id);
       setValue(`items.${index}.itemId`, item.id);
       setValue(`items.${index}.itemName`, inventoryItem?.name || item.label);
-      setItemSearchValues((prev) => ({ ...prev, [index]: item.code }));
+      setItemSearchValues(prev => ({ ...prev, [index]: item.code }));
     },
     [inventoryItems, setValue]
   );
 
   const handleItemSearchChange = useCallback((index: number, value: string) => {
-    setItemSearchValues((prev) => ({ ...prev, [index]: value }));
+    setItemSearchValues(prev => ({ ...prev, [index]: value }));
   }, []);
 
   const handleDamagedItemSelect = useCallback(
     (index: number, item: AutocompleteItem) => {
-      const inventoryItem = inventoryItems.find((i) => i._id === item.id);
+      const inventoryItem = inventoryItems.find(i => i._id === item.id);
       setValue(`damagedItems.${index}.itemId`, item.id);
       setValue(`damagedItems.${index}.itemName`, inventoryItem?.name || item.label);
       setValue(`damagedItems.${index}.damageRate`, inventoryItem?.damageRate ?? 0);
       setValue(`damagedItems.${index}.lossType`, 'damage');
-      setDamagedItemSearchValues((prev) => ({ ...prev, [index]: item.code }));
+      setDamagedItemSearchValues(prev => ({ ...prev, [index]: item.code }));
     },
     [inventoryItems, setValue]
   );
 
   const handleDamagedItemSearchChange = useCallback((index: number, value: string) => {
-    setDamagedItemSearchValues((prev) => ({ ...prev, [index]: value }));
+    setDamagedItemSearchValues(prev => ({ ...prev, [index]: value }));
   }, []);
 
   /** Apply extracted data from a photo to the form fields */
@@ -374,7 +396,7 @@ export function ChallanForm({
 
       if (result.partyId) {
         setValue('partyId', result.partyId);
-        const party = parties.find((p) => p._id === result.partyId);
+        const party = parties.find(p => p._id === result.partyId);
         if (party) {
           setPartySearchValue(party.code || party.name);
         }
@@ -398,7 +420,7 @@ export function ChallanForm({
 
       // Replace items array atomically (avoid per-item remove/append re-renders)
       if (result.items.length > 0) {
-        const newItems = result.items.map((item) => ({
+        const newItems = result.items.map(item => ({
           itemId: item.itemId || '',
           itemName: item.itemName,
           quantity: item.quantity,
@@ -408,7 +430,7 @@ export function ChallanForm({
         const newSearchValues: Record<number, string> = {};
         result.items.forEach((item, index) => {
           // Always set search value so CodeAutocomplete input is never blank
-          const inv = item.itemId ? inventoryItems.find((i) => i._id === item.itemId) : null;
+          const inv = item.itemId ? inventoryItems.find(i => i._id === item.itemId) : null;
           newSearchValues[index] = inv?.code || inv?.name || item.itemName;
         });
         setItemSearchValues(newSearchValues);
@@ -416,8 +438,8 @@ export function ChallanForm({
 
       // Handle damaged items for returns
       if (result.damagedItems.length > 0 && challanType === 'return') {
-        const newDamagedItems = result.damagedItems.map((item) => {
-          const inv = inventoryItems.find((i) => i._id === item.itemId);
+        const newDamagedItems = result.damagedItems.map(item => {
+          const inv = inventoryItems.find(i => i._id === item.itemId);
           return {
             itemId: item.itemId || '',
             itemName: item.itemName,
@@ -431,7 +453,7 @@ export function ChallanForm({
 
         const newDamagedSearchValues: Record<number, string> = {};
         result.damagedItems.forEach((item, index) => {
-          const inv = item.itemId ? inventoryItems.find((i) => i._id === item.itemId) : null;
+          const inv = item.itemId ? inventoryItems.find(i => i._id === item.itemId) : null;
           newDamagedSearchValues[index] = inv?.code || inv?.name || item.itemName;
         });
         setDamagedItemSearchValues(newDamagedSearchValues);
@@ -473,8 +495,8 @@ export function ChallanForm({
     const damagedItems =
       data.type === 'return' && data.damagedItems?.length
         ? data.damagedItems
-            .filter((d) => d.itemId)
-            .map((d) => ({
+            .filter(d => d.itemId)
+            .map(d => ({
               itemId: d.itemId,
               itemName: d.itemName,
               quantity: d.quantity,
@@ -490,7 +512,7 @@ export function ChallanForm({
       agreementId: data.agreementId,
       date: data.date,
       challanSequence: data.challanSequence,
-      items: data.items.map((item) => ({
+      items: data.items.map(item => ({
         itemId: item.itemId,
         itemName: item.itemName,
         quantity: item.quantity,
@@ -511,370 +533,403 @@ export function ChallanForm({
   return (
     <form onSubmit={onFormSubmit}>
       <div className="form-content">
-      {/* Photo upload for auto-fill */}
-      <div className={styles.photoUpload}>
-        <input
-          type="file"
-          id="challan-photo"
-          accept="image/jpeg,image/png,image/webp"
-          className={styles.hiddenFileInput}
-          onChange={handlePhotoUpload}
-          disabled={isLoading || isExtracting}
+        {/* Photo upload for auto-fill */}
+        <div className={styles.photoUpload}>
+          <input
+            type="file"
+            id="challan-photo"
+            accept="image/jpeg,image/png,image/webp"
+            className={styles.hiddenFileInput}
+            onChange={handlePhotoUpload}
+            disabled={isLoading || isExtracting}
+          />
+          <label htmlFor="challan-photo" className={`btn btn-secondary ${styles.uploadBtn}`}>
+            {isExtracting ? 'Extracting...' : 'Scan from Photo'}
+          </label>
+          {extractionWarnings.length > 0 && (
+            <div className={styles.extractionWarnings}>
+              {extractionWarnings.map((w, i) => (
+                <span key={i} className={styles.warning}>
+                  {w}
+                </span>
+              ))}
+            </div>
+          )}
+          {extractionReview && (
+            <ScanReviewPanel
+              result={extractionReview}
+              onDismiss={() => setExtractionReview(null)}
+            />
+          )}
+        </div>
+
+        {/* Challan number: prefix (read-only) + editable sequence */}
+        <DocumentNumberBadge
+          label="Challan #"
+          prefix={challanPrefix}
+          isLoading={isPredictedLoading}
+          disabled={isLoading || isPredictedLoading}
+          variant={challanType}
+          register={register('challanSequence', { valueAsNumber: true })}
+          error={errors.challanSequence?.message}
         />
-        <label htmlFor="challan-photo" className={`btn btn-secondary ${styles.uploadBtn}`}>
-          {isExtracting ? 'Extracting...' : 'Scan from Photo'}
-        </label>
-        {extractionWarnings.length > 0 && (
-          <div className={styles.extractionWarnings}>
-            {extractionWarnings.map((w, i) => (
-              <span key={i} className={styles.warning}>{w}</span>
-            ))}
+
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="date">Date *</label>
+            <input id="date" type="date" {...register('date')} disabled={isLoading} />
+            {errors.date && <span className="error-message">{errors.date.message}</span>}
           </div>
-        )}
-        {extractionReview && (
-          <ScanReviewPanel
-            result={extractionReview}
-            onDismiss={() => setExtractionReview(null)}
-          />
-        )}
-      </div>
+        </div>
+        <input type="hidden" {...register('type')} />
 
-      {/* Challan number: prefix (read-only) + editable sequence */}
-      <DocumentNumberBadge
-        label="Challan #"
-        prefix={challanPrefix}
-        isLoading={isPredictedLoading}
-        disabled={isLoading || isPredictedLoading}
-        variant={challanType}
-        register={register('challanSequence', { valueAsNumber: true })}
-        error={errors.challanSequence?.message}
-      />
+        <div className="form-row">
+          <div className={`form-group ${styles.flexGroup}`}>
+            <CodeAutocomplete
+              label="Party *"
+              placeholder="Type party code or name..."
+              value={partySearchValue}
+              onChange={setPartySearchValue}
+              items={partyAutocompleteItems}
+              onSelect={handlePartySelect}
+              disabled={isLoading}
+              error={errors.partyId?.message}
+              required
+            />
+            <input type="hidden" {...register('partyId')} />
+          </div>
 
-      <div className="form-row">
+          <div className={`form-group ${styles.flexGroup}`}>
+            <label htmlFor="agreementId">Agreement *</label>
+            <select
+              id="agreementId"
+              {...register('agreementId')}
+              disabled={isLoading || !selectedPartyId}
+            >
+              <option value="">Select agreement...</option>
+              {activeAgreements.map(agreement => (
+                <option key={agreement.agreementId} value={agreement.agreementId}>
+                  {agreement.agreementId} (from {new Date(agreement.startDate).toLocaleDateString()}
+                  )
+                </option>
+              ))}
+            </select>
+            {errors.agreementId && (
+              <span className="error-message">{errors.agreementId.message}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Items section — table/spreadsheet style */}
         <div className="form-group">
-          <label htmlFor="date">Date *</label>
-          <input id="date" type="date" {...register('date')} disabled={isLoading} />
-          {errors.date && <span className="error-message">{errors.date.message}</span>}
-        </div>
-      </div>
-      <input type="hidden" {...register('type')} />
-
-      <div className="form-row">
-        <div className={`form-group ${styles.flexGroup}`}>
-          <CodeAutocomplete
-            label="Party *"
-            placeholder="Type party code or name..."
-            value={partySearchValue}
-            onChange={setPartySearchValue}
-            items={partyAutocompleteItems}
-            onSelect={handlePartySelect}
-            disabled={isLoading}
-            error={errors.partyId?.message}
-            required
-          />
-          <input type="hidden" {...register('partyId')} />
-        </div>
-
-        <div className={`form-group ${styles.flexGroup}`}>
-          <label htmlFor="agreementId">Agreement *</label>
-          <select id="agreementId" {...register('agreementId')} disabled={isLoading || !selectedPartyId}>
-            <option value="">Select agreement...</option>
-            {activeAgreements.map((agreement) => (
-              <option key={agreement.agreementId} value={agreement.agreementId}>
-                {agreement.agreementId} (from {new Date(agreement.startDate).toLocaleDateString()})
-              </option>
-            ))}
-          </select>
-          {errors.agreementId && <span className="error-message">{errors.agreementId.message}</span>}
-        </div>
-      </div>
-
-      {/* Items section — table/spreadsheet style */}
-      <div className="form-group">
-        <label>Items *</label>
-        <div className={styles.itemsTableWrap}>
-          <table className={styles.itemsTable}>
-            <thead>
-              <tr>
-                <th className={styles.colItem}>Item</th>
-                <th className={styles.colQty}>Qty</th>
-                <th className={styles.colRunning}>Running</th>
-                <th className={styles.colAction}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {fields.map((field, index) => {
-                const currentItemId = watch(`items.${index}.itemId`);
-                const runningQty = getRunningQty(currentItemId);
-
-                return (
-                  <tr key={field.id}>
-                    <td className={styles.colItem}>
-                      <div className={styles.tableCellAutocomplete}>
-                        <CodeAutocomplete
-                          label=""
-                          placeholder="Type item code or name..."
-                          value={itemSearchValues[index] || ''}
-                          onChange={(value) => handleItemSearchChange(index, value)}
-                          items={inventoryAutocompleteItems}
-                          onSelect={(item) => handleInventorySelect(index, item)}
-                          disabled={isLoading}
-                        />
-                        <input type="hidden" {...register(`items.${index}.itemId`)} />
-                        <input type="hidden" {...register(`items.${index}.itemName`)} />
-                      </div>
-                    </td>
-                    <td className={styles.colQty}>
-                      <input
-                        type="number"
-                        placeholder="Qty"
-                        {...register(`items.${index}.quantity`, { valueAsNumber: true })}
-                        disabled={isLoading}
-                      />
-                    </td>
-                    <td className={styles.colRunning}>
-                      <span className="badge-neutral">
-                        {runningQty}
-                      </span>
-                    </td>
-                    <td className={styles.colAction}>
-                      <button
-                        type="button"
-                        className={styles.deleteIconBtn}
-                        onClick={() => remove(index)}
-                        disabled={isLoading || fields.length <= 1}
-                        title="Delete row"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          <line x1="10" y1="11" x2="10" y2="17" />
-                          <line x1="14" y1="11" x2="14" y2="17" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        {errors.items && <span className="error-message">{errors.items.message}</span>}
-        <button
-          type="button"
-          className={`btn btn-secondary btn-sm ${styles.addRowBtn}`}
-          onClick={() => append({ itemId: '', itemName: '', quantity: 1 })}
-          disabled={isLoading}
-        >
-          + Add Item
-        </button>
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="notes">Notes</label>
-        <textarea id="notes" {...register('notes')} rows={2} disabled={isLoading} />
-      </div>
-
-      {/* Loss section (return challans only) — table style */}
-      {challanType === 'return' && (
-        <fieldset className="form-fieldset">
-          <legend className="form-fieldset-legend">
-            Loss
-          </legend>
-
-          <div className={styles.lossTableWrap}>
-            <table className={styles.lossTable}>
+          <label>Items *</label>
+          <div className={styles.itemsTableWrap}>
+            <table className={styles.itemsTable}>
               <thead>
                 <tr>
                   <th className={styles.colItem}>Item</th>
-                  <th className={styles.colType}>Type</th>
                   <th className={styles.colQty}>Qty</th>
-                  <th className={styles.colRate}>Rate</th>
-                  <th className={styles.colNote}>Note</th>
+                  <th className={styles.colRunning}>Running</th>
                   <th className={styles.colAction}></th>
                 </tr>
               </thead>
               <tbody>
-                {damagedFields.map((field, index) => (
-                  <tr key={field.id}>
-                    <td className={styles.colItem}>
-                      <div className={styles.tableCellAutocomplete}>
-                        <CodeAutocomplete
-                          label=""
-                          placeholder="Type item code or name..."
-                          value={damagedItemSearchValues[index] || ''}
-                          onChange={(value) => handleDamagedItemSearchChange(index, value)}
-                          items={inventoryAutocompleteItems}
-                          onSelect={(item) => handleDamagedItemSelect(index, item)}
+                {fields.map((field, index) => {
+                  const currentItemId = watch(`items.${index}.itemId`);
+                  const runningQty = getRunningQty(currentItemId);
+
+                  return (
+                    <tr key={field.id}>
+                      <td className={styles.colItem}>
+                        <div className={styles.tableCellAutocomplete}>
+                          <CodeAutocomplete
+                            label=""
+                            placeholder="Type item code or name..."
+                            value={itemSearchValues[index] || ''}
+                            onChange={value => handleItemSearchChange(index, value)}
+                            items={inventoryAutocompleteItems}
+                            onSelect={item => handleInventorySelect(index, item)}
+                            disabled={isLoading}
+                          />
+                          <input type="hidden" {...register(`items.${index}.itemId`)} />
+                          <input type="hidden" {...register(`items.${index}.itemName`)} />
+                        </div>
+                      </td>
+                      <td className={styles.colQty}>
+                        <input
+                          type="number"
+                          placeholder="Qty"
+                          {...register(`items.${index}.quantity`, { valueAsNumber: true })}
                           disabled={isLoading}
                         />
-                        <input type="hidden" {...register(`damagedItems.${index}.itemId`)} />
-                        <input type="hidden" {...register(`damagedItems.${index}.itemName`)} />
-                      </div>
-                    </td>
-                    <td className={styles.colType}>
-                      <select
-                        {...register(`damagedItems.${index}.lossType`, {
-                          onChange: (e) => {
-                            const lossType = e.target.value as 'damage' | 'short' | 'need_repair';
-                            const itemId = watch(`damagedItems.${index}.itemId`);
-                            const inv = inventoryItems.find((i) => i._id === itemId);
-                            if (inv) {
-                              const rate = lossType === 'short' ? (inv.costPrice ?? 0) : (inv.damageRate ?? 0);
-                              setValue(`damagedItems.${index}.damageRate`, rate);
-                            }
-                          },
-                        })}
-                        disabled={isLoading}
-                        title="Damage = received damaged; Short = missing/less; Need Repair = can be fixed"
-                      >
-                        <option value="damage">Damaged</option>
-                        <option value="short">Short</option>
-                        <option value="need_repair">Need Repair</option>
-                      </select>
-                    </td>
-                    <td className={styles.colQty}>
-                      <input
-                        type="number"
-                        placeholder="Qty"
-                        {...register(`damagedItems.${index}.quantity`, { valueAsNumber: true })}
-                        disabled={isLoading}
-                      />
-                    </td>
-                    <td className={styles.colRate}>
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="Rate"
-                        {...register(`damagedItems.${index}.damageRate`, { valueAsNumber: true })}
-                        disabled={isLoading}
-                      />
-                    </td>
-                    <td className={styles.colNote}>
-                      <input
-                        type="text"
-                        placeholder="Note (optional)"
-                        {...register(`damagedItems.${index}.note`)}
-                        disabled={isLoading}
-                      />
-                    </td>
-                    <td className={styles.colAction}>
-                      <button
-                        type="button"
-                        className={styles.deleteIconBtn}
-                        onClick={() => removeDamaged(index)}
-                        disabled={isLoading}
-                        title="Delete row"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          <line x1="10" y1="11" x2="10" y2="17" />
-                          <line x1="14" y1="11" x2="14" y2="17" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className={styles.colRunning}>
+                        <span className="badge-neutral">{runningQty}</span>
+                      </td>
+                      <td className={styles.colAction}>
+                        <button
+                          type="button"
+                          className={styles.deleteIconBtn}
+                          onClick={() => remove(index)}
+                          disabled={isLoading || fields.length <= 1}
+                          title="Delete row"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            <line x1="10" y1="11" x2="10" y2="17" />
+                            <line x1="14" y1="11" x2="14" y2="17" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-
+          {errors.items && <span className="error-message">{errors.items.message}</span>}
           <button
             type="button"
-            className={`btn btn-secondary btn-sm ${styles.addLossRowBtn}`}
-            onClick={() => appendDamaged({ itemId: '', itemName: '', quantity: 1, damageRate: 0, note: '', lossType: 'damage' })}
+            className={`btn btn-secondary btn-sm ${styles.addRowBtn}`}
+            onClick={() => append({ itemId: '', itemName: '', quantity: 1 })}
             disabled={isLoading}
           >
-            + Add Loss Item
+            + Add Item
           </button>
-        </fieldset>
-      )}
+        </div>
 
-      {/* Transportation section */}
-      <fieldset className="form-fieldset">
-        <legend className="form-fieldset-legend">
-          Transportation
-        </legend>
+        <div className="form-group">
+          <label htmlFor="notes">Notes</label>
+          <textarea id="notes" {...register('notes')} rows={2} disabled={isLoading} />
+        </div>
 
-        <div className="form-row">
-          <div className={`form-group ${styles.flexGrow2}`}>
-            <label htmlFor="transporterId">Transporter</label>
-            <select
-              id="transporterId"
-              {...register('transporterId')}
-              onChange={(e) => handleTransporterChange(e.target.value)}
+        {/* Loss section (return challans only) — table style */}
+        {challanType === 'return' && (
+          <fieldset className="form-fieldset">
+            <legend className="form-fieldset-legend">Loss</legend>
+
+            <div className={styles.lossTableWrap}>
+              <table className={styles.lossTable}>
+                <thead>
+                  <tr>
+                    <th className={styles.colItem}>Item</th>
+                    <th className={styles.colType}>Type</th>
+                    <th className={styles.colQty}>Qty</th>
+                    <th className={styles.colRate}>Rate</th>
+                    <th className={styles.colNote}>Note</th>
+                    <th className={styles.colAction}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {damagedFields.map((field, index) => (
+                    <tr key={field.id}>
+                      <td className={styles.colItem}>
+                        <div className={styles.tableCellAutocomplete}>
+                          <CodeAutocomplete
+                            label=""
+                            placeholder="Type item code or name..."
+                            value={damagedItemSearchValues[index] || ''}
+                            onChange={value => handleDamagedItemSearchChange(index, value)}
+                            items={inventoryAutocompleteItems}
+                            onSelect={item => handleDamagedItemSelect(index, item)}
+                            disabled={isLoading}
+                          />
+                          <input type="hidden" {...register(`damagedItems.${index}.itemId`)} />
+                          <input type="hidden" {...register(`damagedItems.${index}.itemName`)} />
+                        </div>
+                      </td>
+                      <td className={styles.colType}>
+                        <select
+                          {...register(`damagedItems.${index}.lossType`, {
+                            onChange: e => {
+                              const lossType = e.target.value as 'damage' | 'short' | 'need_repair';
+                              const itemId = watch(`damagedItems.${index}.itemId`);
+                              const inv = inventoryItems.find(i => i._id === itemId);
+                              if (inv) {
+                                const rate =
+                                  lossType === 'short'
+                                    ? (inv.costPrice ?? 0)
+                                    : (inv.damageRate ?? 0);
+                                setValue(`damagedItems.${index}.damageRate`, rate);
+                              }
+                            },
+                          })}
+                          disabled={isLoading}
+                          title="Damage = received damaged; Short = missing/less; Need Repair = can be fixed"
+                        >
+                          <option value="damage">Damaged</option>
+                          <option value="short">Short</option>
+                          <option value="need_repair">Need Repair</option>
+                        </select>
+                      </td>
+                      <td className={styles.colQty}>
+                        <input
+                          type="number"
+                          placeholder="Qty"
+                          {...register(`damagedItems.${index}.quantity`, { valueAsNumber: true })}
+                          disabled={isLoading}
+                        />
+                      </td>
+                      <td className={styles.colRate}>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="Rate"
+                          {...register(`damagedItems.${index}.damageRate`, { valueAsNumber: true })}
+                          disabled={isLoading}
+                        />
+                      </td>
+                      <td className={styles.colNote}>
+                        <input
+                          type="text"
+                          placeholder="Note (optional)"
+                          {...register(`damagedItems.${index}.note`)}
+                          disabled={isLoading}
+                        />
+                      </td>
+                      <td className={styles.colAction}>
+                        <button
+                          type="button"
+                          className={styles.deleteIconBtn}
+                          onClick={() => removeDamaged(index)}
+                          disabled={isLoading}
+                          title="Delete row"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            <line x1="10" y1="11" x2="10" y2="17" />
+                            <line x1="14" y1="11" x2="14" y2="17" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <button
+              type="button"
+              className={`btn btn-secondary btn-sm ${styles.addLossRowBtn}`}
+              onClick={() =>
+                appendDamaged({
+                  itemId: '',
+                  itemName: '',
+                  quantity: 1,
+                  damageRate: 0,
+                  note: '',
+                  lossType: 'damage',
+                })
+              }
               disabled={isLoading}
             >
-              <option value="">Select transporter...</option>
-              {transporters.map((t) => (
-                <option key={t._id} value={t._id}>
-                  {t.name} — {t.details?.vehicleNumber}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+              + Add Loss Item
+            </button>
+          </fieldset>
+        )}
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="transporterName">Transporter Name</label>
-            <input
-              id="transporterName"
-              type="text"
-              {...register('transporterName')}
-              disabled={isLoading}
-              placeholder="Auto-filled from selection"
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="vehicleNumber">Vehicle Number</label>
-            <input
-              id="vehicleNumber"
-              type="text"
-              {...register('vehicleNumber')}
-              disabled={isLoading}
-              placeholder="Auto-filled from selection"
-            />
-          </div>
-        </div>
+        {/* Transportation section */}
+        <fieldset className="form-fieldset">
+          <legend className="form-fieldset-legend">Transportation</legend>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="cartageCharge">Cartage (₹)</label>
-            <input
-              id="cartageCharge"
-              type="number"
-              step="0.01"
-              {...register('cartageCharge', { valueAsNumber: true })}
-              disabled={isLoading}
-              placeholder="Auto-filled from agreement"
-            />
+          <div className="form-row">
+            <div className={`form-group ${styles.flexGrow2}`}>
+              <label htmlFor="transporterId">Transporter</label>
+              <select
+                id="transporterId"
+                {...register('transporterId')}
+                onChange={e => handleTransporterChange(e.target.value)}
+                disabled={isLoading}
+              >
+                <option value="">Select transporter...</option>
+                {transporters.map(t => (
+                  <option key={t._id} value={t._id}>
+                    {t.name} — {t.details?.vehicleNumber}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="form-group">
-            <label htmlFor="loadingCharge">Loading (₹)</label>
-            <input
-              id="loadingCharge"
-              type="number"
-              step="0.01"
-              {...register('loadingCharge', { valueAsNumber: true })}
-              disabled={isLoading}
-              placeholder="Auto-filled from agreement"
-            />
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="transporterName">Transporter Name</label>
+              <input
+                id="transporterName"
+                type="text"
+                {...register('transporterName')}
+                disabled={isLoading}
+                placeholder="Auto-filled from selection"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="vehicleNumber">Vehicle Number</label>
+              <input
+                id="vehicleNumber"
+                type="text"
+                {...register('vehicleNumber')}
+                disabled={isLoading}
+                placeholder="Auto-filled from selection"
+              />
+            </div>
           </div>
-          <div className="form-group">
-            <label htmlFor="unloadingCharge">Unloading (₹)</label>
-            <input
-              id="unloadingCharge"
-              type="number"
-              step="0.01"
-              {...register('unloadingCharge', { valueAsNumber: true })}
-              disabled={isLoading}
-              placeholder="Auto-filled from agreement"
-            />
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="cartageCharge">Cartage (₹)</label>
+              <input
+                id="cartageCharge"
+                type="number"
+                step="0.01"
+                {...register('cartageCharge', { valueAsNumber: true })}
+                disabled={isLoading}
+                placeholder="Auto-filled from agreement"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="loadingCharge">Loading (₹)</label>
+              <input
+                id="loadingCharge"
+                type="number"
+                step="0.01"
+                {...register('loadingCharge', { valueAsNumber: true })}
+                disabled={isLoading}
+                placeholder="Auto-filled from agreement"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="unloadingCharge">Unloading (₹)</label>
+              <input
+                id="unloadingCharge"
+                type="number"
+                step="0.01"
+                {...register('unloadingCharge', { valueAsNumber: true })}
+                disabled={isLoading}
+                placeholder="Auto-filled from agreement"
+              />
+            </div>
           </div>
-        </div>
-      </fieldset>
+        </fieldset>
       </div>
 
       <div className="form-actions">

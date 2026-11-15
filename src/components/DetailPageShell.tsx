@@ -84,15 +84,11 @@ export function DetailPageShell({
         <div className={styles.headerLeft}>
           <div className={styles.titleRow}>
             <h1 className={styles.title}>{title}</h1>
-            {status && (
-              <span className={statusClassName || 'status'}>{status}</span>
-            )}
+            {status && <span className={statusClassName || 'status'}>{status}</span>}
           </div>
           {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
         </div>
-        {headerActions && (
-          <div className={styles.headerActions}>{headerActions}</div>
-        )}
+        {headerActions && <div className={styles.headerActions}>{headerActions}</div>}
       </div>
 
       {/* Body: main + sidebar */}

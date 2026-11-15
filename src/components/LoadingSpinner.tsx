@@ -11,7 +11,7 @@ export function LoadingSpinner({ message = 'Loading...' }: { message?: string })
 
   useEffect(() => {
     const id = setInterval(() => {
-      setFrame((f) => (f + 1) % FRAMES.length);
+      setFrame(f => (f + 1) % FRAMES.length);
     }, 150);
     return () => clearInterval(id);
   }, []);

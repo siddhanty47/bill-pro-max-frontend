@@ -16,11 +16,7 @@ import {
   useAdjustQuantityMutation,
   useGetOpeningBalancesQuery,
 } from '../api/inventoryApi';
-import {
-  DetailPageShell,
-  DetailSection,
-  DetailField,
-} from '../components/DetailPageShell';
+import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import { Tabs } from '../components/Tabs';
 import { CodeAutocomplete, type AutocompleteItem } from '../components/CodeAutocomplete';
 import type { AdjustQuantityInput, QuantityTransaction } from '../types';
@@ -141,9 +137,14 @@ export function InventoryDetailPage() {
   const { itemId } = useParams<{ itemId: string }>();
   const { currentBusinessId } = useCurrentBusiness();
 
-  const { data: item, isLoading, error, refetch } = useGetInventoryItemQuery(
+  const {
+    data: item,
+    isLoading,
+    error,
+    refetch,
+  } = useGetInventoryItemQuery(
     { businessId: currentBusinessId!, itemId: itemId! },
-    { skip: !currentBusinessId || !itemId },
+    { skip: !currentBusinessId || !itemId }
   );
 
   const [updateInventory, { isLoading: isSaving }] = useUpdateInventoryMutation();
@@ -151,12 +152,12 @@ export function InventoryDetailPage() {
   const { data: openingBalances } = useGetOpeningBalancesQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
   });
-  const itemOpeningBalance: number = (itemId && openingBalances?.[itemId]) ? Number(openingBalances[itemId]) : 0;
+  const itemOpeningBalance: number =
+    itemId && openingBalances?.[itemId] ? Number(openingBalances[itemId]) : 0;
 
-  const { data: existingCategories } = useGetInventoryCategoriesQuery(
-    currentBusinessId || '',
-    { skip: !currentBusinessId },
-  );
+  const { data: existingCategories } = useGetInventoryCategoriesQuery(currentBusinessId || '', {
+    skip: !currentBusinessId,
+  });
 
   /** Stock adjustment form state */
   const [adjType, setAdjType] = useState<AdjustQuantityInput['type']>('purchase');
@@ -168,7 +169,7 @@ export function InventoryDetailPage() {
   /** Map category strings to AutocompleteItem format for CodeAutocomplete */
   const categoryAutocompleteItems: AutocompleteItem[] = useMemo(() => {
     if (!existingCategories) return [];
-    return existingCategories.map((cat) => ({
+    return existingCategories.map(cat => ({
       code: cat,
       label: cat,
       id: cat,
@@ -186,7 +187,7 @@ export function InventoryDetailPage() {
         data: { [field]: newValue },
       }).unwrap();
     },
-    [currentBusinessId, itemId, updateInventory],
+    [currentBusinessId, itemId, updateInventory]
   );
 
   /** Submit a stock adjustment transaction */
@@ -219,7 +220,7 @@ export function InventoryDetailPage() {
         setAdjError(getErrorMessage(err));
       }
     },
-    [adjType, adjQuantity, adjDate, adjNote, adjustQuantity, currentBusinessId, itemId],
+    [adjType, adjQuantity, adjDate, adjNote, adjustQuantity, currentBusinessId, itemId]
   );
 
   const [activeTab, setActiveTab] = useState('about');
@@ -231,10 +232,11 @@ export function InventoryDetailPage() {
   ];
 
   /** History: latest entry at top (reverse of insertion order) */
+  const quantityHistory = item?.quantityHistory;
   const sortedHistory = useMemo(() => {
-    if (!item?.quantityHistory?.length) return [];
-    return [...item.quantityHistory].reverse();
-  }, [item?.quantityHistory]);
+    if (!quantityHistory?.length) return [];
+    return [...quantityHistory].reverse();
+  }, [quantityHistory]);
 
   const sidebar = item ? (
     <DetailSection title="Details">
@@ -247,16 +249,16 @@ export function InventoryDetailPage() {
         editable={{
           rawValue: item.category,
           inputType: 'text',
-          onSave: (v) => handleSave('category', v),
+          onSave: v => handleSave('category', v),
           isSaving,
           renderEditInput: ({ value: editVal, onChange, onSave }) => (
             <CodeAutocomplete
               label=""
               placeholder="Select or type a category..."
               value={String(editVal)}
-              onChange={(val) => onChange(val)}
+              onChange={val => onChange(val)}
               items={categoryAutocompleteItems}
-              onSelect={(selectedItem) => {
+              onSelect={selectedItem => {
                 onChange(selectedItem.label);
                 setTimeout(onSave, 0);
               }}
@@ -268,12 +270,12 @@ export function InventoryDetailPage() {
       {/* Unit — select matching InventoryForm options */}
       <DetailField
         label="Unit"
-        value={UNIT_OPTIONS.find((o) => o.value === item.unit)?.label ?? item.unit}
+        value={UNIT_OPTIONS.find(o => o.value === item.unit)?.label ?? item.unit}
         editable={{
           rawValue: item.unit,
           inputType: 'select',
           options: UNIT_OPTIONS,
-          onSave: (v) => handleSave('unit', v),
+          onSave: v => handleSave('unit', v),
           isSaving,
         }}
       />
@@ -286,7 +288,7 @@ export function InventoryDetailPage() {
           rawValue: item.defaultRatePerDay,
           inputType: 'number',
           prefix: '₹',
-          onSave: (v) => handleSave('defaultRatePerDay', v),
+          onSave: v => handleSave('defaultRatePerDay', v),
           isSaving,
         }}
       />
@@ -299,7 +301,7 @@ export function InventoryDetailPage() {
           rawValue: item.damageRate ?? 0,
           inputType: 'number',
           prefix: '₹',
-          onSave: (v) => handleSave('damageRate', v),
+          onSave: v => handleSave('damageRate', v),
           isSaving,
         }}
       />
@@ -312,7 +314,7 @@ export function InventoryDetailPage() {
           rawValue: item.costPrice ?? 0,
           inputType: 'number',
           prefix: '₹',
-          onSave: (v) => handleSave('costPrice', v),
+          onSave: v => handleSave('costPrice', v),
           isSaving,
         }}
       />
@@ -351,23 +353,25 @@ export function InventoryDetailPage() {
             <>
               {/* Stock Info */}
               <DetailSection title="Stock Information">
-                <DetailField
-                  label="Total Quantity"
-                  value={`${item.totalQuantity} ${item.unit}`}
-                />
+                <DetailField label="Total Quantity" value={`${item.totalQuantity} ${item.unit}`} />
 
                 {/* Inline stock adjustment form — anchored to total quantity */}
                 <div className={pageStyles.adjustFormWrap}>
-                  <form onSubmit={handleAdjustQuantity} className={`form-row ${pageStyles.adjustForm}`}>
+                  <form
+                    onSubmit={handleAdjustQuantity}
+                    className={`form-row ${pageStyles.adjustForm}`}
+                  >
                     <div className={`form-group ${pageStyles.adjustFormGroup}`}>
                       <label className="form-label">Type</label>
                       <select
                         className="form-select"
                         value={adjType}
-                        onChange={(e) => setAdjType(e.target.value as AdjustQuantityInput['type'])}
+                        onChange={e => setAdjType(e.target.value as AdjustQuantityInput['type'])}
                       >
-                        {TRANSACTION_TYPE_OPTIONS.map((opt) => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        {TRANSACTION_TYPE_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -379,7 +383,7 @@ export function InventoryDetailPage() {
                         className="form-input"
                         min={1}
                         value={adjQuantity}
-                        onChange={(e) => setAdjQuantity(e.target.value)}
+                        onChange={e => setAdjQuantity(e.target.value)}
                         placeholder="0"
                         required
                       />
@@ -392,7 +396,7 @@ export function InventoryDetailPage() {
                         className="form-input"
                         value={adjDate}
                         max={getTodayISO()}
-                        onChange={(e) => setAdjDate(e.target.value)}
+                        onChange={e => setAdjDate(e.target.value)}
                         required
                       />
                     </div>
@@ -403,13 +407,17 @@ export function InventoryDetailPage() {
                         type="text"
                         className="form-input"
                         value={adjNote}
-                        onChange={(e) => setAdjNote(e.target.value)}
+                        onChange={e => setAdjNote(e.target.value)}
                         placeholder="e.g. batch #12"
                         maxLength={500}
                       />
                     </div>
 
-                    <button type="submit" className={`btn btn-primary btn-sm ${pageStyles.adjustButton}`} disabled={isAdjusting}>
+                    <button
+                      type="submit"
+                      className={`btn btn-primary btn-sm ${pageStyles.adjustButton}`}
+                      disabled={isAdjusting}
+                    >
                       {isAdjusting ? 'Saving...' : 'Update Stock'}
                     </button>
                   </form>
@@ -430,10 +438,7 @@ export function InventoryDetailPage() {
               {item.purchaseInfo && (
                 <DetailSection title="Purchase Information">
                   <DetailField label="Supplier" value={item.purchaseInfo.supplierName} />
-                  <DetailField
-                    label="Cost Per Unit"
-                    value={`₹${item.purchaseInfo.costPerUnit}`}
-                  />
+                  <DetailField label="Cost Per Unit" value={`₹${item.purchaseInfo.costPerUnit}`} />
                   <DetailField label="Purchase Date" value={formatDate(item.purchaseInfo.date)} />
                   <DetailField
                     label="Payment Status"
@@ -455,7 +460,7 @@ export function InventoryDetailPage() {
                   editable={{
                     rawValue: item.description ?? '',
                     inputType: 'textarea',
-                    onSave: (v) => handleSave('description', v),
+                    onSave: v => handleSave('description', v),
                     isSaving,
                   }}
                 />
@@ -466,9 +471,7 @@ export function InventoryDetailPage() {
           {activeTab === 'quantity-timeline' && (
             <DetailSection title="Quantity History">
               {sortedHistory.length === 0 ? (
-                <p className="text-empty">
-                  No quantity adjustments recorded.
-                </p>
+                <p className="text-empty">No quantity adjustments recorded.</p>
               ) : (
                 <div className={pageStyles.historyTableWrap}>
                   <table className={`data-table ${pageStyles.historyTable}`}>
@@ -481,7 +484,7 @@ export function InventoryDetailPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedHistory.map((tx) => (
+                      {sortedHistory.map(tx => (
                         <tr key={tx._id}>
                           <td>{formatDate(tx.date)}</td>
                           <td>
@@ -489,9 +492,7 @@ export function InventoryDetailPage() {
                               {transactionTypeLabel(tx.type)}
                             </span>
                           </td>
-                          <td>
-                            {transactionQuantityDisplay(tx)}
-                          </td>
+                          <td>{transactionQuantityDisplay(tx)}</td>
                           <td>{tx.note || '-'}</td>
                         </tr>
                       ))}
@@ -502,7 +503,9 @@ export function InventoryDetailPage() {
             </DetailSection>
           )}
 
-          {activeTab === 'change-history' && <ChangeHistoryTable documentType="inventory" documentId={itemId!} />}
+          {activeTab === 'change-history' && (
+            <ChangeHistoryTable documentType="inventory" documentId={itemId!} />
+          )}
         </>
       )}
     </DetailPageShell>

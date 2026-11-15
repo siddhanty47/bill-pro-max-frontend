@@ -45,7 +45,7 @@ export function BillsPreview({ data }: BillsPreviewProps) {
             </tr>
           </thead>
           <tbody>
-            {data.bills.map((bill) => (
+            {data.bills.map(bill => (
               <tr key={bill.billId}>
                 <td>
                   <Link to={`/bills/${bill.billId}`} className={styles.entityLink}>
@@ -71,7 +71,9 @@ export function BillsPreview({ data }: BillsPreviewProps) {
             <tr className={styles.totalsRow}>
               <td colSpan={4}>Totals ({data.totals.billCount} bills)</td>
               <td className={styles.numericCell}>{formatAmount(data.totals.rentCharges)}</td>
-              <td className={styles.numericCell}>{formatAmount(data.totals.transportationCharges)}</td>
+              <td className={styles.numericCell}>
+                {formatAmount(data.totals.transportationCharges)}
+              </td>
               <td className={styles.numericCell}>{formatAmount(data.totals.damageCharges)}</td>
               <td className={styles.numericCell}>{formatAmount(data.totals.subtotal)}</td>
               <td className={styles.numericCell}>{formatAmount(data.totals.taxAmount)}</td>

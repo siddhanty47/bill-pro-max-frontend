@@ -3,7 +3,7 @@
  * @description Form for creating/editing employees of all types.
  * Supports conditional fields based on employee type and salary type.
  */
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Employee, CreateEmployeeInput } from '../../types';
@@ -45,10 +45,10 @@ interface EmployeeFormProps {
 
 export function EmployeeForm({ initialData, onSubmit, onCancel, isLoading }: EmployeeFormProps) {
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors },
-    watch,
   } = useForm<FormData>({
     resolver: zodResolver(employeeSchema),
     defaultValues: initialData
@@ -88,8 +88,8 @@ export function EmployeeForm({ initialData, onSubmit, onCancel, isLoading }: Emp
         },
   });
 
-  const employeeType = watch('type');
-  const salaryType = watch('salaryType');
+  const employeeType = useWatch({ control, name: 'type' });
+  const salaryType = useWatch({ control, name: 'salaryType' });
 
   const handleFormSubmit = async (data: FormData) => {
     const payload: CreateEmployeeInput = {
@@ -157,7 +157,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel, isLoading }: Emp
                   disabled={isLoading || !!initialData}
                   className={styles.typeSelect}
                 >
-                  {EMPLOYEE_TYPES.map((t) => (
+                  {EMPLOYEE_TYPES.map(t => (
                     <option key={t.value} value={t.value}>
                       {t.label}
                     </option>
@@ -272,12 +272,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel, isLoading }: Emp
 
             <div className="form-group">
               <label htmlFor="emp-address">Address</label>
-              <textarea
-                id="emp-address"
-                {...register('address')}
-                rows={2}
-                disabled={isLoading}
-              />
+              <textarea id="emp-address" {...register('address')} rows={2} disabled={isLoading} />
             </div>
 
             <fieldset className={styles.emergencyFieldset}>
@@ -304,12 +299,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel, isLoading }: Emp
 
             <div className="form-group">
               <label htmlFor="emp-notes">Notes</label>
-              <textarea
-                id="emp-notes"
-                {...register('notes')}
-                rows={2}
-                disabled={isLoading}
-              />
+              <textarea id="emp-notes" {...register('notes')} rows={2} disabled={isLoading} />
             </div>
           </div>
         </div>

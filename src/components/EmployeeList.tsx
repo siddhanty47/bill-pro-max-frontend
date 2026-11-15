@@ -26,7 +26,7 @@ export function EmployeeList({ employees, businessId, onEdit }: EmployeeListProp
     }
   };
 
-  const transporters = employees.filter((e) => e.type === 'transporter');
+  const transporters = employees.filter(e => e.type === 'transporter');
 
   if (transporters.length === 0) {
     return <p className="text-secondary-sm">No transporters found.</p>;
@@ -44,7 +44,7 @@ export function EmployeeList({ employees, businessId, onEdit }: EmployeeListProp
         </tr>
       </thead>
       <tbody>
-        {transporters.map((emp) => (
+        {transporters.map(emp => (
           <tr key={emp._id}>
             <td>{emp.name}</td>
             <td>{emp.phone || '—'}</td>

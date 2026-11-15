@@ -4,7 +4,7 @@
  * Supports GSTIN lookup to auto-fill business name and address.
  */
 import { useState, useCallback, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { CreateBusinessInput } from '../../types';
@@ -17,7 +17,12 @@ const businessSchema = z.object({
   phone: z.string().max(20).optional(),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
   gst: z.string().max(20).optional(),
-  stateCode: z.string().regex(/^[0-9]{2}$/).max(2).optional().or(z.literal('')),
+  stateCode: z
+    .string()
+    .regex(/^[0-9]{2}$/)
+    .max(2)
+    .optional()
+    .or(z.literal('')),
   billingCycle: z.enum(['monthly', 'weekly', 'yearly']).optional(),
   currency: z.string().max(10).optional(),
   defaultSgstRate: z.number().min(0).max(100).optional(),
@@ -40,10 +45,10 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
   const [lookupGstin, { isFetching: isGstLoading }] = useLazyLookupGstinStandaloneQuery();
 
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors },
-    watch,
     setValue,
     getValues,
   } = useForm<FormData>({
@@ -58,8 +63,8 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
     },
   });
 
-  const gstValue = watch('gst') || '';
-  const stateCodeValue = watch('stateCode') || '';
+  const gstValue = useWatch({ control, name: 'gst' }) || '';
+  const stateCodeValue = useWatch({ control, name: 'stateCode' }) || '';
 
   // Auto-fill state code from GSTIN when 15 chars and stateCode is empty
   useEffect(() => {
@@ -108,7 +113,8 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
     } catch (err) {
       const errorMessage =
         err && typeof err === 'object' && 'data' in err
-          ? ((err as { data?: { error?: { message?: string } } }).data?.error?.message || 'Failed to fetch GST details')
+          ? (err as { data?: { error?: { message?: string } } }).data?.error?.message ||
+            'Failed to fetch GST details'
           : 'Failed to fetch GST details';
       setGstFetchError(errorMessage);
     }
@@ -145,143 +151,137 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
   return (
     <form onSubmit={onFormSubmit}>
       <div className="form-content">
-      <div className="form-columns">
-        <div>
-      {/* GST lookup at the top — enter GSTIN first to auto-fill other fields */}
-      <div className="form-group">
-        <label htmlFor="gst">GST Number</label>
-        <div className={styles.gstRow}>
-          <input
-            id="gst"
-            {...register('gst')}
-            disabled={isLoading}
-            placeholder="e.g. 22AAAAA0000A1Z5"
-            className={styles.gstInput}
-            maxLength={15}
-          />
-          <button
-            type="button"
-            className={`btn btn-secondary ${styles.gstFetchButton}`}
-            onClick={handleFetchGstDetails}
-            disabled={isLoading || isGstLoading || gstValue.trim().length !== 15}
-          >
-            {isGstLoading ? 'Fetching...' : 'Fetch Details'}
-          </button>
-        </div>
-        {gstFetchError && <span className="error-message">{gstFetchError}</span>}
-        {gstFetchSuccess && (
-          <span className={styles.gstSuccess}>
-            {gstFetchSuccess}
-          </span>
-        )}
-      </div>
+        <div className="form-columns">
+          <div>
+            {/* GST lookup at the top — enter GSTIN first to auto-fill other fields */}
+            <div className="form-group">
+              <label htmlFor="gst">GST Number</label>
+              <div className={styles.gstRow}>
+                <input
+                  id="gst"
+                  {...register('gst')}
+                  disabled={isLoading}
+                  placeholder="e.g. 22AAAAA0000A1Z5"
+                  className={styles.gstInput}
+                  maxLength={15}
+                />
+                <button
+                  type="button"
+                  className={`btn btn-secondary ${styles.gstFetchButton}`}
+                  onClick={handleFetchGstDetails}
+                  disabled={isLoading || isGstLoading || gstValue.trim().length !== 15}
+                >
+                  {isGstLoading ? 'Fetching...' : 'Fetch Details'}
+                </button>
+              </div>
+              {gstFetchError && <span className="error-message">{gstFetchError}</span>}
+              {gstFetchSuccess && <span className={styles.gstSuccess}>{gstFetchSuccess}</span>}
+            </div>
 
-      <div className="form-group">
-        <label htmlFor="stateCode">State Code</label>
-        <input
-          id="stateCode"
-          {...register('stateCode')}
-          disabled={isLoading}
-          placeholder="e.g. 27"
-          maxLength={2}
-          className="input-state-code"
-        />
-        <small className="text-help">
-          2-digit GST state code (auto-filled from GSTIN)
-        </small>
-      </div>
+            <div className="form-group">
+              <label htmlFor="stateCode">State Code</label>
+              <input
+                id="stateCode"
+                {...register('stateCode')}
+                disabled={isLoading}
+                placeholder="e.g. 27"
+                maxLength={2}
+                className="input-state-code"
+              />
+              <small className="text-help">2-digit GST state code (auto-filled from GSTIN)</small>
+            </div>
 
-      <div className="form-group">
-        <label htmlFor="name">Business Name *</label>
-        <input id="name" {...register('name')} disabled={isLoading} />
-        {errors.name && <span className="error-message">{errors.name.message}</span>}
-      </div>
+            <div className="form-group">
+              <label htmlFor="name">Business Name *</label>
+              <input id="name" {...register('name')} disabled={isLoading} />
+              {errors.name && <span className="error-message">{errors.name.message}</span>}
+            </div>
 
-      <div className="form-group">
-        <label htmlFor="address">Address</label>
-        <textarea id="address" {...register('address')} rows={2} disabled={isLoading} />
-      </div>
+            <div className="form-group">
+              <label htmlFor="address">Address</label>
+              <textarea id="address" {...register('address')} rows={2} disabled={isLoading} />
+            </div>
 
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="phone">Phone</label>
-          <input id="phone" {...register('phone')} disabled={isLoading} />
-        </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="phone">Phone</label>
+                <input id="phone" {...register('phone')} disabled={isLoading} />
+              </div>
 
-        <div className="form-group">
-          <label htmlFor="email">Email</label>
-          <input id="email" type="email" {...register('email')} disabled={isLoading} />
-          {errors.email && <span className="error-message">{errors.email.message}</span>}
-        </div>
-      </div>
-        </div>
-        <div>
-      <h3 className={styles.sectionHeading}>Business Settings</h3>
+              <div className="form-group">
+                <label htmlFor="email">Email</label>
+                <input id="email" type="email" {...register('email')} disabled={isLoading} />
+                {errors.email && <span className="error-message">{errors.email.message}</span>}
+              </div>
+            </div>
+          </div>
+          <div>
+            <h3 className={styles.sectionHeading}>Business Settings</h3>
 
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="billingCycle">Billing Cycle</label>
-          <select id="billingCycle" {...register('billingCycle')} disabled={isLoading}>
-            <option value="monthly">Monthly</option>
-            <option value="weekly">Weekly</option>
-            <option value="yearly">Yearly</option>
-          </select>
-        </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="billingCycle">Billing Cycle</label>
+                <select id="billingCycle" {...register('billingCycle')} disabled={isLoading}>
+                  <option value="monthly">Monthly</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
 
-        <div className="form-group">
-          <label htmlFor="currency">Currency</label>
-          <input id="currency" {...register('currency')} disabled={isLoading} />
-        </div>
-      </div>
+              <div className="form-group">
+                <label htmlFor="currency">Currency</label>
+                <input id="currency" {...register('currency')} disabled={isLoading} />
+              </div>
+            </div>
 
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="defaultSgstRate">Default SGST (%)</label>
-          <input
-            id="defaultSgstRate"
-            type="number"
-            step="0.01"
-            {...register('defaultSgstRate', { valueAsNumber: true })}
-            disabled={isLoading}
-          />
-        </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="defaultSgstRate">Default SGST (%)</label>
+                <input
+                  id="defaultSgstRate"
+                  type="number"
+                  step="0.01"
+                  {...register('defaultSgstRate', { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+              </div>
 
-        <div className="form-group">
-          <label htmlFor="defaultCgstRate">Default CGST (%)</label>
-          <input
-            id="defaultCgstRate"
-            type="number"
-            step="0.01"
-            {...register('defaultCgstRate', { valueAsNumber: true })}
-            disabled={isLoading}
-          />
-        </div>
-      </div>
+              <div className="form-group">
+                <label htmlFor="defaultCgstRate">Default CGST (%)</label>
+                <input
+                  id="defaultCgstRate"
+                  type="number"
+                  step="0.01"
+                  {...register('defaultCgstRate', { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
 
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="defaultIgstRate">Default IGST (%)</label>
-          <input
-            id="defaultIgstRate"
-            type="number"
-            step="0.01"
-            {...register('defaultIgstRate', { valueAsNumber: true })}
-            disabled={isLoading}
-          />
-        </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="defaultIgstRate">Default IGST (%)</label>
+                <input
+                  id="defaultIgstRate"
+                  type="number"
+                  step="0.01"
+                  {...register('defaultIgstRate', { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+              </div>
 
-        <div className="form-group">
-          <label htmlFor="defaultPaymentDueDays">Payment Due Days</label>
-          <input
-            id="defaultPaymentDueDays"
-            type="number"
-            {...register('defaultPaymentDueDays', { valueAsNumber: true })}
-            disabled={isLoading}
-          />
+              <div className="form-group">
+                <label htmlFor="defaultPaymentDueDays">Payment Due Days</label>
+                <input
+                  id="defaultPaymentDueDays"
+                  type="number"
+                  {...register('defaultPaymentDueDays', { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-        </div>
-      </div>
       </div>
 
       <div className="form-actions">

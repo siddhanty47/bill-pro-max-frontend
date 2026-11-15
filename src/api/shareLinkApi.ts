@@ -17,18 +17,17 @@ import type {
 } from '../types';
 
 export const shareLinkApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     /** List share links for a party */
-    getShareLinks: builder.query<
-      ApiResponse<ShareLink[]>,
-      { businessId: string; partyId: string }
-    >({
-      query: ({ businessId, partyId }) =>
-        `/businesses/${businessId}/parties/${partyId}/share-links`,
-      providesTags: (_result, _error, { partyId }) => [
-        { type: 'ShareLink' as const, id: partyId },
-      ],
-    }),
+    getShareLinks: builder.query<ApiResponse<ShareLink[]>, { businessId: string; partyId: string }>(
+      {
+        query: ({ businessId, partyId }) =>
+          `/businesses/${businessId}/parties/${partyId}/share-links`,
+        providesTags: (_result, _error, { partyId }) => [
+          { type: 'ShareLink' as const, id: partyId },
+        ],
+      }
+    ),
 
     /** Create a new share link */
     createShareLink: builder.mutation<
@@ -78,12 +77,16 @@ export const shareLinkApi = baseApi.injectEndpoints({
 
     /** Get portal info */
     getPortalInfo: builder.query<ApiResponse<PortalInfo>, string>({
-      query: (token) => `/share/${token}`,
+      query: token => `/share/${token}`,
     }),
 
     /** Get portal challans */
     getPortalChallans: builder.query<
-      { success: boolean; data: PortalChallan[]; pagination: PaginatedResponse<PortalChallan>['pagination'] },
+      {
+        success: boolean;
+        data: PortalChallan[];
+        pagination: PaginatedResponse<PortalChallan>['pagination'];
+      },
       { token: string; type?: string; page?: number; pageSize?: number }
     >({
       query: ({ token, ...params }) => {
@@ -98,12 +101,16 @@ export const shareLinkApi = baseApi.injectEndpoints({
 
     /** Get portal running items */
     getPortalRunningItems: builder.query<ApiResponse<PortalRunningItem[]>, string>({
-      query: (token) => `/share/${token}/running-items`,
+      query: token => `/share/${token}/running-items`,
     }),
 
     /** Get portal bills */
     getPortalBills: builder.query<
-      { success: boolean; data: PortalBill[]; pagination: PaginatedResponse<PortalBill>['pagination'] },
+      {
+        success: boolean;
+        data: PortalBill[];
+        pagination: PaginatedResponse<PortalBill>['pagination'];
+      },
       { token: string; status?: string; page?: number; pageSize?: number }
     >({
       query: ({ token, ...params }) => {
@@ -118,7 +125,11 @@ export const shareLinkApi = baseApi.injectEndpoints({
 
     /** Get portal payments */
     getPortalPayments: builder.query<
-      { success: boolean; data: PortalPayment[]; pagination: PaginatedResponse<PortalPayment>['pagination'] },
+      {
+        success: boolean;
+        data: PortalPayment[];
+        pagination: PaginatedResponse<PortalPayment>['pagination'];
+      },
       { token: string; page?: number; pageSize?: number }
     >({
       query: ({ token, ...params }) => {
@@ -132,7 +143,7 @@ export const shareLinkApi = baseApi.injectEndpoints({
 
     /** Get portal summary */
     getPortalSummary: builder.query<ApiResponse<PortalSummary>, string>({
-      query: (token) => `/share/${token}/summary`,
+      query: token => `/share/${token}/summary`,
     }),
 
     /** Download portal challan PDF */

@@ -8,11 +8,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useGetPaymentQuery } from '../api/paymentApi';
 import { useGetPartiesQuery } from '../api/partyApi';
-import {
-  DetailPageShell,
-  DetailSection,
-  DetailField,
-} from '../components/DetailPageShell';
+import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import { Tabs } from '../components/Tabs';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 
@@ -36,7 +32,7 @@ function formatDateTime(dateStr: string | undefined): string {
  * Formats a payment method enum value for display.
  */
 function formatMethod(method: string): string {
-  return method.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  return method.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 /**
@@ -47,9 +43,14 @@ export function PaymentDetailPage() {
   const { paymentId } = useParams<{ paymentId: string }>();
   const { currentBusinessId } = useCurrentBusiness();
 
-  const { data: payment, isLoading, error, refetch } = useGetPaymentQuery(
+  const {
+    data: payment,
+    isLoading,
+    error,
+    refetch,
+  } = useGetPaymentQuery(
     { businessId: currentBusinessId!, paymentId: paymentId! },
-    { skip: !currentBusinessId || !paymentId },
+    { skip: !currentBusinessId || !paymentId }
   );
 
   const { data: parties } = useGetPartiesQuery(currentBusinessId || '', {
@@ -63,8 +64,7 @@ export function PaymentDetailPage() {
     { id: 'change-history', label: 'Change History' },
   ];
 
-  const partyName =
-    parties?.find((p) => p._id === payment?.partyId)?.name || payment?.partyId || '';
+  const partyName = parties?.find(p => p._id === payment?.partyId)?.name || payment?.partyId || '';
 
   const sidebar = payment ? (
     <DetailSection title="Details">
@@ -78,11 +78,7 @@ export function PaymentDetailPage() {
       />
       <DetailField
         label="Status"
-        value={
-          <span className={`status status-${payment.status}`}>
-            {payment.status}
-          </span>
-        }
+        value={<span className={`status status-${payment.status}`}>{payment.status}</span>}
       />
       <DetailField
         label="Amount"
@@ -94,10 +90,7 @@ export function PaymentDetailPage() {
       <DetailField
         label="Party"
         value={
-          <Link
-            to={`/parties/${payment.partyId}`}
-            className="link-accent"
-          >
+          <Link to={`/parties/${payment.partyId}`} className="link-accent">
             {partyName}
           </Link>
         }
@@ -106,10 +99,7 @@ export function PaymentDetailPage() {
         <DetailField
           label="Bill"
           value={
-            <Link
-              to={`/bills/${payment.billId}`}
-              className="link-accent"
-            >
+            <Link to={`/bills/${payment.billId}`} className="link-accent">
               {payment.billId}
             </Link>
           }
@@ -140,15 +130,15 @@ export function PaymentDetailPage() {
 
           {activeTab === 'about' && (
             <DetailSection title="Notes">
-              <p
-                className={payment.notes ? 'text-notes' : 'text-notes-empty'}
-              >
+              <p className={payment.notes ? 'text-notes' : 'text-notes-empty'}>
                 {payment.notes || 'No notes.'}
               </p>
             </DetailSection>
           )}
 
-          {activeTab === 'change-history' && <ChangeHistoryTable documentType="payment" documentId={paymentId!} />}
+          {activeTab === 'change-history' && (
+            <ChangeHistoryTable documentType="payment" documentId={paymentId!} />
+          )}
         </>
       )}
     </DetailPageShell>

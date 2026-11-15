@@ -2,12 +2,18 @@
  * Payment API endpoints
  */
 import { baseApi } from './baseApi';
-import type { Payment, CreatePaymentInput, PaymentStats, ApiResponse, PaginatedResponse } from '../types';
+import type {
+  Payment,
+  CreatePaymentInput,
+  PaymentStats,
+  ApiResponse,
+  PaginatedResponse,
+} from '../types';
 
 export const paymentApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     getPayments: builder.query<Payment[], string>({
-      query: (businessId) => `/businesses/${businessId}/payments?pageSize=100`,
+      query: businessId => `/businesses/${businessId}/payments?pageSize=100`,
       transformResponse: (response: PaginatedResponse<Payment>) => response.data,
       providesTags: ['Payment'],
     }),
@@ -33,7 +39,7 @@ export const paymentApi = baseApi.injectEndpoints({
     }),
 
     getPaymentStats: builder.query<PaymentStats, string>({
-      query: (businessId) => `/businesses/${businessId}/payments/stats`,
+      query: businessId => `/businesses/${businessId}/payments/stats`,
       transformResponse: (response: ApiResponse<PaymentStats>) => response.data,
     }),
 

@@ -56,7 +56,9 @@ export function InventoryPage() {
     setIsModalOpen(true);
   };
 
-  useHotkey('alt+n', () => { if (!isModalOpen) handleAdd(); });
+  useHotkey('alt+n', () => {
+    if (!isModalOpen) handleAdd();
+  });
   useHotkey('/', () => searchRef.current?.focus());
 
   const handleSubmit = async (data: CreateInventoryInput) => {
@@ -83,9 +85,9 @@ export function InventoryPage() {
     }
   };
 
-  const categories = [...new Set(inventory?.map((i) => i.category) || [])];
+  const categories = [...new Set(inventory?.map(i => i.category) || [])];
 
-  const filteredInventory = (inventory || []).filter((item) => {
+  const filteredInventory = (inventory || []).filter(item => {
     const matchesSearch =
       !searchTerm ||
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -121,7 +123,8 @@ export function InventoryPage() {
       header: 'Rented',
       render: (row: TableItem) => {
         const item = row as unknown as Inventory;
-        const rented = computeRentedFromHistory(item.quantityHistory) + (openingBalances?.[item._id] ?? 0);
+        const rented =
+          computeRentedFromHistory(item.quantityHistory) + (openingBalances?.[item._id] ?? 0);
         return `${rented} ${item.unit}`;
       },
     },
@@ -138,9 +141,10 @@ export function InventoryPage() {
       header: 'Actions',
       render: (row: TableItem) => {
         const item = row as unknown as Inventory;
-        const canDelete = (computeRentedFromHistory(item.quantityHistory) + (openingBalances?.[item._id] ?? 0)) === 0;
+        const canDelete =
+          computeRentedFromHistory(item.quantityHistory) + (openingBalances?.[item._id] ?? 0) === 0;
         return (
-          <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
+          <div className="action-buttons" onClick={e => e.stopPropagation()}>
             <button
               className="btn btn-sm btn-danger"
               onClick={() => handleDelete(item)}
@@ -191,14 +195,14 @@ export function InventoryPage() {
             type="text"
             placeholder="Search inventory..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             className="search-input"
           />
           <kbd className="kbd-hint search-kbd">/</kbd>
         </div>
-        <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
           <option value="">All Categories</option>
-          {categories.map((cat) => (
+          {categories.map(cat => (
             <option key={cat} value={cat}>
               {cat}
             </option>
@@ -210,7 +214,7 @@ export function InventoryPage() {
         data={filteredInventory as unknown as TableItem[]}
         columns={columns}
         keyField="_id"
-        onRowClick={(row) => navigate(`/inventory/${String(row._id)}`)}
+        onRowClick={row => navigate(`/inventory/${String(row._id)}`)}
         emptyMessage="No inventory items found. Add your first item to get started."
       />
 

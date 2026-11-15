@@ -92,7 +92,9 @@
   justify-content: center;
   cursor: pointer;
   font-size: 1rem;
-  transition: border-color 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .navBtn:hover:not(:disabled) {

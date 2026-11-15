@@ -33,7 +33,7 @@ export function AgreementsPage() {
     skip: !currentBusinessId,
   });
 
-  const filteredAgreements = (agreements || []).filter((agreement) => {
+  const filteredAgreements = (agreements || []).filter(agreement => {
     const matchesSearch =
       !searchTerm ||
       agreement.partyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -100,11 +100,7 @@ export function AgreementsPage() {
       header: 'Status',
       render: (row: TableItem) => {
         const agreement = row as unknown as AgreementWithParty;
-        return (
-          <span className={`status status-${agreement.status}`}>
-            {agreement.status}
-          </span>
-        );
+        return <span className={`status status-${agreement.status}`}>{agreement.status}</span>;
       },
     },
   ];
@@ -126,7 +122,8 @@ export function AgreementsPage() {
       <div className="page-header">
         <h1>Agreements</h1>
         <p className="page-description">
-          Manage all agreements. To create a new agreement, go to the Parties page and click &quot;+ Agreement&quot; for a party.
+          Manage all agreements. To create a new agreement, go to the Parties page and click &quot;+
+          Agreement&quot; for a party.
         </p>
       </div>
 
@@ -135,10 +132,10 @@ export function AgreementsPage() {
           type="text"
           placeholder="Search by party or agreement ID..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={e => setSearchTerm(e.target.value)}
           className="search-input"
         />
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="">All Statuses</option>
           <option value="active">Active</option>
           <option value="expired">Expired</option>
@@ -150,7 +147,7 @@ export function AgreementsPage() {
         data={filteredAgreements as unknown as TableItem[]}
         columns={columns}
         keyField="agreementId"
-        onRowClick={(row) => navigate(`/agreements/${String(row.agreementId)}`)}
+        onRowClick={row => navigate(`/agreements/${String(row.agreementId)}`)}
         emptyMessage="No agreements found. Create agreements from the Parties page."
       />
     </div>

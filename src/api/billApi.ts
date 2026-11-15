@@ -2,12 +2,19 @@
  * Bill API endpoints
  */
 import { baseApi } from './baseApi';
-import type { Bill, GenerateBillInput, BulkGenerateBillInput, BillGenerationResponse, ApiResponse, PaginatedResponse } from '../types';
+import type {
+  Bill,
+  GenerateBillInput,
+  BulkGenerateBillInput,
+  BillGenerationResponse,
+  ApiResponse,
+  PaginatedResponse,
+} from '../types';
 
 export const billApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     getBills: builder.query<Bill[], string>({
-      query: (businessId) => `/businesses/${businessId}/bills?pageSize=100`,
+      query: businessId => `/businesses/${businessId}/bills?pageSize=100`,
       transformResponse: (response: PaginatedResponse<Bill>) => response.data,
       providesTags: ['Bill'],
     }),
@@ -19,7 +26,7 @@ export const billApi = baseApi.injectEndpoints({
     }),
 
     getOverdueBills: builder.query<Bill[], string>({
-      query: (businessId) => `/businesses/${businessId}/bills/overdue`,
+      query: businessId => `/businesses/${businessId}/bills/overdue`,
       transformResponse: (response: ApiResponse<Bill[]>) => response.data,
       providesTags: ['Bill'],
     }),
@@ -31,19 +38,30 @@ export const billApi = baseApi.injectEndpoints({
       providesTags: ['Bill'],
     }),
 
-    getPaymentSummary: builder.query<{ totalDue: number; totalPaid: number; overdue: number }, string>({
-      query: (businessId) => `/businesses/${businessId}/bills/payment-summary`,
-      transformResponse: (response: ApiResponse<{ totalDue: number; totalPaid: number; overdue: number }>) => response.data,
+    getPaymentSummary: builder.query<
+      { totalDue: number; totalPaid: number; overdue: number },
+      string
+    >({
+      query: businessId => `/businesses/${businessId}/bills/payment-summary`,
+      transformResponse: (
+        response: ApiResponse<{ totalDue: number; totalPaid: number; overdue: number }>
+      ) => response.data,
     }),
 
-    getNextBillNumber: builder.query<string, { businessId: string; partyId: string; agreementId: string; periodStart: string }>({
+    getNextBillNumber: builder.query<
+      string,
+      { businessId: string; partyId: string; agreementId: string; periodStart: string }
+    >({
       query: ({ businessId, partyId, agreementId, periodStart }) =>
         `/businesses/${businessId}/bills/next-number?partyId=${encodeURIComponent(partyId)}&agreementId=${encodeURIComponent(agreementId)}&periodStart=${encodeURIComponent(periodStart)}`,
       transformResponse: (response: ApiResponse<string>) => response.data,
       providesTags: ['Bill'],
     }),
 
-    generateBill: builder.mutation<BillGenerationResponse, { businessId: string; data: GenerateBillInput }>({
+    generateBill: builder.mutation<
+      BillGenerationResponse,
+      { businessId: string; data: GenerateBillInput }
+    >({
       query: ({ businessId, data }) => ({
         url: `/businesses/${businessId}/bills/generate`,
         method: 'POST',
@@ -53,7 +71,10 @@ export const billApi = baseApi.injectEndpoints({
       invalidatesTags: ['Bill', 'AuditLog'],
     }),
 
-    bulkGenerateBills: builder.mutation<BillGenerationResponse, { businessId: string; data: BulkGenerateBillInput }>({
+    bulkGenerateBills: builder.mutation<
+      BillGenerationResponse,
+      { businessId: string; data: BulkGenerateBillInput }
+    >({
       query: ({ businessId, data }) => ({
         url: `/businesses/${businessId}/bills/bulk-generate`,
         method: 'POST',
@@ -63,14 +84,21 @@ export const billApi = baseApi.injectEndpoints({
       invalidatesTags: ['Bill', 'AuditLog'],
     }),
 
-    updateBillStatus: builder.mutation<Bill, { businessId: string; billId: string; status: Bill['status'] }>({
+    updateBillStatus: builder.mutation<
+      Bill,
+      { businessId: string; billId: string; status: Bill['status'] }
+    >({
       query: ({ businessId, billId, status }) => ({
         url: `/businesses/${businessId}/bills/${billId}/status`,
         method: 'PATCH',
         body: { status },
       }),
       transformResponse: (response: ApiResponse<Bill>) => response.data,
-      invalidatesTags: (_result, _error, { billId }) => [{ type: 'Bill', id: billId }, 'Bill', 'AuditLog'],
+      invalidatesTags: (_result, _error, { billId }) => [
+        { type: 'Bill', id: billId },
+        'Bill',
+        'AuditLog',
+      ],
     }),
 
     /**
@@ -97,7 +125,7 @@ export const billApi = baseApi.injectEndpoints({
     getBillPdf: builder.query<Blob, { businessId: string; billId: string }>({
       query: ({ businessId, billId }) => ({
         url: `/businesses/${businessId}/bills/${billId}/pdf`,
-        responseHandler: (response) => response.blob(),
+        responseHandler: response => response.blob(),
       }),
     }),
   }),

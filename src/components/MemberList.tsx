@@ -53,7 +53,7 @@ export function MemberList({ members, businessId }: MemberListProps) {
         </tr>
       </thead>
       <tbody>
-        {members.map((member) => {
+        {members.map(member => {
           const isCurrentUser = member.userId === user?.id;
           const isOwner = member.role === 'owner';
 
@@ -65,12 +65,14 @@ export function MemberList({ members, businessId }: MemberListProps) {
                 {editingId === member._id ? (
                   <select
                     value={member.role}
-                    onChange={(e) => handleRoleChange(member._id, e.target.value)}
+                    onChange={e => handleRoleChange(member._id, e.target.value)}
                     onBlur={() => setEditingId(null)}
                     autoFocus
                   >
-                    {ROLES.map((r) => (
-                      <option key={r.value} value={r.value}>{r.label}</option>
+                    {ROLES.map(r => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
                     ))}
                   </select>
                 ) : (

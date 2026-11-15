@@ -77,13 +77,6 @@ export function EditableField({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(null);
 
-  /** Sync local edit value when the source value changes (e.g. after a successful mutation) */
-  useEffect(() => {
-    if (!isEditing) {
-      setEditValue(value ?? '');
-    }
-  }, [value, isEditing]);
-
   /** Auto-focus the input when entering edit mode */
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -122,7 +115,8 @@ export function EditableField({
     } catch (err: unknown) {
       const message =
         err && typeof err === 'object' && 'data' in err
-          ? ((err as { data?: { error?: { message?: string } } }).data?.error?.message ?? 'Save failed')
+          ? ((err as { data?: { error?: { message?: string } } }).data?.error?.message ??
+            'Save failed')
           : 'Save failed';
       setError(message);
     }
@@ -139,14 +133,14 @@ export function EditableField({
         commitEdit();
       }
     },
-    [cancelEdit, commitEdit, inputType],
+    [cancelEdit, commitEdit, inputType]
   );
 
   const handleInputChange = useCallback(
     (rawValue: string) => {
       setEditValue(inputType === 'number' ? rawValue : rawValue);
     },
-    [inputType],
+    [inputType]
   );
 
   // ── Build displayed value text for view mode ──
@@ -175,7 +169,7 @@ export function EditableField({
           onClick={enterEditMode}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => {
+          onKeyDown={e => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               enterEditMode();
@@ -183,7 +177,9 @@ export function EditableField({
           }}
         >
           {isSaving ? <span className={styles.spinner} /> : viewContent}
-          <span className={styles.pencilIcon} aria-hidden="true">✎</span>
+          <span className={styles.pencilIcon} aria-hidden="true">
+            ✎
+          </span>
         </span>
       </div>
     );
@@ -198,11 +194,11 @@ export function EditableField({
           <select
             ref={inputRef as React.RefObject<HTMLSelectElement>}
             value={String(editValue)}
-            onChange={(e) => handleInputChange(e.target.value)}
+            onChange={e => handleInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={commitEdit}
           >
-            {options?.map((opt) => (
+            {options?.map(opt => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
@@ -215,7 +211,7 @@ export function EditableField({
           <textarea
             ref={inputRef as React.RefObject<HTMLTextAreaElement>}
             value={String(editValue)}
-            onChange={(e) => handleInputChange(e.target.value)}
+            onChange={e => handleInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
           />
         );
@@ -226,7 +222,7 @@ export function EditableField({
             ref={inputRef as React.RefObject<HTMLInputElement>}
             type={inputType}
             value={inputType === 'number' ? editValue : String(editValue)}
-            onChange={(e) => handleInputChange(e.target.value)}
+            onChange={e => handleInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={commitEdit}
             step={inputType === 'number' ? 'any' : undefined}
@@ -244,7 +240,7 @@ export function EditableField({
             <div className={styles.customInputWrapper}>
               {renderEditInput({
                 value: editValue,
-                onChange: (val) => setEditValue(val),
+                onChange: val => setEditValue(val),
                 onSave: commitEdit,
                 onCancel: cancelEdit,
               })}

@@ -21,7 +21,7 @@
   font-weight: 400;
 }
 
-.radioLabel input[type="radio"] {
+.radioLabel input[type='radio'] {
   width: auto;
   accent-color: var(--accent);
   cursor: pointer;

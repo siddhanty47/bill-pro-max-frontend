@@ -79,7 +79,9 @@ export function EmployeesPage() {
     setIsModalOpen(true);
   };
 
-  useHotkey('alt+n', () => { if (!isModalOpen) handleAddEmployee(); });
+  useHotkey('alt+n', () => {
+    if (!isModalOpen) handleAddEmployee();
+  });
   useHotkey('/', () => searchRef.current?.focus());
 
   const handleEditEmployee = (employee: Employee) => {
@@ -188,7 +190,7 @@ export function EmployeesPage() {
       render: (row: TableItem) => {
         const emp = row as unknown as Employee;
         return (
-          <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
+          <div className="action-buttons" onClick={e => e.stopPropagation()}>
             <button className="btn btn-sm btn-secondary" onClick={() => handleEditEmployee(emp)}>
               Edit
             </button>
@@ -231,19 +233,23 @@ export function EmployeesPage() {
             type="text"
             placeholder="Search employees..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             className="search-input"
           />
           <kbd className="kbd-hint search-kbd">/</kbd>
         </div>
-        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-          {TYPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+          {TYPE_OPTIONS.map(opt => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
           ))}
         </select>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          {STATUS_OPTIONS.map(opt => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
           ))}
         </select>
       </div>
@@ -252,20 +258,26 @@ export function EmployeesPage() {
         data={employees as unknown as TableItem[]}
         columns={columns}
         keyField="_id"
-        onRowClick={(row) => navigate(`/team/employees/${String(row._id)}`)}
+        onRowClick={row => navigate(`/team/employees/${String(row._id)}`)}
         emptyMessage="No employees found. Add your first employee to get started."
       />
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); setEditingEmployee(null); }}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingEmployee(null);
+        }}
         title={editingEmployee ? 'Edit Employee' : 'Add Employee'}
         size="form"
       >
         <EmployeeForm
           initialData={editingEmployee || undefined}
           onSubmit={handleSubmit}
-          onCancel={() => { setIsModalOpen(false); setEditingEmployee(null); }}
+          onCancel={() => {
+            setIsModalOpen(false);
+            setEditingEmployee(null);
+          }}
           isLoading={isCreating || isUpdating}
         />
       </Modal>

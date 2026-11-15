@@ -53,7 +53,9 @@ export function PaymentsPage() {
     setIsModalOpen(true);
   };
 
-  useHotkey('alt+n', () => { if (!isModalOpen) handleCreate(); });
+  useHotkey('alt+n', () => {
+    if (!isModalOpen) handleCreate();
+  });
   useHotkey('/', () => searchRef.current?.focus());
 
   const handleSubmit = async (data: CreatePaymentInput) => {
@@ -70,11 +72,11 @@ export function PaymentsPage() {
 
   // Get party name by ID
   const getPartyName = (partyId: string) => {
-    return parties?.find((p) => p._id === partyId)?.name || 'Unknown';
+    return parties?.find(p => p._id === partyId)?.name || 'Unknown';
   };
 
   // Filter payments
-  const filteredPayments = (payments || []).filter((payment) => {
+  const filteredPayments = (payments || []).filter(payment => {
     const matchesSearch =
       !searchTerm ||
       getPartyName(payment.partyId).toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -154,11 +156,11 @@ export function PaymentsPage() {
 
   // Calculate summary stats
   const totalReceived = (payments || [])
-    .filter((p) => p.type === 'receivable' && p.status === 'completed')
+    .filter(p => p.type === 'receivable' && p.status === 'completed')
     .reduce((sum, p) => sum + p.amount, 0);
 
   const totalPaid = (payments || [])
-    .filter((p) => p.type === 'payable' && p.status === 'completed')
+    .filter(p => p.type === 'payable' && p.status === 'completed')
     .reduce((sum, p) => sum + p.amount, 0);
 
   return (
@@ -173,15 +175,11 @@ export function PaymentsPage() {
       <div className={`stats-grid ${styles.summaryGrid}`}>
         <div className="stat-card">
           <h3>Total Received</h3>
-          <div className={`value ${styles.valueReceived}`}>
-            ₹{totalReceived.toLocaleString()}
-          </div>
+          <div className={`value ${styles.valueReceived}`}>₹{totalReceived.toLocaleString()}</div>
         </div>
         <div className="stat-card">
           <h3>Total Paid</h3>
-          <div className={`value ${styles.valuePaid}`}>
-            ₹{totalPaid.toLocaleString()}
-          </div>
+          <div className={`value ${styles.valuePaid}`}>₹{totalPaid.toLocaleString()}</div>
         </div>
         <div className="stat-card">
           <h3>Net</h3>
@@ -196,17 +194,17 @@ export function PaymentsPage() {
             type="text"
             placeholder="Search payments..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             className="search-input"
           />
           <kbd className="kbd-hint search-kbd">/</kbd>
         </div>
-        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
           <option value="">All Types</option>
           <option value="receivable">Received</option>
           <option value="payable">Paid</option>
         </select>
-        <select value={methodFilter} onChange={(e) => setMethodFilter(e.target.value)}>
+        <select value={methodFilter} onChange={e => setMethodFilter(e.target.value)}>
           <option value="">All Methods</option>
           <option value="cash">Cash</option>
           <option value="bank_transfer">Bank Transfer</option>
@@ -220,11 +218,16 @@ export function PaymentsPage() {
         data={filteredPayments as unknown as TableItem[]}
         columns={columns}
         keyField="_id"
-        onRowClick={(row) => navigate(`/payments/${String(row._id)}`)}
+        onRowClick={row => navigate(`/payments/${String(row._id)}`)}
         emptyMessage="No payments found. Record your first payment to get started."
       />
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Record Payment" size="form">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Record Payment"
+        size="form"
+      >
         <PaymentForm
           parties={parties || []}
           bills={bills || []}

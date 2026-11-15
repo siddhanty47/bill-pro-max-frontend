@@ -56,8 +56,12 @@ export function LedgerPreview({ data }: LedgerPreviewProps) {
                     entry.reference
                   )}
                 </td>
-                <td className={styles.numericCell}>{entry.debit > 0 ? formatAmount(entry.debit) : '-'}</td>
-                <td className={styles.numericCell}>{entry.credit > 0 ? formatAmount(entry.credit) : '-'}</td>
+                <td className={styles.numericCell}>
+                  {entry.debit > 0 ? formatAmount(entry.debit) : '-'}
+                </td>
+                <td className={styles.numericCell}>
+                  {entry.credit > 0 ? formatAmount(entry.credit) : '-'}
+                </td>
                 <td className={styles.numericCell}>{formatAmount(entry.balance)}</td>
               </tr>
             ))}

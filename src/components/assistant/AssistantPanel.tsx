@@ -15,7 +15,7 @@
  *    extract→create-challan tools (the agent decides, user confirms the write).
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSocket } from '../../context/WebSocketContext';
+import { useSocket } from '../../context/socketContext';
 import { useCurrentBusiness } from '../../hooks/useCurrentBusiness';
 import {
   useSendAssistantMessageMutation,
@@ -139,7 +139,7 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
     if (!socket) return;
     const onDelta = (e: AssistantDeltaEvent) => {
       if (!busyRef.current) return;
-      setStreaming((prev) => prev + e.text);
+      setStreaming(prev => prev + e.text);
     };
     const onTool = (e: AssistantToolEvent) => {
       if (!busyRef.current) return;
@@ -175,7 +175,7 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
   const applyResult = (result: AssistantRunResult) => {
     conversationId.current = result.conversationId;
     if (result.status === 'completed') {
-      setMessages((m) => [...m, { role: 'assistant', content: result.message }]);
+      setMessages(m => [...m, { role: 'assistant', content: result.message }]);
       setPending(null);
     } else if (result.status === 'awaiting_confirmation') {
       setPending(result.action);
@@ -190,24 +190,24 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
     const picked = Array.from(e.target.files || []);
     e.target.value = ''; // allow re-picking the same file
     if (!picked.length) return;
-    setAttachments((prev) => {
+    setAttachments(prev => {
       const next = [...prev, ...picked].slice(0, MAX_IMAGES);
-      setPreviews(next.map((f) => URL.createObjectURL(f)));
+      setPreviews(next.map(f => URL.createObjectURL(f)));
       return next;
     });
   };
 
   // Revoke staged previews (not the ones already handed to a sent message).
   const clearStagedPreviews = useCallback(() => {
-    setPreviews((prev) => {
-      prev.forEach((url) => URL.revokeObjectURL(url));
+    setPreviews(prev => {
+      prev.forEach(url => URL.revokeObjectURL(url));
       return [];
     });
   }, []);
 
   const removeImage = (idx: number) => {
-    setAttachments((prev) => prev.filter((_, i) => i !== idx));
-    setPreviews((prev) => {
+    setAttachments(prev => prev.filter((_, i) => i !== idx));
+    setPreviews(prev => {
       const url = prev[idx];
       if (url) URL.revokeObjectURL(url);
       return prev.filter((_, i) => i !== idx);
@@ -220,7 +220,10 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
 
     const sentImages = previews; // ownership of these object URLs moves to the message
     const sentFiles = attachments;
-    setMessages((m) => [...m, { role: 'user', content: trimmed, images: sentImages.length ? sentImages : undefined }]);
+    setMessages(m => [
+      ...m,
+      { role: 'user', content: trimmed, images: sentImages.length ? sentImages : undefined },
+    ]);
     setInput('');
     setAttachments([]);
     setPreviews([]); // don't revoke — the message still displays them
@@ -248,18 +251,21 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       chunksRef.current = [];
-      recorder.ondataavailable = (ev) => {
+      recorder.ondataavailable = ev => {
         if (ev.data.size > 0) chunksRef.current.push(ev.data);
       };
       recorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
+        stream.getTracks().forEach(t => t.stop());
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
         if (!blob.size) return;
         setTranscribing(true);
         setError(null);
         try {
-          const { text } = await transcribeAudio({ businessId: currentBusinessId, audio: blob }).unwrap();
-          if (text) setInput((prev) => (prev ? `${prev} ${text}` : text));
+          const { text } = await transcribeAudio({
+            businessId: currentBusinessId,
+            audio: blob,
+          }).unwrap();
+          if (text) setInput(prev => (prev ? `${prev} ${text}` : text));
         } catch (err) {
           setError(getErrorMessage(err));
         } finally {
@@ -333,14 +339,29 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
   };
 
   return (
-    <aside className={`${styles.panel} ${open ? '' : styles.closed}`} aria-hidden={!open} aria-label="AI assistant">
+    <aside
+      className={`${styles.panel} ${open ? '' : styles.closed}`}
+      aria-hidden={!open}
+      aria-label="AI assistant"
+    >
       <header className={styles.header}>
         <span className={styles.title}>✦ ASSISTANT</span>
         <div className={styles.headerActions}>
-          <button type="button" className={styles.headerBtn} onClick={newConversation} title="New conversation">
+          <button
+            type="button"
+            className={styles.headerBtn}
+            onClick={newConversation}
+            title="New conversation"
+          >
             NEW
           </button>
-          <button type="button" className={styles.headerBtn} onClick={onClose} aria-label="Close assistant" title="Close">
+          <button
+            type="button"
+            className={styles.headerBtn}
+            onClick={onClose}
+            aria-label="Close assistant"
+            title="Close"
+          >
             ✕
           </button>
         </div>
@@ -349,9 +370,11 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
       <div className={styles.messages} ref={scrollRef}>
         {isEmpty && (
           <div className={styles.empty}>
-            <p className={styles.emptyTitle}>Ask about your business, attach a challan photo, or speak.</p>
+            <p className={styles.emptyTitle}>
+              Ask about your business, attach a challan photo, or speak.
+            </p>
             <div className={styles.suggestions}>
-              {SUGGESTIONS.map((s) => (
+              {SUGGESTIONS.map(s => (
                 <button key={s} type="button" className={styles.suggestion} onClick={() => send(s)}>
                   {s}
                 </button>
@@ -390,10 +413,18 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
             <p className={styles.confirmTitle}>CONFIRM ACTION</p>
             <p className={styles.confirmSummary}>{pending.summary}</p>
             <div className={styles.confirmActions}>
-              <button type="button" className={styles.approve} onClick={() => respondToAction(true)}>
+              <button
+                type="button"
+                className={styles.approve}
+                onClick={() => respondToAction(true)}
+              >
                 Confirm
               </button>
-              <button type="button" className={styles.decline} onClick={() => respondToAction(false)}>
+              <button
+                type="button"
+                className={styles.decline}
+                onClick={() => respondToAction(false)}
+              >
                 Cancel
               </button>
             </div>
@@ -433,7 +464,7 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
         <textarea
           className={styles.input}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={e => setInput(e.target.value)}
           onKeyDown={onInputKeyDown}
           rows={3}
           placeholder={

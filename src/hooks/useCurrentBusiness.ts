@@ -13,8 +13,14 @@ import { setCurrentBusiness } from '../store/authSlice';
  */
 export function useCurrentBusiness() {
   const dispatch = useDispatch();
-  const { isAuthenticated, user, currentBusinessId } = useSelector((state: RootState) => state.auth);
-  const { data: businesses, isLoading, error } = useGetBusinessesQuery(undefined, {
+  const { isAuthenticated, user, currentBusinessId } = useSelector(
+    (state: RootState) => state.auth
+  );
+  const {
+    data: businesses,
+    isLoading,
+    error,
+  } = useGetBusinessesQuery(undefined, {
     skip: !isAuthenticated,
   });
 
@@ -33,7 +39,7 @@ export function useCurrentBusiness() {
     [dispatch]
   );
 
-  const currentBusiness = businesses?.find((b) => b._id === currentBusinessId);
+  const currentBusiness = businesses?.find(b => b._id === currentBusinessId);
 
   return {
     businesses: businesses || [],

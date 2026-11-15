@@ -14,7 +14,12 @@ import styles from './AddSiteModal.module.css';
 const addSiteSchema = z.object({
   code: z.string().max(20).optional(),
   address: z.string().min(1, 'Site address is required').max(500),
-  stateCode: z.string().regex(/^[0-9]{2}$/).max(2).optional().or(z.literal('')),
+  stateCode: z
+    .string()
+    .regex(/^[0-9]{2}$/)
+    .max(2)
+    .optional()
+    .or(z.literal('')),
 });
 
 type FormData = z.infer<typeof addSiteSchema>;
@@ -37,7 +42,9 @@ export function AddSiteModal({ isOpen, onClose, businessId, party }: AddSiteModa
   const [addSite, { isLoading }] = useAddSiteMutation();
   const [error, setError] = useState<string | null>(null);
 
-  const defaultStateCode = party?.contact?.stateCode ?? (party?.contact?.gst?.length === 15 ? party.contact.gst.substring(0, 2) : undefined);
+  const defaultStateCode =
+    party?.contact?.stateCode ??
+    (party?.contact?.gst?.length === 15 ? party.contact.gst.substring(0, 2) : undefined);
 
   const {
     register,
@@ -56,7 +63,9 @@ export function AddSiteModal({ isOpen, onClose, businessId, party }: AddSiteModa
   // Reset form with party's state code when modal opens
   useEffect(() => {
     if (isOpen && party) {
-      const stateCode = party.contact?.stateCode ?? (party.contact?.gst?.length === 15 ? party.contact.gst.substring(0, 2) : '');
+      const stateCode =
+        party.contact?.stateCode ??
+        (party.contact?.gst?.length === 15 ? party.contact.gst.substring(0, 2) : '');
       reset({ code: '', address: '', stateCode: stateCode || '' });
     }
   }, [isOpen, party, reset]);
@@ -89,74 +98,62 @@ export function AddSiteModal({ isOpen, onClose, businessId, party }: AddSiteModa
   };
 
   // Get existing site codes for display
-  const existingSiteCodes = party.sites.map((s) => s.code).join(', ') || 'None';
+  const existingSiteCodes = party.sites.map(s => s.code).join(', ') || 'None';
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={`Add Site to ${party.name}`} size="form">
       <form onSubmit={handleSubmit(handleFormSubmit)}>
-        {error && (
-          <div className={`error-message ${styles.errorAlert}`}>
-            {error}
-          </div>
-        )}
+        {error && <div className={`error-message ${styles.errorAlert}`}>{error}</div>}
 
         <div className="form-content">
-        <div className={`form-group ${styles.existingSitesInfo}`}>
-          <p className={styles.existingSitesText}>
-            <strong>Existing Sites:</strong> {existingSiteCodes}
-          </p>
-        </div>
+          <div className={`form-group ${styles.existingSitesInfo}`}>
+            <p className={styles.existingSitesText}>
+              <strong>Existing Sites:</strong> {existingSiteCodes}
+            </p>
+          </div>
 
-        <div className="form-columns">
-        <div>
-        <div className="form-group">
-          <label htmlFor="siteAddress">Site Address *</label>
-          <textarea
-            id="siteAddress"
-            {...register('address')}
-            rows={3}
-            disabled={isLoading}
-            placeholder="Enter the site address"
-          />
-          {errors.address && (
-            <span className="error-message">{errors.address.message}</span>
-          )}
-        </div>
-        </div>
-        <div>
-        <div className="form-group">
-          <label htmlFor="siteCode">Site Code</label>
-          <input
-            id="siteCode"
-            {...register('code')}
-            disabled={isLoading}
-            className={styles.uppercaseInput}
-            placeholder="Auto-generated if empty"
-          />
-          {errors.code && (
-            <span className="error-message">{errors.code.message}</span>
-          )}
-          <small className={styles.helpText}>
-            Leave empty to auto-generate from address
-          </small>
-        </div>
+          <div className="form-columns">
+            <div>
+              <div className="form-group">
+                <label htmlFor="siteAddress">Site Address *</label>
+                <textarea
+                  id="siteAddress"
+                  {...register('address')}
+                  rows={3}
+                  disabled={isLoading}
+                  placeholder="Enter the site address"
+                />
+                {errors.address && <span className="error-message">{errors.address.message}</span>}
+              </div>
+            </div>
+            <div>
+              <div className="form-group">
+                <label htmlFor="siteCode">Site Code</label>
+                <input
+                  id="siteCode"
+                  {...register('code')}
+                  disabled={isLoading}
+                  className={styles.uppercaseInput}
+                  placeholder="Auto-generated if empty"
+                />
+                {errors.code && <span className="error-message">{errors.code.message}</span>}
+                <small className={styles.helpText}>Leave empty to auto-generate from address</small>
+              </div>
 
-        <div className="form-group">
-          <label htmlFor="siteStateCode">State Code</label>
-          <input
-            id="siteStateCode"
-            {...register('stateCode')}
-            disabled={isLoading}
-            placeholder="e.g. 27"
-            maxLength={2}
-            className={`${styles.uppercaseInput} input-state-code`}
-          />
-          <small className={styles.helpText}>
-            Defaults from party state code
-          </small>
-        </div>
-        </div>
-        </div>
+              <div className="form-group">
+                <label htmlFor="siteStateCode">State Code</label>
+                <input
+                  id="siteStateCode"
+                  {...register('stateCode')}
+                  disabled={isLoading}
+                  placeholder="e.g. 27"
+                  maxLength={2}
+                  className={`${styles.uppercaseInput} input-state-code`}
+                />
+                <small className={styles.helpText}>Defaults from party state code</small>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className={`form-actions ${styles.actions}`}>

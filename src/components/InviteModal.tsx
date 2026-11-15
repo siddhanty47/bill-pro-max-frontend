@@ -41,40 +41,45 @@ export function InviteModal({ businessId, onClose }: InviteModalProps) {
 
       <form onSubmit={handleSubmit}>
         <div className="form-content">
-        <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="invite-email">Email Address</label>
-          <input
-            id="invite-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="colleague@example.com"
-            required
-            disabled={isLoading}
-          />
-        </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="invite-email">Email Address</label>
+              <input
+                id="invite-email"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="colleague@example.com"
+                required
+                disabled={isLoading}
+              />
+            </div>
 
-        <div className="form-group">
-          <label htmlFor="invite-role">Role</label>
-          <select
-            id="invite-role"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            disabled={isLoading}
-          >
-            {ROLES.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        </div>
+            <div className="form-group">
+              <label htmlFor="invite-role">Role</label>
+              <select
+                id="invite-role"
+                value={role}
+                onChange={e => setRole(e.target.value)}
+                disabled={isLoading}
+              >
+                {ROLES.map(r => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
 
         <div className="form-actions">
-          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isLoading}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+            disabled={isLoading}
+          >
             Cancel
           </button>
           <button type="submit" className="btn btn-primary" disabled={isLoading}>

@@ -48,8 +48,8 @@ function App() {
             'Content-Type': 'application/json',
           },
         })
-          .then((res) => res.json())
-          .then((json) => {
+          .then(res => res.json())
+          .then(json => {
             if (json.data?.user) {
               dispatch(setUser(json.data.user));
             }
@@ -60,7 +60,9 @@ function App() {
     });
 
     // Listen for auth state changes (token refresh, sign in after Google OAuth, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         dispatch(setCredentials({ token: session.access_token }));
         // Sync user
@@ -71,8 +73,8 @@ function App() {
             'Content-Type': 'application/json',
           },
         })
-          .then((res) => res.json())
-          .then((json) => {
+          .then(res => res.json())
+          .then(json => {
             if (json.data?.user) {
               dispatch(setUser(json.data.user));
             }

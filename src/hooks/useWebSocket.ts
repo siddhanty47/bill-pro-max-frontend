@@ -3,7 +3,7 @@
  * @description Manages a Socket.IO connection that is alive while the user is authenticated.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { io, Socket } from 'socket.io-client';
 import type { RootState } from '../store';
@@ -23,20 +23,14 @@ export function useWebSocket(): UseWebSocketReturn {
   const token = useSelector((state: RootState) => state.auth.token);
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
 
-  const socketRef = useRef<Socket | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated || !token) {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-        setIsConnected(false);
-      }
-      return;
-    }
+    // Logged out: the previous run's cleanup already disconnected and reset state.
+    if (!isAuthenticated || !token) return;
 
-    const socket = io(WS_URL, {
+    const s = io(WS_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -45,17 +39,19 @@ export function useWebSocket(): UseWebSocketReturn {
       reconnectionDelayMax: 10000,
     });
 
-    socketRef.current = socket;
-
-    socket.on('connect', () => setIsConnected(true));
-    socket.on('disconnect', () => setIsConnected(false));
+    // Expose the socket once connected; keep it across reconnects so listeners stay attached.
+    s.on('connect', () => {
+      setSocket(s);
+      setIsConnected(true);
+    });
+    s.on('disconnect', () => setIsConnected(false));
 
     return () => {
-      socket.disconnect();
-      socketRef.current = null;
+      s.disconnect();
+      setSocket(null);
       setIsConnected(false);
     };
   }, [token, isAuthenticated]);
 
-  return { socket: socketRef.current, isConnected };
+  return { socket, isConnected };
 }

@@ -14,14 +14,14 @@ export interface StatementPdfParams {
 }
 
 export const statementApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     getStatementPdf: builder.query<Blob, StatementPdfParams>({
       query: ({ businessId, partyId, type, from, to, agreementId }) => {
         const params = new URLSearchParams({ type, from, to });
         if (agreementId) params.set('agreementId', agreementId);
         return {
           url: `/businesses/${businessId}/parties/${partyId}/statements/pdf?${params.toString()}`,
-          responseHandler: (response) => response.blob(),
+          responseHandler: response => response.blob(),
         };
       },
     }),

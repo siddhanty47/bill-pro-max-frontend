@@ -115,7 +115,9 @@
   padding: 2px 6px;
   white-space: nowrap;
   color: var(--text-secondary);
-  transition: background var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .actionBtn:hover {

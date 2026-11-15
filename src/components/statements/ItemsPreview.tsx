@@ -24,7 +24,7 @@ export function ItemsPreview({ data }: ItemsPreviewProps) {
         <p className={styles.emptyMessage}>No item activity found for this period.</p>
       ) : (
         <>
-          {data.items.map((item) => (
+          {data.items.map(item => (
             <div key={item.itemId}>
               <h4 className={styles.sectionHeader}>{item.itemName}</h4>
               <table className={styles.previewTable}>
@@ -50,8 +50,12 @@ export function ItemsPreview({ data }: ItemsPreviewProps) {
                           {event.challanNumber}
                         </Link>
                       </td>
-                      <td className={styles.numericCell}>{event.type === 'delivery' ? event.quantity : '-'}</td>
-                      <td className={styles.numericCell}>{event.type === 'return' ? event.quantity : '-'}</td>
+                      <td className={styles.numericCell}>
+                        {event.type === 'delivery' ? event.quantity : '-'}
+                      </td>
+                      <td className={styles.numericCell}>
+                        {event.type === 'return' ? event.quantity : '-'}
+                      </td>
                       <td className={styles.numericCell}>{event.runningQty}</td>
                     </tr>
                   ))}

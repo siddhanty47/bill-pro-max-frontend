@@ -55,7 +55,7 @@
   /* Status — neutral */
   --status-neutral-bg: rgba(255, 255, 255, 0.06);
   --status-neutral-text: #737373;
-  --status-neutral-border: rgba(255, 255, 255, 0.10);
+  --status-neutral-border: rgba(255, 255, 255, 0.1);
 
   /* Delivery / Return */
   --delivery-accent: #3b82f6;
@@ -99,7 +99,9 @@
 }
 
 /* ===== Reset ===== */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -441,19 +443,24 @@ a:hover {
   content: ']';
 }
 
-.status-active, .status-confirmed, .status-paid, .status-completed {
+.status-active,
+.status-confirmed,
+.status-paid,
+.status-completed {
   background: none;
   color: var(--status-success-text);
   border-color: transparent;
 }
 
-.status-draft, .status-pending {
+.status-draft,
+.status-pending {
   background: none;
   color: var(--status-warning-text);
   border-color: transparent;
 }
 
-.status-cancelled, .status-failed {
+.status-cancelled,
+.status-failed {
   background: none;
   color: var(--status-danger-text);
   border-color: transparent;
@@ -465,7 +472,8 @@ a:hover {
   border-color: transparent;
 }
 
-.status-expired, .status-inactive {
+.status-expired,
+.status-inactive {
   background: none;
   color: var(--status-neutral-text);
   border-color: transparent;
@@ -647,24 +655,48 @@ a:hover {
    =================================================================== */
 
 /* Links — replaces style={{ color: '#0066cc', textDecoration: 'none' }} */
-.link-accent { color: var(--accent); text-decoration: none; }
-.link-accent:hover { color: var(--accent-hover); }
+.link-accent {
+  color: var(--accent);
+  text-decoration: none;
+}
+.link-accent:hover {
+  color: var(--accent-hover);
+}
 
 /* Empty/placeholder text — replaces style={{ color: '#999', fontStyle: 'italic' }} */
-.text-empty { color: var(--text-muted); font-style: italic; }
+.text-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
 
 /* Notes/conditional text */
-.text-notes { color: var(--text-primary); }
-.text-notes-empty { color: var(--text-muted); font-style: italic; }
+.text-notes {
+  color: var(--text-primary);
+}
+.text-notes-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
 
 /* Inline error text */
-.text-error-inline { color: var(--status-danger-text); font-size: 13px; margin-top: 6px; }
+.text-error-inline {
+  color: var(--status-danger-text);
+  font-size: 13px;
+  margin-top: 6px;
+}
 
 /* Secondary/muted text */
-.text-secondary-sm { color: var(--text-secondary); }
+.text-secondary-sm {
+  color: var(--text-secondary);
+}
 
 /* Help text under inputs */
-.text-help { display: block; color: var(--text-secondary); font-size: 12px; margin-top: 4px; }
+.text-help {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-top: 4px;
+}
 
 /* Warning/stale badge */
 .badge-warning {
@@ -720,23 +752,42 @@ a:hover {
 }
 
 /* Table cell zero padding */
-.cell-compact { padding: 0 !important; }
+.cell-compact {
+  padding: 0 !important;
+}
 
 /* Fixed-width column for inline-editable numeric fields */
-.col-editable-num { width: 140px; }
+.col-editable-num {
+  width: 140px;
+}
 
 /* SVG icon inline alignment */
-.icon-inline { vertical-align: middle; margin-right: 6px; }
-.icon-inline-sm { vertical-align: middle; margin-right: 4px; }
+.icon-inline {
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.icon-inline-sm {
+  vertical-align: middle;
+  margin-right: 4px;
+}
 
 /* Text alignment */
-.text-right { text-align: right; }
+.text-right {
+  text-align: right;
+}
 
 /* Small action button */
-.btn-action-sm { font-size: 12px; padding: 4px 8px; }
+.btn-action-sm {
+  font-size: 12px;
+  padding: 4px 8px;
+}
 
 /* State code input width */
-.input-state-code { width: 80px; }
+.input-state-code {
+  width: 80px;
+}
 
 /* Nowrap */
-.text-nowrap { white-space: nowrap; }
+.text-nowrap {
+  white-space: nowrap;
+}
