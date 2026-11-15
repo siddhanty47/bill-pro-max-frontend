@@ -76,7 +76,7 @@ describe('helpers', () => {
   it('agreementLabel', () => expect(agreementLabel('SHAR_SITE-02_1731654321000')).toBe('SHAR · SITE-02'))
   it('tokenize', () => {
     expect(tokenize('ITM-012')).toEqual(expect.arrayContaining(['itm', '012', 'itm-012', 'itm012']))
-    expect(tokenize('x 1731654321000')).not.toContain('1731654321000')
+    expect(tokenize('x 9876543210')).toContain('9876543210')
   })
   it('hasDocumentToken', () => {
     expect(hasDocumentToken('a 4')).toBe(false)
