@@ -49,6 +49,7 @@ export const agreementApi = baseApi.injectEndpoints({
         'Agreement',
         'Party',
         'AuditLog',
+        'SearchIndex',
       ],
     }),
 

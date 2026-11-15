@@ -25,7 +25,7 @@ export const partyApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Party>) => response.data,
-      invalidatesTags: ['Party', 'AuditLog'],
+      invalidatesTags: ['Party', 'AuditLog', 'SearchIndex'],
     }),
 
     updateParty: builder.mutation<Party, { businessId: string; partyId: string; data: Partial<CreatePartyInput> }>({
@@ -35,7 +35,7 @@ export const partyApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Party>) => response.data,
-      invalidatesTags: (_result, _error, { partyId }) => [{ type: 'Party', id: partyId }, 'Party', 'AuditLog'],
+      invalidatesTags: (_result, _error, { partyId }) => [{ type: 'Party', id: partyId }, 'Party', 'AuditLog', 'SearchIndex'],
     }),
 
     deleteParty: builder.mutation<void, { businessId: string; partyId: string }>({
@@ -43,7 +43,7 @@ export const partyApi = baseApi.injectEndpoints({
         url: `/businesses/${businessId}/parties/${partyId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['Party', 'AuditLog'],
+      invalidatesTags: ['Party', 'AuditLog', 'SearchIndex'],
     }),
 
     createAgreement: builder.mutation<Party, { businessId: string; partyId: string; data: CreateAgreementInput }>({
@@ -53,7 +53,7 @@ export const partyApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Party>) => response.data,
-      invalidatesTags: (_result, _error, { partyId }) => [{ type: 'Party', id: partyId }, 'Party'],
+      invalidatesTags: (_result, _error, { partyId }) => [{ type: 'Party', id: partyId }, 'Party', 'SearchIndex'],
     }),
 
     generatePartyCode: builder.query<string, { businessId: string; name: string }>({
@@ -73,7 +73,7 @@ export const partyApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Party>) => response.data,
-      invalidatesTags: (_result, _error, { partyId }) => [{ type: 'Party', id: partyId }, 'Party', 'AuditLog'],
+      invalidatesTags: (_result, _error, { partyId }) => [{ type: 'Party', id: partyId }, 'Party', 'AuditLog', 'SearchIndex'],
     }),
 
     updateSite: builder.mutation<Party, { businessId: string; partyId: string; siteCode: string; data: UpdateSiteInput }>({
@@ -83,7 +83,7 @@ export const partyApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Party>) => response.data,
-      invalidatesTags: (_result, _error, { partyId }) => [{ type: 'Party', id: partyId }, 'Party', 'AuditLog'],
+      invalidatesTags: (_result, _error, { partyId }) => [{ type: 'Party', id: partyId }, 'Party', 'AuditLog', 'SearchIndex'],
     }),
   }),
 });

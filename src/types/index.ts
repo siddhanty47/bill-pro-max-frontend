@@ -1222,3 +1222,17 @@ export interface AssistantToolEvent { conversationId: string; name: string; stat
 export interface AssistantConfirmEvent { conversationId: string; action: AssistantProposedAction }
 export interface AssistantMessageEvent { conversationId: string; message: string }
 export interface AssistantErrorEvent { conversationId: string; error: string }
+
+// ---------- Global search (mirrors backend services/search/types.ts) ----------
+export type SearchAgreementStatus = 'active' | 'expired' | 'terminated';
+
+export type SearchIndexRow =
+  | { t: 'party'; id: string; name: string; code: string; gst?: string; phone?: string; sites: { code: string; address: string }[] }
+  | { t: 'agreement'; id: string; partyId: string; partyName: string; partyCode: string; siteCode: string; siteAddress?: string; status: SearchAgreementStatus }
+  | { t: 'item'; id: string; name: string; code: string; category?: string };
+
+export interface SearchCapabilities { entities: boolean; bills: boolean; challans: boolean }
+export interface SearchIndexResponse { version: string; capabilities: SearchCapabilities; rows: SearchIndexRow[] }
+export interface BillSearchHit { id: string; billNumber: string; partyId: string; partyName: string; billDate?: string; status: Bill['status']; totalAmount: number }
+export interface ChallanSearchHit { id: string; challanNumber: string; partyId: string; partyName: string; date: string; type: Challan['type']; status: Challan['status'] }
+export interface DocumentSearchResponse { bills: BillSearchHit[]; challans: ChallanSearchHit[] }
