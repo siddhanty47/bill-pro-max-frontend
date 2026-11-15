@@ -134,6 +134,15 @@
   color: var(--text-heading);
 }
 
+/* --- Global search slot (between brand and actions) --- */
+
+.headerSearch {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+
 /* --- Header actions --- */
 
 .headerActions {
@@ -313,6 +322,10 @@
 
   .headerActions {
     gap: 8px;
+  }
+
+  .headerSearch {
+    justify-content: flex-end;
   }
 
   .businessNameTrigger {

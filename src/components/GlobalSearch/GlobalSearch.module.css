@@ -1,0 +1,342 @@
+/* Header global search — terminal style: black input row, hairline borders,
+   elevated menu surface matching the business-switcher dropdown. */
+
+.root {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 520px;
+  display: flex;
+  align-items: center;
+}
+
+.panel {
+  position: relative;
+  width: 100%;
+}
+
+/* --- Input row --- */
+
+.inputWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  transition: border-color var(--transition-fast);
+}
+
+.inputWrap:focus-within {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.inputIcon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+
+.input:focus-visible {
+  outline: none;
+}
+
+.hint {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.kbd {
+  flex-shrink: 0;
+  padding: 0 5px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--text-muted);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+
+/* --- Dropdown --- */
+
+.dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 6px;
+  max-height: 70vh;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  z-index: 1000;
+}
+
+.dropdownOpen {
+  display: block;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: background var(--transition-fast);
+}
+
+.rowSelected {
+  background: var(--accent-muted);
+  border-left-color: var(--accent);
+}
+
+.rowText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.rowTitle,
+.rowSub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowTitle {
+  font-size: 13px;
+  color: var(--text-heading);
+}
+
+.rowSub {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.viaLabel {
+  color: var(--text-muted);
+}
+
+.mark {
+  background: transparent;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.loadingRow,
+.emptyRow {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.3px;
+}
+
+.loadingRow::before {
+  content: '> ';
+  color: var(--accent);
+}
+
+/* Challan direction badge next to the number. */
+.badge {
+  margin-left: 8px;
+  padding: 0 4px;
+  font-size: 10px;
+  line-height: 14px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  vertical-align: 1px;
+  border: 1px solid;
+  border-radius: var(--radius-md);
+}
+
+.badgeDelivery {
+  color: var(--delivery-accent);
+  background: var(--delivery-bg);
+  border-color: var(--delivery-border);
+}
+
+.badgeReturn {
+  color: var(--return-accent);
+  background: var(--return-bg);
+  border-color: var(--return-border);
+}
+
+/* Screen-reader-only live status ("Indexing…", "No matches…"). */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- Tag chips (one token family per type) --- */
+
+.tag {
+  flex-shrink: 0;
+  margin-top: 2px;
+  min-width: 82px;
+  padding: 0 5px;
+  font-size: 10px;
+  line-height: 16px;
+  letter-spacing: 0.5px;
+  text-align: center;
+  border: 1px solid;
+  border-radius: var(--radius-md);
+}
+
+.tagParty {
+  color: var(--accent);
+  background: var(--accent-muted);
+  border-color: var(--accent);
+}
+
+.tagAgreement {
+  color: var(--status-info-text);
+  background: var(--status-info-bg);
+  border-color: var(--status-info-border);
+}
+
+.tagInventory {
+  color: var(--status-warning-text);
+  background: var(--status-warning-bg);
+  border-color: var(--status-warning-border);
+}
+
+.tagChallan {
+  color: var(--status-danger-text);
+  background: var(--status-danger-bg);
+  border-color: var(--status-danger-border);
+}
+
+.tagBill {
+  color: var(--text-heading);
+  background: var(--status-neutral-bg);
+  border-color: var(--border-medium);
+}
+
+/* --- Mobile-only controls (hidden on desktop) --- */
+
+.mobileTrigger,
+.mobileClose,
+.backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .root {
+    flex: 0 0 auto;
+    max-width: none;
+  }
+
+  .mobileTrigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+
+  .mobileTrigger:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* Bar hidden until the overlay is opened. */
+  .panel {
+    display: none;
+  }
+
+  .mobileOpen .panel {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px;
+    background: var(--bg-deepest);
+    border-bottom: 1px solid var(--border-default);
+    /* Above AssistantPanel's mobile full-screen panel (200); below Modal (1000). */
+    z-index: 301;
+  }
+
+  .mobileOpen .backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: var(--bg-deepest);
+    opacity: 0.7;
+    z-index: 300;
+  }
+
+  .inputWrap {
+    height: 44px;
+  }
+
+  .input {
+    font-size: 16px;
+  }
+
+  .kbd {
+    display: none;
+  }
+
+  .mobileClose {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin-right: -10px;
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+
+  .dropdown {
+    position: static;
+    margin-top: 8px;
+    max-height: calc(100vh - 80px);
+    max-height: calc(100dvh - 80px - env(safe-area-inset-top, 0px));
+  }
+
+  .row {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+}

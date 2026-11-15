@@ -31,7 +31,7 @@ export const presetApi = baseApi.injectEndpoints({
         body: { presetId },
       }),
       transformResponse: (response: ApiResponse<ImportPresetResult>) => response.data,
-      invalidatesTags: ['Inventory'],
+      invalidatesTags: ['Inventory', 'SearchIndex'],
     }),
 
     createPreset: builder.mutation<InventoryPreset, { businessId: string; data: CreatePresetInput }>({

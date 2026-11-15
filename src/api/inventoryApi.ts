@@ -41,7 +41,7 @@ export const inventoryApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Inventory>) => response.data,
-      invalidatesTags: ['Inventory', 'AuditLog'],
+      invalidatesTags: ['Inventory', 'AuditLog', 'SearchIndex'],
     }),
 
     updateInventory: builder.mutation<Inventory, { businessId: string; itemId: string; data: Partial<CreateInventoryInput> }>({
@@ -51,7 +51,7 @@ export const inventoryApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Inventory>) => response.data,
-      invalidatesTags: (_result, _error, { itemId }) => [{ type: 'Inventory', id: itemId }, 'Inventory', 'AuditLog'],
+      invalidatesTags: (_result, _error, { itemId }) => [{ type: 'Inventory', id: itemId }, 'Inventory', 'AuditLog', 'SearchIndex'],
     }),
 
     adjustQuantity: builder.mutation<Inventory, { businessId: string; itemId: string; data: AdjustQuantityInput }>({
@@ -74,7 +74,7 @@ export const inventoryApi = baseApi.injectEndpoints({
         url: `/businesses/${businessId}/inventory/${itemId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, { itemId }) => [{ type: 'Inventory', id: itemId }, 'Inventory', 'AuditLog'],
+      invalidatesTags: (_result, _error, { itemId }) => [{ type: 'Inventory', id: itemId }, 'Inventory', 'AuditLog', 'SearchIndex'],
     }),
   }),
 });
