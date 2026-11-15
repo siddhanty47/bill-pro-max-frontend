@@ -3,7 +3,7 @@
  * @description Form for creating/editing employees of all types.
  * Supports conditional fields based on employee type and salary type.
  */
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Employee, CreateEmployeeInput } from '../../types';
@@ -45,10 +45,10 @@ interface EmployeeFormProps {
 
 export function EmployeeForm({ initialData, onSubmit, onCancel, isLoading }: EmployeeFormProps) {
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors },
-    watch,
   } = useForm<FormData>({
     resolver: zodResolver(employeeSchema),
     defaultValues: initialData
@@ -88,8 +88,8 @@ export function EmployeeForm({ initialData, onSubmit, onCancel, isLoading }: Emp
         },
   });
 
-  const employeeType = watch('type');
-  const salaryType = watch('salaryType');
+  const employeeType = useWatch({ control, name: 'type' });
+  const salaryType = useWatch({ control, name: 'salaryType' });
 
   const handleFormSubmit = async (data: FormData) => {
     const payload: CreateEmployeeInput = {

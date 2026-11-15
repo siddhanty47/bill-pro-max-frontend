@@ -187,15 +187,16 @@ export function ChallanDetailPage() {
     [currentBusinessId, challanId, deleteItem]
   );
 
+  const savedDamagedItems = challan?.damagedItems;
   const startEditingDamage = useCallback(() => {
     setLocalDamagedItems(
-      challan?.damagedItems
-        ? challan.damagedItems.map(d => ({ ...d, lossType: d.lossType ?? 'damage' }))
+      savedDamagedItems
+        ? savedDamagedItems.map(d => ({ ...d, lossType: d.lossType ?? 'damage' }))
         : []
     );
     setDamageItemSearch({});
     setEditingDamage(true);
-  }, [challan?.damagedItems]);
+  }, [savedDamagedItems]);
 
   const handleDateSave = useCallback(
     async (_field: string, newValue: string | number) => {

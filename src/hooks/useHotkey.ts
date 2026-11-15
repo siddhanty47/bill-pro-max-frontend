@@ -15,7 +15,7 @@
  * skipped if the active element is a text-entry field so normal
  * typing is not intercepted.
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
 type Modifier = 'alt' | 'ctrl' | 'shift' | 'meta';
 const MODIFIER_SET = new Set<string>(['alt', 'ctrl', 'shift', 'meta']);
@@ -93,17 +93,16 @@ function isTextInput(el: EventTarget | null): boolean {
 }
 
 export function useHotkey(combo: string, handler: () => void, enabled = true): void {
+  // Latest-handler ref, updated after render so the listener never goes stale.
   const handlerRef = useRef(handler);
-  handlerRef.current = handler;
-
-  const parsedRef = useRef(parseCombo(combo));
-  parsedRef.current = parseCombo(combo);
+  useLayoutEffect(() => {
+    handlerRef.current = handler;
+  });
 
   useEffect(() => {
     if (!enabled) return;
+    const p = parseCombo(combo);
     const onKeyDown = (e: KeyboardEvent) => {
-      const p = parsedRef.current;
-
       if (!p.hasModifier && isTextInput(e.target)) return;
 
       if (e.code !== p.code) return;

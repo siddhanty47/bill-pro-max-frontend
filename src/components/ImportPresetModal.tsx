@@ -1,7 +1,7 @@
 /**
  * Multi-step modal for browsing, previewing, and importing inventory presets.
  */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Modal } from './Modal';
 import { LoadingSpinner } from './LoadingSpinner';
 import { getErrorMessage } from '../api/baseApi';
@@ -41,8 +41,10 @@ export function ImportPresetModal({
   const [fetchPreset, { isLoading: presetLoading }] = useLazyGetPresetByIdQuery();
   const [importPreset, { isLoading: importing }] = useImportPresetMutation();
 
-  // Reset state when modal opens/closes
-  useEffect(() => {
+  // Reset state each time the modal opens (adjust state during render).
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
     if (isOpen) {
       setStep('browse');
       setSelectedPreset(null);
@@ -51,7 +53,7 @@ export function ImportPresetModal({
       setBrowseSearch('');
       setPreviewSearch('');
     }
-  }, [isOpen]);
+  }
 
   const existingCodes = useMemo(() => {
     return new Set(existingInventory.map(item => item.code.toUpperCase()));

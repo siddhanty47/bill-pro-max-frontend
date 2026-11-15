@@ -2,7 +2,7 @@
  * Bill generation form component
  */
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
 import { DocumentNumberBadge } from '../DocumentNumberBadge';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -40,9 +40,9 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
   const { currentBusiness } = useCurrentBusiness();
   const [partySearchValue, setPartySearchValue] = useState('');
   const {
+    control,
     register,
     handleSubmit,
-    watch,
     setValue,
     formState: { errors },
   } = useForm<FormData>({
@@ -62,10 +62,10 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
     },
   });
 
-  const selectedPartyId = watch('partyId');
-  const agreementId = watch('agreementId');
-  const periodStart = watch('periodStart');
-  const taxMode = watch('taxMode');
+  const selectedPartyId = useWatch({ control, name: 'partyId' });
+  const agreementId = useWatch({ control, name: 'agreementId' });
+  const periodStart = useWatch({ control, name: 'periodStart' });
+  const taxMode = useWatch({ control, name: 'taxMode' });
   const selectedParty = parties.find(p => p._id === selectedPartyId);
   const activeAgreements = selectedParty?.agreements?.filter(a => a.status === 'active') || [];
   const selectedAgreement = activeAgreements.find(a => a.agreementId === agreementId);
@@ -191,16 +191,18 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
     [setValue]
   );
 
-  useEffect(() => {
-    if (selectedPartyId) {
-      const party = partiesWithAgreements.find(p => p._id === selectedPartyId);
-      if (party) {
-        setPartySearchValue(party.code || party.name.substring(0, 4).toUpperCase());
-      }
-    } else {
-      setPartySearchValue('');
-    }
-  }, [selectedPartyId, partiesWithAgreements]);
+  // Sync the party search box with the selected party (adjust state during render).
+  // undefined = selected party not loaded yet (leave the box alone); null = never synced.
+  const selectedPartyLabel = (() => {
+    if (!selectedPartyId) return '';
+    const party = partiesWithAgreements.find(p => p._id === selectedPartyId);
+    return party ? party.code || party.name.substring(0, 4).toUpperCase() : undefined;
+  })();
+  const [syncedPartyLabel, setSyncedPartyLabel] = useState<string | undefined | null>(null);
+  if (selectedPartyLabel !== syncedPartyLabel) {
+    setSyncedPartyLabel(selectedPartyLabel);
+    if (selectedPartyLabel !== undefined) setPartySearchValue(selectedPartyLabel);
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onFormSubmit = handleSubmit(handleFormSubmit as any);

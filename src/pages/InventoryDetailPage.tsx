@@ -232,10 +232,11 @@ export function InventoryDetailPage() {
   ];
 
   /** History: latest entry at top (reverse of insertion order) */
+  const quantityHistory = item?.quantityHistory;
   const sortedHistory = useMemo(() => {
-    if (!item?.quantityHistory?.length) return [];
-    return [...item.quantityHistory].reverse();
-  }, [item?.quantityHistory]);
+    if (!quantityHistory?.length) return [];
+    return [...quantityHistory].reverse();
+  }, [quantityHistory]);
 
   const sidebar = item ? (
     <DetailSection title="Details">

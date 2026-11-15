@@ -15,7 +15,7 @@
  *    extract→create-challan tools (the agent decides, user confirms the write).
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSocket } from '../../context/WebSocketContext';
+import { useSocket } from '../../context/socketContext';
 import { useCurrentBusiness } from '../../hooks/useCurrentBusiness';
 import {
   useSendAssistantMessageMutation,

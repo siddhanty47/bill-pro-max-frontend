@@ -3,7 +3,7 @@
  * Allows selecting shared billing params and multiple agreements.
  */
 import { useState, useMemo, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { AgreementWithParty, BulkGenerateBillInput } from '../../types';
@@ -37,9 +37,9 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
   const [search, setSearch] = useState('');
 
   const {
+    control,
     register,
     handleSubmit,
-    watch,
     setValue,
     formState: { errors },
   } = useForm<FormData>({
@@ -58,7 +58,7 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
     },
   });
 
-  const taxMode = watch('taxMode');
+  const taxMode = useWatch({ control, name: 'taxMode' });
 
   const activeAgreements = useMemo(
     () => agreements.filter(a => a.status === 'active'),

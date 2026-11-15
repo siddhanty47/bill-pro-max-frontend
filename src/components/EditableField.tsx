@@ -77,13 +77,6 @@ export function EditableField({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(null);
 
-  /** Sync local edit value when the source value changes (e.g. after a successful mutation) */
-  useEffect(() => {
-    if (!isEditing) {
-      setEditValue(value ?? '');
-    }
-  }, [value, isEditing]);
-
   /** Auto-focus the input when entering edit mode */
   useEffect(() => {
     if (isEditing && inputRef.current) {

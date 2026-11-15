@@ -4,7 +4,7 @@
  * Supports GSTIN lookup to auto-fill name, address, and GST details.
  */
 import { useState, useCallback, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Party, CreatePartyInput } from '../../types';
@@ -52,9 +52,8 @@ const createPartySchema = (isEditing: boolean) =>
   });
 
 // Default schema type for form data inference
-const partySchema = createPartySchema(false);
 
-type FormData = z.infer<typeof partySchema>;
+type FormData = z.infer<ReturnType<typeof createPartySchema>>;
 
 interface PartyFormProps {
   initialData?: Party;
@@ -73,10 +72,10 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
   const [lookupGstin, { isFetching: isGstLoading }] = useLazyLookupGstinQuery();
 
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors },
-    watch,
     setValue,
     getValues,
   } = useForm<FormData>({
@@ -108,12 +107,12 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
         },
   });
 
-  const roles = watch('roles') || [];
-  const siteIsSameAsOffice = watch('siteIsSameAsOffice');
-  const officeAddress = watch('address');
-  const gstValue = watch('gst') || '';
-  const stateCodeValue = watch('stateCode') || '';
-  const siteStateCodeValue = watch('siteStateCode') || '';
+  const roles = useWatch({ control, name: 'roles' }) || [];
+  const siteIsSameAsOffice = useWatch({ control, name: 'siteIsSameAsOffice' });
+  const officeAddress = useWatch({ control, name: 'address' });
+  const gstValue = useWatch({ control, name: 'gst' }) || '';
+  const stateCodeValue = useWatch({ control, name: 'stateCode' }) || '';
+  const siteStateCodeValue = useWatch({ control, name: 'siteStateCode' }) || '';
 
   // Auto-fill state code and site state code from GSTIN when 15 chars and empty
   useEffect(() => {

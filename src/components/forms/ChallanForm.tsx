@@ -207,7 +207,10 @@ export function ChallanForm({
     { businessId, type: 'transporter' },
     { skip: !businessId }
   );
-  const transporters: Employee[] = employeesResponse?.data ?? [];
+  const transporters: Employee[] = useMemo(
+    () => employeesResponse?.data ?? [],
+    [employeesResponse]
+  );
 
   /** Auto-fill cartage charges when agreement or challan type changes */
   const selectedAgreement = selectedParty?.agreements?.find(

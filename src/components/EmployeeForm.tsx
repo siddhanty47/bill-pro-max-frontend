@@ -2,7 +2,7 @@
  * @file Modal form for creating/editing employees.
  * Renders type-specific detail fields based on the employee type.
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useCreateEmployeeMutation, useUpdateEmployeeMutation } from '../api/employeeApi';
 import { getErrorMessage } from '../api/baseApi';
@@ -31,13 +31,16 @@ export function EmployeeForm({ businessId, employee, onClose }: EmployeeFormProp
   const isLoading = isCreating || isUpdating;
   const error = createError || updateError;
 
-  useEffect(() => {
+  // Re-seed fields when a different employee is passed in (adjust state during render).
+  const [prevEmployee, setPrevEmployee] = useState(employee);
+  if (employee !== prevEmployee) {
+    setPrevEmployee(employee);
     if (employee) {
       setName(employee.name);
       setPhone(employee.phone ?? '');
       setVehicleNumber(employee.details?.vehicleNumber ?? '');
     }
-  }, [employee]);
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

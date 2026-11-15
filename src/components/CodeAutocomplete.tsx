@@ -8,6 +8,7 @@ import {
   useState,
   useRef,
   useEffect,
+  useMemo,
   useCallback,
   type KeyboardEvent,
   type ChangeEvent,
@@ -83,7 +84,6 @@ export function CodeAutocomplete({
 }: CodeAutocompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [filteredItems, setFilteredItems] = useState<AutocompleteItem[]>([]);
   const [position, setPosition] = useState<{
     top?: number;
     bottom?: number;
@@ -134,14 +134,13 @@ export function CodeAutocomplete({
    * Update position when open, and on scroll/resize
    */
   useEffect(() => {
-    if (!isOpen) {
-      setPosition(null);
-      return;
-    }
-    updatePosition();
+    if (!isOpen) return;
+    // Measure after layout; setState from a callback, not the effect body.
+    const frame = requestAnimationFrame(updatePosition);
     window.addEventListener('scroll', updatePosition, true);
     window.addEventListener('resize', updatePosition);
     return () => {
+      cancelAnimationFrame(frame);
       window.removeEventListener('scroll', updatePosition, true);
       window.removeEventListener('resize', updatePosition);
     };
@@ -151,24 +150,24 @@ export function CodeAutocomplete({
    * Filter items based on input value
    * Matches against code and label (case-insensitive)
    */
-  useEffect(() => {
-    if (!value.trim()) {
-      setFilteredItems(items.slice(0, 10)); // Show first 10 when empty
-      return;
-    }
-
+  const filteredItems = useMemo(() => {
+    if (!value.trim()) return items.slice(0, 10); // Show first 10 when empty
     const searchTerm = value.toLowerCase();
-    const filtered = items
+    return items
       .filter(
         item =>
           item.code.toLowerCase().includes(searchTerm) ||
           item.label.toLowerCase().includes(searchTerm)
       )
       .slice(0, 10); // Limit to 10 results
-
-    setFilteredItems(filtered);
-    setHighlightedIndex(-1);
   }, [value, items]);
+
+  // Reset the highlight whenever the result list changes (adjust-state-during-render pattern).
+  const [prevFilterInput, setPrevFilterInput] = useState({ value, items });
+  if (prevFilterInput.value !== value || prevFilterInput.items !== items) {
+    setPrevFilterInput({ value, items });
+    setHighlightedIndex(-1);
+  }
 
   /**
    * Handle click outside to close dropdown (includes portaled dropdown)

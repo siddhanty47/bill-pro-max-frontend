@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useSocket } from '../context/WebSocketContext';
+import { useSocket } from '../context/socketContext';
 import { baseApi } from '../api/baseApi';
 import type { AppDispatch } from '../store';
 

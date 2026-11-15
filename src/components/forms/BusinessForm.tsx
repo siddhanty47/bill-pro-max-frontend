@@ -4,7 +4,7 @@
  * Supports GSTIN lookup to auto-fill business name and address.
  */
 import { useState, useCallback, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { CreateBusinessInput } from '../../types';
@@ -45,10 +45,10 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
   const [lookupGstin, { isFetching: isGstLoading }] = useLazyLookupGstinStandaloneQuery();
 
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors },
-    watch,
     setValue,
     getValues,
   } = useForm<FormData>({
@@ -63,8 +63,8 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
     },
   });
 
-  const gstValue = watch('gst') || '';
-  const stateCodeValue = watch('stateCode') || '';
+  const gstValue = useWatch({ control, name: 'gst' }) || '';
+  const stateCodeValue = useWatch({ control, name: 'stateCode' }) || '';
 
   // Auto-fill state code from GSTIN when 15 chars and stateCode is empty
   useEffect(() => {

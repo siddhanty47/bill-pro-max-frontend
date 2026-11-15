@@ -2,7 +2,7 @@
  * Payment form component
  */
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
@@ -32,9 +32,9 @@ interface PaymentFormProps {
 export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: PaymentFormProps) {
   const [partySearchValue, setPartySearchValue] = useState('');
   const {
+    control,
     register,
     handleSubmit,
-    watch,
     setValue,
     formState: { errors },
   } = useForm<FormData>({
@@ -46,8 +46,8 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
     },
   });
 
-  const selectedPartyId = watch('partyId');
-  const paymentType = watch('type');
+  const selectedPartyId = useWatch({ control, name: 'partyId' });
+  const paymentType = useWatch({ control, name: 'type' });
 
   // Filter parties by payment type (client for receivable, supplier for payable)
   const filteredParties = useMemo(
@@ -78,17 +78,18 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
     [setValue]
   );
 
-  // Sync partySearchValue when selectedPartyId changes (e.g. from payment type switch)
-  useEffect(() => {
-    if (selectedPartyId) {
-      const party = filteredParties.find(p => p._id === selectedPartyId);
-      if (party) {
-        setPartySearchValue(party.code || party.name.substring(0, 4).toUpperCase());
-      }
-    } else {
-      setPartySearchValue('');
-    }
-  }, [selectedPartyId, filteredParties]);
+  // Sync the party search box with the selected party (adjust state during render).
+  // undefined = selected party not loaded yet (leave the box alone); null = never synced.
+  const selectedPartyLabel = (() => {
+    if (!selectedPartyId) return '';
+    const party = filteredParties.find(p => p._id === selectedPartyId);
+    return party ? party.code || party.name.substring(0, 4).toUpperCase() : undefined;
+  })();
+  const [syncedPartyLabel, setSyncedPartyLabel] = useState<string | undefined | null>(null);
+  if (selectedPartyLabel !== syncedPartyLabel) {
+    setSyncedPartyLabel(selectedPartyLabel);
+    if (selectedPartyLabel !== undefined) setPartySearchValue(selectedPartyLabel);
+  }
 
   // Clear party and bill when payment type changes (not on initial mount)
   const prevPaymentTypeRef = useRef(paymentType);
@@ -97,7 +98,6 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
       prevPaymentTypeRef.current = paymentType;
       setValue('partyId', '');
       setValue('billId', '');
-      setPartySearchValue('');
     }
   }, [paymentType, setValue]);
 

@@ -46,10 +46,12 @@ export function Layout() {
     }
   }, [isBusinessMenuOpen, isProfileMenuOpen]);
 
-  // Close sidebar on route change (mobile)
-  useEffect(() => {
+  // Close sidebar on route change (mobile) — adjust state during render.
+  const [prevPathname, setPrevPathname] = useState(location.pathname);
+  if (location.pathname !== prevPathname) {
+    setPrevPathname(location.pathname);
     setIsSidebarOpen(false);
-  }, [location.pathname]);
+  }
 
   const userInitials = (() => {
     if (user?.firstName && user?.lastName) {
