@@ -11,6 +11,12 @@ React SPA for scaffolding rental business management. See README.md for setup. T
 - **Supabase JS** for authentication
 - **Socket.IO** client for real-time updates
 
+## Testing & PRs
+
+- Test layers, helpers and rules: **`TESTING.md`** (vitest + jsdom + Testing Library; MSW for API; `renderWithProviders` in `src/test/render.tsx`; tests next to the code as `*.test.ts(x)`).
+- Skills: **`write-tests`** and **`raise-pr`** in `.claude/skills/`.
+- Gates (CI runs the same on every PR): `npm run lint`, `format:check`, `typecheck`, `test:coverage`, `coverage:changed` (changed files ≥ 80% lines), `build`.
+
 ## API Layer (RTK Query)
 
 `src/api/baseApi.ts` defines the base API with:
