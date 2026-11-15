@@ -8,8 +8,15 @@ import { useAuth } from '../hooks/useAuth';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { NotificationBell } from './NotificationBell';
 import { WebSocketProvider } from '../context/WebSocketContext';
+import { useSearchIndexSync } from '../hooks/useSearchIndexSync';
 import AssistantPanel from './assistant/AssistantPanel';
 import styles from './Layout.module.css';
+
+/** Mounts the search-index sync hook inside WebSocketProvider (Layout itself sits outside it). */
+function SearchIndexSync() {
+  useSearchIndexSync();
+  return null;
+}
 
 export function Layout() {
   const location = useLocation();
@@ -80,6 +87,7 @@ export function Layout() {
 
   return (
     <WebSocketProvider>
+      <SearchIndexSync />
       <div className={styles.layout}>
         <header className={styles.header}>
           <div className={styles.headerBrand}>
