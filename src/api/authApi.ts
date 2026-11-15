@@ -16,12 +16,7 @@ export async function signIn(email: string, password: string) {
 /**
  * Sign up with email, password, and user metadata
  */
-export async function signUp(
-  email: string,
-  password: string,
-  firstName: string,
-  lastName: string
-) {
+export async function signUp(email: string, password: string, firstName: string, lastName: string) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -81,8 +76,8 @@ export async function getSession() {
 /**
  * Listen for auth state changes
  */
-export function onAuthStateChange(
-  callback: (event: string, session: unknown) => void
-) {
-  return supabase.auth.onAuthStateChange(callback as Parameters<typeof supabase.auth.onAuthStateChange>[0]);
+export function onAuthStateChange(callback: (event: string, session: unknown) => void) {
+  return supabase.auth.onAuthStateChange(
+    callback as Parameters<typeof supabase.auth.onAuthStateChange>[0]
+  );
 }

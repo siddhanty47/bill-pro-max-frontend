@@ -12,13 +12,7 @@ import {
   setError,
   logout as logoutAction,
 } from '../store/authSlice';
-import {
-  signIn,
-  signUp,
-  signInWithGoogle,
-  resetPassword,
-  signOut,
-} from '../api/authApi';
+import { signIn, signUp, signInWithGoogle, resetPassword, signOut } from '../api/authApi';
 import type { User } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';

@@ -1,6 +1,6 @@
-import type { SearchResult, SearchTag } from './searchEngine'
-import { highlightParts } from './highlight'
-import styles from './GlobalSearch.module.css'
+import type { SearchResult, SearchTag } from './searchEngine';
+import { highlightParts } from './highlight';
+import styles from './GlobalSearch.module.css';
 
 const TAG_CLASS: Record<SearchTag, string> = {
   PARTY: styles.tagParty,
@@ -8,34 +8,40 @@ const TAG_CLASS: Record<SearchTag, string> = {
   INVENTORY: styles.tagInventory,
   CHALLAN: styles.tagChallan,
   BILL: styles.tagBill,
-}
+};
 
 function Highlighted({ text, query }: { text: string; query: string }) {
   return (
     <>
       {highlightParts(text, query).map((p, i) =>
-        p.match ? <mark key={i} className={styles.mark}>{p.text}</mark> : <span key={i}>{p.text}</span>,
+        p.match ? (
+          <mark key={i} className={styles.mark}>
+            {p.text}
+          </mark>
+        ) : (
+          <span key={i}>{p.text}</span>
+        )
       )}
     </>
-  )
+  );
 }
 
 /** Parties matched by site show the site instead of code/GST; agreements append it. */
 function leadText(r: SearchResult): string {
-  return r.viaSite && r.tag === 'PARTY' ? '' : r.subtitle
+  return r.viaSite && r.tag === 'PARTY' ? '' : r.subtitle;
 }
 
 interface Props {
-  id: string
-  result: SearchResult
-  query: string
-  selected: boolean
-  onHover: () => void
-  onPick: () => void
+  id: string;
+  result: SearchResult;
+  query: string;
+  selected: boolean;
+  onHover: () => void;
+  onPick: () => void;
 }
 
 export function SearchResultRow({ id, result, query, selected, onHover, onPick }: Props) {
-  const lead = leadText(result)
+  const lead = leadText(result);
   return (
     <li
       id={id}
@@ -51,7 +57,9 @@ export function SearchResultRow({ id, result, query, selected, onHover, onPick }
         <span className={styles.rowTitle}>
           <Highlighted text={result.title} query={query} />
           {result.badge && (
-            <span className={`${styles.badge} ${result.badge === 'delivery' ? styles.badgeDelivery : styles.badgeReturn}`}>
+            <span
+              className={`${styles.badge} ${result.badge === 'delivery' ? styles.badgeDelivery : styles.badgeReturn}`}
+            >
               {result.badge}
             </span>
           )}
@@ -70,5 +78,5 @@ export function SearchResultRow({ id, result, query, selected, onHover, onPick }
         )}
       </span>
     </li>
-  )
+  );
 }

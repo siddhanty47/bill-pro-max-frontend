@@ -22,7 +22,12 @@ interface ImportPresetModalProps {
   existingInventory: Inventory[];
 }
 
-export function ImportPresetModal({ isOpen, onClose, businessId, existingInventory }: ImportPresetModalProps) {
+export function ImportPresetModal({
+  isOpen,
+  onClose,
+  businessId,
+  existingInventory,
+}: ImportPresetModalProps) {
   const [step, setStep] = useState<Step>('browse');
   const [selectedPreset, setSelectedPreset] = useState<InventoryPreset | null>(null);
   const [importResult, setImportResult] = useState<ImportPresetResult | null>(null);
@@ -30,7 +35,9 @@ export function ImportPresetModal({ isOpen, onClose, businessId, existingInvento
   const [browseSearch, setBrowseSearch] = useState('');
   const [previewSearch, setPreviewSearch] = useState('');
 
-  const { data: presets, isLoading: presetsLoading } = useGetPresetsQuery(undefined, { skip: !isOpen });
+  const { data: presets, isLoading: presetsLoading } = useGetPresetsQuery(undefined, {
+    skip: !isOpen,
+  });
   const [fetchPreset, { isLoading: presetLoading }] = useLazyGetPresetByIdQuery();
   const [importPreset, { isLoading: importing }] = useImportPresetMutation();
 
@@ -47,7 +54,7 @@ export function ImportPresetModal({ isOpen, onClose, businessId, existingInvento
   }, [isOpen]);
 
   const existingCodes = useMemo(() => {
-    return new Set(existingInventory.map((item) => item.code.toUpperCase()));
+    return new Set(existingInventory.map(item => item.code.toUpperCase()));
   }, [existingInventory]);
 
   const handlePreview = async (preset: PresetSummary) => {
@@ -84,10 +91,10 @@ export function ImportPresetModal({ isOpen, onClose, businessId, existingInvento
     if (!presets || !browseSearch) return presets;
     const term = browseSearch.toLowerCase();
     return presets.filter(
-      (p) =>
+      p =>
         p.name.toLowerCase().includes(term) ||
         p.description?.toLowerCase().includes(term) ||
-        p.tags.some((t) => t.toLowerCase().includes(term))
+        p.tags.some(t => t.toLowerCase().includes(term))
     );
   }, [presets, browseSearch]);
 
@@ -95,22 +102,30 @@ export function ImportPresetModal({ isOpen, onClose, businessId, existingInvento
     if (!selectedPreset || !previewSearch) return selectedPreset?.items;
     const term = previewSearch.toLowerCase();
     return selectedPreset.items.filter(
-      (item) =>
+      item =>
         item.code.toLowerCase().includes(term) ||
         item.name.toLowerCase().includes(term) ||
         item.category.toLowerCase().includes(term)
     );
   }, [selectedPreset, previewSearch]);
 
-  const willImport = selectedPreset?.items.filter((item) => !existingCodes.has(item.code.toUpperCase())).length ?? 0;
-  const willSkip = selectedPreset?.items.filter((item) => existingCodes.has(item.code.toUpperCase())).length ?? 0;
+  const willImport =
+    selectedPreset?.items.filter(item => !existingCodes.has(item.code.toUpperCase())).length ?? 0;
+  const willSkip =
+    selectedPreset?.items.filter(item => existingCodes.has(item.code.toUpperCase())).length ?? 0;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Import Preset" size="form">
       <div className={styles.stepIndicator}>
-        <span className={`${styles.step} ${step === 'browse' ? styles.stepActive : ''}`}>1. Browse</span>
-        <span className={`${styles.step} ${step === 'preview' ? styles.stepActive : ''}`}>2. Preview</span>
-        <span className={`${styles.step} ${step === 'result' ? styles.stepActive : ''}`}>3. Result</span>
+        <span className={`${styles.step} ${step === 'browse' ? styles.stepActive : ''}`}>
+          1. Browse
+        </span>
+        <span className={`${styles.step} ${step === 'preview' ? styles.stepActive : ''}`}>
+          2. Preview
+        </span>
+        <span className={`${styles.step} ${step === 'result' ? styles.stepActive : ''}`}>
+          3. Result
+        </span>
       </div>
 
       {error && <div className="error-message">{error}</div>}
@@ -127,32 +142,32 @@ export function ImportPresetModal({ isOpen, onClose, businessId, existingInvento
                 type="text"
                 placeholder="Search presets..."
                 value={browseSearch}
-                onChange={(e) => setBrowseSearch(e.target.value)}
+                onChange={e => setBrowseSearch(e.target.value)}
                 className={styles.searchInput}
               />
               {!filteredPresets?.length ? (
                 <div className={styles.emptyState}>No presets match your search.</div>
               ) : (
-              <div className={styles.presetList}>
-              {filteredPresets.map((preset) => (
-                <div
-                  key={preset._id}
-                  className={styles.presetCard}
-                  onClick={() => handlePreview(preset)}
-                >
-                  <div className={styles.presetInfo}>
-                    <div className={styles.presetName}>{preset.name}</div>
-                    {preset.description && (
-                      <div className={styles.presetDescription}>{preset.description}</div>
-                    )}
-                    <div className={styles.presetMeta}>
-                      <span>{preset.itemCount} items</span>
-                      {preset.isSystem && <span className={styles.systemBadge}>System</span>}
+                <div className={styles.presetList}>
+                  {filteredPresets.map(preset => (
+                    <div
+                      key={preset._id}
+                      className={styles.presetCard}
+                      onClick={() => handlePreview(preset)}
+                    >
+                      <div className={styles.presetInfo}>
+                        <div className={styles.presetName}>{preset.name}</div>
+                        {preset.description && (
+                          <div className={styles.presetDescription}>{preset.description}</div>
+                        )}
+                        <div className={styles.presetMeta}>
+                          <span>{preset.itemCount} items</span>
+                          {preset.isSystem && <span className={styles.systemBadge}>System</span>}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-              </div>
               )}
             </>
           )}
@@ -173,7 +188,7 @@ export function ImportPresetModal({ isOpen, onClose, businessId, existingInvento
                 type="text"
                 placeholder="Search items..."
                 value={previewSearch}
-                onChange={(e) => setPreviewSearch(e.target.value)}
+                onChange={e => setPreviewSearch(e.target.value)}
                 className={styles.searchInput}
               />
               <table className={styles.previewTable}>
@@ -186,7 +201,7 @@ export function ImportPresetModal({ isOpen, onClose, businessId, existingInvento
                   </tr>
                 </thead>
                 <tbody>
-                  {(filteredPreviewItems || []).map((item) => {
+                  {(filteredPreviewItems || []).map(item => {
                     const exists = existingCodes.has(item.code.toUpperCase());
                     return (
                       <tr key={item.code} className={exists ? styles.skippedRow : ''}>

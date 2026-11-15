@@ -21,16 +21,27 @@ type Modifier = 'alt' | 'ctrl' | 'shift' | 'meta';
 const MODIFIER_SET = new Set<string>(['alt', 'ctrl', 'shift', 'meta']);
 
 const SPECIAL_KEY_CODES: Record<string, string> = {
-  '/': 'Slash', '\\': 'Backslash',
-  '.': 'Period', ',': 'Comma',
-  ';': 'Semicolon', "'": 'Quote',
-  '[': 'BracketLeft', ']': 'BracketRight',
-  '-': 'Minus', '=': 'Equal',
+  '/': 'Slash',
+  '\\': 'Backslash',
+  '.': 'Period',
+  ',': 'Comma',
+  ';': 'Semicolon',
+  "'": 'Quote',
+  '[': 'BracketLeft',
+  ']': 'BracketRight',
+  '-': 'Minus',
+  '=': 'Equal',
   '`': 'Backquote',
-  escape: 'Escape', enter: 'Enter', tab: 'Tab',
-  space: 'Space', backspace: 'Backspace', delete: 'Delete',
-  arrowup: 'ArrowUp', arrowdown: 'ArrowDown',
-  arrowleft: 'ArrowLeft', arrowright: 'ArrowRight',
+  escape: 'Escape',
+  enter: 'Enter',
+  tab: 'Tab',
+  space: 'Space',
+  backspace: 'Backspace',
+  delete: 'Delete',
+  arrowup: 'ArrowUp',
+  arrowdown: 'ArrowDown',
+  arrowleft: 'ArrowLeft',
+  arrowright: 'ArrowRight',
 };
 
 /** Map a human-readable key name to the physical `KeyboardEvent.code` value. */
@@ -51,7 +62,12 @@ interface ParsedCombo {
 
 function parseCombo(combo: string): ParsedCombo {
   const parts = combo.toLowerCase().split('+');
-  const modifiers: Record<Modifier, boolean> = { alt: false, ctrl: false, shift: false, meta: false };
+  const modifiers: Record<Modifier, boolean> = {
+    alt: false,
+    ctrl: false,
+    shift: false,
+    meta: false,
+  };
   let key = '';
 
   for (const part of parts) {

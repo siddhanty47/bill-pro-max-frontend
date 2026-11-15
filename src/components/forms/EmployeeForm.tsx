@@ -157,7 +157,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel, isLoading }: Emp
                   disabled={isLoading || !!initialData}
                   className={styles.typeSelect}
                 >
-                  {EMPLOYEE_TYPES.map((t) => (
+                  {EMPLOYEE_TYPES.map(t => (
                     <option key={t.value} value={t.value}>
                       {t.label}
                     </option>
@@ -272,12 +272,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel, isLoading }: Emp
 
             <div className="form-group">
               <label htmlFor="emp-address">Address</label>
-              <textarea
-                id="emp-address"
-                {...register('address')}
-                rows={2}
-                disabled={isLoading}
-              />
+              <textarea id="emp-address" {...register('address')} rows={2} disabled={isLoading} />
             </div>
 
             <fieldset className={styles.emergencyFieldset}>
@@ -304,12 +299,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel, isLoading }: Emp
 
             <div className="form-group">
               <label htmlFor="emp-notes">Notes</label>
-              <textarea
-                id="emp-notes"
-                {...register('notes')}
-                rows={2}
-                disabled={isLoading}
-              />
+              <textarea id="emp-notes" {...register('notes')} rows={2} disabled={isLoading} />
             </div>
           </div>
         </div>

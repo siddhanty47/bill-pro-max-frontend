@@ -22,7 +22,8 @@ function SearchIndexSync() {
 export function Layout() {
   const location = useLocation();
   const { user, logout } = useAuth();
-  const { businesses, currentBusiness, selectBusiness, hasMultipleBusinesses } = useCurrentBusiness();
+  const { businesses, currentBusiness, selectBusiness, hasMultipleBusinesses } =
+    useCurrentBusiness();
   const [isBusinessMenuOpen, setIsBusinessMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -63,7 +64,7 @@ export function Layout() {
     return '?';
   })();
 
-  const otherBusinesses = businesses.filter((b) => b._id !== currentBusiness?._id);
+  const otherBusinesses = businesses.filter(b => b._id !== currentBusiness?._id);
 
   const navItems = [
     { path: '/', label: 'Dashboard' },
@@ -147,7 +148,7 @@ export function Layout() {
                       <div className={styles.businessMenuSection}>
                         <div className={styles.businessMenuDivider} />
                         <div className={styles.businessMenuLabel}>Switch business</div>
-                        {otherBusinesses.map((b) => (
+                        {otherBusinesses.map(b => (
                           <button
                             key={b._id}
                             type="button"
@@ -167,7 +168,7 @@ export function Layout() {
             <button
               type="button"
               className={`${styles.assistantToggle} ${isAssistantOpen ? styles.assistantToggleActive : ''}`}
-              onClick={() => setIsAssistantOpen((v) => !v)}
+              onClick={() => setIsAssistantOpen(v => !v)}
               aria-pressed={isAssistantOpen}
               title="Toggle AI assistant"
               aria-label="Toggle AI assistant"
@@ -212,14 +213,11 @@ export function Layout() {
 
         <div className={styles.mainContainer}>
           {isSidebarOpen && (
-            <div
-              className={styles.sidebarOverlay}
-              onClick={() => setIsSidebarOpen(false)}
-            />
+            <div className={styles.sidebarOverlay} onClick={() => setIsSidebarOpen(false)} />
           )}
           <nav className={`${styles.sidebar} ${isSidebarOpen ? styles.sidebarOpen : ''}`}>
             <ul>
-              {navItems.map((item) => (
+              {navItems.map(item => (
                 <li key={item.path}>
                   <Link
                     to={item.path}

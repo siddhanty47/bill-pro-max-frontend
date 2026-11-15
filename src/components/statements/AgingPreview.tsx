@@ -40,7 +40,7 @@ export function AgingPreview({ data }: AgingPreviewProps) {
               </tr>
             </thead>
             <tbody>
-              {data.bills.map((bill) => (
+              {data.bills.map(bill => (
                 <tr key={bill.billId}>
                   <td>
                     <Link to={`/bills/${bill.billId}`} className={styles.entityLink}>

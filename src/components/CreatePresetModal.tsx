@@ -15,7 +15,12 @@ interface CreatePresetModalProps {
   inventory: Inventory[];
 }
 
-export function CreatePresetModal({ isOpen, onClose, businessId, inventory }: CreatePresetModalProps) {
+export function CreatePresetModal({
+  isOpen,
+  onClose,
+  businessId,
+  inventory,
+}: CreatePresetModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -28,7 +33,7 @@ export function CreatePresetModal({ isOpen, onClose, businessId, inventory }: Cr
     if (!search) return inventory;
     const term = search.toLowerCase();
     return inventory.filter(
-      (item) =>
+      item =>
         item.name.toLowerCase().includes(term) ||
         item.code.toLowerCase().includes(term) ||
         item.category.toLowerCase().includes(term)
@@ -36,7 +41,7 @@ export function CreatePresetModal({ isOpen, onClose, businessId, inventory }: Cr
   }, [inventory, search]);
 
   const toggleItem = (id: string) => {
-    setSelectedIds((prev) => {
+    setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -48,7 +53,7 @@ export function CreatePresetModal({ isOpen, onClose, businessId, inventory }: Cr
   };
 
   const selectAll = () => {
-    setSelectedIds(new Set(filteredInventory.map((item) => item._id)));
+    setSelectedIds(new Set(filteredInventory.map(item => item._id)));
   };
 
   const selectNone = () => {
@@ -70,8 +75,8 @@ export function CreatePresetModal({ isOpen, onClose, businessId, inventory }: Cr
     }
 
     const selectedItems = inventory
-      .filter((item) => selectedIds.has(item._id))
-      .map((item) => ({
+      .filter(item => selectedIds.has(item._id))
+      .map(item => ({
         code: item.code,
         name: item.name,
         category: item.category,
@@ -114,7 +119,7 @@ export function CreatePresetModal({ isOpen, onClose, businessId, inventory }: Cr
                 id="preset-name"
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={e => setName(e.target.value)}
                 maxLength={100}
                 disabled={isLoading}
               />
@@ -125,7 +130,7 @@ export function CreatePresetModal({ isOpen, onClose, businessId, inventory }: Cr
                 id="preset-description"
                 type="text"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={e => setDescription(e.target.value)}
                 maxLength={500}
                 disabled={isLoading}
               />
@@ -138,7 +143,7 @@ export function CreatePresetModal({ isOpen, onClose, businessId, inventory }: Cr
               type="text"
               placeholder="Search items..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={e => setSearch(e.target.value)}
               className={styles.searchInput}
               disabled={isLoading}
             />
@@ -151,7 +156,7 @@ export function CreatePresetModal({ isOpen, onClose, businessId, inventory }: Cr
               </button>
             </div>
             <div className={styles.itemList}>
-              {filteredInventory.map((item) => (
+              {filteredInventory.map(item => (
                 <label key={item._id} className={styles.itemRow}>
                   <input
                     type="checkbox"
@@ -171,10 +176,19 @@ export function CreatePresetModal({ isOpen, onClose, businessId, inventory }: Cr
         </div>
 
         <div className={styles.actions}>
-          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isLoading}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+            disabled={isLoading}
+          >
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary" disabled={isLoading || selectedIds.size === 0}>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={isLoading || selectedIds.size === 0}
+          >
             {isLoading ? 'Creating...' : 'Create Preset'}
           </button>
         </div>

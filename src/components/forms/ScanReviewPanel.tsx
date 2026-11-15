@@ -15,7 +15,7 @@ interface ScanReviewPanelProps {
 
 export default function ScanReviewPanel({ result, onDismiss }: ScanReviewPanelProps) {
   const unmatchedItems = useMemo(
-    () => result.items.filter((i) => !i.itemId).map((i) => i.itemName),
+    () => result.items.filter(i => !i.itemId).map(i => i.itemName),
     [result.items]
   );
   const partyUnmatched = !result.partyId && !!result.partyName;
@@ -31,9 +31,7 @@ export default function ScanReviewPanel({ result, onDismiss }: ScanReviewPanelPr
     <div className={styles.panel} role="status" aria-live="polite">
       <div className={styles.header}>
         <span className={styles.title}>Scan review</span>
-        <span className={`${styles.badge} ${confidenceClass}`}>
-          {result.confidence} confidence
-        </span>
+        <span className={`${styles.badge} ${confidenceClass}`}>{result.confidence} confidence</span>
         <button type="button" className={styles.dismiss} onClick={onDismiss} aria-label="Dismiss">
           ×
         </button>
@@ -58,7 +56,8 @@ export default function ScanReviewPanel({ result, onDismiss }: ScanReviewPanelPr
 
       {partyUnmatched && (
         <p className={styles.flag}>
-          Party <strong>{result.partyName}</strong> was not auto-matched — please select it manually.
+          Party <strong>{result.partyName}</strong> was not auto-matched — please select it
+          manually.
         </p>
       )}
 

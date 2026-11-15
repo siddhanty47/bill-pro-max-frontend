@@ -18,11 +18,7 @@ import {
 } from '../api/billApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetPaymentsByBillQuery } from '../api/paymentApi';
-import {
-  DetailPageShell,
-  DetailSection,
-  DetailField,
-} from '../components/DetailPageShell';
+import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import { getErrorMessage } from '../api/baseApi';
 import { Tabs } from '../components/Tabs';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
@@ -62,9 +58,14 @@ export function BillDetailPage() {
   const { currentBusinessId } = useCurrentBusiness();
   const navigate = useNavigate();
 
-  const { data: bill, isLoading, error, refetch } = useGetBillQuery(
+  const {
+    data: bill,
+    isLoading,
+    error,
+    refetch,
+  } = useGetBillQuery(
     { businessId: currentBusinessId!, billId: billId! },
-    { skip: !currentBusinessId || !billId },
+    { skip: !currentBusinessId || !billId }
   );
 
   const { data: parties } = useGetPartiesQuery(currentBusinessId || '', {
@@ -73,7 +74,7 @@ export function BillDetailPage() {
 
   const { data: payments } = useGetPaymentsByBillQuery(
     { businessId: currentBusinessId!, billId: billId! },
-    { skip: !currentBusinessId || !billId },
+    { skip: !currentBusinessId || !billId }
   );
 
   const [updateBillStatus, { isLoading: isSaving }] = useUpdateBillStatusMutation();
@@ -84,7 +85,7 @@ export function BillDetailPage() {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [activeTab, setActiveTab] = useState('about');
 
-  const partyName = parties?.find((p) => p._id === bill?.partyId)?.name || bill?.partyId || '';
+  const partyName = parties?.find(p => p._id === bill?.partyId)?.name || bill?.partyId || '';
   const outstanding = bill ? bill.totalAmount - bill.amountPaid : 0;
   const rentalSubtotal = bill
     ? bill.subtotal - (bill.transportationCharges || 0) - (bill.damageCharges || 0)
@@ -106,7 +107,7 @@ export function BillDetailPage() {
         status: newValue as Bill['status'],
       }).unwrap();
     },
-    [currentBusinessId, billId, updateBillStatus],
+    [currentBusinessId, billId, updateBillStatus]
   );
 
   const handleRegenerate = useCallback(async () => {
@@ -179,11 +180,7 @@ export function BillDetailPage() {
       {/* Editable: Status */}
       <DetailField
         label="Status"
-        value={
-          <span className={`status status-${bill.status}`}>
-            {bill.status}
-          </span>
-        }
+        value={<span className={`status status-${bill.status}`}>{bill.status}</span>}
         editable={{
           rawValue: bill.status,
           inputType: 'select',
@@ -196,10 +193,7 @@ export function BillDetailPage() {
       <DetailField
         label="Party"
         value={
-          <Link
-            to={`/parties/${bill.partyId}`}
-            className="link-accent"
-          >
+          <Link to={`/parties/${bill.partyId}`} className="link-accent">
             {partyName}
           </Link>
         }
@@ -207,10 +201,7 @@ export function BillDetailPage() {
       <DetailField
         label="Agreement"
         value={
-          <Link
-            to={`/agreements/${bill.agreementId}`}
-            className="link-accent"
-          >
+          <Link to={`/agreements/${bill.agreementId}`} className="link-accent">
             {bill.agreementId}
           </Link>
         }
@@ -238,11 +229,7 @@ export function BillDetailPage() {
         bill && currentBusinessId ? (
           <>
             {bill.status !== 'cancelled' && bill.status !== 'paid' && (
-              <button
-                className="btn btn-secondary"
-                onClick={handleSendEmail}
-                disabled={isSending}
-              >
+              <button className="btn btn-secondary" onClick={handleSendEmail} disabled={isSending}>
                 {isSending ? 'Sending...' : 'Send Email'}
               </button>
             )}
@@ -251,7 +238,17 @@ export function BillDetailPage() {
               onClick={handleDownloadPdf}
               disabled={isDownloading}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="icon-inline">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="icon-inline"
+              >
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -269,7 +266,8 @@ export function BillDetailPage() {
             <div className={pageStyles.staleBanner}>
               <span className={pageStyles.iconSize20}>&#9888;</span>
               <span className={pageStyles.flexGrow1}>
-                <strong>Stale bill</strong> &mdash; Underlying challan data has changed since this bill was generated.
+                <strong>Stale bill</strong> &mdash; Underlying challan data has changed since this
+                bill was generated.
               </span>
               <button
                 className="btn btn-primary"
@@ -292,9 +290,7 @@ export function BillDetailPage() {
                 <DetailField label="Period End" value={formatDate(bill.billingPeriod.end)} />
                 <DetailField
                   label="Bill Date"
-                  value={formatDate(
-                    bill.billDate || bill.billingPeriod?.end || bill.createdAt
-                  )}
+                  value={formatDate(bill.billDate || bill.billingPeriod?.end || bill.createdAt)}
                 />
               </DetailSection>
 
@@ -347,7 +343,13 @@ export function BillDetailPage() {
                 <DetailField
                   label="Outstanding"
                   value={
-                    <strong className={outstanding > 0 ? pageStyles.outstandingDanger : pageStyles.outstandingSuccess}>
+                    <strong
+                      className={
+                        outstanding > 0
+                          ? pageStyles.outstandingDanger
+                          : pageStyles.outstandingSuccess
+                      }
+                    >
                       {formatCurrency(outstanding)}
                     </strong>
                   }
@@ -456,7 +458,9 @@ export function BillDetailPage() {
                     </tbody>
                     <tfoot>
                       <tr>
-                        <td colSpan={5}><strong>Total</strong></td>
+                        <td colSpan={5}>
+                          <strong>Total</strong>
+                        </td>
                         <td className="text-right">
                           <strong>{formatCurrency(bill.transportationCharges || 0)}</strong>
                         </td>
@@ -484,17 +488,11 @@ export function BillDetailPage() {
                   </thead>
                   <tbody>
                     {[...(payments || [])]
-                      .sort(
-                        (a, b) =>
-                          new Date(b.date).getTime() - new Date(a.date).getTime(),
-                      )
-                      .map((payment) => (
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .map(payment => (
                         <tr key={payment._id}>
                           <td>
-                            <Link
-                              to={`/payments/${payment._id}`}
-                              className="link-accent"
-                            >
+                            <Link to={`/payments/${payment._id}`} className="link-accent">
                               {formatDate(payment.date)}
                             </Link>
                           </td>
@@ -511,14 +509,14 @@ export function BillDetailPage() {
                   </tbody>
                 </table>
               ) : (
-                <p className="text-empty">
-                  No payments recorded for this bill.
-                </p>
+                <p className="text-empty">No payments recorded for this bill.</p>
               )}
             </DetailSection>
           )}
 
-          {activeTab === 'change-history' && <ChangeHistoryTable documentType="bill" documentId={billId!} />}
+          {activeTab === 'change-history' && (
+            <ChangeHistoryTable documentType="bill" documentId={billId!} />
+          )}
         </>
       )}
     </DetailPageShell>

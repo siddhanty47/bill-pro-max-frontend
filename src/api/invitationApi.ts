@@ -5,10 +5,10 @@ import { baseApi } from './baseApi';
 import type { ApiResponse, Invitation, CreateInvitationInput } from '../types';
 
 export const invitationApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     /** List invitations for a business */
     getInvitations: builder.query<ApiResponse<Invitation[]>, string>({
-      query: (businessId) => `/businesses/${businessId}/invitations`,
+      query: businessId => `/businesses/${businessId}/invitations`,
       providesTags: (_result, _error, businessId) => [
         { type: 'Invitation' as const, id: businessId },
       ],
@@ -74,12 +74,12 @@ export const invitationApi = baseApi.injectEndpoints({
 
     /** Verify an invitation token (public) */
     verifyInvitation: builder.query<ApiResponse<Invitation>, string>({
-      query: (token) => `/invitations/verify/${token}`,
+      query: token => `/invitations/verify/${token}`,
     }),
 
     /** Accept an invitation (authenticated) */
     acceptInvitation: builder.mutation<ApiResponse<null>, string>({
-      query: (token) => ({
+      query: token => ({
         url: `/invitations/${token}/accept`,
         method: 'POST',
       }),
@@ -88,7 +88,7 @@ export const invitationApi = baseApi.injectEndpoints({
 
     /** Decline an invitation (authenticated) */
     declineInvitation: builder.mutation<ApiResponse<null>, string>({
-      query: (token) => ({
+      query: token => ({
         url: `/invitations/${token}/decline`,
         method: 'POST',
       }),

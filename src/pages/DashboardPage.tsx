@@ -15,7 +15,12 @@ import type { CreateBusinessInput } from '../types';
 import styles from './DashboardPage.module.css';
 
 export function DashboardPage() {
-  const { currentBusinessId, currentBusiness, businesses, isLoading: businessLoading } = useCurrentBusiness();
+  const {
+    currentBusinessId,
+    currentBusiness,
+    businesses,
+    isLoading: businessLoading,
+  } = useCurrentBusiness();
   const [isBusinessModalOpen, setIsBusinessModalOpen] = useState(false);
 
   const [createBusiness, { isLoading: isCreating }] = useCreateBusinessMutation();
@@ -93,8 +98,9 @@ export function DashboardPage() {
     );
   }
 
-  const activeParties = parties?.filter((p) => p.isActive).length || 0;
-  const pendingBills = bills?.filter((b) => b.status === 'sent' || b.status === 'partial').length || 0;
+  const activeParties = parties?.filter(p => p.isActive).length || 0;
+  const pendingBills =
+    bills?.filter(b => b.status === 'sent' || b.status === 'partial').length || 0;
   const totalOutstanding = bills?.reduce((sum, b) => sum + (b.totalAmount - b.amountPaid), 0) || 0;
 
   return (
@@ -156,12 +162,14 @@ export function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {overdueBills.slice(0, 5).map((bill) => (
+              {overdueBills.slice(0, 5).map(bill => (
                 <tr key={bill._id}>
                   <td>{bill.billNumber}</td>
                   <td>{new Date(bill.dueDate).toLocaleDateString()}</td>
                   <td>₹{bill.totalAmount.toLocaleString()}</td>
-                  <td><span className="status status-overdue">Overdue</span></td>
+                  <td>
+                    <span className="status status-overdue">Overdue</span>
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -14,7 +14,7 @@ import type {
 } from '../types';
 
 export const assistantApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     sendAssistantMessage: builder.mutation<
       AssistantRunResult,
       { businessId: string; message: string; conversationId?: string; images?: File[] }
@@ -24,7 +24,7 @@ export const assistantApi = baseApi.injectEndpoints({
         const form = new FormData();
         form.append('message', message);
         if (conversationId) form.append('conversationId', conversationId);
-        (images || []).forEach((file) => form.append('images', file));
+        (images || []).forEach(file => form.append('images', file));
         return {
           url: `/businesses/${businessId}/assistant/chat`,
           method: 'POST',
@@ -65,7 +65,7 @@ export const assistantApi = baseApi.injectEndpoints({
     }),
 
     listAssistantConversations: builder.query<AssistantConversationSummary[], string>({
-      query: (businessId) => `/businesses/${businessId}/assistant/conversations`,
+      query: businessId => `/businesses/${businessId}/assistant/conversations`,
       transformResponse: (response: ApiResponse<AssistantConversationSummary[]>) => response.data,
       providesTags: ['Assistant'],
     }),

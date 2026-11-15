@@ -6,7 +6,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Inventory, CreateInventoryInput } from '../../types';
-import { useLazyCheckInventoryCodeExistsQuery, useGetInventoryCategoriesQuery } from '../../api/inventoryApi';
+import {
+  useLazyCheckInventoryCodeExistsQuery,
+  useGetInventoryCategoriesQuery,
+} from '../../api/inventoryApi';
 import { useCurrentBusiness } from '../../hooks/useCurrentBusiness';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
 import styles from './InventoryForm.module.css';
@@ -44,7 +47,7 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
   /** Map category strings to AutocompleteItem format for CodeAutocomplete */
   const categoryAutocompleteItems: AutocompleteItem[] = useMemo(() => {
     if (!existingCategories) return [];
-    return existingCategories.map((cat) => ({
+    return existingCategories.map(cat => ({
       code: cat,
       label: cat,
       id: cat,
@@ -94,7 +97,7 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
    */
   const handleCodeBlur = useCallback(async () => {
     const code = getValues('code');
-    
+
     if (!code || !currentBusinessId) return;
 
     // Skip check if editing and code hasn't changed
@@ -117,7 +120,7 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
 
   const handleFormSubmit = async (data: FormData) => {
     if (codeError) return;
-    
+
     await onSubmit({
       code: data.code.toUpperCase(),
       name: data.name,
@@ -137,116 +140,121 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
   return (
     <form onSubmit={onFormSubmit}>
       <div className="form-content">
-      <div className="form-columns">
-        <div>
-      <div className="form-row">
-        <div className={`form-group ${styles.nameGroup}`}>
-          <label htmlFor="name">Item Name *</label>
-          <input id="name" {...register('name')} disabled={isLoading} />
-          {errors.name && <span className="error-message">{errors.name.message}</span>}
-        </div>
+        <div className="form-columns">
+          <div>
+            <div className="form-row">
+              <div className={`form-group ${styles.nameGroup}`}>
+                <label htmlFor="name">Item Name *</label>
+                <input id="name" {...register('name')} disabled={isLoading} />
+                {errors.name && <span className="error-message">{errors.name.message}</span>}
+              </div>
 
-        <div className={`form-group ${styles.codeGroup}`}>
-          <label htmlFor="code">Item Code *</label>
-          <input
-            id="code"
-            {...register('code')}
-            onBlur={(e) => {
-              register('code').onBlur(e);
-              handleCodeBlur();
-            }}
-            disabled={isLoading}
-            className={styles.uppercaseInput}
-            placeholder="Enter code"
-          />
-          {errors.code && <span className="error-message">{errors.code.message}</span>}
-          {codeError && <span className="error-message">{codeError}</span>}
-        </div>
-      </div>
+              <div className={`form-group ${styles.codeGroup}`}>
+                <label htmlFor="code">Item Code *</label>
+                <input
+                  id="code"
+                  {...register('code')}
+                  onBlur={e => {
+                    register('code').onBlur(e);
+                    handleCodeBlur();
+                  }}
+                  disabled={isLoading}
+                  className={styles.uppercaseInput}
+                  placeholder="Enter code"
+                />
+                {errors.code && <span className="error-message">{errors.code.message}</span>}
+                {codeError && <span className="error-message">{codeError}</span>}
+              </div>
+            </div>
 
-      <div className="form-row">
-        <div className="form-group">
-          <CodeAutocomplete
-            label="Category"
-            placeholder="Select or type a new category..."
-            value={categoryValue}
-            onChange={handleCategoryChange}
-            items={categoryAutocompleteItems}
-            onSelect={(item) => handleCategoryChange(item.label)}
-            disabled={isLoading}
-            error={errors.category?.message}
-            required
-          />
-        </div>
+            <div className="form-row">
+              <div className="form-group">
+                <CodeAutocomplete
+                  label="Category"
+                  placeholder="Select or type a new category..."
+                  value={categoryValue}
+                  onChange={handleCategoryChange}
+                  items={categoryAutocompleteItems}
+                  onSelect={item => handleCategoryChange(item.label)}
+                  disabled={isLoading}
+                  error={errors.category?.message}
+                  required
+                />
+              </div>
 
-        <div className="form-group">
-          <label htmlFor="unit">Unit *</label>
-          <select id="unit" {...register('unit')} disabled={isLoading}>
-            <option value="pcs">Pieces</option>
-            <option value="meters">Meters</option>
-            <option value="kg">Kilograms</option>
-            <option value="tons">Tons</option>
-            <option value="sets">Sets</option>
-          </select>
-          {errors.unit && <span className="error-message">{errors.unit.message}</span>}
-        </div>
-      </div>
-        </div>
-        <div>
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="totalQuantity">Total Quantity *</label>
-          <input
-            id="totalQuantity"
-            type="number"
-            {...register('totalQuantity', { valueAsNumber: true })}
-            disabled={isLoading}
-          />
-          {errors.totalQuantity && (
-            <span className="error-message">{errors.totalQuantity.message}</span>
-          )}
-        </div>
+              <div className="form-group">
+                <label htmlFor="unit">Unit *</label>
+                <select id="unit" {...register('unit')} disabled={isLoading}>
+                  <option value="pcs">Pieces</option>
+                  <option value="meters">Meters</option>
+                  <option value="kg">Kilograms</option>
+                  <option value="tons">Tons</option>
+                  <option value="sets">Sets</option>
+                </select>
+                {errors.unit && <span className="error-message">{errors.unit.message}</span>}
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="totalQuantity">Total Quantity *</label>
+                <input
+                  id="totalQuantity"
+                  type="number"
+                  {...register('totalQuantity', { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+                {errors.totalQuantity && (
+                  <span className="error-message">{errors.totalQuantity.message}</span>
+                )}
+              </div>
 
-        <div className="form-group">
-          <label htmlFor="defaultRatePerDay">Daily Rate (₹)</label>
-          <input
-            id="defaultRatePerDay"
-            type="number"
-            step="0.01"
-            {...register('defaultRatePerDay', { valueAsNumber: true })}
-            disabled={isLoading}
-          />
-        </div>
+              <div className="form-group">
+                <label htmlFor="defaultRatePerDay">Daily Rate (₹)</label>
+                <input
+                  id="defaultRatePerDay"
+                  type="number"
+                  step="0.01"
+                  {...register('defaultRatePerDay', { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+              </div>
 
-        <div className="form-group">
-          <label htmlFor="damageRate">Damage Charge (₹)</label>
-          <input
-            id="damageRate"
-            type="number"
-            step="0.01"
-            {...register('damageRate', { valueAsNumber: true })}
-            disabled={isLoading}
-          />
-        </div>
+              <div className="form-group">
+                <label htmlFor="damageRate">Damage Charge (₹)</label>
+                <input
+                  id="damageRate"
+                  type="number"
+                  step="0.01"
+                  {...register('damageRate', { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+              </div>
 
-        <div className="form-group">
-          <label htmlFor="costPrice">Cost Price (₹)</label>
-          <input
-            id="costPrice"
-            type="number"
-            step="0.01"
-            {...register('costPrice', { valueAsNumber: true })}
-            disabled={isLoading}
-          />
-        </div>
-      </div>
+              <div className="form-group">
+                <label htmlFor="costPrice">Cost Price (₹)</label>
+                <input
+                  id="costPrice"
+                  type="number"
+                  step="0.01"
+                  {...register('costPrice', { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
 
-      <div className="form-group">
-        <label htmlFor="description">Description</label>
-        <textarea id="description" {...register('description')} rows={3} disabled={isLoading} />
-      </div>
+            <div className="form-group">
+              <label htmlFor="description">Description</label>
+              <textarea
+                id="description"
+                {...register('description')}
+                rows={3}
+                disabled={isLoading}
+              />
+            </div>
+          </div>
         </div>
-      </div>
       </div>
 
       <div className="form-actions">

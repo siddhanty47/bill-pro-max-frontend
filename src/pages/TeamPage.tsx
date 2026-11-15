@@ -64,20 +64,16 @@ export function TeamPage() {
 
   const businessId = currentBusiness?._id;
 
-  const {
-    data: membersResponse,
-    isLoading: membersLoading,
-  } = useGetMembersQuery(businessId!, { skip: !businessId });
+  const { data: membersResponse, isLoading: membersLoading } = useGetMembersQuery(businessId!, {
+    skip: !businessId,
+  });
 
-  const {
-    data: invitationsResponse,
-    isLoading: invitationsLoading,
-  } = useGetInvitationsQuery(businessId!, { skip: !businessId });
+  const { data: invitationsResponse, isLoading: invitationsLoading } = useGetInvitationsQuery(
+    businessId!,
+    { skip: !businessId }
+  );
 
-  const {
-    data: employeesResponse,
-    isLoading: employeesLoading,
-  } = useGetEmployeesQuery(
+  const { data: employeesResponse, isLoading: employeesLoading } = useGetEmployeesQuery(
     {
       businessId: businessId!,
       type: typeFilter || undefined,
@@ -96,8 +92,12 @@ export function TeamPage() {
     setIsEmployeeFormOpen(true);
   };
 
-  useHotkey('alt+n', () => { if (!isEmployeeFormOpen && activeTab === 'employees') handleAddEmployee(); });
-  useHotkey('/', () => { if (activeTab === 'employees') searchRef.current?.focus(); });
+  useHotkey('alt+n', () => {
+    if (!isEmployeeFormOpen && activeTab === 'employees') handleAddEmployee();
+  });
+  useHotkey('/', () => {
+    if (activeTab === 'employees') searchRef.current?.focus();
+  });
 
   if (!businessId) {
     return (
@@ -222,7 +222,7 @@ export function TeamPage() {
       render: (row: TableItem) => {
         const emp = row as unknown as Employee;
         return (
-          <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
+          <div className="action-buttons" onClick={e => e.stopPropagation()}>
             <button className="btn btn-sm btn-secondary" onClick={() => handleEditEmployee(emp)}>
               Edit
             </button>
@@ -242,18 +242,12 @@ export function TeamPage() {
       <div className={styles.header}>
         <h1>Team</h1>
         {activeTab === 'employees' && (
-          <button
-            className="btn btn-primary"
-            onClick={handleAddEmployee}
-          >
+          <button className="btn btn-primary" onClick={handleAddEmployee}>
             + Add Employee <kbd className="kbd-hint">{modLabel}+N</kbd>
           </button>
         )}
         {activeTab === 'invite' && (
-          <button
-            className="btn btn-primary"
-            onClick={() => setIsInviteModalOpen(true)}
-          >
+          <button className="btn btn-primary" onClick={() => setIsInviteModalOpen(true)}>
             + Invite Member
           </button>
         )}
@@ -283,19 +277,23 @@ export function TeamPage() {
                 type="text"
                 placeholder="Search employees..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="search-input"
               />
               <kbd className="kbd-hint search-kbd">/</kbd>
             </div>
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-              {TYPE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+              {TYPE_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
             </select>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              {STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              {STATUS_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
             </select>
           </div>
@@ -307,7 +305,7 @@ export function TeamPage() {
               data={employees as unknown as TableItem[]}
               columns={employeeColumns}
               keyField="_id"
-              onRowClick={(row) => navigate(`/team/employees/${String(row._id)}`)}
+              onRowClick={row => navigate(`/team/employees/${String(row._id)}`)}
               emptyMessage="No employees found. Add your first employee to get started."
             />
           )}
@@ -337,10 +335,7 @@ export function TeamPage() {
       )}
 
       {isInviteModalOpen && (
-        <InviteModal
-          businessId={businessId}
-          onClose={() => setIsInviteModalOpen(false)}
-        />
+        <InviteModal businessId={businessId} onClose={() => setIsInviteModalOpen(false)} />
       )}
 
       <Modal

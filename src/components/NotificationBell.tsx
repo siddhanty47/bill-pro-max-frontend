@@ -22,10 +22,7 @@ export function NotificationBell() {
     pollingInterval: 30000,
   });
 
-  const { data: notificationsData } = useGetNotificationsQuery(
-    { limit: 10 },
-    { skip: !isOpen }
-  );
+  const { data: notificationsData } = useGetNotificationsQuery({ limit: 10 }, { skip: !isOpen });
 
   const [markAsRead] = useMarkAsReadMutation();
   const [markAllAsRead] = useMarkAllAsReadMutation();
@@ -62,7 +59,14 @@ export function NotificationBell() {
         onClick={() => setIsOpen(!isOpen)}
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
@@ -76,10 +80,7 @@ export function NotificationBell() {
           <div className={styles.panelHeader}>
             <span>Notifications</span>
             {unreadCount > 0 && (
-              <button
-                className={styles.markAll}
-                onClick={() => markAllAsRead()}
-              >
+              <button className={styles.markAll} onClick={() => markAllAsRead()}>
                 Mark all read
               </button>
             )}
@@ -88,7 +89,7 @@ export function NotificationBell() {
             {notifications.length === 0 ? (
               <p className={styles.empty}>No notifications</p>
             ) : (
-              notifications.map((n) => (
+              notifications.map(n => (
                 <div
                   key={n._id}
                   className={`${styles.item} ${!n.isRead ? styles.unread : ''}`}
@@ -96,9 +97,7 @@ export function NotificationBell() {
                 >
                   <div className={styles.itemTitle}>{n.title}</div>
                   <div className={styles.itemMessage}>{n.message}</div>
-                  <div className={styles.itemTime}>
-                    {new Date(n.createdAt).toLocaleString()}
-                  </div>
+                  <div className={styles.itemTime}>{new Date(n.createdAt).toLocaleString()}</div>
                 </div>
               ))
             )}

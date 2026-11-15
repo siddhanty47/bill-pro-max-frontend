@@ -5,7 +5,7 @@ import { baseApi } from './baseApi';
 import type { Attendance, MarkAttendanceInput, AttendanceSummary, SalaryBreakdown } from '../types';
 
 export const attendanceApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     /** Get attendance records for an employee within a date range */
     getAttendance: builder.query<
       { success: boolean; data: Attendance[] },

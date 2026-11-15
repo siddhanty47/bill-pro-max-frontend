@@ -5,7 +5,7 @@ import { baseApi } from './baseApi';
 import type { Business, CreateBusinessInput, UpdateBusinessInput, ApiResponse } from '../types';
 
 export const businessApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     getBusinesses: builder.query<Business[], void>({
       query: () => '/businesses',
       transformResponse: (response: ApiResponse<Business[]>) => response.data,
@@ -13,13 +13,13 @@ export const businessApi = baseApi.injectEndpoints({
     }),
 
     getBusiness: builder.query<Business, string>({
-      query: (id) => `/businesses/${id}`,
+      query: id => `/businesses/${id}`,
       transformResponse: (response: ApiResponse<Business>) => response.data,
       providesTags: (_result, _error, id) => [{ type: 'Business', id }],
     }),
 
     createBusiness: builder.mutation<Business, CreateBusinessInput>({
-      query: (data) => ({
+      query: data => ({
         url: '/businesses',
         method: 'POST',
         body: data,
@@ -28,10 +28,7 @@ export const businessApi = baseApi.injectEndpoints({
       invalidatesTags: ['Business', 'AuditLog'],
     }),
 
-    updateBusiness: builder.mutation<
-      Business,
-      { businessId: string; data: UpdateBusinessInput }
-    >({
+    updateBusiness: builder.mutation<Business, { businessId: string; data: UpdateBusinessInput }>({
       query: ({ businessId, data }) => ({
         url: `/businesses/${businessId}`,
         method: 'PATCH',

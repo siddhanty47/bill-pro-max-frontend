@@ -11,13 +11,13 @@ interface UnreadCountResponse {
 }
 
 export const notificationApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     /** Get paginated notifications for the current user */
     getNotifications: builder.query<
       ApiResponse<AppNotification[]>,
       { limit?: number; offset?: number } | void
     >({
-      query: (params) => ({
+      query: params => ({
         url: '/notifications',
         params: params ?? undefined,
       }),
@@ -32,7 +32,7 @@ export const notificationApi = baseApi.injectEndpoints({
 
     /** Mark a single notification as read */
     markAsRead: builder.mutation<ApiResponse<null>, string>({
-      query: (notificationId) => ({
+      query: notificationId => ({
         url: `/notifications/${notificationId}/read`,
         method: 'PATCH',
       }),

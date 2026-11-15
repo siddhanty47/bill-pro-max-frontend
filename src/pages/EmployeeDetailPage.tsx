@@ -10,11 +10,7 @@ import {
   useDeleteEmployeeMutation,
 } from '../api/employeeApi';
 import { useGetSalaryBreakdownQuery } from '../api/attendanceApi';
-import {
-  DetailPageShell,
-  DetailSection,
-  DetailField,
-} from '../components/DetailPageShell';
+import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import { Tabs } from '../components/Tabs';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { AttendanceCalendar } from '../components/AttendanceCalendar';
@@ -47,9 +43,14 @@ export function EmployeeDetailPage() {
   const { currentBusinessId } = useCurrentBusiness();
   const navigate = useNavigate();
 
-  const { data: response, isLoading, error, refetch } = useGetEmployeeByIdQuery(
+  const {
+    data: response,
+    isLoading,
+    error,
+    refetch,
+  } = useGetEmployeeByIdQuery(
     { businessId: currentBusinessId!, employeeId: employeeId! },
-    { skip: !currentBusinessId || !employeeId },
+    { skip: !currentBusinessId || !employeeId }
   );
 
   const employee = response?.data;
@@ -71,7 +72,7 @@ export function EmployeeDetailPage() {
       month: salaryMonth,
       year: salaryYear,
     },
-    { skip: !currentBusinessId || !employeeId || activeTab !== 'salary' },
+    { skip: !currentBusinessId || !employeeId || activeTab !== 'salary' }
   );
   const salary = salaryResponse?.data;
 
@@ -110,20 +111,21 @@ export function EmployeeDetailPage() {
         data: { [field]: newValue },
       }).unwrap();
     },
-    [currentBusinessId, employeeId, updateEmployee],
+    [currentBusinessId, employeeId, updateEmployee]
   );
 
   const handleNestedSave = useCallback(
     async (parent: string, field: string, newValue: string | number) => {
       if (!employee) return;
-      const existing = (employee as unknown as Record<string, unknown>)[parent] as Record<string, unknown> || {};
+      const existing =
+        ((employee as unknown as Record<string, unknown>)[parent] as Record<string, unknown>) || {};
       await updateEmployee({
         businessId: currentBusinessId!,
         employeeId: employeeId!,
         data: { [parent]: { ...existing, [field]: newValue } },
       }).unwrap();
     },
-    [currentBusinessId, employee, employeeId, updateEmployee],
+    [currentBusinessId, employee, employeeId, updateEmployee]
   );
 
   const handleDelete = async () => {
@@ -143,11 +145,7 @@ export function EmployeeDetailPage() {
     <DetailSection title="Details">
       <DetailField
         label="Type"
-        value={
-          <span className="status status-active">
-            {formatEmployeeType(employee.type)}
-          </span>
-        }
+        value={<span className="status status-active">{formatEmployeeType(employee.type)}</span>}
       />
       <DetailField
         label="Status"
@@ -195,7 +193,7 @@ export function EmployeeDetailPage() {
                   editable={{
                     rawValue: employee.name,
                     inputType: 'text',
-                    onSave: (v) => handleSave('name', v),
+                    onSave: v => handleSave('name', v),
                     isSaving,
                   }}
                 />
@@ -206,7 +204,7 @@ export function EmployeeDetailPage() {
                   editable={{
                     rawValue: employee.phone ?? '',
                     inputType: 'text',
-                    onSave: (v) => handleSave('phone', v),
+                    onSave: v => handleSave('phone', v),
                     isSaving,
                   }}
                 />
@@ -217,7 +215,7 @@ export function EmployeeDetailPage() {
                   editable={{
                     rawValue: employee.designation ?? '',
                     inputType: 'text',
-                    onSave: (v) => handleSave('designation', v),
+                    onSave: v => handleSave('designation', v),
                     isSaving,
                   }}
                 />
@@ -236,7 +234,7 @@ export function EmployeeDetailPage() {
                   editable={{
                     rawValue: employee.address ?? '',
                     inputType: 'textarea',
-                    onSave: (v) => handleSave('address', v),
+                    onSave: v => handleSave('address', v),
                     isSaving,
                   }}
                 />
@@ -251,20 +249,24 @@ export function EmployeeDetailPage() {
                     rawValue: employee.salaryType ?? '',
                     inputType: 'select',
                     options: SALARY_TYPE_OPTIONS,
-                    onSave: (v) => handleSave('salaryType', v),
+                    onSave: v => handleSave('salaryType', v),
                     isSaving,
                   }}
                 />
                 {employee.salaryType === 'monthly' && (
                   <DetailField
                     label="Monthly Salary"
-                    value={employee.monthlySalary != null ? `₹${employee.monthlySalary.toLocaleString()}` : undefined}
+                    value={
+                      employee.monthlySalary != null
+                        ? `₹${employee.monthlySalary.toLocaleString()}`
+                        : undefined
+                    }
                     emptyText="Not set"
                     editable={{
                       rawValue: employee.monthlySalary ?? 0,
                       inputType: 'number',
                       prefix: '₹',
-                      onSave: (v) => handleSave('monthlySalary', v),
+                      onSave: v => handleSave('monthlySalary', v),
                       isSaving,
                     }}
                   />
@@ -272,13 +274,17 @@ export function EmployeeDetailPage() {
                 {employee.salaryType === 'daily' && (
                   <DetailField
                     label="Daily Rate"
-                    value={employee.dailyRate != null ? `₹${employee.dailyRate.toLocaleString()}` : undefined}
+                    value={
+                      employee.dailyRate != null
+                        ? `₹${employee.dailyRate.toLocaleString()}`
+                        : undefined
+                    }
                     emptyText="Not set"
                     editable={{
                       rawValue: employee.dailyRate ?? 0,
                       inputType: 'number',
                       prefix: '₹',
-                      onSave: (v) => handleSave('dailyRate', v),
+                      onSave: v => handleSave('dailyRate', v),
                       isSaving,
                     }}
                   />
@@ -286,13 +292,17 @@ export function EmployeeDetailPage() {
                 {employee.salaryType && (
                   <DetailField
                     label="Overtime Rate / Hr"
-                    value={employee.overtimeRatePerHour != null ? `₹${employee.overtimeRatePerHour.toLocaleString()}` : undefined}
+                    value={
+                      employee.overtimeRatePerHour != null
+                        ? `₹${employee.overtimeRatePerHour.toLocaleString()}`
+                        : undefined
+                    }
                     emptyText="Not set"
                     editable={{
                       rawValue: employee.overtimeRatePerHour ?? 0,
                       inputType: 'number',
                       prefix: '₹',
-                      onSave: (v) => handleSave('overtimeRatePerHour', v),
+                      onSave: v => handleSave('overtimeRatePerHour', v),
                       isSaving,
                     }}
                   />
@@ -317,7 +327,7 @@ export function EmployeeDetailPage() {
                   editable={{
                     rawValue: employee.emergencyContact?.name ?? '',
                     inputType: 'text',
-                    onSave: (v) => handleNestedSave('emergencyContact', 'name', v),
+                    onSave: v => handleNestedSave('emergencyContact', 'name', v),
                     isSaving,
                   }}
                 />
@@ -328,7 +338,7 @@ export function EmployeeDetailPage() {
                   editable={{
                     rawValue: employee.emergencyContact?.phone ?? '',
                     inputType: 'text',
-                    onSave: (v) => handleNestedSave('emergencyContact', 'phone', v),
+                    onSave: v => handleNestedSave('emergencyContact', 'phone', v),
                     isSaving,
                   }}
                 />
@@ -342,7 +352,7 @@ export function EmployeeDetailPage() {
                   editable={{
                     rawValue: employee.notes ?? '',
                     inputType: 'textarea',
-                    onSave: (v) => handleSave('notes', v),
+                    onSave: v => handleSave('notes', v),
                     isSaving,
                   }}
                 />
@@ -350,15 +360,17 @@ export function EmployeeDetailPage() {
             </>
           )}
 
-          {activeTab === 'attendance' && (
-            <AttendanceCalendar employeeId={employeeId!} />
-          )}
+          {activeTab === 'attendance' && <AttendanceCalendar employeeId={employeeId!} />}
 
           {activeTab === 'salary' && (
             <div className={styles.salaryTab}>
               {/* Month navigation */}
               <div className={styles.monthNav}>
-                <button className={styles.monthNavBtn} onClick={handleSalaryPrevMonth} type="button">
+                <button
+                  className={styles.monthNavBtn}
+                  onClick={handleSalaryPrevMonth}
+                  type="button"
+                >
                   &larr;
                 </button>
                 <span className={styles.monthNavLabel}>{salaryMonthLabel}</span>
@@ -378,7 +390,8 @@ export function EmployeeDetailPage() {
 
               {!isSalaryLoading && !employee.salaryType && (
                 <div className={styles.salaryEmptyState}>
-                  No salary type configured. Set the salary type in the About tab to see the breakdown.
+                  No salary type configured. Set the salary type in the About tab to see the
+                  breakdown.
                 </div>
               )}
 
@@ -418,13 +431,18 @@ export function EmployeeDetailPage() {
                           ? `Base Salary (${salary.effectiveDays}/${salary.workingDays} × ₹${salary.monthlySalary?.toLocaleString()})`
                           : `Base Salary (${salary.effectiveDays} × ₹${salary.dailyRate?.toLocaleString()})`}
                       </span>
-                      <span className={styles.salaryValue}>₹{salary.baseSalary.toLocaleString()}</span>
+                      <span className={styles.salaryValue}>
+                        ₹{salary.baseSalary.toLocaleString()}
+                      </span>
                     </div>
                     <div className={styles.salaryRow}>
                       <span className={styles.salaryLabel}>
-                        Overtime ({salary.overtimeHours}h × ₹{salary.overtimeRatePerHour?.toLocaleString()})
+                        Overtime ({salary.overtimeHours}h × ₹
+                        {salary.overtimeRatePerHour?.toLocaleString()})
                       </span>
-                      <span className={styles.salaryValue}>₹{salary.overtimePay.toLocaleString()}</span>
+                      <span className={styles.salaryValue}>
+                        ₹{salary.overtimePay.toLocaleString()}
+                      </span>
                     </div>
                   </div>
 

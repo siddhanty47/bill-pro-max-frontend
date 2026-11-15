@@ -4,7 +4,14 @@
  * Uses client-side filtering of pre-loaded data for instant results.
  * Renders dropdown via portal to avoid clipping by parent overflow.
  */
-import { useState, useRef, useEffect, useCallback, type KeyboardEvent, type ChangeEvent } from 'react';
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type KeyboardEvent,
+  type ChangeEvent,
+} from 'react';
 import { createPortal } from 'react-dom';
 import styles from './CodeAutocomplete.module.css';
 
@@ -54,7 +61,7 @@ interface CodeAutocompleteProps {
 
 /**
  * CodeAutocomplete - A keyboard-accessible autocomplete for code selection
- * 
+ *
  * Features:
  * - Text input that filters dropdown as user types
  * - Client-side filtering of pre-loaded items (instant, no API calls)
@@ -151,11 +158,13 @@ export function CodeAutocomplete({
     }
 
     const searchTerm = value.toLowerCase();
-    const filtered = items.filter(
-      (item) =>
-        item.code.toLowerCase().includes(searchTerm) ||
-        item.label.toLowerCase().includes(searchTerm)
-    ).slice(0, 10); // Limit to 10 results
+    const filtered = items
+      .filter(
+        item =>
+          item.code.toLowerCase().includes(searchTerm) ||
+          item.label.toLowerCase().includes(searchTerm)
+      )
+      .slice(0, 10); // Limit to 10 results
 
     setFilteredItems(filtered);
     setHighlightedIndex(-1);
@@ -231,14 +240,12 @@ export function CodeAutocomplete({
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
-          setHighlightedIndex((prev) =>
-            prev < filteredItems.length - 1 ? prev + 1 : prev
-          );
+          setHighlightedIndex(prev => (prev < filteredItems.length - 1 ? prev + 1 : prev));
           break;
 
         case 'ArrowUp':
           e.preventDefault();
-          setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+          setHighlightedIndex(prev => (prev > 0 ? prev - 1 : -1));
           break;
 
         case 'Enter':
@@ -275,7 +282,7 @@ export function CodeAutocomplete({
         {label}
         {required && ' *'}
       </label>
-      
+
       <div className={styles.inputContainer}>
         <input
           ref={inputRef}
@@ -312,11 +319,7 @@ export function CodeAutocomplete({
               }}
             >
               {filteredItems.length > 0 ? (
-                <ul
-                  ref={listRef}
-                  className={styles.dropdown}
-                  role="listbox"
-                >
+                <ul ref={listRef} className={styles.dropdown} role="listbox">
                   {filteredItems.map((item, index) => (
                     <li
                       key={item.id}

@@ -60,7 +60,9 @@ export function PartiesPage() {
     setIsPartyModalOpen(true);
   };
 
-  useHotkey('alt+n', () => { if (!isPartyModalOpen) handleAddParty(); });
+  useHotkey('alt+n', () => {
+    if (!isPartyModalOpen) handleAddParty();
+  });
   useHotkey('/', () => searchRef.current?.focus());
 
   const handleAddAgreement = (party: Party) => {
@@ -112,7 +114,7 @@ export function PartiesPage() {
     }
   };
 
-  const filteredParties = (parties || []).filter((party) => {
+  const filteredParties = (parties || []).filter(party => {
     const matchesSearch =
       !searchTerm ||
       party.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -153,7 +155,7 @@ export function PartiesPage() {
         const party = row as unknown as Party;
         const siteCount = party.sites?.length || 0;
         return (
-          <span title={party.sites?.map((s) => s.code).join(', ') || 'None'}>
+          <span title={party.sites?.map(s => s.code).join(', ') || 'None'}>
             {siteCount} site{siteCount !== 1 ? 's' : ''}
           </span>
         );
@@ -164,7 +166,7 @@ export function PartiesPage() {
       header: 'Agreements',
       render: (row: TableItem) => {
         const party = row as unknown as Party;
-        const active = party.agreements?.filter((a) => a.status === 'active').length || 0;
+        const active = party.agreements?.filter(a => a.status === 'active').length || 0;
         return `${active} active`;
       },
     },
@@ -186,7 +188,7 @@ export function PartiesPage() {
       render: (row: TableItem) => {
         const party = row as unknown as Party;
         return (
-          <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
+          <div className="action-buttons" onClick={e => e.stopPropagation()}>
             <button className="btn btn-sm btn-secondary" onClick={() => handleAddSite(party)}>
               + Site
             </button>
@@ -230,12 +232,12 @@ export function PartiesPage() {
             type="text"
             placeholder="Search parties..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             className="search-input"
           />
           <kbd className="kbd-hint search-kbd">/</kbd>
         </div>
-        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+        <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
           <option value="">All Roles</option>
           <option value="client">Clients</option>
           <option value="supplier">Suppliers</option>
@@ -246,7 +248,7 @@ export function PartiesPage() {
         data={filteredParties as unknown as TableItem[]}
         columns={columns}
         keyField="_id"
-        onRowClick={(row) => navigate(`/parties/${String(row._id)}`)}
+        onRowClick={row => navigate(`/parties/${String(row._id)}`)}
         emptyMessage="No parties found. Add your first party to get started."
       />
 

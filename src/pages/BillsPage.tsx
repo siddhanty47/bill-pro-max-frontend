@@ -74,7 +74,9 @@ export function BillsPage() {
     setIsBulkModalOpen(true);
   };
 
-  useHotkey('alt+n', () => { if (!isModalOpen && !isBulkModalOpen) handleGenerate(); });
+  useHotkey('alt+n', () => {
+    if (!isModalOpen && !isBulkModalOpen) handleGenerate();
+  });
   useHotkey('/', () => searchRef.current?.focus());
 
   const handleSubmit = async (data: GenerateBillInput) => {
@@ -150,7 +152,7 @@ export function BillsPage() {
     const message = isDraftOrCancelled
       ? `Delete bill "${bill.billNumber}"?`
       : `Bill "${bill.billNumber}" has status "${bill.status}". Force delete anyway? This cannot be undone.`;
-    
+
     if (!confirm(message)) return;
 
     try {
@@ -165,10 +167,10 @@ export function BillsPage() {
   };
 
   const getPartyName = (partyId: string) => {
-    return parties?.find((p) => p._id === partyId)?.name || 'Unknown';
+    return parties?.find(p => p._id === partyId)?.name || 'Unknown';
   };
 
-  const filteredBills = (bills || []).filter((bill) => {
+  const filteredBills = (bills || []).filter(bill => {
     const matchesSearch =
       !searchTerm ||
       bill.billNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -229,10 +231,7 @@ export function BillsPage() {
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <span className={`status status-${bill.status}`}>{bill.status}</span>
             {bill.isStale && (
-              <span
-                title="Stale — underlying challan data changed"
-                className="badge-warning"
-              >
+              <span title="Stale — underlying challan data changed" className="badge-warning">
                 &#9888; Stale
               </span>
             )}
@@ -246,17 +245,27 @@ export function BillsPage() {
       render: (row: TableItem) => {
         const bill = row as unknown as Bill;
         return (
-          <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
+          <div className="action-buttons" onClick={e => e.stopPropagation()}>
             <button
               className="btn btn-sm btn-secondary"
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 handleDownloadPdf(bill);
               }}
               title="Download invoice PDF"
               disabled={isDownloading}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="icon-inline">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="icon-inline"
+              >
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -264,10 +273,7 @@ export function BillsPage() {
               Download
             </button>
             {bill.status === 'draft' && (
-              <button
-                className="btn btn-sm btn-primary"
-                onClick={() => handleSendEmail(bill)}
-              >
+              <button className="btn btn-sm btn-primary" onClick={() => handleSendEmail(bill)}>
                 Send
               </button>
             )}
@@ -331,12 +337,12 @@ export function BillsPage() {
             type="text"
             placeholder="Search bills..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             className="search-input"
           />
           <kbd className="kbd-hint search-kbd">/</kbd>
         </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="">All Status</option>
           <option value="draft">Draft</option>
           <option value="sent">Sent</option>
@@ -351,11 +357,16 @@ export function BillsPage() {
         data={filteredBills as unknown as TableItem[]}
         columns={columns}
         keyField="_id"
-        onRowClick={(row) => navigate(`/bills/${String(row._id)}`)}
+        onRowClick={row => navigate(`/bills/${String(row._id)}`)}
         emptyMessage="No bills found. Generate your first bill to get started."
       />
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Generate Bill" size="form">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Generate Bill"
+        size="form"
+      >
         <BillForm
           parties={parties || []}
           onSubmit={handleSubmit}
@@ -364,7 +375,12 @@ export function BillsPage() {
         />
       </Modal>
 
-      <Modal isOpen={isBulkModalOpen} onClose={() => setIsBulkModalOpen(false)} title="Bulk Generate Bills" size="form">
+      <Modal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        title="Bulk Generate Bills"
+        size="form"
+      >
         <BulkBillForm
           agreements={agreements || []}
           onSubmit={handleBulkSubmit}

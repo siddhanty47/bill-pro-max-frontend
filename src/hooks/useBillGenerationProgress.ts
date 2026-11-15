@@ -72,7 +72,12 @@ export function useBillGenerationProgress() {
   useEffect(() => {
     if (!socket) return;
 
-    const handleGenerated = (data: { batchId: string; billId: string; agreementId: string; billNumber: string }) => {
+    const handleGenerated = (data: {
+      batchId: string;
+      billId: string;
+      agreementId: string;
+      billNumber: string;
+    }) => {
       setBatches(prev => {
         const next = new Map(prev);
         const batch = next.get(data.batchId);
@@ -80,12 +85,15 @@ export function useBillGenerationProgress() {
           next.set(data.batchId, {
             ...batch,
             completed: batch.completed + 1,
-            results: [...batch.results, {
-              agreementId: data.agreementId,
-              billId: data.billId,
-              billNumber: data.billNumber,
-              status: 'completed',
-            }],
+            results: [
+              ...batch.results,
+              {
+                agreementId: data.agreementId,
+                billId: data.billId,
+                billNumber: data.billNumber,
+                status: 'completed',
+              },
+            ],
           });
         }
         return next;
@@ -93,7 +101,12 @@ export function useBillGenerationProgress() {
       scheduleInvalidation();
     };
 
-    const handleFailed = (data: { batchId: string; agreementId: string; partyId: string; error: string }) => {
+    const handleFailed = (data: {
+      batchId: string;
+      agreementId: string;
+      partyId: string;
+      error: string;
+    }) => {
       setBatches(prev => {
         const next = new Map(prev);
         const batch = next.get(data.batchId);
@@ -101,18 +114,26 @@ export function useBillGenerationProgress() {
           next.set(data.batchId, {
             ...batch,
             failed: batch.failed + 1,
-            results: [...batch.results, {
-              agreementId: data.agreementId,
-              error: data.error,
-              status: 'failed',
-            }],
+            results: [
+              ...batch.results,
+              {
+                agreementId: data.agreementId,
+                error: data.error,
+                status: 'failed',
+              },
+            ],
           });
         }
         return next;
       });
     };
 
-    const handleBatchComplete = (data: { batchId: string; total: number; completed: number; failed: number }) => {
+    const handleBatchComplete = (data: {
+      batchId: string;
+      total: number;
+      completed: number;
+      failed: number;
+    }) => {
       setBatches(prev => {
         const next = new Map(prev);
         const batch = next.get(data.batchId);

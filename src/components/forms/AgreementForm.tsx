@@ -92,9 +92,9 @@ export function AgreementForm({
    */
   const availableSites = useMemo(() => {
     const activeSiteCodes = existingAgreements
-      .filter((a) => a.status === 'active')
-      .map((a) => a.siteCode);
-    return sites.filter((site) => !activeSiteCodes.includes(site.code));
+      .filter(a => a.status === 'active')
+      .map(a => a.siteCode);
+    return sites.filter(site => !activeSiteCodes.includes(site.code));
   }, [sites, existingAgreements]);
 
   const {
@@ -146,7 +146,7 @@ export function AgreementForm({
   /** Toggle a single category on or off */
   const handleCategoryToggle = useCallback(
     (category: string) => {
-      setSelectedCategories((prev) => {
+      setSelectedCategories(prev => {
         const next = new Set(prev);
         if (next.has(category)) {
           next.delete(category);
@@ -212,247 +212,248 @@ export function AgreementForm({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onFormSubmit = handleSubmit(handleFormSubmit as any);
 
-  const isAllSelected = allCategories.length > 0 && selectedCategories.size === allCategories.length;
+  const isAllSelected =
+    allCategories.length > 0 && selectedCategories.size === allCategories.length;
   const isSomeSelected = selectedCategories.size > 0 && !isAllSelected;
 
   return (
     <form onSubmit={onFormSubmit}>
       <div className="form-content">
-      <div className="form-columns">
-        <div>
-      <div className="form-group">
-        <label htmlFor="siteCode">Site *</label>
-        <select id="siteCode" {...register('siteCode')} disabled={isLoading}>
-          <option value="">Select a site</option>
-          {availableSites.map((site) => (
-            <option key={site.code} value={site.code}>
-              {site.code} - {site.address.substring(0, 50)}{site.address.length > 50 ? '...' : ''}
-            </option>
-          ))}
-        </select>
-        {errors.siteCode && <span className="error-message">{errors.siteCode.message}</span>}
-        {availableSites.length === 0 && (
-          <small className={styles.warningText}>
-            No sites available. All sites have active agreements.
-          </small>
-        )}
-      </div>
+        <div className="form-columns">
+          <div>
+            <div className="form-group">
+              <label htmlFor="siteCode">Site *</label>
+              <select id="siteCode" {...register('siteCode')} disabled={isLoading}>
+                <option value="">Select a site</option>
+                {availableSites.map(site => (
+                  <option key={site.code} value={site.code}>
+                    {site.code} - {site.address.substring(0, 50)}
+                    {site.address.length > 50 ? '...' : ''}
+                  </option>
+                ))}
+              </select>
+              {errors.siteCode && <span className="error-message">{errors.siteCode.message}</span>}
+              {availableSites.length === 0 && (
+                <small className={styles.warningText}>
+                  No sites available. All sites have active agreements.
+                </small>
+              )}
+            </div>
 
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="startDate">Start Date *</label>
-          <input id="startDate" type="date" {...register('startDate')} disabled={isLoading} />
-          {errors.startDate && <span className="error-message">{errors.startDate.message}</span>}
-        </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="startDate">Start Date *</label>
+                <input id="startDate" type="date" {...register('startDate')} disabled={isLoading} />
+                {errors.startDate && (
+                  <span className="error-message">{errors.startDate.message}</span>
+                )}
+              </div>
 
-        <div className="form-group">
-          <label htmlFor="endDate">End Date</label>
-          <input id="endDate" type="date" {...register('endDate')} disabled={isLoading} />
-        </div>
-      </div>
+              <div className="form-group">
+                <label htmlFor="endDate">End Date</label>
+                <input id="endDate" type="date" {...register('endDate')} disabled={isLoading} />
+              </div>
+            </div>
 
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="billingCycle">Billing Cycle *</label>
-          <select id="billingCycle" {...register('billingCycle')} disabled={isLoading}>
-            <option value="monthly">Monthly</option>
-            <option value="weekly">Weekly</option>
-            <option value="yearly">Yearly</option>
-          </select>
-        </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="billingCycle">Billing Cycle *</label>
+                <select id="billingCycle" {...register('billingCycle')} disabled={isLoading}>
+                  <option value="monthly">Monthly</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
 
-        <div className="form-group">
-          <label htmlFor="paymentDueDays">Payment Due (days) *</label>
-          <input
-            id="paymentDueDays"
-            type="number"
-            {...register('paymentDueDays', { valueAsNumber: true })}
-            disabled={isLoading}
-          />
-        </div>
+              <div className="form-group">
+                <label htmlFor="paymentDueDays">Payment Due (days) *</label>
+                <input
+                  id="paymentDueDays"
+                  type="number"
+                  {...register('paymentDueDays', { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+              </div>
 
-        <div className="form-group">
-          <label htmlFor="securityDeposit">Security Deposit (₹)</label>
-          <input
-            id="securityDeposit"
-            type="number"
-            {...register('securityDeposit', { valueAsNumber: true })}
-            disabled={isLoading}
-          />
-        </div>
-      </div>
-        </div>
-        <div>
-      {/* Transportation Charges */}
-      <fieldset className="form-fieldset">
-        <legend className="form-fieldset-legend">
-          Transportation Charges (optional)
-        </legend>
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="deliveryCartage">Delivery Cartage (₹)</label>
-            <input
-              id="deliveryCartage"
-              type="number"
-              step="0.01"
-              {...register('deliveryCartage', { valueAsNumber: true })}
-              disabled={isLoading}
-              placeholder="0"
-            />
+              <div className="form-group">
+                <label htmlFor="securityDeposit">Security Deposit (₹)</label>
+                <input
+                  id="securityDeposit"
+                  type="number"
+                  {...register('securityDeposit', { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
           </div>
-          <div className="form-group">
-            <label htmlFor="returnCartage">Return Cartage (₹)</label>
-            <input
-              id="returnCartage"
-              type="number"
-              step="0.01"
-              {...register('returnCartage', { valueAsNumber: true })}
-              disabled={isLoading}
-              placeholder="0"
-            />
-          </div>
-        </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="loadingCharge">Loading Charge (₹)</label>
-            <input
-              id="loadingCharge"
-              type="number"
-              step="0.01"
-              {...register('loadingCharge', { valueAsNumber: true })}
-              disabled={isLoading}
-              placeholder="0"
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="unloadingCharge">Unloading Charge (₹)</label>
-            <input
-              id="unloadingCharge"
-              type="number"
-              step="0.01"
-              {...register('unloadingCharge', { valueAsNumber: true })}
-              disabled={isLoading}
-              placeholder="0"
-            />
-          </div>
-        </div>
-      </fieldset>
-        </div>
-      </div>
-
-      {/* Category selection - full width */}
-      <div className="form-group">
-        <label>Select Categories *</label>
-
-        {allCategories.length === 0 && (
-          <small className={styles.warningText}>No inventory items available.</small>
-        )}
-
-        {allCategories.length > 0 && (
-          <div className={styles.categoryPanel}>
-            {/* Select All / Unselect All */}
-            <label className={styles.selectAllLabel}>
-              <input
-                className={styles.formCheckbox}
-                type="checkbox"
-                checked={isAllSelected}
-                ref={(el) => {
-                  if (el) el.indeterminate = isSomeSelected;
-                }}
-                onChange={handleSelectAllToggle}
-                disabled={isLoading}
-              />
-              {isAllSelected ? 'Unselect All' : 'Select All'}
-            </label>
-
-            {/* Individual categories */}
-            {allCategories.map((category) => {
-              const items = categorizedItems.get(category) || [];
-              return (
-                <label
-                  key={category}
-                  className={styles.categoryLabel}
-                >
+          <div>
+            {/* Transportation Charges */}
+            <fieldset className="form-fieldset">
+              <legend className="form-fieldset-legend">Transportation Charges (optional)</legend>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="deliveryCartage">Delivery Cartage (₹)</label>
                   <input
-                    type="checkbox"
-                    className={styles.formCheckbox}
-                    checked={selectedCategories.has(category)}
-                    onChange={() => handleCategoryToggle(category)}
+                    id="deliveryCartage"
+                    type="number"
+                    step="0.01"
+                    {...register('deliveryCartage', { valueAsNumber: true })}
                     disabled={isLoading}
+                    placeholder="0"
                   />
-                  {category}
-                  <span className={styles.categoryCount}>
-                    ({items.length} {items.length === 1 ? 'item' : 'items'})
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-        )}
-
-        {errors.rates && <span className="error-message">{errors.rates.message}</span>}
-      </div>
-
-      {/* Selected items preview with editable rates */}
-      {fields.length > 0 && (
-        <div className="form-group">
-          <label>Selected Items ({fields.length})</label>
-          <div className={styles.previewContainer}>
-            <table className={styles.previewTable}>
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Name</th>
-                  <th>Category</th>
-                  <th className={styles.rateColumn}>Rate/day (₹)</th>
-                  <th className={styles.rateColumn}>Opening Bal.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fields.map((field, index) => {
-                  const item = inventoryById.get(field.itemId);
-                  return (
-                    <tr key={field.id}>
-                      <td className={styles.codeCell}>
-                        {item?.code || '-'}
-                      </td>
-                      <td className={styles.cell}>{item?.name || '-'}</td>
-                      <td className={styles.cell}>{item?.category || '-'}</td>
-                      <td className={styles.cell}>
-                        <input
-                          type="number"
-                          step="0.01"
-                          {...register(`rates.${index}.ratePerDay`, { valueAsNumber: true })}
-                          onChange={(e) =>
-                            handleRateChange(index, field.itemId, parseFloat(e.target.value) || 0)
-                          }
-                          disabled={isLoading}
-                          className={styles.rateInput}
-                        />
-                        <input type="hidden" {...register(`rates.${index}.itemId`)} />
-                      </td>
-                      <td className={styles.cell}>
-                        <input
-                          type="number"
-                          step="1"
-                          min="0"
-                          {...register(`rates.${index}.openingBalance`, { valueAsNumber: true })}
-                          onChange={(e) =>
-                            handleOpeningBalanceChange(index, field.itemId, parseFloat(e.target.value) || 0)
-                          }
-                          disabled={isLoading}
-                          className={styles.rateInput}
-                          placeholder="0"
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="returnCartage">Return Cartage (₹)</label>
+                  <input
+                    id="returnCartage"
+                    type="number"
+                    step="0.01"
+                    {...register('returnCartage', { valueAsNumber: true })}
+                    disabled={isLoading}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="loadingCharge">Loading Charge (₹)</label>
+                  <input
+                    id="loadingCharge"
+                    type="number"
+                    step="0.01"
+                    {...register('loadingCharge', { valueAsNumber: true })}
+                    disabled={isLoading}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="unloadingCharge">Unloading Charge (₹)</label>
+                  <input
+                    id="unloadingCharge"
+                    type="number"
+                    step="0.01"
+                    {...register('unloadingCharge', { valueAsNumber: true })}
+                    disabled={isLoading}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+            </fieldset>
           </div>
         </div>
-      )}
+
+        {/* Category selection - full width */}
+        <div className="form-group">
+          <label>Select Categories *</label>
+
+          {allCategories.length === 0 && (
+            <small className={styles.warningText}>No inventory items available.</small>
+          )}
+
+          {allCategories.length > 0 && (
+            <div className={styles.categoryPanel}>
+              {/* Select All / Unselect All */}
+              <label className={styles.selectAllLabel}>
+                <input
+                  className={styles.formCheckbox}
+                  type="checkbox"
+                  checked={isAllSelected}
+                  ref={el => {
+                    if (el) el.indeterminate = isSomeSelected;
+                  }}
+                  onChange={handleSelectAllToggle}
+                  disabled={isLoading}
+                />
+                {isAllSelected ? 'Unselect All' : 'Select All'}
+              </label>
+
+              {/* Individual categories */}
+              {allCategories.map(category => {
+                const items = categorizedItems.get(category) || [];
+                return (
+                  <label key={category} className={styles.categoryLabel}>
+                    <input
+                      type="checkbox"
+                      className={styles.formCheckbox}
+                      checked={selectedCategories.has(category)}
+                      onChange={() => handleCategoryToggle(category)}
+                      disabled={isLoading}
+                    />
+                    {category}
+                    <span className={styles.categoryCount}>
+                      ({items.length} {items.length === 1 ? 'item' : 'items'})
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+
+          {errors.rates && <span className="error-message">{errors.rates.message}</span>}
+        </div>
+
+        {/* Selected items preview with editable rates */}
+        {fields.length > 0 && (
+          <div className="form-group">
+            <label>Selected Items ({fields.length})</label>
+            <div className={styles.previewContainer}>
+              <table className={styles.previewTable}>
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th className={styles.rateColumn}>Rate/day (₹)</th>
+                    <th className={styles.rateColumn}>Opening Bal.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fields.map((field, index) => {
+                    const item = inventoryById.get(field.itemId);
+                    return (
+                      <tr key={field.id}>
+                        <td className={styles.codeCell}>{item?.code || '-'}</td>
+                        <td className={styles.cell}>{item?.name || '-'}</td>
+                        <td className={styles.cell}>{item?.category || '-'}</td>
+                        <td className={styles.cell}>
+                          <input
+                            type="number"
+                            step="0.01"
+                            {...register(`rates.${index}.ratePerDay`, { valueAsNumber: true })}
+                            onChange={e =>
+                              handleRateChange(index, field.itemId, parseFloat(e.target.value) || 0)
+                            }
+                            disabled={isLoading}
+                            className={styles.rateInput}
+                          />
+                          <input type="hidden" {...register(`rates.${index}.itemId`)} />
+                        </td>
+                        <td className={styles.cell}>
+                          <input
+                            type="number"
+                            step="1"
+                            min="0"
+                            {...register(`rates.${index}.openingBalance`, { valueAsNumber: true })}
+                            onChange={e =>
+                              handleOpeningBalanceChange(
+                                index,
+                                field.itemId,
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
+                            disabled={isLoading}
+                            className={styles.rateInput}
+                            placeholder="0"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="form-actions">

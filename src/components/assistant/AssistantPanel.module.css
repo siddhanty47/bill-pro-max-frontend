@@ -49,7 +49,9 @@
   letter-spacing: 0.5px;
   padding: 3px 8px;
   cursor: pointer;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast);
 }
 .headerBtn:hover {
   color: var(--accent);
@@ -141,7 +143,9 @@
   font-size: 12px;
   line-height: 1.4;
   cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast);
 }
 .suggestion:hover {
   border-color: var(--accent);
@@ -371,7 +375,9 @@
   background: var(--bg-input);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast);
 }
 .iconBtn:hover:not(:disabled) {
   color: var(--accent);

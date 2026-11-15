@@ -2,12 +2,20 @@
  * Challan API endpoints
  */
 import { baseApi } from './baseApi';
-import type { Challan, CreateChallanInput, DamagedItem, ItemWithParty, ExtractedChallanData, ApiResponse, PaginatedResponse } from '../types';
+import type {
+  Challan,
+  CreateChallanInput,
+  DamagedItem,
+  ItemWithParty,
+  ExtractedChallanData,
+  ApiResponse,
+  PaginatedResponse,
+} from '../types';
 
 export const challanApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     getChallans: builder.query<Challan[], string>({
-      query: (businessId) => `/businesses/${businessId}/challans?pageSize=100`,
+      query: businessId => `/businesses/${businessId}/challans?pageSize=100`,
       transformResponse: (response: PaginatedResponse<Challan>) => response.data,
       providesTags: ['Challan'],
     }),
@@ -28,14 +36,22 @@ export const challanApi = baseApi.injectEndpoints({
       invalidatesTags: ['Challan', 'Inventory', 'AuditLog'],
     }),
 
-    confirmChallan: builder.mutation<Challan, { businessId: string; challanId: string; confirmedBy: string }>({
+    confirmChallan: builder.mutation<
+      Challan,
+      { businessId: string; challanId: string; confirmedBy: string }
+    >({
       query: ({ businessId, challanId, confirmedBy }) => ({
         url: `/businesses/${businessId}/challans/${challanId}/confirm`,
         method: 'POST',
         body: { confirmedBy },
       }),
       transformResponse: (response: ApiResponse<Challan>) => response.data,
-      invalidatesTags: (_result, _error, { challanId }) => [{ type: 'Challan', id: challanId }, 'Challan', 'Inventory', 'AuditLog'],
+      invalidatesTags: (_result, _error, { challanId }) => [
+        { type: 'Challan', id: challanId },
+        'Challan',
+        'Inventory',
+        'AuditLog',
+      ],
     }),
 
     updateChallanItem: builder.mutation<
@@ -76,17 +92,28 @@ export const challanApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Challan>) => response.data,
-      invalidatesTags: (_result, _error, { challanId }) => [{ type: 'Challan', id: challanId }, 'Challan', 'Bill', 'AuditLog'],
+      invalidatesTags: (_result, _error, { challanId }) => [
+        { type: 'Challan', id: challanId },
+        'Challan',
+        'Bill',
+        'AuditLog',
+      ],
     }),
 
-    getNextChallanNumber: builder.query<string, { businessId: string; type: 'delivery' | 'return'; date: string }>({
+    getNextChallanNumber: builder.query<
+      string,
+      { businessId: string; type: 'delivery' | 'return'; date: string }
+    >({
       query: ({ businessId, type, date }) =>
         `/businesses/${businessId}/challans/next-number?type=${type}&date=${date}`,
       transformResponse: (response: ApiResponse<string>) => response.data,
       providesTags: ['Challan'],
     }),
 
-    getItemsWithParty: builder.query<ItemWithParty[], { businessId: string; partyId: string; agreementId?: string }>({
+    getItemsWithParty: builder.query<
+      ItemWithParty[],
+      { businessId: string; partyId: string; agreementId?: string }
+    >({
       query: ({ businessId, partyId, agreementId }) => {
         const base = `/businesses/${businessId}/challans/items-with-party/${partyId}`;
         return agreementId ? `${base}?agreementId=${agreementId}` : base;
@@ -97,7 +124,11 @@ export const challanApi = baseApi.injectEndpoints({
 
     addChallanItem: builder.mutation<
       Challan,
-      { businessId: string; challanId: string; data: { itemId: string; itemName: string; quantity: number } }
+      {
+        businessId: string;
+        challanId: string;
+        data: { itemId: string; itemName: string; quantity: number };
+      }
     >({
       query: ({ businessId, challanId, data }) => ({
         url: `/businesses/${businessId}/challans/${challanId}/items`,
@@ -172,7 +203,10 @@ export const challanApi = baseApi.injectEndpoints({
       providesTags: ['Challan'],
     }),
 
-    extractChallanFromPhoto: builder.mutation<ExtractedChallanData, { businessId: string; photo: File }>({
+    extractChallanFromPhoto: builder.mutation<
+      ExtractedChallanData,
+      { businessId: string; photo: File }
+    >({
       query: ({ businessId, photo }) => {
         const formData = new FormData();
         formData.append('photo', photo);
@@ -189,7 +223,7 @@ export const challanApi = baseApi.injectEndpoints({
     getChallanPdf: builder.query<Blob, { businessId: string; challanId: string }>({
       query: ({ businessId, challanId }) => ({
         url: `/businesses/${businessId}/challans/${challanId}/pdf`,
-        responseHandler: (response) => response.blob(),
+        responseHandler: response => response.blob(),
       }),
     }),
   }),

@@ -22,11 +22,7 @@ const WebSocketContext = createContext<WebSocketContextValue>({
 export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const value = useWebSocket();
 
-  return (
-    <WebSocketContext.Provider value={value}>
-      {children}
-    </WebSocketContext.Provider>
-  );
+  return <WebSocketContext.Provider value={value}>{children}</WebSocketContext.Provider>;
 }
 
 /**

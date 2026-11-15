@@ -50,7 +50,7 @@ function humanizeField(field: string): string {
   return field
     .replace(/\./g, ' > ')
     .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, (s) => s.toUpperCase())
+    .replace(/^./, s => s.toUpperCase())
     .trim();
 }
 
@@ -124,16 +124,14 @@ export default function ChangeHistoryTable({ documentType, documentId }: ChangeH
           </tr>
         </thead>
         <tbody>
-          {data.data.map((entry) => (
+          {data.data.map(entry => (
             <tr key={entry._id}>
               <td className="text-nowrap" title={formatFullDate(entry.createdAt)}>
                 {timeAgo(entry.createdAt)}
               </td>
               <td className="text-nowrap">{entry.performedBy.name}</td>
               <td>
-                <span className={actionBadgeClass(entry.action)}>
-                  {entry.action}
-                </span>
+                <span className={actionBadgeClass(entry.action)}>{entry.action}</span>
               </td>
               <td>
                 {entry.action === 'created' && (
@@ -168,7 +166,7 @@ export default function ChangeHistoryTable({ documentType, documentId }: ChangeH
           <button
             className="btn btn-secondary"
             disabled={!pagination.hasPrev}
-            onClick={() => setPage((p) => p - 1)}
+            onClick={() => setPage(p => p - 1)}
           >
             Previous
           </button>
@@ -178,7 +176,7 @@ export default function ChangeHistoryTable({ documentType, documentId }: ChangeH
           <button
             className="btn btn-secondary"
             disabled={!pagination.hasNext}
-            onClick={() => setPage((p) => p + 1)}
+            onClick={() => setPage(p => p + 1)}
           >
             Next
           </button>

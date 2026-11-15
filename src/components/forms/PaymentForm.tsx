@@ -52,17 +52,15 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
   // Filter parties by payment type (client for receivable, supplier for payable)
   const filteredParties = useMemo(
     () =>
-      parties.filter((p) =>
-        paymentType === 'receivable'
-          ? p.roles.includes('client')
-          : p.roles.includes('supplier')
+      parties.filter(p =>
+        paymentType === 'receivable' ? p.roles.includes('client') : p.roles.includes('supplier')
       ),
     [parties, paymentType]
   );
 
   const partyAutocompleteItems: AutocompleteItem[] = useMemo(
     () =>
-      filteredParties.map((party) => ({
+      filteredParties.map(party => ({
         code: party.code || party.name.substring(0, 4).toUpperCase(),
         label: party.name,
         sublabel: party.contact?.person,
@@ -83,7 +81,7 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
   // Sync partySearchValue when selectedPartyId changes (e.g. from payment type switch)
   useEffect(() => {
     if (selectedPartyId) {
-      const party = filteredParties.find((p) => p._id === selectedPartyId);
+      const party = filteredParties.find(p => p._id === selectedPartyId);
       if (party) {
         setPartySearchValue(party.code || party.name.substring(0, 4).toUpperCase());
       }
@@ -105,7 +103,7 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
 
   // Filter bills by party (only unpaid/partial bills for receivables)
   const partyBills = bills.filter(
-    (b) =>
+    b =>
       b.partyId === selectedPartyId &&
       (b.status === 'sent' || b.status === 'partial' || b.status === 'overdue')
   );
@@ -129,92 +127,93 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
   return (
     <form onSubmit={onFormSubmit}>
       <div className="form-content">
-      <div className="form-columns">
-        <div>
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="type">Payment Type *</label>
-          <select id="type" {...register('type')} disabled={isLoading}>
-            <option value="receivable">Receivable (from client)</option>
-            <option value="payable">Payable (to supplier)</option>
-          </select>
-        </div>
+        <div className="form-columns">
+          <div>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="type">Payment Type *</label>
+                <select id="type" {...register('type')} disabled={isLoading}>
+                  <option value="receivable">Receivable (from client)</option>
+                  <option value="payable">Payable (to supplier)</option>
+                </select>
+              </div>
 
-        <div className="form-group">
-          <label htmlFor="date">Date *</label>
-          <input id="date" type="date" {...register('date')} disabled={isLoading} />
-          {errors.date && <span className="error-message">{errors.date.message}</span>}
-        </div>
-      </div>
+              <div className="form-group">
+                <label htmlFor="date">Date *</label>
+                <input id="date" type="date" {...register('date')} disabled={isLoading} />
+                {errors.date && <span className="error-message">{errors.date.message}</span>}
+              </div>
+            </div>
 
-      <div className="form-group">
-        <CodeAutocomplete
-          label="Party *"
-          placeholder="Type party code or name..."
-          value={partySearchValue}
-          onChange={setPartySearchValue}
-          items={partyAutocompleteItems}
-          onSelect={handlePartySelect}
-          disabled={isLoading}
-          error={errors.partyId?.message}
-          required
-        />
-        <input type="hidden" {...register('partyId')} />
-      </div>
+            <div className="form-group">
+              <CodeAutocomplete
+                label="Party *"
+                placeholder="Type party code or name..."
+                value={partySearchValue}
+                onChange={setPartySearchValue}
+                items={partyAutocompleteItems}
+                onSelect={handlePartySelect}
+                disabled={isLoading}
+                error={errors.partyId?.message}
+                required
+              />
+              <input type="hidden" {...register('partyId')} />
+            </div>
 
-      {paymentType === 'receivable' && selectedPartyId && (
-        <div className="form-group">
-          <label htmlFor="billId">Link to Bill (optional)</label>
-          <select id="billId" {...register('billId')} disabled={isLoading}>
-            <option value="">
-              {partyBills.length > 0 ? 'No bill linked' : 'No bills available'}
-            </option>
-            {partyBills.map((bill) => (
-              <option key={bill._id} value={bill._id}>
-                {bill.billNumber} - ₹{(bill.totalAmount - bill.amountPaid).toLocaleString()} due
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-        </div>
-        <div>
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="amount">Amount (₹) *</label>
-          <input
-            id="amount"
-            type="number"
-            step="0.01"
-            {...register('amount', { valueAsNumber: true })}
-            disabled={isLoading}
-          />
-          {errors.amount && <span className="error-message">{errors.amount.message}</span>}
-        </div>
+            {paymentType === 'receivable' && selectedPartyId && (
+              <div className="form-group">
+                <label htmlFor="billId">Link to Bill (optional)</label>
+                <select id="billId" {...register('billId')} disabled={isLoading}>
+                  <option value="">
+                    {partyBills.length > 0 ? 'No bill linked' : 'No bills available'}
+                  </option>
+                  {partyBills.map(bill => (
+                    <option key={bill._id} value={bill._id}>
+                      {bill.billNumber} - ₹{(bill.totalAmount - bill.amountPaid).toLocaleString()}{' '}
+                      due
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+          <div>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="amount">Amount (₹) *</label>
+                <input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  {...register('amount', { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+                {errors.amount && <span className="error-message">{errors.amount.message}</span>}
+              </div>
 
-        <div className="form-group">
-          <label htmlFor="method">Payment Method *</label>
-          <select id="method" {...register('method')} disabled={isLoading}>
-            <option value="cash">Cash</option>
-            <option value="bank_transfer">Bank Transfer</option>
-            <option value="upi">UPI</option>
-            <option value="cheque">Cheque</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-      </div>
+              <div className="form-group">
+                <label htmlFor="method">Payment Method *</label>
+                <select id="method" {...register('method')} disabled={isLoading}>
+                  <option value="cash">Cash</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="upi">UPI</option>
+                  <option value="cheque">Cheque</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
 
-      <div className="form-group">
-        <label htmlFor="reference">Reference / Transaction ID</label>
-        <input id="reference" {...register('reference')} disabled={isLoading} />
-      </div>
+            <div className="form-group">
+              <label htmlFor="reference">Reference / Transaction ID</label>
+              <input id="reference" {...register('reference')} disabled={isLoading} />
+            </div>
 
-      <div className="form-group">
-        <label htmlFor="notes">Notes</label>
-        <textarea id="notes" {...register('notes')} rows={2} disabled={isLoading} />
-      </div>
+            <div className="form-group">
+              <label htmlFor="notes">Notes</label>
+              <textarea id="notes" {...register('notes')} rows={2} disabled={isLoading} />
+            </div>
+          </div>
         </div>
-      </div>
       </div>
 
       <div className="form-actions">

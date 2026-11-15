@@ -93,7 +93,7 @@
   padding: 4px;
 }
 
-.itemsTable input[type="number"] {
+.itemsTable input[type='number'] {
   width: 100%;
   min-width: 50px;
   padding: 6px 8px;
@@ -104,7 +104,7 @@
   color: var(--text-primary);
 }
 
-.itemsTable input[type="number"]:focus {
+.itemsTable input[type='number']:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: none;
@@ -182,8 +182,8 @@
   padding: 4px;
 }
 
-.lossTable input[type="number"],
-.lossTable input[type="text"],
+.lossTable input[type='number'],
+.lossTable input[type='text'],
 .lossTable select {
   width: 100%;
   padding: 6px 8px;
@@ -219,7 +219,9 @@
   color: var(--text-muted);
   border-radius: 0;
   cursor: pointer;
-  transition: color var(--transition-fast), background var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
 }
 
 .deleteIconBtn:hover {

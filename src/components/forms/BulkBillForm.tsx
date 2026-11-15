@@ -62,13 +62,15 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
 
   const activeAgreements = useMemo(
     () => agreements.filter(a => a.status === 'active'),
-    [agreements],
+    [agreements]
   );
 
   // Auto-select tax mode based on business and selected agreements' site state codes
   useEffect(() => {
     if (!currentBusiness || selectedIds.size === 0) return;
-    const businessStateCode = currentBusiness.stateCode ?? (currentBusiness.gst?.length === 15 ? currentBusiness.gst.substring(0, 2) : undefined);
+    const businessStateCode =
+      currentBusiness.stateCode ??
+      (currentBusiness.gst?.length === 15 ? currentBusiness.gst.substring(0, 2) : undefined);
     const selectedAgreements = activeAgreements.filter(a => selectedIds.has(a.agreementId));
     const anyDifferentState = selectedAgreements.some(a => {
       const siteStateCode = a.siteStateCode ?? undefined;
@@ -96,11 +98,12 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
         a.agreementId.toLowerCase().includes(q) ||
         a.partyName.toLowerCase().includes(q) ||
         a.siteCode.toLowerCase().includes(q) ||
-        (a.siteAddress && a.siteAddress.toLowerCase().includes(q)),
+        (a.siteAddress && a.siteAddress.toLowerCase().includes(q))
     );
   }, [activeAgreements, search]);
 
-  const allFilteredSelected = filtered.length > 0 && filtered.every(a => selectedIds.has(a.agreementId));
+  const allFilteredSelected =
+    filtered.length > 0 && filtered.every(a => selectedIds.has(a.agreementId));
 
   const toggleAll = () => {
     setSelectedIds(prev => {
@@ -170,13 +173,27 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
             <div className="form-row">
               <div className="form-group">
                 <label htmlFor="bulkPeriodStart">Period Start *</label>
-                <input id="bulkPeriodStart" type="date" {...register('periodStart')} disabled={isLoading} />
-                {errors.periodStart && <span className="error-message">{errors.periodStart.message}</span>}
+                <input
+                  id="bulkPeriodStart"
+                  type="date"
+                  {...register('periodStart')}
+                  disabled={isLoading}
+                />
+                {errors.periodStart && (
+                  <span className="error-message">{errors.periodStart.message}</span>
+                )}
               </div>
               <div className="form-group">
                 <label htmlFor="bulkPeriodEnd">Period End *</label>
-                <input id="bulkPeriodEnd" type="date" {...register('periodEnd')} disabled={isLoading} />
-                {errors.periodEnd && <span className="error-message">{errors.periodEnd.message}</span>}
+                <input
+                  id="bulkPeriodEnd"
+                  type="date"
+                  {...register('periodEnd')}
+                  disabled={isLoading}
+                />
+                {errors.periodEnd && (
+                  <span className="error-message">{errors.periodEnd.message}</span>
+                )}
               </div>
             </div>
           </div>

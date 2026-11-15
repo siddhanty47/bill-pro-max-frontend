@@ -89,18 +89,18 @@ export function SharedPortalPage() {
   });
   const { data: challansResult } = useGetPortalChallansQuery(
     { token: token!, page: challanPage, pageSize: 20 },
-    { skip: !token || activeTab !== 'challans' },
+    { skip: !token || activeTab !== 'challans' }
   );
   const { data: runningItemsResult } = useGetPortalRunningItemsQuery(token!, {
     skip: !token || activeTab !== 'running-items',
   });
   const { data: billsResult } = useGetPortalBillsQuery(
     { token: token!, page: billPage, pageSize: 20 },
-    { skip: !token || activeTab !== 'bills' },
+    { skip: !token || activeTab !== 'bills' }
   );
   const { data: paymentsResult } = useGetPortalPaymentsQuery(
     { token: token!, page: paymentPage, pageSize: 20 },
-    { skip: !token || activeTab !== 'payments' },
+    { skip: !token || activeTab !== 'payments' }
   );
 
   const summary = summaryResult?.data;
@@ -114,16 +114,15 @@ export function SharedPortalPage() {
   }
 
   if (infoError || !info) {
-    const errData = infoError && 'data' in infoError
-      ? (infoError.data as { error?: { code?: string; message?: string } })
-      : null;
+    const errData =
+      infoError && 'data' in infoError
+        ? (infoError.data as { error?: { code?: string; message?: string } })
+        : null;
     const isExpired = errData?.error?.code === 'SHARE_LINK_EXPIRED';
     return (
       <div className={styles.portal}>
         <div className={`card ${styles.error}`}>
-          <h2 className={styles.errorTitle}>
-            {isExpired ? 'Link Expired' : 'Invalid Link'}
-          </h2>
+          <h2 className={styles.errorTitle}>{isExpired ? 'Link Expired' : 'Invalid Link'}</h2>
           <p className="text-empty">
             {isExpired
               ? 'This share link has expired. Please contact the business for a new link.'
@@ -140,9 +139,7 @@ export function SharedPortalPage() {
       key: 'type',
       header: 'Type',
       render: (item: Record<string, unknown>) => (
-        <span className={`status status-${item.type as string}`}>
-          {item.type as string}
-        </span>
+        <span className={`status status-${item.type as string}`}>{item.type as string}</span>
       ),
     },
     {
@@ -157,7 +154,7 @@ export function SharedPortalPage() {
         const items = item.items as { itemName: string; quantity: number }[];
         return (
           <span className={styles.itemList}>
-            {items.map((i) => `${i.itemName} x${i.quantity}`).join(', ')}
+            {items.map(i => `${i.itemName} x${i.quantity}`).join(', ')}
           </span>
         );
       },
@@ -205,9 +202,7 @@ export function SharedPortalPage() {
       key: 'status',
       header: 'Status',
       render: (item: Record<string, unknown>) => (
-        <span className={`status status-${item.status as string}`}>
-          {item.status as string}
-        </span>
+        <span className={`status status-${item.status as string}`}>{item.status as string}</span>
       ),
     },
     {
@@ -263,22 +258,18 @@ export function SharedPortalPage() {
       key: 'status',
       header: 'Status',
       render: (item: Record<string, unknown>) => (
-        <span className={`status status-${item.status as string}`}>
-          {item.status as string}
-        </span>
+        <span className={`status status-${item.status as string}`}>{item.status as string}</span>
       ),
     },
     {
       key: 'reference',
       header: 'Reference',
-      render: (item: Record<string, unknown>) =>
-        (item.reference as string) || '-',
+      render: (item: Record<string, unknown>) => (item.reference as string) || '-',
     },
     {
       key: 'notes',
       header: 'Notes',
-      render: (item: Record<string, unknown>) =>
-        (item.notes as string) || '-',
+      render: (item: Record<string, unknown>) => (item.notes as string) || '-',
     },
   ];
 
@@ -287,15 +278,11 @@ export function SharedPortalPage() {
       <header className={styles.header}>
         <p className={styles.businessName}>{info.businessName}</p>
         <h1 className={styles.partyName}>{info.partyName}</h1>
-        {info.siteCode && (
-          <p className={styles.scope}>
-            Site: {info.siteName || info.siteCode}
-          </p>
-        )}
+        {info.siteCode && <p className={styles.scope}>Site: {info.siteName || info.siteCode}</p>}
       </header>
 
       <nav className={styles.tabs}>
-        {TABS.map((tab) => (
+        {TABS.map(tab => (
           <button
             key={tab.id}
             className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`}
@@ -360,13 +347,21 @@ export function SharedPortalPage() {
           {challansResult?.pagination && challansResult.pagination.totalPages > 1 && (
             <div className={styles.pagination}>
               {challanPage > 1 && (
-                <button className="btn btn-sm btn-secondary" onClick={() => setChallanPage((p) => p - 1)}>
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => setChallanPage(p => p - 1)}
+                >
                   Prev
                 </button>
               )}
-              <span>Page {challanPage} of {challansResult.pagination.totalPages}</span>
+              <span>
+                Page {challanPage} of {challansResult.pagination.totalPages}
+              </span>
               {challansResult.pagination.hasNext && (
-                <button className="btn btn-sm btn-secondary" onClick={() => setChallanPage((p) => p + 1)}>
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => setChallanPage(p => p + 1)}
+                >
                   Next
                 </button>
               )}
@@ -395,13 +390,21 @@ export function SharedPortalPage() {
           {billsResult?.pagination && billsResult.pagination.totalPages > 1 && (
             <div className={styles.pagination}>
               {billPage > 1 && (
-                <button className="btn btn-sm btn-secondary" onClick={() => setBillPage((p) => p - 1)}>
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => setBillPage(p => p - 1)}
+                >
                   Prev
                 </button>
               )}
-              <span>Page {billPage} of {billsResult.pagination.totalPages}</span>
+              <span>
+                Page {billPage} of {billsResult.pagination.totalPages}
+              </span>
               {billsResult.pagination.hasNext && (
-                <button className="btn btn-sm btn-secondary" onClick={() => setBillPage((p) => p + 1)}>
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => setBillPage(p => p + 1)}
+                >
                   Next
                 </button>
               )}
@@ -421,13 +424,21 @@ export function SharedPortalPage() {
           {paymentsResult?.pagination && paymentsResult.pagination.totalPages > 1 && (
             <div className={styles.pagination}>
               {paymentPage > 1 && (
-                <button className="btn btn-sm btn-secondary" onClick={() => setPaymentPage((p) => p - 1)}>
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => setPaymentPage(p => p - 1)}
+                >
                   Prev
                 </button>
               )}
-              <span>Page {paymentPage} of {paymentsResult.pagination.totalPages}</span>
+              <span>
+                Page {paymentPage} of {paymentsResult.pagination.totalPages}
+              </span>
               {paymentsResult.pagination.hasNext && (
-                <button className="btn btn-sm btn-secondary" onClick={() => setPaymentPage((p) => p + 1)}>
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => setPaymentPage(p => p + 1)}
+                >
                   Next
                 </button>
               )}

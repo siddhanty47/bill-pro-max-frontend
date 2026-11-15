@@ -23,8 +23,10 @@ export function EmployeeForm({ businessId, employee, onClose }: EmployeeFormProp
   const [type] = useState<EmployeeType>(employee?.type ?? 'transporter');
   const [vehicleNumber, setVehicleNumber] = useState(employee?.details?.vehicleNumber ?? '');
 
-  const [createEmployee, { isLoading: isCreating, error: createError }] = useCreateEmployeeMutation();
-  const [updateEmployee, { isLoading: isUpdating, error: updateError }] = useUpdateEmployeeMutation();
+  const [createEmployee, { isLoading: isCreating, error: createError }] =
+    useCreateEmployeeMutation();
+  const [updateEmployee, { isLoading: isUpdating, error: updateError }] =
+    useUpdateEmployeeMutation();
 
   const isLoading = isCreating || isUpdating;
   const error = createError || updateError;
@@ -68,56 +70,66 @@ export function EmployeeForm({ businessId, employee, onClose }: EmployeeFormProp
   };
 
   return (
-    <Modal isOpen={true} title={isEditing ? 'Edit Transporter' : 'Add Transporter'} onClose={onClose} size="form">
+    <Modal
+      isOpen={true}
+      title={isEditing ? 'Edit Transporter' : 'Add Transporter'}
+      onClose={onClose}
+      size="form"
+    >
       {error && <div className="error-message">{getErrorMessage(error)}</div>}
 
       <form onSubmit={handleSubmit}>
         <div className="form-content">
-        <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="emp-name">Name</label>
-          <input
-            id="emp-name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Transporter name"
-            required
-            disabled={isLoading}
-          />
-        </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="emp-name">Name</label>
+              <input
+                id="emp-name"
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Transporter name"
+                required
+                disabled={isLoading}
+              />
+            </div>
 
-        <div className="form-group">
-          <label htmlFor="emp-phone">Phone</label>
-          <input
-            id="emp-phone"
-            type="text"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Phone number"
-            disabled={isLoading}
-          />
-        </div>
+            <div className="form-group">
+              <label htmlFor="emp-phone">Phone</label>
+              <input
+                id="emp-phone"
+                type="text"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                placeholder="Phone number"
+                disabled={isLoading}
+              />
+            </div>
 
-        {type === 'transporter' && (
-          <div className="form-group">
-            <label htmlFor="emp-vehicle">Vehicle Number</label>
-            <input
-              id="emp-vehicle"
-              type="text"
-              value={vehicleNumber}
-              onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
-              placeholder="e.g. MH12AB1234"
-              required
-              disabled={isLoading}
-            />
+            {type === 'transporter' && (
+              <div className="form-group">
+                <label htmlFor="emp-vehicle">Vehicle Number</label>
+                <input
+                  id="emp-vehicle"
+                  type="text"
+                  value={vehicleNumber}
+                  onChange={e => setVehicleNumber(e.target.value.toUpperCase())}
+                  placeholder="e.g. MH12AB1234"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            )}
           </div>
-        )}
-        </div>
         </div>
 
         <div className="form-actions">
-          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isLoading}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+            disabled={isLoading}
+          >
             Cancel
           </button>
           <button type="submit" className="btn btn-primary" disabled={isLoading}>

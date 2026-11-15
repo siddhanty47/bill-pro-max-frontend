@@ -8,7 +8,11 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useAuth } from '../hooks/useAuth';
-import { useVerifyInvitationQuery, useAcceptInvitationMutation, useDeclineInvitationMutation } from '../api/invitationApi';
+import {
+  useVerifyInvitationQuery,
+  useAcceptInvitationMutation,
+  useDeclineInvitationMutation,
+} from '../api/invitationApi';
 import { baseApi } from '../api/baseApi';
 import styles from './LoginPage.module.css';
 import invStyles from './InvitationAcceptPage.module.css';
@@ -20,10 +24,11 @@ export function InvitationAcceptPage() {
   const { isAuthenticated } = useAuth();
   const [actionDone, setActionDone] = useState(false);
 
-  const { data: verifyResponse, isLoading, error: verifyError } = useVerifyInvitationQuery(
-    token!,
-    { skip: !token }
-  );
+  const {
+    data: verifyResponse,
+    isLoading,
+    error: verifyError,
+  } = useVerifyInvitationQuery(token!, { skip: !token });
 
   const [acceptInvitation, { isLoading: accepting }] = useAcceptInvitationMutation();
   const [declineInvitation, { isLoading: declining }] = useDeclineInvitationMutation();
@@ -137,10 +142,7 @@ export function InvitationAcceptPage() {
           </>
         ) : (
           <>
-            <button
-              className="btn btn-primary"
-              onClick={handleSignIn}
-            >
+            <button className="btn btn-primary" onClick={handleSignIn}>
               Sign In to Accept
             </button>
             <button

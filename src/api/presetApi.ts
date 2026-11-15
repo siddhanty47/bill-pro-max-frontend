@@ -11,7 +11,7 @@ import type {
 } from '../types';
 
 export const presetApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     getPresets: builder.query<PresetSummary[], void>({
       query: () => '/presets',
       transformResponse: (response: ApiResponse<PresetSummary[]>) => response.data,
@@ -19,7 +19,7 @@ export const presetApi = baseApi.injectEndpoints({
     }),
 
     getPresetById: builder.query<InventoryPreset, string>({
-      query: (id) => `/presets/${id}`,
+      query: id => `/presets/${id}`,
       transformResponse: (response: ApiResponse<InventoryPreset>) => response.data,
       providesTags: (_result, _error, id) => [{ type: 'Preset', id }],
     }),
@@ -34,7 +34,10 @@ export const presetApi = baseApi.injectEndpoints({
       invalidatesTags: ['Inventory', 'SearchIndex'],
     }),
 
-    createPreset: builder.mutation<InventoryPreset, { businessId: string; data: CreatePresetInput }>({
+    createPreset: builder.mutation<
+      InventoryPreset,
+      { businessId: string; data: CreatePresetInput }
+    >({
       query: ({ businessId, data }) => ({
         url: `/businesses/${businessId}/presets`,
         method: 'POST',

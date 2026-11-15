@@ -10,7 +10,7 @@ import { baseApi } from './baseApi';
 import type { GstinDetails, ApiResponse } from '../types';
 
 export const gstinApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     /**
      * Lookup GSTIN details (business-scoped).
      * Used by PartyForm when a businessId is available.
@@ -27,7 +27,7 @@ export const gstinApi = baseApi.injectEndpoints({
      * and no businessId is available yet.
      */
     lookupGstinStandalone: builder.query<GstinDetails, string>({
-      query: (gstin) => `/gstin/${encodeURIComponent(gstin)}`,
+      query: gstin => `/gstin/${encodeURIComponent(gstin)}`,
       transformResponse: (response: ApiResponse<GstinDetails>) => response.data,
     }),
   }),
