@@ -1,0 +1,32 @@
+# PR checks — same gates as the raise-pr skill (see TESTING.md).
+name: CI
+
+on:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # coverage:changed needs the merge-base with the PR base
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run test:coverage
+      - name: Changed-files coverage (>= 80% lines)
+        run: npm run coverage:changed -- --base origin/${{ github.base_ref }}
+      - run: npm run build
