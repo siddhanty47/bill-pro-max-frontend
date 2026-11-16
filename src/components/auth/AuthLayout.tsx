@@ -14,7 +14,7 @@ export function AuthLayout({ title, children, footer }: AuthLayoutProps) {
     <div className={styles.auth}>
       <div className={styles.formSide}>
         <div className={styles.brand}>
-          <Icon name="brand" size={20} />
+          <Icon name="brand" size={20} className={styles.brandMark} />
           Bill Pro Max
         </div>
         <div className={styles.formWrap}>

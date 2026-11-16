@@ -18,8 +18,9 @@
   backdrop-filter: saturate(160%) blur(14px);
   -webkit-backdrop-filter: saturate(160%) blur(14px);
   color: var(--text-primary);
-  padding: 0 var(--space-5);
-  height: var(--header-height);
+  /* viewport-fit=cover: grow by the top inset so the bar clears the notch. */
+  padding: env(safe-area-inset-top, 0px) var(--space-5) 0;
+  height: calc(var(--header-height) + env(safe-area-inset-top, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -72,29 +73,15 @@
   min-width: 0;
 }
 
-/* --- Business menu trigger: letter badge + name + chevron --- */
+/* --- Business menu trigger: letter badge + name + chevron (kit ghost Button) --- */
 
 .businessControl {
   min-width: 0;
 }
 
+/* Width cap only; the kit Button ellipsizes its content. */
 .businessTrigger {
   max-width: 240px;
-  padding: 0 10px 0 6px;
-}
-
-.businessMark {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  border-radius: var(--radius-md);
-  background: var(--accent-muted);
-  color: var(--accent);
-  font-family: var(--font-display);
-  font-size: var(--text-xs);
-  font-weight: 700;
 }
 
 .businessName {
@@ -104,46 +91,21 @@
   min-width: 0;
 }
 
-.businessChevron {
+.businessChevron,
+.businessChevronOpen {
   flex-shrink: 0;
   color: var(--text-secondary);
   transition: transform var(--transition-default);
 }
 
-.businessTrigger[aria-expanded='true'] .businessChevron {
+.businessChevronOpen {
   transform: rotate(180deg);
 }
 
-/* --- Avatar (account menu trigger) --- */
+/* --- Account menu (kit IconButton + Avatar) --- */
 
 .profileControl {
   margin-left: var(--space-1);
-}
-
-.avatar {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-full);
-  background: var(--bg-hover);
-  color: var(--text-heading);
-  font: 600 var(--text-xs) var(--font-sans);
-  line-height: 1;
-  cursor: pointer;
-  transition: border-color var(--transition-fast);
-}
-
-.avatar:hover,
-.avatar[aria-expanded='true'] {
-  border-color: var(--border-medium);
-}
-
-.avatar:focus-visible {
-  outline: none;
-  box-shadow: var(--ring-focus);
 }
 
 /* --- Main container / sidebar / content --- */
@@ -216,7 +178,7 @@
   background: var(--accent);
 }
 
-.navLinkActive svg {
+.navIconActive {
   color: var(--accent);
 }
 
@@ -254,7 +216,7 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     background: var(--bg-deepest);
-    padding: 0 var(--space-3);
+    padding: env(safe-area-inset-top, 0px) var(--space-3) 0;
     gap: var(--space-2);
   }
 
@@ -268,34 +230,18 @@
     justify-content: flex-end;
   }
 
-  /* Icons only: the badge stands in for the business name, the icon for "Ask". */
-  .businessName,
-  .askLabel {
+  /* Icons only: the badge stands in for the business name ("Ask" collapses via the kit). */
+  .businessName {
     display: none;
-  }
-
-  .businessTrigger {
-    padding: 0 var(--space-2) 0 var(--space-1);
-    gap: var(--space-1);
-  }
-
-  .askButton {
-    width: 44px;
-    padding: 0;
-  }
-
-  .avatar {
-    width: 36px;
-    height: 36px;
   }
 
   .sidebar {
     position: fixed;
-    top: var(--header-height);
+    top: calc(var(--header-height) + env(safe-area-inset-top, 0px));
     left: calc(-1 * var(--sidebar-width));
     width: var(--sidebar-width);
-    height: calc(100vh - var(--header-height));
-    height: calc(100dvh - var(--header-height));
+    height: calc(100vh - var(--header-height) - env(safe-area-inset-top, 0px));
+    height: calc(100dvh - var(--header-height) - env(safe-area-inset-top, 0px));
     z-index: var(--z-sidebar);
     transition: left 0.25s var(--ease-out);
   }
@@ -311,7 +257,7 @@
   .sidebarOverlay {
     display: block;
     position: fixed;
-    top: var(--header-height);
+    top: calc(var(--header-height) + env(safe-area-inset-top, 0px));
     left: 0;
     right: 0;
     bottom: 0;

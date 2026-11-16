@@ -62,6 +62,7 @@ function setup({
       <Route element={<Layout />}>
         <Route index element={<p>home</p>} />
         <Route path="bills" element={<p>bills</p>} />
+        <Route path="business" element={<p>business settings</p>} />
       </Route>
     </Routes>,
     { preloadedState, route }
@@ -130,12 +131,36 @@ describe('Layout', () => {
     expect(within(menu).queryByText('Switch business')).not.toBeInTheDocument();
   });
 
-  it('toggles the assistant from the Ask button', async () => {
+  it('navigates to business settings from the business menu', async () => {
+    const { user } = setup();
+    await user.click(await screen.findByRole('button', { name: 'Sharma Scaffolding' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Settings' }));
+    expect(await screen.findByText('business settings')).toBeInTheDocument();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('opens and closes the assistant from the Ask button', async () => {
     const { user } = setup();
     const ask = screen.getByRole('button', { name: 'Ask' });
     expect(ask).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('complementary', { name: 'AI assistant' })).not.toBeInTheDocument();
+
     await user.click(ask);
     expect(ask).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('complementary', { name: 'AI assistant' })).toBeInTheDocument();
+
+    await user.click(ask);
+    expect(ask).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('complementary', { name: 'AI assistant' })).not.toBeInTheDocument();
+  });
+
+  it('closes the assistant from its own close button', async () => {
+    const { user } = setup();
+    const ask = screen.getByRole('button', { name: 'Ask' });
+    await user.click(ask);
+    await user.click(screen.getByRole('button', { name: 'Close assistant' }));
+    expect(ask).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('complementary', { name: 'AI assistant' })).not.toBeInTheDocument();
   });
 
   it('opens the profile menu and logs out', async () => {
@@ -161,5 +186,29 @@ describe('Layout', () => {
     await user.click(within(nav).getByRole('link', { name: 'Bills' }));
     expect(await screen.findByText('bills')).toBeInTheDocument();
     expect(nav.className).not.toMatch(/sidebarOpen/);
+  });
+
+  it('closes the mobile drawer when the overlay is clicked', async () => {
+    const { user, container } = setup();
+    const nav = screen.getByRole('navigation', { name: 'Main' });
+    expect(container.querySelector('.sidebarOverlay')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Toggle navigation' }));
+    const overlay = container.querySelector('.sidebarOverlay');
+    expect(overlay).not.toBeNull();
+
+    await user.click(overlay!);
+    expect(nav.className).not.toMatch(/sidebarOpen/);
+    expect(container.querySelector('.sidebarOverlay')).toBeNull();
+  });
+
+  it('marks the active nav icon with the accent class', () => {
+    setup();
+    const nav = screen.getByRole('navigation', { name: 'Main' });
+    const active = within(nav).getByRole('link', { name: 'Dashboard' });
+    expect(active.querySelector('svg')).toHaveClass('navIconActive');
+    expect(within(nav).getByRole('link', { name: 'Bills' }).querySelector('svg')).not.toHaveClass(
+      'navIconActive'
+    );
   });
 });

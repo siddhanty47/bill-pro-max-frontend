@@ -12,6 +12,7 @@ import { useSearchIndexSync } from '../hooks/useSearchIndexSync';
 import AssistantPanel from './assistant/AssistantPanel';
 import { GlobalSearch } from './GlobalSearch/GlobalSearch';
 import {
+  Avatar,
   Button,
   Icon,
   IconButton,
@@ -118,11 +119,19 @@ export function Layout() {
                     aria-label={currentBusiness.name}
                     {...props}
                   >
-                    <span className={styles.businessMark} aria-hidden="true">
-                      {currentBusiness.name.trim().charAt(0).toUpperCase()}
-                    </span>
+                    <Avatar
+                      initials={currentBusiness.name.trim().charAt(0).toUpperCase()}
+                      size="sm"
+                      variant="business"
+                    />
                     <span className={styles.businessName}>{currentBusiness.name}</span>
-                    <Icon name="chevron-down" size={12} className={styles.businessChevron} />
+                    <Icon
+                      name="chevron-down"
+                      size={12}
+                      className={
+                        props['aria-expanded'] ? styles.businessChevronOpen : styles.businessChevron
+                      }
+                    />
                   </Button>
                 )}
               >
@@ -144,12 +153,11 @@ export function Layout() {
 
             <Button
               icon="chat"
-              className={styles.askButton}
-              aria-label="Ask"
+              collapseLabel
               aria-pressed={isAssistantOpen}
               onClick={() => setIsAssistantOpen(v => !v)}
             >
-              <span className={styles.askLabel}>Ask</span>
+              Ask
             </Button>
 
             <NotificationBell />
@@ -158,9 +166,9 @@ export function Layout() {
               className={styles.profileControl}
               aria-label="Account"
               trigger={props => (
-                <button type="button" className={styles.avatar} aria-label="Account" {...props}>
-                  <span aria-hidden="true">{userInitials}</span>
-                </button>
+                <IconButton label="Account" {...props}>
+                  <Avatar initials={userInitials} />
+                </IconButton>
               )}
             >
               {user?.email && <MenuLabel>{user.email}</MenuLabel>}
@@ -191,8 +199,16 @@ export function Layout() {
                           isActive ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink
                         }
                       >
-                        <Icon name={item.icon} size={17} />
-                        {item.label}
+                        {({ isActive }) => (
+                          <>
+                            <Icon
+                              name={item.icon}
+                              size={17}
+                              className={isActive ? styles.navIconActive : undefined}
+                            />
+                            {item.label}
+                          </>
+                        )}
                       </NavLink>
                     </li>
                   ))}

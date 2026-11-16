@@ -57,9 +57,12 @@ describe('SearchResultRow', () => {
     expect(screen.getByText(label)).toBeInTheDocument();
   });
 
-  it('shows the delivery or return badge next to the number', () => {
-    renderRow(makeResult({ tag: 'CHALLAN', title: 'CH-0042', badge: 'return' }));
-    expect(screen.getByText('return')).toBeInTheDocument();
+  it.each([
+    ['delivery', 'Delivery'],
+    ['return', 'Return'],
+  ] as const)('shows the %s badge in sentence case next to the number', (badge, label) => {
+    renderRow(makeResult({ tag: 'CHALLAN', title: 'CH-0042', badge }));
+    expect(screen.getByText(label)).toHaveClass('badge');
   });
 
   it('shows the matched site for a party found by site', () => {

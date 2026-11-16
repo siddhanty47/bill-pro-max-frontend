@@ -124,9 +124,11 @@
 }
 
 @media (max-width: 768px) {
+  /* Fixed under the header; above AssistantPanel's full-screen mobile panel (see Layout.module.css). */
   .panel {
     position: fixed;
-    top: var(--header-height);
+    z-index: calc(var(--z-panel) + 1);
+    top: calc(var(--header-height) + env(safe-area-inset-top, 0px));
     left: var(--space-3);
     right: var(--space-3);
     width: auto;

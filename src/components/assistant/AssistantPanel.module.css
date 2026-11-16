@@ -30,7 +30,7 @@
 }
 .title {
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-heading);
 }
@@ -99,18 +99,29 @@
 }
 
 /* Blinking cursor while streaming */
+/* Streaming indicator: thin caret with a soft pulse (static under reduced motion). */
 .caret {
   display: inline-block;
-  width: 7px;
-  height: 14px;
+  width: 2px;
+  height: 1em;
   margin-left: 2px;
   vertical-align: text-bottom;
+  border-radius: 1px;
   background: var(--accent);
-  animation: blink 1s steps(2, start) infinite;
+  animation: caretPulse 1.2s ease-in-out infinite;
 }
-@keyframes blink {
-  to {
-    visibility: hidden;
+@keyframes caretPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .caret {
+    animation: none;
   }
 }
 
@@ -412,7 +423,7 @@
   .panel {
     position: fixed;
     inset: 0;
-    z-index: 200; /* above app header, sidebar (100) and its overlay (99) */
+    z-index: var(--z-panel); /* above app header, sidebar and its overlay */
     width: 100%;
     height: 100vh;
     height: 100dvh;
@@ -428,9 +439,6 @@
   .header {
     height: calc(52px + env(safe-area-inset-top, 0px));
     padding: env(safe-area-inset-top, 0px) 12px 0;
-  }
-  .title {
-    font-size: 13px;
   }
   .headerActions {
     gap: 8px;

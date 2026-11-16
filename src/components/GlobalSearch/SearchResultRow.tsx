@@ -68,7 +68,7 @@ export function SearchResultRow({ id, result, query, selected, onHover, onPick }
             <span
               className={`${styles.badge} ${result.badge === 'delivery' ? styles.badgeDelivery : styles.badgeReturn}`}
             >
-              {result.badge}
+              {result.badge === 'delivery' ? 'Delivery' : 'Return'}
             </span>
           )}
         </span>
