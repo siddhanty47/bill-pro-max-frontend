@@ -12,7 +12,7 @@
 }
 
 .previewTitle {
-  composes: font-display from global;
+  font-family: var(--font-display);
   font-size: var(--text-md);
   font-weight: 700;
   color: var(--text-heading);
@@ -70,7 +70,7 @@
 }
 
 .sectionHeader {
-  composes: font-display from global;
+  font-family: var(--font-display);
   font-size: var(--text-base);
   font-weight: 700;
   color: var(--text-heading);
@@ -106,7 +106,8 @@
 }
 
 .summaryValue {
-  composes: mono from global;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-md);
   font-weight: 500;
   color: var(--text-heading);

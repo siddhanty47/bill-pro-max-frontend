@@ -25,7 +25,8 @@
 }
 
 .badge {
-  composes: mono from global;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   position: absolute;
   top: 3px;
   right: 2px;
@@ -59,7 +60,7 @@
 }
 
 .panelHeader {
-  composes: font-display from global;
+  font-family: var(--font-display);
   display: flex;
   justify-content: space-between;
   align-items: center;

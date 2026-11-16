@@ -59,7 +59,8 @@
 }
 
 .itemCode {
-  composes: mono from global;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-xs);
   color: var(--text-secondary);
   min-width: 80px;

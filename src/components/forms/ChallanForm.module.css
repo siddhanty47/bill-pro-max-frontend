@@ -98,6 +98,7 @@
   padding: 0 8px;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: var(--text-sm);
   background: var(--bg-input);

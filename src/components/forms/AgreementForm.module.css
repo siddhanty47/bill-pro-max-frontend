@@ -68,7 +68,8 @@
 }
 
 .codeCell {
-  composes: mono from global;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   padding: 6px 12px;
   color: var(--text-heading);
 }

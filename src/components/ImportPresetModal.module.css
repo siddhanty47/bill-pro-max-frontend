@@ -176,7 +176,8 @@
 }
 
 .resultImported {
-  composes: mono from global;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-xl);
   font-weight: 500;
   color: var(--accent);

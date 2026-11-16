@@ -33,7 +33,15 @@ const walk = dir =>
 const cssRules = [
   { rule: 'hex colour', test: line => /#[0-9a-fA-F]{3,8}\b/.test(line) },
   { rule: 'rgb/hsl colour', test: line => /\b(?:rgba?|hsla?)\(/.test(line) },
-  { rule: 'font-family', test: line => /font-family\s*:/.test(line) },
+  {
+    rule: 'font-family',
+    // A font token on its own is fine; raw font names are not.
+    test: line => {
+      const m = line.match(/font-family\s*:\s*([^;]*)/);
+      if (!m) return false;
+      return !/^var\(--font-(?:sans|display|mono|body|heading)\)$/.test(m[1].trim());
+    },
+  },
   {
     rule: 'box-shadow without token',
     test: line => {

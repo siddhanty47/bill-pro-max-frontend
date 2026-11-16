@@ -52,7 +52,7 @@
 }
 
 .title {
-  composes: font-display from global;
+  font-family: var(--font-display);
   font-size: var(--text-xl);
   font-weight: 800;
   font-stretch: 112%;
@@ -114,7 +114,7 @@
 }
 
 .sectionHeader {
-  composes: font-display from global;
+  font-family: var(--font-display);
   display: flex;
   align-items: center;
   justify-content: space-between;

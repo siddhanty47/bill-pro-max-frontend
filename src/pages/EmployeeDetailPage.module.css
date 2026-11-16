@@ -26,7 +26,7 @@
 }
 
 .monthNavLabel {
-  composes: font-display from global;
+  font-family: var(--font-display);
   font-size: var(--text-md);
   font-weight: 700;
   font-stretch: 108%;
@@ -114,7 +114,8 @@
 }
 
 .salaryGridValue {
-  composes: mono from global;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-md);
   font-weight: 500;
   color: var(--text-heading);
@@ -138,14 +139,16 @@
 }
 
 .salaryValue {
-  composes: mono from global;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-sm);
   font-weight: 500;
   color: var(--text-heading);
 }
 
 .salaryTotal {
-  composes: mono from global;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-md);
   font-weight: 500;
   color: var(--accent);

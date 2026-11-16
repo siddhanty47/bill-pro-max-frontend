@@ -179,15 +179,9 @@ body {
   color: var(--text-on-accent);
 }
 
-/* Headings and titles use the display face; size/weight set per component.
-   CSS modules reuse these via `composes: mono from global` /
-   `composes: font-display from global` so font-family lives only here. */
+/* Headings and titles use the display face; size/weight set per component. */
 h1,
 h2 {
-  font-family: var(--font-display);
-}
-
-.font-display {
   font-family: var(--font-display);
 }
 

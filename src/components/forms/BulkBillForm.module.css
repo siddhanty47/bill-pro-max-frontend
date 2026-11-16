@@ -18,6 +18,7 @@
 }
 
 .agreementHeader h3 {
+  font-family: var(--font-display);
   margin: 0;
   font-size: var(--text-md);
   font-weight: 700;
@@ -96,7 +97,8 @@
 }
 
 .agreementId {
-  composes: mono from global;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-weight: 500;
   font-size: var(--text-sm);
   color: var(--text-heading);

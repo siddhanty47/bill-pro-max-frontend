@@ -18,7 +18,8 @@
 }
 
 .value {
-  composes: mono from global;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-md);
   font-weight: 500;
   padding: 2px 10px;
@@ -43,7 +44,8 @@
 /* ---- Sequence input ---- */
 
 .sequenceInput {
-  composes: mono from global;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   width: 80px;
   height: 32px;
   padding: 0 8px;
