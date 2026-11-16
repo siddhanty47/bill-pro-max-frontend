@@ -17,15 +17,18 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `EmptyState` | "Nothing here" states: one short title and at most one action |
 | `StatusChip` | Every status badge; tone comes from `status.ts` |
 | `DocNumber` | Bill, challan and other document numbers, optionally linked |
-| `DataTable` | Read-only list data from an array of rows |
-| `Table`, `THead`, `TBody`, `Tr`, `Th`, `Td` | Hand-built tables and editable grids (challan/bill item rows) |
+| `DataTable` | Read-only list data from an array of rows; `mobile` spec turns it into a two-line list on phones |
+| `Table`, `THead`, `TBody`, `Tr`, `Th`, `Td` | Hand-built tables and editable grids (challan/bill item rows); `aria-label`/`caption` name the table |
 | `Field` | Label + control + hint + error wrapper for one form control; `labelAction` for a link on the label row |
-| `Input`, `Select`, `Textarea` | Form controls (forwardRef, work with `register()`); `size="lg"` on Input/Select for auth forms |
+| `Input`, `Select`, `Textarea` | Form controls (forwardRef, work with `register()`); `size="lg"` on Input/Select for auth forms; Select draws the kit chevron |
 | `Checkbox` | A checkbox with its own label |
 | `Fieldset` | A titled group of related fields or checkboxes |
 | `FilterBar` | The wrapping row of search and filter controls above a list |
+| `SegmentedControl` | A 2–4 option single-choice filter shown inline (All / Delivery / Return); radio group |
 | `Menu`, `MenuItem`, `MenuLabel`, `MenuDivider` | Dropdown menus (business switcher, profile, row actions) |
 | `Modal` | Dialogs; full-screen on phones |
-| `Tabs` | Tab navigation within a page |
+| `Tabs`, `TabPanel` | Tab navigation within a page; `idPrefix` + `TabPanel` wire tab ↔ panel |
 | `Spinner` (`LoadingSpinner`) | Loading state for a page or panel |
 | `ErrorMessage` | API/load errors with optional retry |
+
+Formatters for amounts and dates live in `src/utils/format.ts` (`formatMoney`, `formatDate`), not in the kit.

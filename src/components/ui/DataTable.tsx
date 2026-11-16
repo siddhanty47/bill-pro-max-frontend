@@ -1,6 +1,8 @@
-import type { ReactNode } from 'react';
+import { Fragment, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { EmptyState } from './EmptyState';
+import { fromInnerControl } from './innerControl';
 import { Table, THead, TBody, Tr, Th, Td } from './Table';
+import styles from './DataTable.module.css';
 
 export type Column<T> = {
   key: string;
@@ -11,18 +13,111 @@ export type Column<T> = {
   hideOnMobile?: boolean;
 };
 
+/**
+ * Phone (≤768) list row. Line 1: leading + title, badge pushed right.
+ * Line 2: subtitle, then meta parts joined with " · " (empty parts skipped).
+ * Actions sit below and never trigger the row click.
+ */
+export type DataTableMobile<T> = {
+  title: (row: T) => ReactNode;
+  leading?: (row: T) => ReactNode;
+  badge?: (row: T) => ReactNode;
+  subtitle?: (row: T) => ReactNode;
+  meta?: (row: T) => ReactNode[];
+  actions?: (row: T) => ReactNode;
+};
+
 export type DataTableProps<T> = {
   columns: Column<T>[];
   rows: T[];
   rowKey: (row: T) => string;
   onRowClick?: (row: T) => void;
   empty?: ReactNode;
+  /** Names the table (and the phone list). */
+  'aria-label'?: string;
+  /** When set, phones get a two-line list instead of the scrolling table. */
+  mobile?: DataTableMobile<T>;
 };
 
-export function DataTable<T>({ columns, rows, rowKey, onRowClick, empty }: DataTableProps<T>) {
-  if (rows.length === 0) return <>{empty ?? <EmptyState title="Nothing here yet" />}</>;
+const isEmpty = (n: ReactNode) => n === null || n === undefined || n === false || n === '';
+
+function MobileList<T>({
+  spec,
+  rows,
+  rowKey,
+  onRowClick,
+  ariaLabel,
+}: {
+  spec: DataTableMobile<T>;
+  rows: T[];
+  rowKey: (row: T) => string;
+  onRowClick?: (row: T) => void;
+  ariaLabel?: string;
+}) {
   return (
-    <Table>
+    <ul className={styles.list} aria-label={ariaLabel}>
+      {rows.map(row => {
+        const badge = spec.badge?.(row);
+        const subtitle = spec.subtitle?.(row);
+        const meta = (spec.meta?.(row) ?? []).filter(m => !isEmpty(m));
+        const actions = spec.actions?.(row);
+        const interactive = onRowClick
+          ? {
+              tabIndex: 0,
+              onClick: (e: MouseEvent<HTMLLIElement>) => {
+                if (!fromInnerControl(e)) onRowClick(row);
+              },
+              onKeyDown: (e: KeyboardEvent<HTMLLIElement>) => {
+                if (e.key === 'Enter' && e.target === e.currentTarget) onRowClick(row);
+              },
+            }
+          : {};
+        return (
+          <li
+            key={rowKey(row)}
+            className={[styles.item, onRowClick ? styles.clickable : ''].filter(Boolean).join(' ')}
+            {...interactive}
+          >
+            <div className={styles.line1}>
+              {spec.leading?.(row)}
+              <span className={styles.title}>{spec.title(row)}</span>
+              {!isEmpty(badge) && <span className={styles.badge}>{badge}</span>}
+            </div>
+            {(!isEmpty(subtitle) || meta.length > 0) && (
+              <div className={styles.line2}>
+                {!isEmpty(subtitle) && <span className={styles.subtitle}>{subtitle}</span>}
+                {meta.length > 0 && (
+                  <span className={styles.meta}>
+                    {meta.map((m, i) => (
+                      <Fragment key={i}>
+                        {i > 0 && ' · '}
+                        {m}
+                      </Fragment>
+                    ))}
+                  </span>
+                )}
+              </div>
+            )}
+            {!isEmpty(actions) && <div className={styles.actions}>{actions}</div>}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+export function DataTable<T>({
+  columns,
+  rows,
+  rowKey,
+  onRowClick,
+  empty,
+  'aria-label': ariaLabel,
+  mobile,
+}: DataTableProps<T>) {
+  if (rows.length === 0) return <>{empty ?? <EmptyState title="Nothing here yet" />}</>;
+  const table = (
+    <Table aria-label={ariaLabel} className={mobile ? styles.tableView : undefined}>
       <THead>
         <Tr>
           {columns.map(c => (
@@ -44,5 +139,19 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, empty }: DataT
         ))}
       </TBody>
     </Table>
+  );
+  if (!mobile) return table;
+  // Both render; CSS shows the table above 768px and the list at or below it.
+  return (
+    <>
+      {table}
+      <MobileList
+        spec={mobile}
+        rows={rows}
+        rowKey={rowKey}
+        onRowClick={onRowClick}
+        ariaLabel={ariaLabel}
+      />
+    </>
   );
 }

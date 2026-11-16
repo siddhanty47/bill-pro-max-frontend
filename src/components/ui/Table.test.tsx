@@ -117,4 +117,28 @@ describe('Table primitives', () => {
     expect(screen.getAllByRole('row')[1]).toHaveClass('clickable', 'r2');
     expect(screen.getAllByRole('row')[1]).toHaveAttribute('id', 'row');
   });
+
+  it('accepts an aria-label and a visually hidden caption', () => {
+    const { rerender } = render(
+      <Table aria-label="Bills">
+        <TBody>
+          <Tr>
+            <Td>x</Td>
+          </Tr>
+        </TBody>
+      </Table>
+    );
+    expect(screen.getByRole('table', { name: 'Bills' })).toBeInTheDocument();
+    rerender(
+      <Table caption="Recent bills">
+        <TBody>
+          <Tr>
+            <Td>x</Td>
+          </Tr>
+        </TBody>
+      </Table>
+    );
+    expect(screen.getByRole('table', { name: 'Recent bills' })).toBeInTheDocument();
+    expect(screen.getByText('Recent bills')).toHaveClass('caption');
+  });
 });

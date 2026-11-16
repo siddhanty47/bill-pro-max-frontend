@@ -77,9 +77,13 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
 - **`PageHeader`** — top of every page. `title` · `eyebrow?` (small mono accent line above the title: real context only, e.g. today's date on the dashboard or the entity type on a detail page, never a slogan) · `actions?: ReactNode`. No subtitle prop, by design.
 - **`Card`** — any panel or section. `title?` · `count?: number` (pill after the title) · `countTone?: 'neutral' | 'danger'` · `actions?: ReactNode` (right of the title, e.g. an "All bills" link) · `padded?` (default `true`; pass `padded={false}` when the body is a table) · `to?` (whole card becomes a link with hover lift; then don't put links or buttons inside it) · `className?`.
 - **`StatCard`** — one headline number. `label` · `value: ReactNode` (rendered mono) · `icon?` · `tone?: 'default' | 'highlight'` (accent tint; at most one per screen) · `to?` · `children?` (e.g. a `Meter`).
-- **`Meter`** — segmented bar + legend. `segments: { value: number; tone: 'accent' | 'info' | 'warning' | 'danger'; label: string }[]`. Values formatted `en-IN`; bar has an `aria-label` summary.
+- **`Meter`** — segmented bar + legend. `segments: { value: number; tone: 'accent' | 'info' | 'warning' | 'danger'; label: string }[]`. Values formatted `en-IN`; bar has an `aria-label` summary. Widths are rounded once and laid end to end (the last takes the remainder), so there are no hairline gaps.
 - **`EmptyState`** — `title` (one short line saying what's missing) · `action?: ReactNode` (at most one, usually a `Button`). No prose paragraph.
-- **`Tabs`** — `tabs: { id; label }[]` · `activeTab` · `onChange(id)`. Underline-accent style.
+- **`Tabs`** — `tabs: { id; label }[]` · `activeTab` · `onChange(id)` · `idPrefix?: string` (unique per page; tabs get `id="{prefix}-tab-{id}"` + `aria-controls="{prefix}-panel-{id}"`). Underline-accent style. With `idPrefix`, wrap the active tab's content in **`TabPanel`** — `idPrefix` · `tabId` · `className?` (placement) · `children`; renders `role="tabpanel"`, labelled by its tab, focusable.
+  ```tsx
+  <Tabs idPrefix="party" tabs={TABS} activeTab={tab} onChange={setTab} />
+  <TabPanel idPrefix="party" tabId={tab}>{tab === 'bills' ? <BillsTab /> : <ChallansTab />}</TabPanel>
+  ```
 - **`Modal`** — `isOpen` · `onClose` · `title` · `children` · `size?: 'default' | 'form'` (wider, for forms) · `variant?: 'delivery' | 'return'` (challan flows only; coloured top edge). Autofocuses the first field; Escape and overlay click close (an Escape a nested widget already handled with `preventDefault`, e.g. an open `Menu`, is ignored); full-screen with safe-area padding at ≤768. Never build an ad-hoc overlay.
 - **`Spinner`** (alias `LoadingSpinner`) — `message?` (default "Loading…"; `""` hides the line when an adjacent title already says what is loading). Accent ring + message in a `role="status"` region; static under reduced motion. Page/panel loading.
 - **`ErrorMessage`** — `error: unknown` (run through `getErrorMessage`) · `onRetry?`. Load/API errors.
@@ -87,8 +91,10 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
 
 ### Data
 
-- **`DataTable<T>`** — list data from an array. `columns: Column<T>[]` where `Column = { key; header; render?(row); align?: 'left' | 'right'; mono?; hideOnMobile? }` · `rows: T[]` · `rowKey(row): string` · `onRowClick?(row)` (rows become focusable, Enter activates) · `empty?: ReactNode` (defaults to `EmptyState title="Nothing here yet"`; pass a specific one). Without `render`, the cell shows `row[key]`. Owns the horizontal-scroll wrapper.
-- **`Table`, `THead`, `TBody`, `Tr`, `Th`, `Td`** — hand-built tables and editable grids (challan/bill item rows). `Th`/`Td`: `align?: 'left' | 'right' | 'center'` · `mono?` · `hideOnMobile?` · native cell props. `Tr`: `onClick?: (e: MouseEvent | KeyboardEvent) => void` makes the row clickable (focusable; fires on click and on Enter). `Table`: `className?`.
+- **`DataTable<T>`** — list data from an array. `columns: Column<T>[]` where `Column = { key; header; render?(row); align?: 'left' | 'right'; mono?; hideOnMobile? }` · `rows: T[]` · `rowKey(row): string` · `onRowClick?(row)` (rows become focusable, Enter activates) · `empty?: ReactNode` (defaults to `EmptyState title="Nothing here yet"`; pass a specific one) · `aria-label?` (names the table and the phone list) · `mobile?: DataTableMobile<T>`. Without `render`, the cell shows `row[key]`. Owns the horizontal-scroll wrapper.
+  - **`mobile`** (phone list mode) — `{ title(row); leading?(row); badge?(row); subtitle?(row); meta?(row): ReactNode[]; actions?(row) }`, each returning a `ReactNode`. At ≤768 the table is hidden and a `<ul>` renders instead, one item per row: **line 1** = `leading` + `title`, `badge` pushed right; **line 2** = `subtitle` (heading colour), then `meta` parts joined with " · " (null/undefined/false/'' parts are skipped); **`actions`** below (e.g. a `Button size="sm"` Confirm). Tapping an item (or Enter on it) calls `onRowClick`; buttons/links/controls inside never do. Above 768 nothing changes. Without `mobile`, phones keep the scrolling table with `hideOnMobile` columns dropped. Both views are in the DOM (CSS picks one), so tests see table cells and list items.
+  - What goes where: `title` = the row's identity (doc number via `DocNumber`, or party/item name) · `leading` = a type dot or icon · `badge` = `StatusChip` · `subtitle` = the second identity (party name under a doc number) · `meta` = short facts (site code, `formatDate(…)`, "4 items", `formatMoney(…)`) · `actions` = the row's inline action buttons, if the desktop row has them. Every fact needed to identify the row and act on it must appear somewhere in the spec.
+- **`Table`, `THead`, `TBody`, `Tr`, `Th`, `Td`** — hand-built tables and editable grids (challan/bill item rows). `Th`/`Td`: `align?: 'left' | 'right' | 'center'` · `mono?` · `hideOnMobile?` · native cell props. `Tr`: `onClick?: (e: MouseEvent | KeyboardEvent) => void` makes the row clickable (focusable; fires on click and on Enter; only clickable rows get the hover highlight). `Table`: `className?` (placement) · `aria-label?` · `caption?: ReactNode` (visually hidden `<caption>`). Name a table with one of them when no visible heading does.
 - Table rules: amounts and quantities `mono` + `align="right"`; dates and doc numbers `mono`; secondary columns (`Due`, `Site`, `Created by`) `hideOnMobile`. Buttons, links, inputs, selects and labels inside a clickable row handle their own click and **do not** trigger the row click — put row actions (a `Menu`, a `Button`) straight in a cell. Tables have no frame of their own: put them in `Card padded={false}`.
 - **`StatusChip`** — every status badge, always `<StatusChip status={bill.status} />`. Tone comes from the single map in `ui/status.ts` (`paid/active/confirmed/completed/accepted/present` → success · `sent/delivery` → info · `partial/pending/return/half-day/leave` → warning · `overdue/failed/cancelled/terminated/declined/absent/revoked/suspended` → danger · anything else, e.g. `draft/expired/inactive`, → neutral; case-insensitive, never throws). Legacy `.status-*` classes in `globals.css` use the same tones (`.status-draft` is neutral). Label is the status in sentence case (`partially_paid` → "Partially paid"); `children` overrides it (e.g. `"12 days"`). To change a status colour, edit the map in `ui/status.ts` — never pass `tone` at a call site for a lifecycle status. `tone?: 'success' | 'info' | 'warning' | 'danger' | 'neutral'` is only for chips that are not lifecycle statuses.
 - **`DocNumber`** — bill/challan/agreement numbers. `value` · `to?` (link to the document). Mono.
@@ -99,10 +105,15 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
   - Auto-wiring: when its **single child** is `Input`, `Select`, `Textarea`, `Checkbox` or a native `input/select/textarea`, Field gives it an id (keeps an existing one), links the label, and sets `aria-describedby` (hint + error). For wrapper children (an input + button row, a custom autocomplete) pass `htmlFor` and put that id on the inner input yourself.
   - Pass the message as `error` on Field once; it renders a `role="alert"` line and sets `aria-invalid` on an auto-wired child. Don't also pass `invalid` or render your own error text.
   - Use the `required` prop (adds an `aria-hidden` marker and sets `required` + `aria-required="true"` on the auto-wired control). Never write a literal `*` in label text.
-- **`Input`, `Select`, `Textarea`** — `forwardRef` (work with `register()`), native props plus `mono?` (numeric/amount/code inputs) and `invalid?` (only when not inside a `Field` with `error`). `Input`/`Select` also take `size?: 'md' | 'lg'` (`lg` = 44px / 15px, auth forms; replaces the native numeric `size` attribute). 44px / 16px font at ≤768.
+- **`Input`, `Select`, `Textarea`** — `forwardRef` (work with `register()`), native props plus `mono?` (numeric/amount/code inputs) and `invalid?` (only when not inside a `Field` with `error`). `Input`/`Select` also take `size?: 'md' | 'lg'` (`lg` = 44px / 15px, auth forms; replaces the native numeric `size` attribute). 44px / 16px font at ≤768. `Select` draws a token chevron (`appearance: none`; never add your own arrow). `readOnly` inputs render as a quiet card-coloured box (value readable, no focus ring); `disabled` dims to 60% with a not-allowed cursor.
 - **`Checkbox`** — `label?` + native input props (forwardRef). Use it bare: `<Checkbox label="Include GST" {...register('gst')} />`, not inside `Field`. Several related checkboxes → group them in a `Fieldset`.
 - **`Fieldset`** — `legend` + native fieldset props. Titled group of fields or checkboxes; looks the same as legacy `.form-fieldset` (card background, 12px radius, muted legend).
 - **`FilterBar`** — wrapping row above a list for search and filter controls (children stack full width at ≤480). Div props.
+- **`SegmentedControl<V extends string>`** — single-choice filter with 2–4 short options shown inline. `options: { value: V; label: ReactNode; dot?: 'info' | 'warning' | 'success' | 'danger' }[]` · `value: V` · `onChange(v: V)` · `label: string` (accessible group name). A `role="radiogroup"` of `role="radio"` buttons with `aria-checked`; arrow keys (and Home/End) move and select, only the checked option is tabbable. Stretches full width at ≤768 (44px options). Use it for a type/state switch everyone uses (All / Delivery / Return); longer or rarer option lists stay a `Select`.
+  ```tsx
+  <SegmentedControl label="Type" value={type} onChange={setType}
+    options={[{ value: 'all', label: 'All' }, { value: 'delivery', label: 'Delivery', dot: 'info' }, { value: 'return', label: 'Return', dot: 'warning' }]} />
+  ```
 
 ### Menus
 
@@ -119,22 +130,33 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
 
 ## Recipes
 
-**List page** = `PageHeader` + `FilterBar` + `Card padded={false}` holding a `DataTable`.
+**List page** = `PageHeader` + `FilterBar` + `Card padded={false}` holding a `DataTable` with a `mobile` spec.
 ```tsx
+import { formatDate, formatMoney } from '../utils/format';
+
 <PageHeader title="Bills" actions={<Button variant="primary" icon="plus" onClick={openCreate}>New bill</Button>} />
 <FilterBar>
   <Input type="search" placeholder="Search bills" aria-label="Search bills" value={q} onChange={e => setQ(e.target.value)} />
+  <SegmentedControl label="Type" value={type} onChange={setType} options={TYPE_OPTIONS} />
   <Select aria-label="Status" value={status} onChange={e => setStatus(e.target.value)}>…</Select>
 </FilterBar>
 <Card padded={false}>
   <DataTable
+    aria-label="Bills"
     columns={[
-      { key: 'billNumber', header: 'Bill', render: b => <DocNumber value={b.billNumber} />, },
+      { key: 'billNumber', header: 'Bill', render: b => <DocNumber value={b.billNumber} /> },
       { key: 'party', header: 'Party', render: b => b.partyName },
       { key: 'dueDate', header: 'Due', mono: true, hideOnMobile: true, render: b => formatDate(b.dueDate) },
-      { key: 'total', header: 'Amount', mono: true, align: 'right', render: b => formatAmount(b.total) },
+      { key: 'total', header: 'Amount', mono: true, align: 'right', render: b => formatMoney(b.total) },
       { key: 'status', header: 'Status', render: b => <StatusChip status={b.status} /> },
     ]}
+    mobile={{
+      title: b => <DocNumber value={b.billNumber} />,
+      badge: b => <StatusChip status={b.status} />,
+      subtitle: b => b.partyName,
+      meta: b => [`Due ${formatDate(b.dueDate)}`, <span key="amt" className="mono">{formatMoney(b.total)}</span>],
+      actions: b => b.status === 'draft' && <Button size="sm" onClick={() => send(b)}>Send</Button>,
+    }}
     rows={bills}
     rowKey={b => b._id}
     onRowClick={b => navigate(`/bills/${b._id}`)}
@@ -187,7 +209,9 @@ Loading → `Spinner`; error → `ErrorMessage onRetry={refetch}`.
 
 **Status** = `<StatusChip status={x} />`. Overdue-by-days: `<StatusChip status="overdue">{days} days</StatusChip>`.
 
-**Amounts** = mono, right-aligned, Indian grouping (`toLocaleString('en-IN')`), ₹ prefix. In a sentence: `<span className="mono">₹{amount.toLocaleString('en-IN')}</span>`.
+**Amounts** = mono, right-aligned, `formatMoney(n)` from `src/utils/format.ts` (₹ prefix, Indian grouping, decimals only when non-integer: `₹1,84,200`, `₹99.50`). In a sentence: `<span className="mono">{formatMoney(amount)}</span>`. Never `toLocaleString()` without `'en-IN'`.
+
+**Dates** = `formatDate(d)` from the same file: `16 Nov` this year, `16 Nov 2025` otherwise; mono in tables.
 
 ## Copy rules
 

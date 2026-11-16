@@ -15,8 +15,25 @@ export { PageHeader, type PageHeaderProps } from './PageHeader';
 export { EmptyState, type EmptyStateProps } from './EmptyState';
 export { StatusChip, type StatusChipProps } from './StatusChip';
 export { DocNumber, type DocNumberProps } from './DocNumber';
-export { Table, THead, TBody, Tr, Th, Td, type TrProps, type ThProps, type TdProps } from './Table';
-export { DataTable, type Column, type DataTableProps } from './DataTable';
+export {
+  Table,
+  THead,
+  TBody,
+  Tr,
+  Th,
+  Td,
+  type TableProps,
+  type TrProps,
+  type ThProps,
+  type TdProps,
+} from './Table';
+export { DataTable, type Column, type DataTableProps, type DataTableMobile } from './DataTable';
+export {
+  SegmentedControl,
+  type SegmentedControlProps,
+  type SegmentedOption,
+  type SegmentedDot,
+} from './SegmentedControl';
 export {
   Field,
   Input,
@@ -43,6 +60,6 @@ export {
   type MenuTriggerProps,
 } from './Menu';
 export { Modal, type ModalVariant, type ModalSize } from './Modal';
-export { Tabs } from './Tabs';
+export { Tabs, TabPanel, type TabPanelProps } from './Tabs';
 export { Spinner, LoadingSpinner } from './Spinner';
 export { ErrorMessage } from './ErrorMessage';

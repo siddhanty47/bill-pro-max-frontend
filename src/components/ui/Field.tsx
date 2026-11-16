@@ -175,7 +175,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   return (
     <select
       ref={ref}
-      className={controlClass(className, mono, size)}
+      className={`${controlClass(className, mono, size)} ${styles.select}`}
       aria-invalid={invalid || undefined}
       {...rest}
     />
