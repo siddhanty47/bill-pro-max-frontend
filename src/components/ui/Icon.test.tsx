@@ -18,6 +18,7 @@ const names: IconName[] = [
   'plus',
   'close',
   'menu',
+  'more',
   'arrow-right',
   'rupee',
   'settings',

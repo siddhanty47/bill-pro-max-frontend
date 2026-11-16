@@ -40,6 +40,25 @@ describe('Table primitives', () => {
     expect(screen.getByRole('cell', { name: '10' })).toHaveClass('right', 'hideOnMobile');
   });
 
+  it('applies the nowrap class to cells and headers', () => {
+    render(
+      <Table>
+        <THead>
+          <Tr>
+            <Th nowrap>Head</Th>
+          </Tr>
+        </THead>
+        <TBody>
+          <Tr>
+            <Td nowrap>Cell</Td>
+          </Tr>
+        </TBody>
+      </Table>
+    );
+    expect(screen.getByRole('columnheader')).toHaveClass('nowrap');
+    expect(screen.getByRole('cell')).toHaveClass('nowrap');
+  });
+
   it('keeps non-clickable rows out of the tab order', () => {
     renderTable();
     const row = screen.getAllByRole('row')[1];

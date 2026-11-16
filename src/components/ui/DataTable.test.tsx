@@ -34,6 +34,13 @@ describe('DataTable', () => {
     expect(screen.getByRole('columnheader', { name: 'Amount' })).toHaveClass('hideOnMobile');
   });
 
+  it('passes nowrap to headers and cells', () => {
+    const cols: Column<Row>[] = [{ key: 'party', header: 'Party', nowrap: true }];
+    render(<DataTable columns={cols} rows={rows} rowKey={r => r.id} />);
+    expect(screen.getByRole('columnheader', { name: 'Party' })).toHaveClass('nowrap');
+    expect(screen.getByRole('cell', { name: 'Acme' })).toHaveClass('nowrap');
+  });
+
   it('renders an empty string for missing values', () => {
     const cols: Column<Row>[] = [{ key: 'amount', header: 'Amount' }];
     render(<DataTable columns={cols} rows={[rows[1]]} rowKey={r => r.id} />);

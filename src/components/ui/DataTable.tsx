@@ -11,6 +11,7 @@ export type Column<T> = {
   align?: 'left' | 'right';
   mono?: boolean;
   hideOnMobile?: boolean;
+  nowrap?: boolean;
 };
 
 /**
@@ -121,7 +122,7 @@ export function DataTable<T>({
       <THead>
         <Tr>
           {columns.map(c => (
-            <Th key={c.key} align={c.align} hideOnMobile={c.hideOnMobile}>
+            <Th key={c.key} align={c.align} hideOnMobile={c.hideOnMobile} nowrap={c.nowrap}>
               {c.header}
             </Th>
           ))}
@@ -131,7 +132,13 @@ export function DataTable<T>({
         {rows.map(row => (
           <Tr key={rowKey(row)} onClick={onRowClick ? () => onRowClick(row) : undefined}>
             {columns.map(c => (
-              <Td key={c.key} align={c.align} mono={c.mono} hideOnMobile={c.hideOnMobile}>
+              <Td
+                key={c.key}
+                align={c.align}
+                mono={c.mono}
+                hideOnMobile={c.hideOnMobile}
+                nowrap={c.nowrap}
+              >
                 {c.render ? c.render(row) : String((row as Record<string, unknown>)[c.key] ?? '')}
               </Td>
             ))}

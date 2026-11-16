@@ -60,6 +60,7 @@ export {
   type MenuItemProps,
   type MenuTriggerProps,
 } from './Menu';
+export { RowActions, type RowActionsProps, type RowActionItem } from './RowActions';
 export { Modal, type ModalVariant, type ModalSize } from './Modal';
 export { Tabs, TabPanel, type TabPanelProps } from './Tabs';
 export { Spinner, LoadingSpinner } from './Spinner';

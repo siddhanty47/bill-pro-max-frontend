@@ -115,13 +115,13 @@ describe('BillsPage', () => {
     expect(within(stale).getByText('Stale')).toBeInTheDocument();
   });
 
-  it('offers Send on drafts and Mark paid on sent bills only', async () => {
+  it('offers Send on drafts and Mark paid on sent bills only, rest in the menu', async () => {
     useApi();
     renderPage();
     const table = await screen.findByRole('table');
     expect(within(table).getAllByRole('button', { name: 'Send' })).toHaveLength(1);
     expect(within(table).getAllByRole('button', { name: 'Mark paid' })).toHaveLength(1);
-    expect(within(table).getAllByRole('button', { name: 'Delete' })).toHaveLength(4);
+    expect(within(table).getAllByRole('button', { name: 'More actions' })).toHaveLength(4);
   });
 
   it('filters by status', async () => {
@@ -223,10 +223,12 @@ describe('BillsPage', () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const { user } = renderPage();
     const table = await screen.findByRole('table');
-    const deletes = within(table).getAllByRole('button', { name: 'Delete' });
-    await user.click(deletes[0]);
+    const menus = within(table).getAllByRole('button', { name: 'More actions' });
+    await user.click(menus[0]);
+    await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
     expect(confirmSpy).toHaveBeenLastCalledWith('Delete bill "B-2026-27-0001"?');
-    await user.click(deletes[1]);
+    await user.click(menus[1]);
+    await user.click(screen.getByRole('menuitem', { name: 'Force delete' }));
     expect(confirmSpy).toHaveBeenLastCalledWith(
       'Bill "B-2026-27-0002" has status "sent". Force delete anyway? This cannot be undone.'
     );
@@ -245,7 +247,8 @@ describe('BillsPage', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(false);
     const { user } = renderPage();
     const table = await screen.findByRole('table');
-    await user.click(within(table).getAllByRole('button', { name: 'Delete' })[0]);
+    await user.click(within(table).getAllByRole('button', { name: 'More actions' })[0]);
+    await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
     expect(called).toBe(false);
   });
 
@@ -262,7 +265,8 @@ describe('BillsPage', () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     const { user } = renderPage();
     const table = await screen.findByRole('table');
-    await user.click(within(table).getAllByRole('button', { name: 'Download' })[0]);
+    await user.click(within(table).getAllByRole('button', { name: 'More actions' })[0]);
+    await user.click(screen.getByRole('menuitem', { name: 'Download invoice PDF' }));
     await waitFor(() => expect(click).toHaveBeenCalled());
   });
 
@@ -303,6 +307,36 @@ describe('BillsPage', () => {
     expect(within(item).getByText('Mehta Builders')).toBeInTheDocument();
     expect(within(item).getByText(/₹1,84,200/)).toBeInTheDocument();
     expect(within(item).getByText(/Paid ₹50,000/)).toBeInTheDocument();
+  });
+
+  it('runs a phone-list action without navigating', async () => {
+    useApi();
+    let sent = false;
+    server.use(
+      http.post(apiUrl('/businesses/biz-1/bills/b1/send'), () => {
+        sent = true;
+        return ok(bill({}));
+      })
+    );
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    const list = screen.getByRole('list', { name: 'Bills' });
+    const item = within(list).getByText('B-2026-27-0001').closest('li') as HTMLElement;
+    await user.click(within(item).getByRole('button', { name: 'Send' }));
+    await waitFor(() => expect(sent).toBe(true));
+    expect(screen.queryByTestId('where')).not.toBeInTheDocument();
+  });
+
+  it('keeps every action reachable in the phone list', async () => {
+    useApi();
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    const list = screen.getByRole('list', { name: 'Bills' });
+    const item = within(list).getByText('B-2026-27-0004').closest('li') as HTMLElement;
+    await user.click(within(item).getByRole('button', { name: 'More actions' }));
+    expect(screen.getByRole('menuitem', { name: 'Download invoice PDF' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
+    expect(screen.queryByTestId('where')).not.toBeInTheDocument();
   });
 
   it('shows an error with retry when loading fails', async () => {

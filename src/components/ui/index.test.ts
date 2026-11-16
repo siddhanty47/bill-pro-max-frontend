@@ -16,6 +16,7 @@ describe('ui barrel', () => {
     'EmptyState',
     'StatusChip',
     'DocNumber',
+    'RowActions',
     'Table',
     'THead',
     'TBody',

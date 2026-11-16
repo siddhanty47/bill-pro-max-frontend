@@ -10,6 +10,11 @@ describe('StatusChip', () => {
     expect(chip).toHaveClass('danger');
   });
 
+  it('passes a title through', () => {
+    render(<StatusChip status="stale" title="Changed" />);
+    expect(screen.getByText('Stale')).toHaveAttribute('title', 'Changed');
+  });
+
   it('falls back to neutral for unknown statuses', () => {
     render(<StatusChip status="Mystery" />);
     expect(screen.getByText('Mystery')).toHaveClass('neutral');

@@ -1,7 +1,7 @@
 /**
  * Bills management page
  */
-import { useState, useRef } from 'react';
+import { useState, useRef, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
@@ -28,6 +28,7 @@ import {
   FilterBar,
   Modal,
   PageHeader,
+  RowActions,
   SearchInput,
   Select,
   Spinner,
@@ -199,66 +200,66 @@ export function BillsPage() {
     <span className={styles.status}>
       <StatusChip status={bill.status} />
       {bill.isStale && (
-        <span title="Stale — underlying challan data changed">
-          <StatusChip status="stale" tone="warning">
-            Stale
-          </StatusChip>
-        </span>
+        <StatusChip status="stale" tone="warning" title="Stale — underlying challan data changed">
+          Stale
+        </StatusChip>
       )}
     </span>
   );
 
-  const actionButtons = (bill: Bill) => (
-    <>
-      <Button
-        size="sm"
-        title="Download invoice PDF"
-        disabled={isDownloading}
-        onClick={() => handleDownloadPdf(bill)}
-      >
-        Download
-      </Button>
-      {bill.status === 'draft' && (
+  const rowActions = (bill: Bill) => {
+    const removable = bill.status === 'draft' || bill.status === 'cancelled';
+    let primary: ReactNode = null;
+    if (bill.status === 'draft') {
+      primary = (
         <Button size="sm" variant="primary" onClick={() => handleSendEmail(bill)}>
           Send
         </Button>
-      )}
-      {(bill.status === 'sent' || bill.status === 'partial') && (
+      );
+    } else if (bill.status === 'sent' || bill.status === 'partial') {
+      primary = (
         <Button size="sm" onClick={() => handleStatusChange(bill, 'paid')}>
           Mark paid
         </Button>
-      )}
-      <Button
-        size="sm"
-        variant="danger"
-        onClick={() => handleDelete(bill)}
-        title={
-          bill.status === 'draft' || bill.status === 'cancelled'
-            ? 'Delete bill'
-            : 'Force delete (bill has payments/status)'
-        }
-      >
-        Delete
-      </Button>
-    </>
-  );
+      );
+    }
+    return (
+      <RowActions
+        primary={primary}
+        items={[
+          {
+            label: 'Download invoice PDF',
+            onClick: () => handleDownloadPdf(bill),
+            disabled: isDownloading,
+          },
+          {
+            label: removable ? 'Delete' : 'Force delete',
+            onClick: () => handleDelete(bill),
+            tone: 'danger',
+          },
+        ]}
+      />
+    );
+  };
 
   const columns: Column<Bill>[] = [
     {
       key: 'billNumber',
       header: 'Bill',
+      nowrap: true,
       render: bill => <DocNumber value={bill.billNumber} to={`/bills/${bill._id}`} />,
     },
     {
       key: 'billDate',
       header: 'Date',
+      nowrap: true,
       render: bill => {
         const date = billDateOf(bill);
         return date ? formatDate(date) : '—';
       },
     },
     { key: 'partyId', header: 'Party', render: bill => getPartyName(bill.partyId) },
-    { key: 'billingPeriod', header: 'Period', hideOnMobile: true, render: periodOf },
+    { key: 'billingPeriod', header: 'Period', hideOnMobile: true, nowrap: true, render: periodOf },
     {
       key: 'totalAmount',
       header: 'Amount',
@@ -274,8 +275,8 @@ export function BillsPage() {
       hideOnMobile: true,
       render: bill => formatMoney(bill.amountPaid),
     },
-    { key: 'status', header: 'Status', render: statusCell },
-    { key: 'actions', header: 'Actions', render: actionButtons },
+    { key: 'status', header: 'Status', nowrap: true, render: statusCell },
+    { key: 'actions', header: 'Actions', align: 'right', nowrap: true, render: rowActions },
   ];
 
   if (!currentBusinessId) {
@@ -368,7 +369,7 @@ export function BillsPage() {
                 periodOf(bill),
               ];
             },
-            actions: actionButtons,
+            actions: rowActions,
           }}
         />
       </Card>

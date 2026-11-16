@@ -13,13 +13,15 @@ type CellExtras = {
   align?: 'left' | 'right' | 'center';
   mono?: boolean;
   hideOnMobile?: boolean;
+  /** Keep the cell's content on one line. */
+  nowrap?: boolean;
 };
 
 export type ThProps = CellExtras & Omit<ThHTMLAttributes<HTMLTableCellElement>, 'align'>;
 export type TdProps = CellExtras & Omit<TdHTMLAttributes<HTMLTableCellElement>, 'align'>;
 
 function cellClass(
-  { align = 'left', mono, hideOnMobile }: CellExtras,
+  { align = 'left', mono, hideOnMobile, nowrap }: CellExtras,
   className: string | undefined
 ) {
   return (
@@ -28,6 +30,7 @@ function cellClass(
       align === 'center' ? styles.center : '',
       mono ? styles.mono : '',
       hideOnMobile ? styles.hideOnMobile : '',
+      nowrap ? styles.nowrap : '',
       className ?? '',
     ]
       .filter(Boolean)
@@ -98,17 +101,17 @@ export function Tr({ onClick, className, children, onKeyDown, ...rest }: TrProps
   );
 }
 
-export function Th({ align, mono, hideOnMobile, className, children, ...rest }: ThProps) {
+export function Th({ align, mono, hideOnMobile, nowrap, className, children, ...rest }: ThProps) {
   return (
-    <th {...rest} className={cellClass({ align, mono, hideOnMobile }, className)}>
+    <th {...rest} className={cellClass({ align, mono, hideOnMobile, nowrap }, className)}>
       {children}
     </th>
   );
 }
 
-export function Td({ align, mono, hideOnMobile, className, children, ...rest }: TdProps) {
+export function Td({ align, mono, hideOnMobile, nowrap, className, children, ...rest }: TdProps) {
   return (
-    <td {...rest} className={cellClass({ align, mono, hideOnMobile }, className)}>
+    <td {...rest} className={cellClass({ align, mono, hideOnMobile, nowrap }, className)}>
       {children}
     </td>
   );
