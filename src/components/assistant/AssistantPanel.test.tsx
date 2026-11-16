@@ -44,12 +44,28 @@ async function ask(user: ReturnType<typeof renderPanel>['user'], text: string) {
   await user.click(screen.getByRole('button', { name: 'Send' }));
 }
 
+// Globals the tests replace; restored after each test so nothing leaks into other files.
+const originalMatchMedia = window.matchMedia;
+const originalCreateObjectURL = URL.createObjectURL;
+const originalRevokeObjectURL = URL.revokeObjectURL;
+const originalMediaDevices = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
+
 beforeEach(() => {
   server.use(http.get(apiUrl('/businesses'), () => ok([])));
   window.matchMedia = vi.fn().mockReturnValue({ matches: false }) as unknown as typeof matchMedia;
 });
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  window.matchMedia = originalMatchMedia;
+  URL.createObjectURL = originalCreateObjectURL;
+  URL.revokeObjectURL = originalRevokeObjectURL;
+  if (originalMediaDevices) {
+    Object.defineProperty(navigator, 'mediaDevices', originalMediaDevices);
+  } else {
+    delete (navigator as { mediaDevices?: unknown }).mediaDevices;
+  }
+});
 
 describe('AssistantPanel', () => {
   it('shows sentence-case chrome and suggestions when empty', () => {
@@ -120,7 +136,7 @@ describe('AssistantPanel', () => {
 
     await ask(user, 'hi');
 
-    await waitFor(() => expect(document.body.textContent).toMatch(/Boom|error|failed/i));
+    expect(await screen.findByText('Boom')).toBeInTheDocument();
   });
 
   it('asks for confirmation and applies the approved result', async () => {
@@ -323,7 +339,7 @@ describe('AssistantPanel', () => {
       await user.click(screen.getByRole('button', { name: 'Record voice' }));
       await user.click(await screen.findByRole('button', { name: 'Stop recording' }));
 
-      await waitFor(() => expect(document.body.textContent).toMatch(/No speech|error|failed/i));
+      expect(await screen.findByText('No speech')).toBeInTheDocument();
     });
 
     it('explains when microphone access is blocked', async () => {
@@ -335,7 +351,11 @@ describe('AssistantPanel', () => {
 
       await user.click(screen.getByRole('button', { name: 'Record voice' }));
 
-      expect(await screen.findByText(/Microphone access was blocked/)).toBeInTheDocument();
+      expect(
+        await screen.findByText(
+          'Microphone access was blocked. Allow mic access to use voice input.'
+        )
+      ).toBeInTheDocument();
     });
 
     it('stops an active recording when starting a new chat', async () => {
