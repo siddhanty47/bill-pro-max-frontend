@@ -44,7 +44,6 @@
   transition:
     color var(--transition-fast),
     border-color var(--transition-fast);
-  font-family: var(--font-body);
 }
 
 .tab:hover {
@@ -70,8 +69,6 @@
 
 .typeBadge {
   font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: var(--text-secondary);
 }
 
@@ -83,6 +80,4 @@
 .salaryLabel {
   font-size: 11px;
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
 }

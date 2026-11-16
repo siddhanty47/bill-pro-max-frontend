@@ -7,34 +7,41 @@
 }
 
 .step {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  font-size: var(--text-xs);
+  font-weight: 500;
   color: var(--text-muted);
-  padding: 4px 10px;
-  border: 1px solid var(--border-subtle);
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+  background: var(--status-neutral-bg);
 }
 
 .stepActive {
   color: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-muted);
 }
 
 .searchInput {
   width: 100%;
-  padding: 6px 0;
-  border: none;
-  border-bottom: 1px solid var(--border-medium);
-  font-size: 13px;
-  font-family: var(--font-body);
-  background: transparent;
-  color: var(--text-primary);
-  margin-bottom: 12px;
+  height: 38px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  background: var(--bg-elevated);
+  color: var(--text-heading);
+  margin-bottom: var(--space-3);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .searchInput:focus {
   outline: none;
-  border-bottom-color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: var(--ring-focus);
 }
 
 .presetList {
@@ -51,13 +58,17 @@
   justify-content: space-between;
   padding: 12px 14px;
   border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   background: var(--bg-card);
   cursor: pointer;
-  transition: border-color var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    transform var(--transition-default);
 }
 
 .presetCard:hover {
-  border-color: var(--border-medium);
+  border-color: var(--border-default);
+  transform: translateY(-1px);
 }
 
 .presetInfo {
@@ -65,7 +76,7 @@
 }
 
 .presetName {
-  font-size: 14px;
+  font-size: var(--text-base);
   font-weight: 600;
   color: var(--text-heading);
   margin-bottom: 2px;
@@ -85,18 +96,21 @@
 }
 
 .systemBadge {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  font-size: 11px;
+  font-weight: 500;
   color: var(--accent);
-  border: 1px solid var(--accent);
-  padding: 1px 6px;
+  background: var(--accent-muted);
+  border-radius: var(--radius-full);
+  padding: 0 8px;
 }
 
 .previewTable {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--text-sm);
   max-height: 350px;
   overflow-y: auto;
   display: block;
@@ -110,18 +124,17 @@
 
 .previewTable th,
 .previewTable td {
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--border-subtle);
   text-align: left;
   vertical-align: middle;
 }
 
 .previewTable thead th {
-  background: var(--bg-card);
-  font-size: 11px;
-  font-weight: 600;
+  background: var(--bg-elevated);
+  font-size: var(--text-xs);
+  font-weight: 500;
   color: var(--text-secondary);
-  text-transform: uppercase;
 }
 
 .skippedRow {
@@ -129,9 +142,8 @@
 }
 
 .existsBadge {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-muted);
-  text-transform: uppercase;
 }
 
 .summary {
@@ -139,7 +151,8 @@
   padding: 10px 14px;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  font-size: 13px;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
@@ -152,9 +165,9 @@
   display: flex;
   gap: 10px;
   justify-content: flex-end;
-  margin-top: 20px;
-  padding-top: 15px;
-  border-top: 1px solid var(--border-default);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .resultMessage {
@@ -163,8 +176,9 @@
 }
 
 .resultImported {
-  font-size: 28px;
-  font-weight: 700;
+  composes: mono from global;
+  font-size: var(--text-xl);
+  font-weight: 500;
   color: var(--accent);
   margin-bottom: 4px;
 }

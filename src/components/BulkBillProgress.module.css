@@ -8,7 +8,7 @@
 .banner {
   border: 1px solid var(--status-info-border);
   background: var(--status-info-bg);
-  border-radius: 0;
+  border-radius: var(--radius-lg);
   padding: 12px 16px;
   transition: background var(--transition-default);
 }
@@ -42,7 +42,7 @@
   display: inline-block;
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(59, 130, 246, 0.3);
+  border: 2px solid var(--status-info-border);
   border-top-color: var(--status-info-text);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -80,7 +80,7 @@
   font-size: 13px;
   cursor: pointer;
   padding: 2px 6px;
-  border-radius: 0;
+  border-radius: var(--radius-sm);
 }
 
 .toggleBtn:hover {
@@ -103,18 +103,17 @@
 
 .progressTrack {
   margin-top: 8px;
-  height: 2px;
-  background: rgba(59, 130, 246, 0.15);
-  border-radius: 0;
+  height: 6px;
+  background: var(--status-info-bg);
+  border-radius: var(--radius-full);
   overflow: hidden;
 }
 
 .progressBar {
   height: 100%;
   background: var(--status-info-text);
-  border-radius: 0;
-  transition: width 0.3s ease;
-  box-shadow: none;
+  border-radius: var(--radius-full);
+  transition: width 0.3s var(--ease-out);
 }
 
 .errorList {

@@ -8,7 +8,7 @@
   margin-bottom: 16px;
   background: var(--status-warning-bg);
   border: 1px solid var(--status-warning-border);
-  border-radius: 0;
+  border-radius: var(--radius-lg);
   color: var(--status-warning-text);
 }
 

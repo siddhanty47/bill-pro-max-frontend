@@ -3,10 +3,10 @@
 }
 
 .categoryPanel {
-  border: 1px solid var(--border-default);
-  border-radius: 0;
-  padding: 12px;
-  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  background: var(--bg-card);
 }
 
 .selectAllLabel {
@@ -34,11 +34,11 @@
 }
 
 .previewContainer {
-  border: 1px solid var(--border-default);
-  border-radius: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   max-height: 300px;
   overflow-y: auto;
-  background: transparent;
+  background: var(--bg-card);
 }
 
 .previewTable {
@@ -48,12 +48,14 @@
 }
 
 .previewTable thead tr {
-  border-bottom: 2px solid var(--border-default);
+  border-bottom: 1px solid var(--border-subtle);
   text-align: left;
 }
 
 .previewTable th {
-  padding: 8px 12px;
+  padding: 10px 12px;
+  font-size: var(--text-xs);
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
@@ -66,9 +68,9 @@
 }
 
 .codeCell {
+  composes: mono from global;
   padding: 6px 12px;
-  font-family: var(--font-mono);
-  color: var(--accent);
+  color: var(--text-heading);
 }
 
 .cell {

@@ -6,7 +6,7 @@
 
 .agreementSection {
   margin-top: 20px;
-  border-top: 1px solid var(--border-default);
+  border-top: 1px solid var(--border-subtle);
   padding-top: 16px;
 }
 
@@ -19,8 +19,8 @@
 
 .agreementHeader h3 {
   margin: 0;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--text-md);
+  font-weight: 700;
   color: var(--text-heading);
 }
 
@@ -33,19 +33,19 @@
 
 .searchInput {
   flex: 1;
-  padding: 7px 12px;
-  border: 1px solid var(--border-medium);
-  border-radius: 0;
-  font-size: 14px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
   background: var(--bg-input);
-  color: var(--text-primary);
-  font-family: var(--font-body);
+  color: var(--text-heading);
 }
 
 .searchInput:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: none;
+  box-shadow: var(--ring-focus);
 }
 
 .selectAllLabel {
@@ -61,8 +61,8 @@
 .agreementList {
   max-height: 260px;
   overflow-y: auto;
-  border: 1px solid var(--border-default);
-  border-radius: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .agreementRow {
@@ -96,9 +96,10 @@
 }
 
 .agreementId {
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--accent);
+  composes: mono from global;
+  font-weight: 500;
+  font-size: var(--text-sm);
+  color: var(--text-heading);
 }
 
 .partyName {

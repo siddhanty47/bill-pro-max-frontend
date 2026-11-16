@@ -6,8 +6,8 @@
 
 .siteFilterSelect {
   padding: 6px 10px;
-  border: 1px solid var(--border-medium);
-  border-radius: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   font-size: 13px;
   background: var(--bg-input);
   color: var(--text-primary);
@@ -37,8 +37,8 @@
 .statementSelect {
   flex: 1;
   padding: 6px 10px;
-  border: 1px solid var(--border-medium);
-  border-radius: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   font-size: 13px;
   background: var(--bg-input);
   color: var(--text-primary);
@@ -47,8 +47,8 @@
 .statementDateInput {
   flex: 1;
   padding: 6px 10px;
-  border: 1px solid var(--border-medium);
-  border-radius: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   font-size: 13px;
   background: var(--bg-input);
   color: var(--text-primary);

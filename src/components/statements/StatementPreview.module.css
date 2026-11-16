@@ -8,13 +8,14 @@
 .previewHeader {
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .previewTitle {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
+  composes: font-display from global;
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--text-heading);
   margin: 0 0 4px 0;
 }
 
@@ -35,22 +36,20 @@
 .previewTable td {
   padding: 8px 12px;
   text-align: left;
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .previewTable thead th {
   position: sticky;
   top: 0;
-  background: var(--bg-secondary);
+  background: var(--bg-card);
   color: var(--text-secondary);
-  font-weight: 600;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-weight: 500;
+  font-size: var(--text-xs);
 }
 
 .previewTable tbody tr:hover {
-  background: rgba(0, 204, 136, 0.08);
+  background: var(--bg-hover);
 }
 
 .numericCell {
@@ -61,22 +60,23 @@
 .totalsRow td {
   font-weight: 600;
   border-top: 2px solid var(--border-medium);
-  background: var(--bg-secondary);
+  background: var(--bg-card);
 }
 
 .balanceRow td {
   font-weight: 600;
   color: var(--text-primary);
-  background: var(--bg-tertiary, var(--bg-secondary));
+  background: var(--bg-elevated);
 }
 
 .sectionHeader {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
+  composes: font-display from global;
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--text-heading);
   margin: 16px 0 8px 0;
   padding-bottom: 4px;
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .sectionHeader:first-child {
@@ -89,8 +89,9 @@
   gap: 10px;
   margin-top: 12px;
   padding: 12px;
-  background: var(--bg-secondary);
-  border-radius: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .summaryItem {
@@ -100,21 +101,19 @@
 }
 
 .summaryLabel {
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .summaryValue {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
+  composes: mono from global;
+  font-size: var(--text-md);
+  font-weight: 500;
+  color: var(--text-heading);
 }
 
 .entityLink {
-  color: var(--color-accent, #00cc88);
+  color: var(--accent);
   text-decoration: none;
 }
 

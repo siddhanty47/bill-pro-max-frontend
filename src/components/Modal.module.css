@@ -1,19 +1,21 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: none;
+  background: var(--bg-overlay);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
+  animation: overlayIn var(--transition-default) both;
 }
 
 .modal {
-  background: #111111;
-  border: 1px solid var(--border-default);
-  border-radius: 0;
-  box-shadow: none;
+  background: var(--bg-elevated);
+  border: none;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-pop);
+  animation: modalIn var(--duration-enter) var(--ease-out) both;
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
@@ -50,39 +52,49 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
   border-bottom: 1px solid var(--border-subtle);
 }
 
 .header h2 {
-  font-family: var(--font-heading);
-  font-size: 14px;
+  font-size: var(--text-lg);
   font-weight: 700;
+  font-stretch: 108%;
+  letter-spacing: -0.01em;
   color: var(--text-heading);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .closeButton {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
   background: none;
   border: none;
-  font-size: 24px;
+  border-radius: var(--radius-md);
+  font-size: 22px;
+  line-height: 1;
   cursor: pointer;
-  color: var(--text-muted);
-  transition: color var(--transition-fast);
+  color: var(--text-secondary);
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
 }
 
 .closeButton:hover {
-  color: var(--text-primary);
+  color: var(--text-heading);
+  background: var(--bg-hover);
 }
 
 .body {
-  padding: 20px;
+  padding: var(--space-6);
 }
 
 /* Delivery variant — blue accent */
 .delivery {
-  border-top: 1px solid var(--delivery-accent);
+  border-top: 2px solid var(--delivery-accent);
 }
 
 .delivery .header {
@@ -95,7 +107,7 @@
 
 /* Return variant — amber accent */
 .return {
-  border-top: 1px solid var(--return-accent);
+  border-top: 2px solid var(--return-accent);
 }
 
 .return .header {
@@ -116,7 +128,29 @@
     border-radius: 0;
   }
 
+  .header {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .closeButton {
+    width: 44px;
+    height: 44px;
+  }
+
   .body {
-    padding: 12px;
+    padding: var(--space-4);
+  }
+}
+
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
   }
 }

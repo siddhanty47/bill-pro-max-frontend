@@ -27,7 +27,7 @@
 }
 
 .oldValue {
-  color: var(--danger-text);
+  color: var(--status-danger-text);
   text-decoration: line-through;
   opacity: 0.8;
 }
@@ -38,7 +38,7 @@
 }
 
 .newValue {
-  color: var(--success-text);
+  color: var(--status-success-text);
 }
 
 .summaryText {

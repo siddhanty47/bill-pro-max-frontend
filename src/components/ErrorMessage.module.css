@@ -1,12 +1,12 @@
 .errorBox {
-  background: transparent;
+  background: var(--status-danger-bg);
   color: var(--status-danger-text);
-  border: 1px solid var(--status-danger-text);
-  padding: 20px;
-  border-radius: 0;
+  border: 1px solid var(--status-danger-border);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
   text-align: center;
 }
 
 .errorBox :global(.btn) {
-  margin-top: 15px;
+  margin-top: var(--space-4);
 }

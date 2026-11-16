@@ -28,9 +28,9 @@
 }
 
 .emergencyFieldset {
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border-subtle);
   padding: 12px 16px;
-  border-radius: 0;
+  border-radius: var(--radius-lg);
   margin-top: 4px;
   background: transparent;
 }
@@ -40,8 +40,6 @@
   font-weight: 600;
   font-size: 12px;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .uppercaseInput {

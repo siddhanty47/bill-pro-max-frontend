@@ -3,7 +3,7 @@
   padding: 10px;
   background-color: var(--status-danger-bg);
   border: 1px solid var(--status-danger-border);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   color: var(--status-danger-text);
 }
 
