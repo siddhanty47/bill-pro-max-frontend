@@ -1,0 +1,14 @@
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-10) var(--space-5);
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+}
