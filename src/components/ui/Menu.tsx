@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type ButtonHTMLAttributes,
@@ -13,7 +14,9 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
+import { placePanel } from './placePanel';
 import styles from './Menu.module.css';
 
 export type MenuTriggerProps = {
@@ -60,12 +63,33 @@ export function Menu({
     triggerRef.current?.focus();
   }, []);
 
+  useLayoutEffect(() => {
+    if (!open) return;
+    const place = () => {
+      if (menuRef.current && triggerRef.current) {
+        placePanel(menuRef.current, triggerRef.current, align);
+      }
+    };
+    place();
+    const onScroll = (e: Event) => {
+      if (e.target instanceof Node && menuRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', onScroll, true);
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', onScroll, true);
+    };
+  }, [open, align]);
+
   useEffect(() => {
     if (!open) return;
     const first = menuRef.current?.querySelector<HTMLElement>(ITEM_SELECTOR);
     (first ?? menuRef.current)?.focus();
     const onMouseDown = (e: globalThis.MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false);
     };
     document.addEventListener('mousedown', onMouseDown);
     return () => document.removeEventListener('mousedown', onMouseDown);
@@ -106,29 +130,31 @@ export function Menu({
         'aria-controls': open ? menuId : undefined,
         ref: triggerRef,
       })}
-      {open && (
-        <MenuContext.Provider value={{ close }}>
-          <div
-            {...rest}
-            id={menuId}
-            role="menu"
-            ref={menuRef}
-            // Focusable so a mousedown on padding, a label or a divider keeps
-            // focus inside the menu (Escape/arrows keep working).
-            tabIndex={-1}
-            className={[
-              styles.menu,
-              align === 'end' ? styles.alignEnd : styles.alignStart,
-              menuClassName,
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            onKeyDown={handleKeyDown}
-          >
-            {children}
-          </div>
-        </MenuContext.Provider>
-      )}
+      {open &&
+        createPortal(
+          <MenuContext.Provider value={{ close }}>
+            <div
+              {...rest}
+              id={menuId}
+              role="menu"
+              ref={menuRef}
+              // Focusable so a mousedown on padding, a label or a divider keeps
+              // focus inside the menu (Escape/arrows keep working).
+              tabIndex={-1}
+              className={[
+                styles.menu,
+                align === 'end' ? styles.alignEnd : styles.alignStart,
+                menuClassName,
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              onKeyDown={handleKeyDown}
+            >
+              {children}
+            </div>
+          </MenuContext.Provider>,
+          document.body
+        )}
     </div>
   );
 }

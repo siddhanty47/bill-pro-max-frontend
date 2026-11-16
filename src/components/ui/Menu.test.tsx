@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { Menu, MenuDivider, MenuItem, MenuLabel } from './Menu';
+import { placePanel } from './placePanel';
 
 function setup(onSelect = vi.fn(), align?: 'start' | 'end') {
   const user = userEvent.setup();
@@ -220,5 +221,109 @@ describe('Menu', () => {
     await user.click(trigger);
     expect(screen.getByRole('separator')).toBeInTheDocument();
     expect(screen.getByText('Signed in')).toBeInTheDocument();
+  });
+});
+
+describe('Menu portal and placement', () => {
+  it('renders the panel in document.body, outside the root wrapper', async () => {
+    const { user, trigger } = setup();
+    await user.click(trigger);
+    const menu = screen.getByRole('menu');
+    expect(menu.parentElement).toBe(document.body);
+    expect(trigger.parentElement).not.toContainElement(menu);
+  });
+
+  it('keeps the menu open for a mousedown inside the portalled panel', async () => {
+    const { user, trigger } = setup();
+    await user.click(trigger);
+    await user.pointer({ keys: '[MouseLeft>]', target: screen.getByRole('menu') });
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+  });
+
+  it('closes on scroll outside the panel but not inside it', async () => {
+    const { user, trigger } = setup();
+    await user.click(trigger);
+    fireEvent.scroll(screen.getByRole('menu'));
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    fireEvent.scroll(window);
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+  });
+
+  it('repositions on resize', async () => {
+    const { user, trigger } = setup();
+    await user.click(trigger);
+    const menu = screen.getByRole('menu');
+    menu.style.setProperty('top', '999px');
+    fireEvent(window, new Event('resize'));
+    expect(menu.style.top).not.toBe('999px');
+  });
+});
+
+describe('placePanel', () => {
+  const make = (rect: Partial<DOMRect>, size: { w: number; h: number }) => {
+    const trigger = document.createElement('button');
+    trigger.getBoundingClientRect = () =>
+      ({ top: 0, bottom: 0, left: 0, right: 0, ...rect }) as DOMRect;
+    const panel = document.createElement('div');
+    Object.defineProperty(panel, 'offsetWidth', { value: size.w });
+    Object.defineProperty(panel, 'offsetHeight', { value: size.h });
+    return { trigger, panel };
+  };
+
+  it('opens below, end-aligned with the trigger', () => {
+    const { trigger, panel } = make(
+      { top: 100, bottom: 130, left: 700, right: 740 },
+      { w: 200, h: 100 }
+    );
+    placePanel(panel, trigger, 'end', 1280, 800);
+    expect(panel.style.top).toBe('136px');
+    expect(panel.style.left).toBe('540px');
+  });
+
+  it('aligns to the start edge', () => {
+    const { trigger, panel } = make(
+      { top: 100, bottom: 130, left: 300, right: 340 },
+      { w: 200, h: 100 }
+    );
+    placePanel(panel, trigger, 'start', 1280, 800);
+    expect(panel.style.left).toBe('300px');
+  });
+
+  it('flips above when it does not fit below and there is more room above', () => {
+    const { trigger, panel } = make(
+      { top: 700, bottom: 730, left: 700, right: 740 },
+      { w: 200, h: 120 }
+    );
+    placePanel(panel, trigger, 'end', 1280, 800);
+    expect(panel.style.top).toBe('574px');
+  });
+
+  it('stays below when there is no more room above', () => {
+    const { trigger, panel } = make(
+      { top: 20, bottom: 50, left: 700, right: 740 },
+      { w: 200, h: 780 }
+    );
+    placePanel(panel, trigger, 'end', 1280, 800);
+    expect(panel.style.top).toBe('56px');
+  });
+
+  it('clamps horizontally inside the viewport', () => {
+    const { trigger, panel } = make({ top: 10, bottom: 40, left: 0, right: 30 }, { w: 200, h: 50 });
+    placePanel(panel, trigger, 'end', 1280, 800);
+    expect(panel.style.left).toBe('8px');
+    const b = make({ top: 10, bottom: 40, left: 1200, right: 1230 }, { w: 200, h: 50 });
+    placePanel(b.panel, b.trigger, 'start', 1280, 800);
+    expect(b.panel.style.left).toBe('1072px');
+  });
+
+  it('leaves left to the CSS on narrow phones', () => {
+    const { trigger, panel } = make(
+      { top: 10, bottom: 40, left: 300, right: 340 },
+      { w: 200, h: 50 }
+    );
+    panel.style.setProperty('left', '5px');
+    placePanel(panel, trigger, 'end', 400, 800);
+    expect(panel.style.left).toBe('');
+    expect(panel.style.top).toBe('46px');
   });
 });

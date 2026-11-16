@@ -5,8 +5,9 @@
 }
 
 .menu {
-  position: absolute;
-  top: calc(100% + 6px);
+  position: fixed;
+  top: 0;
+  left: 0;
   z-index: var(--z-popover);
   box-sizing: border-box;
   min-width: 200px;
@@ -26,11 +27,10 @@
 }
 
 .alignEnd {
-  right: 0;
+  transform-origin: top right;
 }
 
 .alignStart {
-  left: 0;
   transform-origin: top left;
 }
 
@@ -95,26 +95,16 @@
 
 /*
  * Narrow phones: pin the panel to the viewport edges so it can never cause
- * horizontal scroll. top/bottom stay auto, so the fixed panel keeps its static
- * position. As an inline-block root, that static position is the line below
- * the trigger (an abspos child of a flex root would sit at the root's top
- * edge instead, covering the trigger).
+ * horizontal scroll. Menu.tsx sets `top` (below or above the trigger).
  */
 @media (max-width: 480px) {
-  .root {
-    display: inline-block;
-  }
-
   .menu,
   .alignEnd,
   .alignStart {
-    position: fixed;
-    top: auto;
     right: 16px;
     left: 16px;
     min-width: 0;
     max-width: none;
-    margin-top: 6px;
     transform-origin: top center;
   }
 }
