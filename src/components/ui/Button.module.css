@@ -54,6 +54,14 @@
   border-color: var(--border-medium);
 }
 
+/* Toggle buttons (aria-pressed): pressed reads as accent, like active nav. */
+.secondary[aria-pressed='true'],
+.secondary[aria-pressed='true']:hover:not(:disabled) {
+  background: var(--accent-muted);
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+
 .ghost {
   background: transparent;
   color: var(--text-secondary);
@@ -90,6 +98,9 @@
   align-items: center;
   justify-content: center;
   gap: inherit;
+  /* Lets a long label (e.g. a business name) ellipsize inside a max-width button. */
+  min-width: 0;
+  max-width: 100%;
 }
 
 .contentHidden {
