@@ -43,6 +43,23 @@ describe('RowActions', () => {
     expect(item).toHaveAccessibleDescription('Items are rented');
   });
 
+  it('keeps a disabled danger item inert while its hint stays visible', async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+    render(
+      <RowActions
+        items={[{ label: 'Delete', onClick, tone: 'danger', disabled: true, hint: 'In use' }]}
+      />
+    );
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    const item = screen.getByRole('menuitem', { name: 'Delete' });
+    expect(item).toBeDisabled();
+    expect(screen.getByText('In use')).toBeVisible();
+    await user.click(item);
+    expect(onClick).not.toHaveBeenCalled();
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+  });
+
   it('disables an item', async () => {
     const user = userEvent.setup();
     const onClick = vi.fn();

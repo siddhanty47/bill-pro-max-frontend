@@ -52,8 +52,8 @@
   cursor: pointer;
 }
 
-.item:hover,
-.item:focus-visible {
+.item:hover:not(:disabled):not([aria-disabled='true']),
+.item:focus-visible:not(:disabled):not([aria-disabled='true']) {
   background: var(--bg-hover);
   color: var(--text-heading);
 }
@@ -61,6 +61,12 @@
 .item:focus-visible {
   outline: none;
   box-shadow: var(--ring-focus);
+}
+
+.item:disabled,
+.item[aria-disabled='true'] {
+  color: var(--text-muted);
+  cursor: not-allowed;
 }
 
 .label {
