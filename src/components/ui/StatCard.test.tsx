@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { StatCard } from './StatCard';
 
 describe('StatCard', () => {
@@ -28,5 +29,21 @@ describe('StatCard', () => {
     );
     expect(container.querySelector('svg')).toBeInTheDocument();
     expect(screen.getByText('extra')).toBeInTheDocument();
+  });
+
+  it('renders a clickable link when given to', () => {
+    render(
+      <MemoryRouter>
+        <StatCard to="/x" label="L" value="1" />
+      </MemoryRouter>
+    );
+    const link = screen.getByRole('link');
+    expect(link).toHaveAttribute('href', '/x');
+    expect(link).toHaveClass('clickable');
+  });
+
+  it('renders no link without to', () => {
+    render(<StatCard label="L" value="1" />);
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });

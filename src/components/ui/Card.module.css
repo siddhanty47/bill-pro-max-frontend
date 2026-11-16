@@ -9,10 +9,21 @@
     transform 0.25s var(--ease-out);
 }
 
-a.card:hover,
-button.card:hover {
+.clickable {
+  display: block;
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.clickable:hover {
   border-color: var(--border-default);
   transform: translateY(-2px);
+}
+
+.clickable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .head {

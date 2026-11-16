@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { Card } from './Card';
 
 describe('Card', () => {
@@ -38,5 +39,23 @@ describe('Card', () => {
   it('pads the body by default', () => {
     render(<Card>body</Card>);
     expect(screen.getByText('body')).toHaveClass('body');
+  });
+
+  it('renders a clickable link when given to', () => {
+    render(
+      <MemoryRouter>
+        <Card to="/x" title="T">
+          b
+        </Card>
+      </MemoryRouter>
+    );
+    const link = screen.getByRole('link');
+    expect(link).toHaveAttribute('href', '/x');
+    expect(link).toHaveClass('clickable');
+  });
+
+  it('renders no link without to', () => {
+    render(<Card title="T">b</Card>);
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });

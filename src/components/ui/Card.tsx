@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import styles from './Card.module.css';
 
 export type CardProps = {
   title?: string;
+  to?: string;
   count?: number;
   countTone?: 'danger' | 'neutral';
   actions?: ReactNode;
@@ -13,6 +15,7 @@ export type CardProps = {
 
 export function Card({
   title,
+  to,
   count,
   countTone = 'neutral',
   actions,
@@ -20,9 +23,11 @@ export function Card({
   className,
   children,
 }: CardProps) {
-  const classes = [styles.card, className ?? ''].filter(Boolean).join(' ');
-  return (
-    <section className={classes}>
+  const classes = [styles.card, to ? styles.clickable : '', className ?? '']
+    .filter(Boolean)
+    .join(' ');
+  const content = (
+    <>
       {(title || actions) && (
         <div className={styles.head}>
           {title && (
@@ -37,6 +42,13 @@ export function Card({
         </div>
       )}
       {padded ? <div className={styles.body}>{children}</div> : children}
-    </section>
+    </>
+  );
+  return to ? (
+    <Link to={to} className={classes}>
+      {content}
+    </Link>
+  ) : (
+    <section className={classes}>{content}</section>
   );
 }
