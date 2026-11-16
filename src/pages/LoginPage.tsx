@@ -8,8 +8,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../hooks/useAuth';
 import { AuthLayout } from '../components/auth/AuthLayout';
-import { Button, Field, GoogleIcon, Input } from '../components/ui';
-import styles from './LoginPage.layout.module.css';
+import { Button, Field, GoogleIcon, Input, Notice } from '../components/ui';
+import styles from '../components/auth/AuthForm.module.css';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email'),
@@ -69,37 +69,49 @@ export function LoginPage() {
     >
       <form onSubmit={handleSubmit(onSubmit)} className={styles.form} noValidate>
         <Field label="Email" error={errors.email?.message}>
-          <Input type="email" autoComplete="email" aria-required="true" {...register('email')} />
+          <Input
+            size="lg"
+            type="email"
+            autoComplete="email"
+            aria-required="true"
+            {...register('email')}
+          />
         </Field>
 
-        <div className={styles.passwordField}>
-          <Field label="Password" error={errors.password?.message}>
-            <Input
-              type="password"
-              autoComplete="current-password"
-              aria-required="true"
-              {...register('password')}
-            />
-          </Field>
-          <Link to="/forgot-password" className={styles.forgot}>
-            Forgot?
-          </Link>
-        </div>
+        <Field
+          label="Password"
+          error={errors.password?.message}
+          labelAction={<Link to="/forgot-password">Forgot?</Link>}
+        >
+          <Input
+            size="lg"
+            type="password"
+            autoComplete="current-password"
+            aria-required="true"
+            {...register('password')}
+          />
+        </Field>
 
-        {error && (
-          <div className="error-message" role="alert">
-            {error}
-          </div>
-        )}
+        {error && <Notice tone="danger">{error}</Notice>}
 
-        <Button variant="primary" type="submit" loading={isLoading} className={styles.full}>
+        <Button
+          size="lg"
+          variant="primary"
+          type="submit"
+          loading={isLoading}
+          className={styles.full}
+        >
           {isLoading ? 'Signing in…' : 'Sign in'}
         </Button>
       </form>
 
       <div className={styles.divider}>or</div>
 
-      <Button className={styles.full} onClick={() => loginWithGoogle(invitationToken ?? undefined)}>
+      <Button
+        size="lg"
+        className={styles.full}
+        onClick={() => loginWithGoogle(invitationToken ?? undefined)}
+      >
         <GoogleIcon />
         Continue with Google
       </Button>

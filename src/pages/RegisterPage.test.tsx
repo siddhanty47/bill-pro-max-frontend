@@ -93,7 +93,7 @@ describe('RegisterPage', () => {
       'href',
       '/login?invitation=tok'
     );
-    await user.click(screen.getByRole('button', { name: 'Sign up with Google' }));
+    await user.click(screen.getByRole('button', { name: 'Continue with Google' }));
     expect(signInWithGoogle).toHaveBeenCalled();
     expect(localStorage.getItem('invitation_token')).toBe('tok');
   });
@@ -103,7 +103,7 @@ describe('RegisterPage', () => {
       ReturnType<typeof signUp>
     >);
     await fill();
-    expect(await screen.findByTestId('where')).toHaveTextContent('/');
+    expect((await screen.findByTestId('where')).textContent).toBe('/');
   });
 
   it('goes to the stored invitation after sign-up', async () => {
@@ -111,7 +111,7 @@ describe('RegisterPage', () => {
       ReturnType<typeof signUp>
     >);
     await fill({}, '/register?invitation=tok');
-    expect(await screen.findByTestId('where')).toHaveTextContent('/invitations/tok');
+    expect((await screen.findByTestId('where')).textContent).toBe('/invitations/tok');
     expect(localStorage.getItem('invitation_token')).toBeNull();
   });
 
@@ -129,7 +129,7 @@ describe('RegisterPage', () => {
       </Routes>,
       { route: '/register', preloadedState: signedIn() }
     );
-    expect(screen.getByTestId('where')).toHaveTextContent('/');
+    expect(screen.getByTestId('where').textContent).toBe('/');
   });
 
   it('rejects mismatched passwords without calling sign-up', async () => {
@@ -139,8 +139,21 @@ describe('RegisterPage', () => {
     expect(signUp).not.toHaveBeenCalled();
   });
 
+  it('rejects a malformed email without calling sign-up', async () => {
+    await fill({ Email: 'ravi' });
+
+    expect(await screen.findByText('Enter a valid email')).toBeInTheDocument();
+    expect(signUp).not.toHaveBeenCalled();
+  });
+
+  it('requires an email', async () => {
+    await fill({ Email: '' });
+
+    expect(await screen.findByText('Email is required')).toBeInTheDocument();
+    expect(signUp).not.toHaveBeenCalled();
+  });
+
   it('rejects a password shorter than 6 characters', async () => {
-    // (Malformed emails are stopped earlier by the browser: the input is type="email".)
     await fill({ Password: '123', 'Confirm password': '123' });
 
     expect(await screen.findByText('Password must be at least 6 characters')).toBeInTheDocument();
@@ -155,6 +168,9 @@ describe('RegisterPage', () => {
     await fill();
 
     expect(await screen.findByRole('heading', { name: 'Check your email' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      /^A confirmation link has been sent to your email\.$/
+    );
     expect(screen.getByRole('link', { name: 'Back to sign in' })).toHaveAttribute('href', '/login');
     expect(signUp).toHaveBeenCalledWith('ravi@example.com', 'secret123', 'Ravi', 'Sharma');
   });

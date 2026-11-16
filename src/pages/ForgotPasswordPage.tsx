@@ -8,8 +8,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../hooks/useAuth';
 import { AuthLayout } from '../components/auth/AuthLayout';
-import { Button, Field, Input } from '../components/ui';
-import styles from './LoginPage.layout.module.css';
+import { Button, Field, Input, Notice } from '../components/ui';
+import styles from '../components/auth/AuthForm.module.css';
 
 const forgotSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email'),
@@ -37,20 +37,30 @@ export function ForgotPasswordPage() {
   return (
     <AuthLayout title="Reset password" footer={<Link to="/login">Back to sign in</Link>}>
       {submitted ? (
-        <p role="status">If an account exists with that email, a reset link has been sent.</p>
+        <Notice tone="success">
+          If an account exists with that email, a reset link has been sent.
+        </Notice>
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} className={styles.form} noValidate>
           <Field label="Email" error={errors.email?.message}>
-            <Input type="email" autoComplete="email" aria-required="true" {...register('email')} />
+            <Input
+              size="lg"
+              type="email"
+              autoComplete="email"
+              aria-required="true"
+              {...register('email')}
+            />
           </Field>
 
-          {error && (
-            <div className="error-message" role="alert">
-              {error}
-            </div>
-          )}
+          {error && <Notice tone="danger">{error}</Notice>}
 
-          <Button variant="primary" type="submit" loading={isLoading} className={styles.full}>
+          <Button
+            size="lg"
+            variant="primary"
+            type="submit"
+            loading={isLoading}
+            className={styles.full}
+          >
             {isLoading ? 'Sending…' : 'Send reset link'}
           </Button>
         </form>

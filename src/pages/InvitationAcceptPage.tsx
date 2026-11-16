@@ -13,10 +13,10 @@ import {
   useAcceptInvitationMutation,
   useDeclineInvitationMutation,
 } from '../api/invitationApi';
-import { baseApi } from '../api/baseApi';
+import { baseApi, getErrorMessage } from '../api/baseApi';
 import { AuthLayout } from '../components/auth/AuthLayout';
-import { Button, Spinner } from '../components/ui';
-import styles from './LoginPage.layout.module.css';
+import { Button, Notice, Spinner } from '../components/ui';
+import styles from '../components/auth/AuthForm.module.css';
 
 export function InvitationAcceptPage() {
   const { token } = useParams<{ token: string }>();
@@ -24,6 +24,7 @@ export function InvitationAcceptPage() {
   const dispatch = useDispatch();
   const { isAuthenticated } = useAuth();
   const [actionDone, setActionDone] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const {
     data: verifyResponse,
@@ -45,6 +46,7 @@ export function InvitationAcceptPage() {
 
   const handleAccept = async () => {
     if (!token) return;
+    setActionError(null);
     try {
       await acceptInvitation(token).unwrap();
 
@@ -52,18 +54,19 @@ export function InvitationAcceptPage() {
       dispatch(baseApi.util.invalidateTags(['Business']));
 
       setActionDone(true);
-    } catch {
-      // Error handled by RTK Query
+    } catch (err) {
+      setActionError(getErrorMessage(err));
     }
   };
 
   const handleDecline = async () => {
     if (!token) return;
+    setActionError(null);
     try {
       await declineInvitation(token).unwrap();
       setActionDone(true);
-    } catch {
-      // Error handled by RTK Query
+    } catch (err) {
+      setActionError(getErrorMessage(err));
     }
   };
 
@@ -78,7 +81,7 @@ export function InvitationAcceptPage() {
   if (isLoading) {
     return (
       <AuthLayout title="Loading invitation…">
-        <Spinner message="Checking invitation…" />
+        <Spinner message="" />
       </AuthLayout>
     );
   }
@@ -86,7 +89,12 @@ export function InvitationAcceptPage() {
   if (verifyError || !invitation) {
     return (
       <AuthLayout title="Invalid or expired invitation">
-        <Button variant="primary" className={styles.full} onClick={() => navigate('/login')}>
+        <Button
+          size="lg"
+          variant="primary"
+          className={styles.full}
+          onClick={() => navigate('/login')}
+        >
           Go to sign in
         </Button>
       </AuthLayout>
@@ -94,7 +102,7 @@ export function InvitationAcceptPage() {
   }
 
   if (actionDone) {
-    return <AuthLayout title="Done. Redirecting…">{null}</AuthLayout>;
+    return <AuthLayout title="Done. Redirecting…" />;
   }
 
   return (
@@ -105,9 +113,11 @@ export function InvitationAcceptPage() {
       </p>
 
       <div className={styles.form}>
+        {actionError && <Notice tone="danger">{actionError}</Notice>}
         {isAuthenticated ? (
           <>
             <Button
+              size="lg"
               variant="primary"
               className={styles.full}
               onClick={handleAccept}
@@ -117,6 +127,7 @@ export function InvitationAcceptPage() {
               {accepting ? 'Accepting…' : 'Accept invitation'}
             </Button>
             <Button
+              size="lg"
               className={styles.full}
               onClick={handleDecline}
               loading={declining}
@@ -127,10 +138,10 @@ export function InvitationAcceptPage() {
           </>
         ) : (
           <>
-            <Button variant="primary" className={styles.full} onClick={handleSignIn}>
+            <Button size="lg" variant="primary" className={styles.full} onClick={handleSignIn}>
               Sign in to accept
             </Button>
-            <Button className={styles.full} onClick={handleCreateAccount}>
+            <Button size="lg" className={styles.full} onClick={handleCreateAccount}>
               Create account to accept
             </Button>
           </>

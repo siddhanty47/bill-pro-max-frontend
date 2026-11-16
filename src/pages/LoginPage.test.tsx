@@ -23,7 +23,12 @@ function mockAuth(overrides: Partial<ReturnType<typeof useAuth>> = {}) {
 }
 
 function Where() {
-  return <div data-testid="where">{useLocation().pathname}</div>;
+  const { pathname, search } = useLocation();
+  return <div data-testid="where">{pathname + search}</div>;
+}
+
+async function landedOn() {
+  return (await screen.findByTestId('where')).textContent;
 }
 
 function renderLogin(route = '/login') {
@@ -80,7 +85,7 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText('Password'), 'secret');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(login).toHaveBeenCalledWith('a@b.co', 'secret');
-    expect(await screen.findByTestId('where')).toHaveTextContent('/');
+    expect(await landedOn()).toBe('/');
   });
 
   it('stays on the page when login fails', async () => {
@@ -99,7 +104,7 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText('Email'), 'a@b.co');
     await user.type(screen.getByLabelText('Password'), 'secret');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
-    expect(await screen.findByTestId('where')).toHaveTextContent('/invitations/tok');
+    expect(await landedOn()).toBe('/invitations/tok');
     expect(localStorage.getItem('invitation_token')).toBeNull();
   });
 
@@ -119,7 +124,7 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText('Email'), 'a@b.co');
     await user.type(screen.getByLabelText('Password'), 'secret');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
-    expect(await screen.findByTestId('where')).toHaveTextContent('/bills');
+    expect(await landedOn()).toBe('/bills');
   });
 
   it('shows an auth error as an alert', () => {
@@ -144,7 +149,7 @@ describe('LoginPage', () => {
     expect(loginWithGoogle).toHaveBeenCalledWith('tok');
     expect(screen.getByRole('link', { name: 'Create account' })).toHaveAttribute(
       'href',
-      expect.stringContaining('invitation=tok')
+      '/register?invitation=tok'
     );
   });
 
@@ -155,15 +160,32 @@ describe('LoginPage', () => {
     expect(button).toBeDisabled();
   });
 
-  it('redirects an authenticated user to where they came from', () => {
+  it('redirects an already authenticated user home', async () => {
     mockAuth({ isAuthenticated: true });
-    renderWithProviders(
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="*" element={<Where />} />
-      </Routes>,
-      { route: '/login' }
+    renderLogin();
+    expect(await landedOn()).toBe('/');
+  });
+
+  it('redirects an already authenticated user to where they came from', async () => {
+    mockAuth({ isAuthenticated: true });
+    render(
+      <MemoryRouter
+        initialEntries={[{ pathname: '/login', state: { from: { pathname: '/bills' } } }]}
+      >
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="*" element={<Where />} />
+        </Routes>
+      </MemoryRouter>
     );
-    expect(screen.getByTestId('where')).toHaveTextContent('/');
+    expect(await landedOn()).toBe('/bills');
+    expect(login).not.toHaveBeenCalled();
+  });
+
+  it('puts Forgot? on the password label row, outside the label', () => {
+    renderLogin();
+    const forgot = screen.getByRole('link', { name: 'Forgot?' });
+    expect(forgot.closest('label')).toBeNull();
+    expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password');
   });
 });

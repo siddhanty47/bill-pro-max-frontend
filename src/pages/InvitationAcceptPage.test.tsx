@@ -8,8 +8,11 @@ import { server } from '../test/msw/server';
 import { apiUrl, ok } from '../test/msw/handlers';
 
 function Where() {
-  return <div data-testid="where">{useLocation().pathname}</div>;
+  const { pathname, search } = useLocation();
+  return <div data-testid="where">{pathname + search}</div>;
 }
+
+const where = () => screen.getByTestId('where').textContent;
 
 const invitation = { businessName: 'Acme Scaffolds', role: 'manager' };
 
@@ -37,6 +40,8 @@ describe('InvitationAcceptPage', () => {
     );
     renderPage();
     expect(screen.getByRole('heading', { name: 'Loading invitation…' })).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
+    expect(screen.queryByText('Checking invitation…')).not.toBeInTheDocument();
   });
 
   it('shows an error state for an unknown invitation and links to sign in', async () => {
@@ -50,7 +55,7 @@ describe('InvitationAcceptPage', () => {
       await screen.findByRole('heading', { name: 'Invalid or expired invitation' })
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Go to sign in' }));
-    expect(screen.getByTestId('where')).toHaveTextContent('/login');
+    expect(where()).toBe('/login');
   });
 
   it('prompts signed-out visitors to sign in or register with the token', async () => {
@@ -59,14 +64,14 @@ describe('InvitationAcceptPage', () => {
     expect(await screen.findByText('Acme Scaffolds')).toBeInTheDocument();
     expect(screen.getByText('manager')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Create account to accept' }));
-    expect(screen.getByTestId('where')).toHaveTextContent('/register');
+    expect(where()).toBe('/register?invitation=tok-1');
   });
 
   it('sends signed-out visitors to sign in', async () => {
     verifyOk();
     const { user } = renderPage();
     await user.click(await screen.findByRole('button', { name: 'Sign in to accept' }));
-    expect(screen.getByTestId('where')).toHaveTextContent('/login');
+    expect(where()).toBe('/login?invitation=tok-1');
   });
 
   it('accepts the invitation, confirms and redirects home', async () => {
@@ -82,9 +87,7 @@ describe('InvitationAcceptPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Accept invitation' }));
     expect(await screen.findByRole('heading', { name: 'Done. Redirecting…' })).toBeInTheDocument();
     expect(accept).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('/'), {
-      timeout: 3000,
-    });
+    await waitFor(() => expect(where()).toBe('/'), { timeout: 3000 });
   });
 
   it('declines the invitation', async () => {
@@ -106,14 +109,40 @@ describe('InvitationAcceptPage', () => {
     verifyOk();
     server.use(
       http.post(apiUrl('/invitations/tok-1/accept'), () =>
-        HttpResponse.json({ success: false, error: 'Nope' }, { status: 400 })
+        HttpResponse.json(
+          { success: false, error: { message: 'Invitation has expired' } },
+          { status: 400 }
+        )
       )
     );
     const { user } = renderPage({ preloadedState: signedIn() });
     await user.click(await screen.findByRole('button', { name: 'Accept invitation' }));
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Accept invitation' })).toBeEnabled()
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invitation has expired');
+    expect(screen.getByRole('button', { name: 'Accept invitation' })).toBeEnabled();
     expect(screen.queryByRole('heading', { name: 'Done. Redirecting…' })).not.toBeInTheDocument();
+  });
+
+  it('shows the error and stays when declining fails, then clears it on retry', async () => {
+    verifyOk();
+    let fail = true;
+    server.use(
+      http.post(apiUrl('/invitations/tok-1/decline'), () =>
+        fail
+          ? HttpResponse.json(
+              { success: false, error: { message: 'Could not decline' } },
+              { status: 500 }
+            )
+          : ok(null)
+      )
+    );
+    const { user } = renderPage({ preloadedState: signedIn() });
+    await user.click(await screen.findByRole('button', { name: 'Decline' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not decline');
+    expect(screen.getByRole('heading', { name: "You're invited" })).toBeInTheDocument();
+
+    fail = false;
+    await user.click(screen.getByRole('button', { name: 'Decline' }));
+    expect(await screen.findByRole('heading', { name: 'Done. Redirecting…' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

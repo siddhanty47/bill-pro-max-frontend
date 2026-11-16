@@ -8,14 +8,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../hooks/useAuth';
 import { AuthLayout } from '../components/auth/AuthLayout';
-import { Button, Field, GoogleIcon, Input } from '../components/ui';
-import styles from './LoginPage.layout.module.css';
+import { Button, Field, GoogleIcon, Input, Notice } from '../components/ui';
+import styles from '../components/auth/AuthForm.module.css';
 
 const registerSchema = z
   .object({
     firstName: z.string().min(1, 'First name is required'),
     lastName: z.string().min(1, 'Last name is required'),
-    email: z.string().email('Invalid email address'),
+    email: z.string().min(1, 'Email is required').email('Enter a valid email'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
   })
@@ -68,9 +68,7 @@ export function RegisterPage() {
   if (success) {
     return (
       <AuthLayout title="Check your email" footer={<Link to="/login">Back to sign in</Link>}>
-        <p role="status">
-          A confirmation link has been sent to your email. Please verify your email to continue.
-        </p>
+        <Notice tone="success">A confirmation link has been sent to your email.</Notice>
       </AuthLayout>
     );
   }
@@ -89,19 +87,36 @@ export function RegisterPage() {
     >
       <form onSubmit={handleSubmit(onSubmit)} className={styles.form} noValidate>
         <Field label="First name" error={errors.firstName?.message}>
-          <Input autoComplete="given-name" aria-required="true" {...register('firstName')} />
+          <Input
+            size="lg"
+            autoComplete="given-name"
+            aria-required="true"
+            {...register('firstName')}
+          />
         </Field>
 
         <Field label="Last name" error={errors.lastName?.message}>
-          <Input autoComplete="family-name" aria-required="true" {...register('lastName')} />
+          <Input
+            size="lg"
+            autoComplete="family-name"
+            aria-required="true"
+            {...register('lastName')}
+          />
         </Field>
 
         <Field label="Email" error={errors.email?.message}>
-          <Input type="email" autoComplete="email" aria-required="true" {...register('email')} />
+          <Input
+            size="lg"
+            type="email"
+            autoComplete="email"
+            aria-required="true"
+            {...register('email')}
+          />
         </Field>
 
         <Field label="Password" error={errors.password?.message}>
           <Input
+            size="lg"
             type="password"
             autoComplete="new-password"
             aria-required="true"
@@ -111,6 +126,7 @@ export function RegisterPage() {
 
         <Field label="Confirm password" error={errors.confirmPassword?.message}>
           <Input
+            size="lg"
             type="password"
             autoComplete="new-password"
             aria-required="true"
@@ -118,22 +134,28 @@ export function RegisterPage() {
           />
         </Field>
 
-        {error && (
-          <div className="error-message" role="alert">
-            {error}
-          </div>
-        )}
+        {error && <Notice tone="danger">{error}</Notice>}
 
-        <Button variant="primary" type="submit" loading={isLoading} className={styles.full}>
+        <Button
+          size="lg"
+          variant="primary"
+          type="submit"
+          loading={isLoading}
+          className={styles.full}
+        >
           {isLoading ? 'Creating account…' : 'Create account'}
         </Button>
       </form>
 
       <div className={styles.divider}>or</div>
 
-      <Button className={styles.full} onClick={() => loginWithGoogle(invitationToken ?? undefined)}>
+      <Button
+        size="lg"
+        className={styles.full}
+        onClick={() => loginWithGoogle(invitationToken ?? undefined)}
+      >
         <GoogleIcon />
-        Sign up with Google
+        Continue with Google
       </Button>
     </AuthLayout>
   );

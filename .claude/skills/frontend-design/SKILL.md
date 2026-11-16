@@ -81,7 +81,7 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
 - **`EmptyState`** — `title` (one short line saying what's missing) · `action?: ReactNode` (at most one, usually a `Button`). No prose paragraph.
 - **`Tabs`** — `tabs: { id; label }[]` · `activeTab` · `onChange(id)`. Underline-accent style.
 - **`Modal`** — `isOpen` · `onClose` · `title` · `children` · `size?: 'default' | 'form'` (wider, for forms) · `variant?: 'delivery' | 'return'` (challan flows only; coloured top edge). Autofocuses the first field; Escape and overlay click close (an Escape a nested widget already handled with `preventDefault`, e.g. an open `Menu`, is ignored); full-screen with safe-area padding at ≤768. Never build an ad-hoc overlay.
-- **`Spinner`** (alias `LoadingSpinner`) — `message?` (default "Loading…"). Accent ring + message in a `role="status"` region; static under reduced motion. Page/panel loading.
+- **`Spinner`** (alias `LoadingSpinner`) — `message?` (default "Loading…"; `""` hides the line when an adjacent title already says what is loading). Accent ring + message in a `role="status"` region; static under reduced motion. Page/panel loading.
 - **`ErrorMessage`** — `error: unknown` (run through `getErrorMessage`) · `onRetry?`. Load/API errors.
 - **`Notice`** — inline message inside a form or panel. `tone: 'success' | 'info' | 'warning' | 'danger'` · `title?` · `children` · `className?` (placement). `danger` renders `role="alert"`, the others `role="status"`. Use it for a failed submit ("Invalid login credentials") or a confirmation ("Reset link sent"); never the legacy `.error-message` class or a bare `<p role="status">`. Page load failures with retry stay `ErrorMessage`.
 
@@ -166,6 +166,24 @@ Loading → `Spinner`; error → `ErrorMessage onRetry={refetch}`.
 </form>
 ```
 `styles.codeRow` / `styles.actions` are layout only (`display: flex; gap: var(--space-2)`).
+
+**Auth page** (sign in, register, reset, invitation) = `AuthLayout` (`components/auth`: brand, `title` as the h1, optional `footer`, the scaffold drawing on the right; `children` optional) + a form laid out with `components/auth/AuthForm.module.css` (`.form` column, `.full` full-width buttons, `.divider` "or" rule). Every control is `size="lg"` (`Input`, `Button`); errors from the submit are `<Notice tone="danger">`, confirmations `<Notice tone="success">`; the switch link ("New here? Create account", "Back to sign in") goes in `footer`. All fields are required, so no `required` asterisks: put `aria-required="true"` on the inputs instead. Secondary links on a label row use `Field labelAction`.
+```tsx
+<AuthLayout title="Sign in" footer={<>New here? <Link to="/register">Create account</Link></>}>
+  <form onSubmit={handleSubmit(onSubmit)} className={styles.form} noValidate>
+    <Field label="Email" error={errors.email?.message}>
+      <Input size="lg" type="email" autoComplete="email" aria-required="true" {...register('email')} />
+    </Field>
+    <Field label="Password" error={errors.password?.message} labelAction={<Link to="/forgot-password">Forgot?</Link>}>
+      <Input size="lg" type="password" aria-required="true" {...register('password')} />
+    </Field>
+    {error && <Notice tone="danger">{error}</Notice>}
+    <Button size="lg" variant="primary" type="submit" loading={isLoading} className={styles.full}>Sign in</Button>
+  </form>
+  <div className={styles.divider}>or</div>
+  <Button size="lg" className={styles.full} onClick={google}><GoogleIcon />Continue with Google</Button>
+</AuthLayout>
+```
 
 **Status** = `<StatusChip status={x} />`. Overdue-by-days: `<StatusChip status="overdue">{days} days</StatusChip>`.
 

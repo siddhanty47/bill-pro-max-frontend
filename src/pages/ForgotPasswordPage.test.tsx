@@ -57,7 +57,7 @@ describe('ForgotPasswordPage', () => {
     const { user } = renderWithProviders(<ForgotPasswordPage />, { preloadedState: loggedOut });
     await user.type(screen.getByLabelText('Email'), 'a@b.co');
     await user.click(screen.getByRole('button', { name: 'Send reset link' }));
-    expect(await screen.findByText(/a reset link has been sent/)).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(/a reset link has been sent/);
     expect(resetPassword).toHaveBeenCalledWith('a@b.co');
     expect(screen.getByRole('link', { name: 'Back to sign in' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
