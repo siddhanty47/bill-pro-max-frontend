@@ -68,17 +68,22 @@ export function LoginPage() {
       }
     >
       <form onSubmit={handleSubmit(onSubmit)} className={styles.form} noValidate>
-        <Field label="Email" error={errors.email?.message} required>
-          <Input type="email" autoComplete="email" {...register('email')} />
+        <Field label="Email" error={errors.email?.message}>
+          <Input type="email" autoComplete="email" aria-required="true" {...register('email')} />
         </Field>
 
         <div className={styles.passwordField}>
-          <Field label="Password" error={errors.password?.message} required>
-            <Input type="password" autoComplete="current-password" {...register('password')} />
+          <Field label="Password" error={errors.password?.message}>
+            <Input
+              type="password"
+              autoComplete="current-password"
+              aria-required="true"
+              {...register('password')}
+            />
           </Field>
-          <Button variant="ghost" size="sm" to="/forgot-password" className={styles.forgot}>
+          <Link to="/forgot-password" className={styles.forgot}>
             Forgot?
-          </Button>
+          </Link>
         </div>
 
         {error && (

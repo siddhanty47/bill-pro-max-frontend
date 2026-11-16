@@ -13,16 +13,33 @@
   width: 100%;
 }
 
+/* Puts "Forgot?" on the label row; Field's children join this grid. */
 .passwordField {
-  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  row-gap: 6px;
+}
+
+.passwordField > :global(div) {
+  display: contents;
+}
+
+.passwordField input,
+.passwordField [role='alert'] {
+  grid-column: 1 / -1;
 }
 
 .forgot {
-  position: absolute;
-  top: 0;
-  right: 0;
-  height: auto;
-  padding: 0;
+  grid-row: 1;
+  grid-column: 2;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.forgot:hover {
+  color: var(--accent);
 }
 
 .divider {

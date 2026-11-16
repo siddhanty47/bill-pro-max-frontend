@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { LoginPage } from './LoginPage';
 import { renderWithProviders } from '../test/render';
 import { useAuth } from '../hooks/useAuth';
@@ -46,8 +47,8 @@ describe('LoginPage', () => {
   it('shows the sign in heading and labelled fields without the old subtitle', () => {
     renderLogin();
     expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Email/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Password/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Email')).toBeInTheDocument();
+    expect(screen.getByLabelText('Password')).toBeInTheDocument();
     expect(screen.queryByText(/Scaffolding Rental Management/)).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Forgot?' })).toHaveAttribute(
       'href',
@@ -65,8 +66,8 @@ describe('LoginPage', () => {
 
   it('rejects a malformed email', async () => {
     const { user } = renderLogin();
-    await user.type(screen.getByLabelText(/^Email/), 'nope');
-    await user.type(screen.getByLabelText(/^Password/), 'secret');
+    await user.type(screen.getByLabelText('Email'), 'nope');
+    await user.type(screen.getByLabelText('Password'), 'secret');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(await screen.findByText('Enter a valid email')).toBeInTheDocument();
     expect(login).not.toHaveBeenCalled();
@@ -75,8 +76,8 @@ describe('LoginPage', () => {
   it('logs in with valid input and goes home', async () => {
     login.mockResolvedValue({ success: true });
     const { user } = renderLogin();
-    await user.type(screen.getByLabelText(/^Email/), 'a@b.co');
-    await user.type(screen.getByLabelText(/^Password/), 'secret');
+    await user.type(screen.getByLabelText('Email'), 'a@b.co');
+    await user.type(screen.getByLabelText('Password'), 'secret');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(login).toHaveBeenCalledWith('a@b.co', 'secret');
     expect(await screen.findByTestId('where')).toHaveTextContent('/');
@@ -85,8 +86,8 @@ describe('LoginPage', () => {
   it('stays on the page when login fails', async () => {
     login.mockResolvedValue({ success: false });
     const { user } = renderLogin();
-    await user.type(screen.getByLabelText(/^Email/), 'a@b.co');
-    await user.type(screen.getByLabelText(/^Password/), 'bad');
+    await user.type(screen.getByLabelText('Email'), 'a@b.co');
+    await user.type(screen.getByLabelText('Password'), 'bad');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(login).toHaveBeenCalled();
     expect(screen.queryByTestId('where')).not.toBeInTheDocument();
@@ -95,11 +96,30 @@ describe('LoginPage', () => {
   it('stores the invitation token and redirects to the invitation after login', async () => {
     login.mockResolvedValue({ success: true });
     const { user } = renderLogin('/login?invitation=tok');
-    await user.type(screen.getByLabelText(/^Email/), 'a@b.co');
-    await user.type(screen.getByLabelText(/^Password/), 'secret');
+    await user.type(screen.getByLabelText('Email'), 'a@b.co');
+    await user.type(screen.getByLabelText('Password'), 'secret');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(await screen.findByTestId('where')).toHaveTextContent('/invitations/tok');
     expect(localStorage.getItem('invitation_token')).toBeNull();
+  });
+
+  it('returns to the page the user came from after login', async () => {
+    login.mockResolvedValue({ success: true });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter
+        initialEntries={[{ pathname: '/login', state: { from: { pathname: '/bills' } } }]}
+      >
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="*" element={<Where />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    await user.type(screen.getByLabelText('Email'), 'a@b.co');
+    await user.type(screen.getByLabelText('Password'), 'secret');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+    expect(await screen.findByTestId('where')).toHaveTextContent('/bills');
   });
 
   it('shows an auth error as an alert', () => {
