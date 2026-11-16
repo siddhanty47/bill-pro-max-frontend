@@ -4,7 +4,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 
 | Component | Use it for |
 |---|---|
-| `Button` | Every text button and button-styled link (`to` for routes, `href` for external, `loading` for submits, `aria-pressed` for toggles, `collapseLabel` for icon-only on phones, `size="lg"` on auth forms) |
+| `Button` | Every text button and button-styled link (`to` for routes, `href` for external, `loading` for submits, `aria-pressed` for toggles, `collapseLabel` for icon-only on phones, `dot` status-tone dot and `hint` shortcut kbd, `size="lg"` on auth forms) |
 | `IconButton` | Icon-only buttons (close, menu, bell) or an `Avatar` trigger; `label` becomes the accessible name |
 | `Avatar` | Initials badge: `person` (account) or `business` (letter badge); non-interactive, put it in a trigger |
 | `Notice` | Inline form/page message (sign-in error, "link sent"); `danger` is an alert, others a status |
@@ -23,6 +23,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `Input`, `Select`, `Textarea` | Form controls (forwardRef, work with `register()`); `size="lg"` on Input/Select for auth forms; Select draws the kit chevron |
 | `Checkbox` | A checkbox with its own label |
 | `Fieldset` | A titled group of related fields or checkboxes |
+| `SearchInput` | The search box of a list page (icon, optional shortcut hint such as `/`); forwards its ref |
 | `FilterBar` | The wrapping row of search and filter controls above a list |
 | `SegmentedControl` | A 2–4 option single-choice filter shown inline (All / Delivery / Return); radio group |
 | `Menu`, `MenuItem`, `MenuLabel`, `MenuDivider` | Dropdown menus (business switcher, profile, row actions) |

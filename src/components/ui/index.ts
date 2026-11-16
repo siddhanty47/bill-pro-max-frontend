@@ -49,6 +49,7 @@ export {
   type FieldsetProps,
   type ControlSize,
 } from './Field';
+export { SearchInput, type SearchInputProps } from './SearchInput';
 export { FilterBar, type FilterBarProps } from './FilterBar';
 export {
   Menu,
