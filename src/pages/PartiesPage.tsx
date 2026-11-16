@@ -13,18 +13,28 @@ import {
   useCreateAgreementMutation,
 } from '../api/partyApi';
 import { useGetInventoryQuery } from '../api/inventoryApi';
-import { DataTable } from '../components/DataTable';
-import { Modal } from '../components/Modal';
-import { LoadingSpinner } from '../components/LoadingSpinner';
-import { ErrorMessage } from '../components/ErrorMessage';
+import {
+  Button,
+  Card,
+  DataTable,
+  EmptyState,
+  ErrorMessage,
+  FilterBar,
+  Modal,
+  PageHeader,
+  RowActions,
+  SearchInput,
+  Select,
+  Spinner,
+  StatusChip,
+  type Column,
+} from '../components/ui';
 import { PartyForm } from '../components/forms/PartyForm';
 import { AgreementForm } from '../components/forms/AgreementForm';
 import { AddSiteModal } from '../components/AddSiteModal';
 import { getErrorMessage } from '../api/baseApi';
 import type { Party, CreatePartyInput, CreateAgreementInput } from '../types';
 import styles from './PartiesPage.module.css';
-
-type TableItem = Record<string, unknown>;
 
 export function PartiesPage() {
   const { currentBusinessId } = useCurrentBusiness();
@@ -124,84 +134,59 @@ export function PartiesPage() {
     return matchesSearch && matchesRole;
   });
 
-  const columns = [
-    { key: 'code', header: 'Code' },
-    { key: 'name', header: 'Name' },
-    {
-      key: 'roles',
-      header: 'Roles',
-      render: (row: TableItem) => {
-        const party = row as unknown as Party;
-        return party.roles.join(', ');
-      },
-    },
+  const roleLabel = (party: Party) =>
+    party.roles.map(r => r.charAt(0).toUpperCase() + r.slice(1)).join(', ');
+  const siteCount = (party: Party) => party.sites?.length || 0;
+  const activeAgreements = (party: Party) =>
+    party.agreements?.filter(a => a.status === 'active').length || 0;
+  const sitesLabel = (party: Party) =>
+    `${siteCount(party)} site${siteCount(party) !== 1 ? 's' : ''}`;
+
+  const rowActions = (party: Party) => (
+    <RowActions
+      items={[
+        { label: 'Add site', onClick: () => handleAddSite(party) },
+        { label: 'Add agreement', onClick: () => handleAddAgreement(party) },
+        { label: 'Delete', onClick: () => handleDeleteParty(party), tone: 'danger' },
+      ]}
+    />
+  );
+
+  const columns: Column<Party>[] = [
+    { key: 'code', header: 'Code', mono: true, nowrap: true, render: party => party.code },
+    { key: 'name', header: 'Name', render: party => party.name },
+    { key: 'roles', header: 'Roles', render: roleLabel },
     {
       key: 'contact',
       header: 'Contact',
-      render: (row: TableItem) => {
-        const party = row as unknown as Party;
-        return (
-          <div>
-            <div>{party.contact.person}</div>
-            <div className={styles.contactPhone}>{party.contact.phone}</div>
-          </div>
-        );
-      },
+      hideOnMobile: true,
+      render: party => (
+        <div>
+          <div>{party.contact.person}</div>
+          <div className={`mono ${styles.contactPhone}`}>{party.contact.phone}</div>
+        </div>
+      ),
     },
     {
-      key: 'sites',
-      header: 'Sites',
-      render: (row: TableItem) => {
-        const party = row as unknown as Party;
-        const siteCount = party.sites?.length || 0;
-        return (
-          <span title={party.sites?.map(s => s.code).join(', ') || 'None'}>
-            {siteCount} site{siteCount !== 1 ? 's' : ''}
-          </span>
-        );
-      },
-    },
-    {
-      key: 'agreements',
-      header: 'Agreements',
-      render: (row: TableItem) => {
-        const party = row as unknown as Party;
-        const active = party.agreements?.filter(a => a.status === 'active').length || 0;
-        return `${active} active`;
-      },
+      key: 'sitesAgreements',
+      header: 'Sites / Agreements',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      hideOnMobile: true,
+      render: party => (
+        <span title={party.sites?.map(s => s.code).join(', ') || 'None'}>
+          {sitesLabel(party)} / {activeAgreements(party)} active
+        </span>
+      ),
     },
     {
       key: 'status',
       header: 'Status',
-      render: (row: TableItem) => {
-        const party = row as unknown as Party;
-        return (
-          <span className={`status status-${party.isActive ? 'active' : 'inactive'}`}>
-            {party.isActive ? 'Active' : 'Inactive'}
-          </span>
-        );
-      },
+      nowrap: true,
+      render: party => <StatusChip status={party.isActive ? 'active' : 'inactive'} />,
     },
-    {
-      key: 'actions',
-      header: 'Actions',
-      render: (row: TableItem) => {
-        const party = row as unknown as Party;
-        return (
-          <div className="action-buttons" onClick={e => e.stopPropagation()}>
-            <button className="btn btn-sm btn-secondary" onClick={() => handleAddSite(party)}>
-              + Site
-            </button>
-            <button className="btn btn-sm btn-primary" onClick={() => handleAddAgreement(party)}>
-              + Agreement
-            </button>
-            <button className="btn btn-sm btn-danger" onClick={() => handleDeleteParty(party)}>
-              Delete
-            </button>
-          </div>
-        );
-      },
-    },
+    { key: 'actions', header: 'Actions', align: 'right', nowrap: true, render: rowActions },
   ];
 
   if (!currentBusinessId) {
@@ -209,7 +194,7 @@ export function PartiesPage() {
   }
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading parties..." />;
+    return <Spinner message="Loading parties…" />;
   }
 
   if (error) {
@@ -218,39 +203,74 @@ export function PartiesPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Parties</h1>
-        <button className="btn btn-primary" onClick={handleAddParty}>
-          + Add Party <kbd className="kbd-hint">{modLabel}+N</kbd>
-        </button>
-      </div>
+      <PageHeader
+        title="Parties"
+        actions={
+          <Button variant="primary" icon="plus" hint={`${modLabel}+N`} onClick={handleAddParty}>
+            Add party
+          </Button>
+        }
+      />
 
-      <div className="filters">
-        <div className="search-wrapper">
-          <input
-            ref={searchRef}
-            type="text"
-            placeholder="Search parties..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-          <kbd className="kbd-hint search-kbd">/</kbd>
-        </div>
-        <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
-          <option value="">All Roles</option>
+      <FilterBar>
+        <SearchInput
+          ref={searchRef}
+          label="Search parties"
+          hint="/"
+          placeholder="Search name, code or contact person"
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+        />
+        <Select aria-label="Role" value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
+          <option value="">All roles</option>
           <option value="client">Clients</option>
           <option value="supplier">Suppliers</option>
-        </select>
-      </div>
+        </Select>
+      </FilterBar>
 
-      <DataTable
-        data={filteredParties as unknown as TableItem[]}
-        columns={columns}
-        keyField="_id"
-        onRowClick={row => navigate(`/parties/${String(row._id)}`)}
-        emptyMessage="No parties found. Add your first party to get started."
-      />
+      <Card padded={false}>
+        <DataTable
+          aria-label="Parties"
+          columns={columns}
+          rows={filteredParties}
+          rowKey={party => party._id}
+          onRowClick={party => navigate(`/parties/${party._id}`)}
+          empty={
+            (parties || []).length === 0 ? (
+              <EmptyState
+                title="No parties yet. Add your first party to get started."
+                action={
+                  <Button variant="primary" icon="plus" onClick={handleAddParty}>
+                    Add party
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState title="No parties match these filters" />
+            )
+          }
+          mobile={{
+            leading: party => <span className="mono">{party.code}</span>,
+            title: party => party.name,
+            subtitle: party => party.contact.person,
+            badge: party => <StatusChip status={party.isActive ? 'active' : 'inactive'} />,
+            actionsPlacement: 'trailing',
+            meta: party => [
+              <span key="roles">{roleLabel(party)}</span>,
+              <span key="sites">
+                <span className="mono">{siteCount(party)}</span> site{siteCount(party) !== 1 && 's'}
+              </span>,
+              <span key="agreements">
+                <span className="mono">{activeAgreements(party)}</span> active
+              </span>,
+              <span key="phone" className="mono">
+                {party.contact.phone}
+              </span>,
+            ],
+            actions: rowActions,
+          }}
+        />
+      </Card>
 
       <Modal
         isOpen={isPartyModalOpen}
