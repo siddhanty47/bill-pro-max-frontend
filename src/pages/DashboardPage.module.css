@@ -1,13 +1,33 @@
-.dashboard {
-  overflow-y: auto;
+.stats {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
 }
 
-.getStartedText {
-  margin: 15px 0;
+.wide {
+  grid-column: span 3;
 }
 
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: 15px;
+.small {
+  grid-column: span 2;
+}
+
+@media (max-width: 768px) {
+  .stats {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+
+  .wide {
+    grid-column: 1 / -1;
+  }
+
+  .small {
+    grid-column: span 1;
+  }
+
+  .small:last-child {
+    grid-column: 1 / -1;
+  }
 }

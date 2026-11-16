@@ -2,25 +2,54 @@
  * Dashboard page with summary stats
  */
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useGetInventoryStatsQuery } from '../api/inventoryApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetBillsQuery, useGetOverdueBillsQuery } from '../api/billApi';
 import { useCreateBusinessMutation } from '../api/businessApi';
-import { LoadingSpinner } from '../components/LoadingSpinner';
-import { Modal } from '../components/Modal';
+import {
+  Button,
+  Card,
+  DataTable,
+  DocNumber,
+  EmptyState,
+  Meter,
+  Modal,
+  PageHeader,
+  Spinner,
+  StatCard,
+  StatusChip,
+  type Column,
+} from '../components/ui';
 import { BusinessForm } from '../components/forms/BusinessForm';
 import { getErrorMessage } from '../api/baseApi';
-import type { CreateBusinessInput } from '../types';
+import { formatDate, formatMoney } from '../utils/format';
+import type { Bill, CreateBusinessInput } from '../types';
 import styles from './DashboardPage.module.css';
 
+const MAX_OVERDUE_ROWS = 5;
+const DAY_MS = 86_400_000;
+
+/** `Monday, 16 November` */
+function todayLabel(): string {
+  const now = new Date();
+  const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
+  const month = now.toLocaleDateString('en-US', { month: 'long' });
+  return `${weekday}, ${now.getDate()} ${month}`;
+}
+
+function daysOverdue(bill: Bill): number {
+  return Math.max(0, Math.floor((Date.now() - new Date(bill.dueDate).getTime()) / DAY_MS));
+}
+
+function overdueLabel(bill: Bill): string {
+  const days = daysOverdue(bill);
+  return `${days} ${days === 1 ? 'day' : 'days'}`;
+}
+
 export function DashboardPage() {
-  const {
-    currentBusinessId,
-    currentBusiness,
-    businesses,
-    isLoading: businessLoading,
-  } = useCurrentBusiness();
+  const { currentBusinessId, businesses, isLoading: businessLoading } = useCurrentBusiness();
   const [isBusinessModalOpen, setIsBusinessModalOpen] = useState(false);
 
   const [createBusiness, { isLoading: isCreating }] = useCreateBusinessMutation();
@@ -53,142 +82,156 @@ export function DashboardPage() {
     }
   };
 
+  const businessModal = (
+    <Modal
+      isOpen={isBusinessModalOpen}
+      onClose={() => setIsBusinessModalOpen(false)}
+      title="Create new business"
+      size="form"
+    >
+      <BusinessForm
+        onSubmit={handleCreateBusiness}
+        onCancel={() => setIsBusinessModalOpen(false)}
+        isLoading={isCreating}
+      />
+    </Modal>
+  );
+
   if (businessLoading || statsLoading) {
-    return <LoadingSpinner message="Loading dashboard..." />;
+    return <Spinner message="Loading dashboard…" />;
   }
 
   // Show create business prompt if no businesses exist
   if (!currentBusinessId && businesses.length === 0) {
     return (
       <div>
-        <div className="page-header">
-          <h1>Welcome to BillProMax</h1>
-        </div>
-        <div className="card">
-          <h2>Get Started</h2>
-          <p className={styles.getStartedText}>
-            You don't have any businesses yet. Create your first business to get started.
-          </p>
-          <button className="btn btn-primary" onClick={() => setIsBusinessModalOpen(true)}>
-            + Create Business
-          </button>
-        </div>
-
-        <Modal
-          isOpen={isBusinessModalOpen}
-          onClose={() => setIsBusinessModalOpen(false)}
-          title="Create New Business"
-          size="form"
-        >
-          <BusinessForm
-            onSubmit={handleCreateBusiness}
-            onCancel={() => setIsBusinessModalOpen(false)}
-            isLoading={isCreating}
-          />
-        </Modal>
+        <EmptyState
+          title="No businesses yet"
+          action={
+            <Button variant="primary" icon="plus" onClick={() => setIsBusinessModalOpen(true)}>
+              Create business
+            </Button>
+          }
+        />
+        {businessModal}
       </div>
     );
   }
 
   if (!currentBusinessId) {
-    return (
-      <div className="card">
-        <p>No business selected. Please select a business from the dropdown above.</p>
-      </div>
-    );
+    return <EmptyState title="Select a business from the menu above" />;
   }
 
   const activeParties = parties?.filter(p => p.isActive).length || 0;
   const pendingBills =
     bills?.filter(b => b.status === 'sent' || b.status === 'partial').length || 0;
   const totalOutstanding = bills?.reduce((sum, b) => sum + (b.totalAmount - b.amountPaid), 0) || 0;
+  const available = inventoryStats?.availableQuantity || 0;
+  const rented = inventoryStats?.rentedQuantity || 0;
+
+  const partyNames = new Map((parties ?? []).map(p => [p._id, p.name]));
+  const overdueRows = (overdueBills ?? []).slice(0, MAX_OVERDUE_ROWS);
+  const showPartyColumn = overdueRows.some(b => partyNames.has(b.partyId));
+
+  const columns: Column<Bill>[] = [
+    {
+      key: 'billNumber',
+      header: 'Bill',
+      render: b => <DocNumber value={b.billNumber} to={`/bills/${b._id}`} />,
+    },
+    ...(showPartyColumn
+      ? [{ key: 'party', header: 'Party', render: (b: Bill) => partyNames.get(b.partyId) ?? '' }]
+      : []),
+    {
+      key: 'dueDate',
+      header: 'Due',
+      mono: true,
+      hideOnMobile: true,
+      render: b => formatDate(b.dueDate),
+    },
+    {
+      key: 'totalAmount',
+      header: 'Amount',
+      mono: true,
+      align: 'right',
+      render: b => formatMoney(b.totalAmount),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: b => <StatusChip status="overdue">{overdueLabel(b)}</StatusChip>,
+    },
+  ];
 
   return (
-    <div className={styles.dashboard}>
-      <div className="page-header">
-        <h1>Dashboard</h1>
-        <div className={styles.headerActions}>
-          {currentBusiness && <span>Welcome to {currentBusiness.name}</span>}
-          <button className="btn btn-secondary" onClick={() => setIsBusinessModalOpen(true)}>
-            + Add Business
-          </button>
-        </div>
+    <div>
+      <PageHeader
+        eyebrow={todayLabel()}
+        title="Dashboard"
+        actions={
+          <Button icon="plus" onClick={() => setIsBusinessModalOpen(true)}>
+            Add business
+          </Button>
+        }
+      />
+
+      <div className={styles.stats}>
+        <StatCard
+          className={styles.wide}
+          tone="highlight"
+          label="Outstanding amount"
+          value={formatMoney(totalOutstanding)}
+        />
+        <StatCard
+          className={styles.wide}
+          label={`Stock · ${(available + rented).toLocaleString('en-IN')} pcs`}
+          value=""
+        >
+          <Meter
+            segments={[
+              { value: available, tone: 'accent', label: 'Available' },
+              { value: rented, tone: 'info', label: 'Rented out' },
+            ]}
+          />
+        </StatCard>
+        <StatCard
+          className={styles.small}
+          label="Inventory items"
+          value={inventoryStats?.totalItems || 0}
+        />
+        <StatCard className={styles.small} label="Active parties" value={activeParties} />
+        <StatCard className={styles.small} label="Pending bills" value={pendingBills} />
       </div>
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <h3>Inventory Items</h3>
-          <div className="value">{inventoryStats?.totalItems || 0}</div>
-        </div>
-
-        <div className="stat-card">
-          <h3>Available Stock</h3>
-          <div className="value">{inventoryStats?.availableQuantity || 0}</div>
-        </div>
-
-        <div className="stat-card">
-          <h3>Rented Out</h3>
-          <div className="value">{inventoryStats?.rentedQuantity || 0}</div>
-        </div>
-
-        <div className="stat-card">
-          <h3>Active Parties</h3>
-          <div className="value">{activeParties}</div>
-        </div>
-
-        <div className="stat-card">
-          <h3>Pending Bills</h3>
-          <div className="value">{pendingBills}</div>
-        </div>
-
-        <div className="stat-card">
-          <h3>Outstanding Amount</h3>
-          <div className="value">₹{totalOutstanding.toLocaleString()}</div>
-        </div>
-      </div>
-
-      {overdueBills && overdueBills.length > 0 && (
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">Overdue Bills ({overdueBills.length})</span>
-          </div>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Bill #</th>
-                <th>Due Date</th>
-                <th>Amount</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {overdueBills.slice(0, 5).map(bill => (
-                <tr key={bill._id}>
-                  <td>{bill.billNumber}</td>
-                  <td>{new Date(bill.dueDate).toLocaleDateString()}</td>
-                  <td>₹{bill.totalAmount.toLocaleString()}</td>
-                  <td>
-                    <span className="status status-overdue">Overdue</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {overdueRows.length > 0 && (
+        <Card
+          padded={false}
+          title="Overdue bills"
+          count={overdueBills?.length}
+          countTone="danger"
+          actions={<Link to="/bills">All bills →</Link>}
+        >
+          <DataTable
+            aria-label="Overdue bills"
+            columns={columns}
+            rows={overdueRows}
+            rowKey={b => b._id}
+            mobile={{
+              title: b => <DocNumber value={b.billNumber} to={`/bills/${b._id}`} />,
+              badge: b => <StatusChip status="overdue">{overdueLabel(b)}</StatusChip>,
+              subtitle: b => partyNames.get(b.partyId),
+              meta: b => [
+                `Due ${formatDate(b.dueDate)}`,
+                <span key="amt" className="mono">
+                  {formatMoney(b.totalAmount)}
+                </span>,
+              ],
+            }}
+          />
+        </Card>
       )}
 
-      <Modal
-        isOpen={isBusinessModalOpen}
-        onClose={() => setIsBusinessModalOpen(false)}
-        title="Create New Business"
-        size="form"
-      >
-        <BusinessForm
-          onSubmit={handleCreateBusiness}
-          onCancel={() => setIsBusinessModalOpen(false)}
-          isLoading={isCreating}
-        />
-      </Modal>
+      {businessModal}
     </div>
   );
 }
