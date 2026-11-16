@@ -2,48 +2,6 @@
   position: relative;
 }
 
-.bell {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  background: none;
-  border: none;
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition:
-    background var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.bell:hover {
-  background: var(--bg-hover);
-  color: var(--text-heading);
-}
-
-.badge {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  position: absolute;
-  top: 3px;
-  right: 2px;
-  background: var(--accent);
-  color: var(--text-on-accent);
-  font-size: 10px;
-  font-weight: 500;
-  min-width: 16px;
-  height: 16px;
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-  outline: 2px solid var(--bg-deepest);
-}
-
 .panel {
   position: absolute;
   top: 100%;
@@ -52,7 +10,7 @@
   max-height: 400px;
   background: var(--bg-elevated);
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-pop);
   z-index: var(--z-popover);
   overflow: hidden;
@@ -148,11 +106,6 @@
 }
 
 @media (max-width: 768px) {
-  .bell {
-    width: 44px;
-    height: 44px;
-  }
-
   .panel {
     position: fixed;
     top: var(--header-height);

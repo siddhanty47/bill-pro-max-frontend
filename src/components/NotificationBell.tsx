@@ -1,6 +1,6 @@
 /**
  * @file Notification bell icon for the header.
- * Shows unread count badge and a dropdown panel of recent notifications.
+ * Shows an accent dot when unread (count in the aria-label) and a dropdown panel of recent notifications.
  * Polls for unread count every 30 seconds.
  */
 import { useState, useRef, useEffect } from 'react';
@@ -11,6 +11,7 @@ import {
   useMarkAsReadMutation,
   useMarkAllAsReadMutation,
 } from '../api/notificationApi';
+import { IconButton } from './ui';
 import styles from './NotificationBell.module.css';
 
 export function NotificationBell() {
@@ -54,26 +55,13 @@ export function NotificationBell() {
 
   return (
     <div className={styles.wrapper} ref={panelRef}>
-      <button
-        className={styles.bell}
+      <IconButton
+        icon="bell"
+        label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+        badge={unreadCount > 0}
+        aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
-        aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-        </svg>
-        {unreadCount > 0 && (
-          <span className={styles.badge}>{unreadCount > 9 ? '9+' : unreadCount}</span>
-        )}
-      </button>
+      />
 
       {isOpen && (
         <div className={styles.panel}>

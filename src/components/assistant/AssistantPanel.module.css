@@ -1,6 +1,5 @@
 /* Docked right-hand side panel — sits inside the flex row beside page content,
-   below the header. Matches the app's dark terminal theme (black bg, green
-   accent, monospace, 2px radius, hairline borders). */
+   below the header. Rounded --radius-xl on the outer corners, Inter text. */
 .panel {
   display: flex;
   flex-direction: column;
@@ -10,6 +9,8 @@
   min-height: 0;
   background: var(--bg-surface);
   border-left: 1px solid var(--border-default);
+  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+  overflow: hidden;
 }
 
 /* Closed: collapse out of the flex row so content reclaims the width. */
@@ -28,10 +29,10 @@
   border-bottom: 1px solid var(--border-default);
 }
 .title {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: var(--accent);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-heading);
 }
 .headerActions {
   display: flex;
@@ -44,7 +45,6 @@
   border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-size: 11px;
-  letter-spacing: 0.5px;
   padding: 3px 8px;
   cursor: pointer;
   transition:
@@ -70,7 +70,7 @@
 .message {
   max-width: 88%;
   padding: 8px 11px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   font-size: 12.5px;
   line-height: 1.55;
   white-space: pre-wrap;
@@ -161,7 +161,6 @@
   margin: 0 0 5px;
   font-weight: 700;
   font-size: 11px;
-  letter-spacing: 0.5px;
   color: var(--status-warning-text);
 }
 .confirmSummary {
@@ -419,6 +418,7 @@
     height: 100dvh;
     flex: none;
     border-left: none;
+    border-radius: 0;
   }
 
   .closed {
