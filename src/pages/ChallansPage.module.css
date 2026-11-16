@@ -21,10 +21,3 @@
   align-items: center;
   gap: var(--space-2);
 }
-
-/* Shortcut hints are keyboard-only */
-@media (max-width: 768px) {
-  .hint {
-    display: none;
-  }
-}

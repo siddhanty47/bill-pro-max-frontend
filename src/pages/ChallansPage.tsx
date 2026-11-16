@@ -21,9 +21,9 @@ import {
   EmptyState,
   ErrorMessage,
   FilterBar,
-  Input,
   Modal,
   PageHeader,
+  SearchInput,
   SegmentedControl,
   Select,
   Spinner,
@@ -218,41 +218,31 @@ export function ChallansPage() {
     return <ErrorMessage error={error} onRetry={refetch} />;
   }
 
-  const newDelivery = (
-    <Button onClick={handleCreateDelivery}>
-      <span className={`${styles.dot} ${styles.delivery}`} aria-hidden="true" />
-      New delivery <kbd className={`kbd-hint ${styles.hint}`}>{hint('D')}</kbd>
-    </Button>
-  );
-
   return (
     <div>
       <PageHeader
         title="Challans"
         actions={
           <>
-            {newDelivery}
-            <Button onClick={handleCreateReturn}>
-              <span className={`${styles.dot} ${styles.return}`} aria-hidden="true" />
-              New return <kbd className={`kbd-hint ${styles.hint}`}>{hint('R')}</kbd>
+            <Button dot="info" hint={hint('D')} onClick={handleCreateDelivery}>
+              New delivery
+            </Button>
+            <Button dot="warning" hint={hint('R')} onClick={handleCreateReturn}>
+              New return
             </Button>
           </>
         }
       />
 
       <FilterBar>
-        <div className="search-wrapper">
-          <Input
-            ref={searchRef}
-            type="search"
-            aria-label="Search challans"
-            placeholder="Search challan no. or party"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-          <kbd className="kbd-hint search-kbd">/</kbd>
-        </div>
+        <SearchInput
+          ref={searchRef}
+          label="Search challans"
+          hint="/"
+          placeholder="Search challan no. or party"
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+        />
         <SegmentedControl
           label="Type"
           options={TYPE_OPTIONS}
