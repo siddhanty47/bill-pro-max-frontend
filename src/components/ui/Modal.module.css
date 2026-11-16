@@ -65,6 +65,42 @@
   color: var(--text-heading);
 }
 
+.header .closeButton {
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal.formSize .body > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.header h2 {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  font-stretch: 108%;
+  letter-spacing: -0.01em;
+  color: var(--text-heading);
+}
+
 .closeButton {
   display: grid;
   place-items: center;
@@ -119,26 +155,40 @@
 }
 
 @media (max-width: 768px) {
+  .overlay {
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .modal,
   .modal.formSize {
+    inset: 0;
     min-width: 0;
     width: 100%;
     max-width: 100%;
+    height: 100vh;
+    height: 100dvh;
     max-height: 100vh;
     max-height: 100dvh;
     border-radius: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   .header {
-    padding: var(--space-3) var(--space-4);
+    padding: calc(var(--space-3) + env(safe-area-inset-top, 0px)) var(--space-4) var(--space-3);
   }
 
-  .closeButton {
+  .header .closeButton {
     width: 44px;
     height: 44px;
   }
 
   .body {
-    padding: var(--space-4);
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-4) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
   }
 }
 
