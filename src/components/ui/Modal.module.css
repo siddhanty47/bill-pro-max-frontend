@@ -65,65 +65,12 @@
   color: var(--text-heading);
 }
 
-.header .closeButton {
-  flex-shrink: 0;
-  border-radius: var(--radius-md);
-}
-
-.body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal.formSize .body > form {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-6);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.header h2 {
-  font-size: var(--text-lg);
-  font-weight: 700;
-  font-stretch: 108%;
-  letter-spacing: -0.01em;
-  color: var(--text-heading);
-}
-
+/* Size, radius, colours and the 44px mobile target come from IconButton. */
 .closeButton {
-  display: grid;
-  place-items: center;
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  background: none;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 22px;
-  line-height: 1;
-  cursor: pointer;
-  color: var(--text-secondary);
-  transition:
-    color var(--transition-fast),
-    background var(--transition-fast);
 }
 
-.closeButton:hover {
-  color: var(--text-heading);
-  background: var(--bg-hover);
-}
-
+/* Default (non-form) modals: plain block body, the modal itself scrolls. */
 .body {
   padding: var(--space-6);
 }
@@ -154,6 +101,7 @@
   color: var(--return-accent);
 }
 
+/* Full-screen sheet: header fixed at top, body scrolls. */
 @media (max-width: 768px) {
   .overlay {
     align-items: stretch;
@@ -162,7 +110,6 @@
 
   .modal,
   .modal.formSize {
-    inset: 0;
     min-width: 0;
     width: 100%;
     max-width: 100%;
@@ -177,11 +124,6 @@
 
   .header {
     padding: calc(var(--space-3) + env(safe-area-inset-top, 0px)) var(--space-4) var(--space-3);
-  }
-
-  .header .closeButton {
-    width: 44px;
-    height: 44px;
   }
 
   .body {

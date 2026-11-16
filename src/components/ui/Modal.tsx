@@ -34,7 +34,9 @@ export function Modal({ isOpen, onClose, title, children, variant, size = 'defau
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      // A nested widget (e.g. an open Menu) that already handled Escape calls
+      // preventDefault — then only that widget closes, not the modal.
+      if (e.key === 'Escape' && !e.defaultPrevented) onClose();
     };
 
     if (isOpen) {

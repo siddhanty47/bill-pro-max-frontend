@@ -5,13 +5,10 @@
   font-size: var(--text-sm);
 }
 
-/* The component renders text frames; hide them and draw a ring instead. */
-.spinner {
+.ring {
   width: 24px;
   height: 24px;
   margin: 0 auto var(--space-3);
-  font-size: 0;
-  color: transparent;
   border: 2px solid var(--border-default);
   border-top-color: var(--accent);
   border-radius: 50%;
@@ -21,5 +18,11 @@
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring {
+    animation: none;
   }
 }

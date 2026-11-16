@@ -140,6 +140,81 @@ describe('Menu', () => {
     expect(screen.getByRole('menu')).toHaveClass('alignStart');
   });
 
+  it('focuses the last item on ArrowUp when no item has focus', async () => {
+    const { user, trigger } = setup();
+    await user.click(trigger);
+    await user.pointer({ keys: '[MouseLeft]', target: screen.getByText('Signed in') });
+    expect(screen.getByRole('menu')).toHaveFocus();
+    await user.keyboard('{ArrowUp}');
+    expect(screen.getByRole('menuitem', { name: 'Sign out' })).toHaveFocus();
+  });
+
+  it('keeps focus in the menu after mousedown on a label so Escape still closes it', async () => {
+    const { user, trigger } = setup();
+    await user.click(trigger);
+    await user.pointer({ keys: '[MouseLeft]', target: screen.getByText('Signed in') });
+    expect(screen.getByRole('menu')).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it('focuses the menu itself when it has no enabled items', async () => {
+    const user = userEvent.setup();
+    render(
+      <Menu
+        trigger={props => (
+          <button type="button" {...props}>
+            Open
+          </button>
+        )}
+      >
+        <MenuLabel>Nothing here</MenuLabel>
+      </Menu>
+    );
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    expect(screen.getByRole('menu')).toHaveFocus();
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByRole('menu')).toHaveFocus();
+  });
+
+  it('puts className on the root wrapper and menuClassName plus native props on the panel', async () => {
+    const user = userEvent.setup();
+    render(
+      <Menu
+        className="slot"
+        menuClassName="panel"
+        aria-label="Account"
+        data-testid="panel"
+        trigger={props => (
+          <button type="button" {...props}>
+            Open
+          </button>
+        )}
+      >
+        <MenuItem>Profile</MenuItem>
+      </Menu>
+    );
+    const trigger = screen.getByRole('button', { name: 'Open' });
+    expect(trigger.parentElement).toHaveClass('root', 'slot');
+    expect(trigger.parentElement?.tagName).toBe('DIV');
+    await user.click(trigger);
+    const menu = screen.getByRole('menu', { name: 'Account' });
+    expect(menu).toHaveClass('menu', 'panel');
+    expect(menu).not.toHaveClass('slot');
+    expect(menu).toHaveAttribute('data-testid', 'panel');
+  });
+
+  it('prevents default on Escape so an enclosing Modal stays open', async () => {
+    const onModalKey = vi.fn();
+    const { user, trigger } = setup();
+    document.addEventListener('keydown', onModalKey);
+    await user.click(trigger);
+    await user.keyboard('{Escape}');
+    document.removeEventListener('keydown', onModalKey);
+    expect(onModalKey).toHaveBeenCalledWith(expect.objectContaining({ defaultPrevented: true }));
+  });
+
   it('renders label and divider with proper roles', async () => {
     const { user, trigger } = setup();
     await user.click(trigger);

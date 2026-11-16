@@ -53,7 +53,8 @@ export function TBody({ children }: { children: ReactNode }) {
 const INTERACTIVE = 'button, a, input, select, textarea, label';
 
 export type TrProps = Omit<HTMLAttributes<HTMLTableRowElement>, 'onClick'> & {
-  onClick?: (e: MouseEvent<HTMLTableRowElement>) => void;
+  /** Fires on row click and on Enter when the row itself is focused. */
+  onClick?: (e: MouseEvent<HTMLTableRowElement> | KeyboardEvent<HTMLTableRowElement>) => void;
 };
 
 export function Tr({ onClick, className, children, onKeyDown, ...rest }: TrProps) {
@@ -71,8 +72,7 @@ export function Tr({ onClick, className, children, onKeyDown, ...rest }: TrProps
   };
   const handleKeyDown = (e: KeyboardEvent<HTMLTableRowElement>) => {
     onKeyDown?.(e);
-    if (e.key === 'Enter' && e.target === e.currentTarget)
-      onClick(e as unknown as MouseEvent<HTMLTableRowElement>);
+    if (e.key === 'Enter' && e.target === e.currentTarget) onClick(e);
   };
   return (
     <tr

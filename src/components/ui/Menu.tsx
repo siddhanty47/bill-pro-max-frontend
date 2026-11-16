@@ -24,9 +24,15 @@ export type MenuTriggerProps = {
   ref: RefObject<HTMLButtonElement | null>;
 };
 
+/**
+ * `className` styles the root wrapper (trigger + panel) so callers can place it
+ * in a layout; `menuClassName` and every other native prop go to the
+ * `role="menu"` panel.
+ */
 export type MenuProps = {
   trigger: (props: MenuTriggerProps) => ReactNode;
   align?: 'start' | 'end';
+  menuClassName?: string;
   children?: ReactNode;
 } & Omit<HTMLAttributes<HTMLDivElement>, 'children'>;
 
@@ -39,11 +45,12 @@ export function Menu({
   align = 'end',
   children,
   className,
+  menuClassName,
   onKeyDown,
   ...rest
 }: MenuProps) {
   const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLSpanElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
@@ -55,7 +62,8 @@ export function Menu({
 
   useEffect(() => {
     if (!open) return;
-    menuRef.current?.querySelector<HTMLElement>(ITEM_SELECTOR)?.focus();
+    const first = menuRef.current?.querySelector<HTMLElement>(ITEM_SELECTOR);
+    (first ?? menuRef.current)?.focus();
     const onMouseDown = (e: globalThis.MouseEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
     };
@@ -80,7 +88,8 @@ export function Menu({
     const current = items.indexOf(document.activeElement as HTMLElement);
     let next: number;
     if (e.key === 'ArrowDown') next = (current + 1) % items.length;
-    else if (e.key === 'ArrowUp') next = (current - 1 + items.length) % items.length;
+    else if (e.key === 'ArrowUp')
+      next = current === -1 ? items.length - 1 : (current - 1 + items.length) % items.length;
     else if (e.key === 'Home') next = 0;
     else if (e.key === 'End') next = items.length - 1;
     else return;
@@ -89,7 +98,7 @@ export function Menu({
   };
 
   return (
-    <span className={styles.root} ref={rootRef}>
+    <div className={[styles.root, className].filter(Boolean).join(' ')} ref={rootRef}>
       {trigger({
         onClick: () => setOpen(o => !o),
         'aria-expanded': open,
@@ -104,10 +113,13 @@ export function Menu({
             id={menuId}
             role="menu"
             ref={menuRef}
+            // Focusable so a mousedown on padding, a label or a divider keeps
+            // focus inside the menu (Escape/arrows keep working).
+            tabIndex={-1}
             className={[
               styles.menu,
               align === 'end' ? styles.alignEnd : styles.alignStart,
-              className,
+              menuClassName,
             ]
               .filter(Boolean)
               .join(' ')}
@@ -117,7 +129,7 @@ export function Menu({
           </div>
         </MenuContext.Provider>
       )}
-    </span>
+    </div>
   );
 }
 

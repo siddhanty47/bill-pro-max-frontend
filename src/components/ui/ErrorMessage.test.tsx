@@ -19,7 +19,7 @@ describe('ErrorMessage', () => {
   it('calls onRetry from the retry button', async () => {
     const onRetry = vi.fn();
     render(<ErrorMessage error={new Error('x')} onRetry={onRetry} />);
-    await userEvent.click(screen.getByRole('button', { name: 'Try Again' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 

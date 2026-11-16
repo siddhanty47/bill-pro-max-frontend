@@ -1,13 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
-import { vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import { Spinner, LoadingSpinner } from './Spinner';
 import { LoadingSpinner as LoadingSpinnerShim } from '../LoadingSpinner';
 
 describe('Spinner', () => {
   it('shows the default message as a status', () => {
     render(<Spinner />);
-    expect(screen.getByRole('status')).toHaveTextContent('Loading...');
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…');
   });
 
   it('shows a custom message', () => {
@@ -15,14 +14,11 @@ describe('Spinner', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Fetching bills');
   });
 
-  it('keeps animating frames without changing the message', () => {
-    vi.useFakeTimers();
+  it('draws a decorative ring instead of text frames', () => {
     render(<Spinner />);
-    act(() => {
-      vi.advanceTimersByTime(300);
-    });
-    expect(screen.getByRole('status')).toHaveTextContent('Loading...');
-    vi.useRealTimers();
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent(/^Loading…$/);
+    expect(status.querySelector('.ring')).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('keeps the LoadingSpinner alias and legacy path', () => {

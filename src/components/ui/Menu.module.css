@@ -1,6 +1,7 @@
 .root {
   position: relative;
   display: inline-flex;
+  min-width: 0;
 }
 
 .menu {
@@ -18,6 +19,10 @@
   box-shadow: var(--shadow-pop);
   transform-origin: top right;
   animation: menuIn 120ms var(--ease-out) backwards;
+}
+
+.menu:focus {
+  outline: none;
 }
 
 .alignEnd {
@@ -85,6 +90,32 @@
 @media (max-width: 768px) {
   .item {
     min-height: 44px;
+  }
+}
+
+/*
+ * Narrow phones: pin the panel to the viewport edges so it can never cause
+ * horizontal scroll. top/bottom stay auto, so the fixed panel keeps its static
+ * position. As an inline-block root, that static position is the line below
+ * the trigger (an abspos child of a flex root would sit at the root's top
+ * edge instead, covering the trigger).
+ */
+@media (max-width: 480px) {
+  .root {
+    display: inline-block;
+  }
+
+  .menu,
+  .alignEnd,
+  .alignStart {
+    position: fixed;
+    top: auto;
+    right: 16px;
+    left: 16px;
+    min-width: 0;
+    max-width: none;
+    margin-top: 6px;
+    transform-origin: top center;
   }
 }
 

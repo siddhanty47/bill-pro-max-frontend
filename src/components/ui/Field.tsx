@@ -22,7 +22,13 @@ export type FieldProps = {
   htmlFor?: string;
 } & Omit<HTMLAttributes<HTMLDivElement>, 'children'> & { children: ReactNode };
 
-type ControlProps = { id?: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean | 'true' };
+type ControlProps = {
+  id?: string;
+  required?: boolean;
+  'aria-describedby'?: string;
+  'aria-invalid'?: boolean | 'true';
+  'aria-required'?: boolean | 'true';
+};
 
 function isControl(node: unknown): node is ReactElement<ControlProps> {
   if (!isValidElement(node)) return false;
@@ -63,6 +69,7 @@ export function Field({
       id: control.props.id ?? id,
       'aria-describedby': describedBy,
       ...(error ? { 'aria-invalid': 'true' as const } : {}),
+      ...(required ? { required: true, 'aria-required': 'true' as const } : {}),
     });
   }
 

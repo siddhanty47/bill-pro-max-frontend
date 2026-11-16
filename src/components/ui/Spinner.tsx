@@ -1,26 +1,12 @@
 /**
- * Loading spinner component — terminal-style text animation
+ * Loading indicator — an accent ring (CSS-only animation) plus a status message.
  */
-import { useState, useEffect } from 'react';
 import styles from './Spinner.module.css';
 
-const FRAMES = ['|', '/', '-', '\\'];
-
-export function Spinner({ message = 'Loading...' }: { message?: string }) {
-  const [frame, setFrame] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setFrame(f => (f + 1) % FRAMES.length);
-    }, 150);
-    return () => clearInterval(id);
-  }, []);
-
+export function Spinner({ message = 'Loading…' }: { message?: string }) {
   return (
     <div className={styles.container} role="status">
-      <div className={styles.spinner} aria-hidden="true">
-        {FRAMES[frame]}
-      </div>
+      <div className={styles.ring} aria-hidden="true" />
       <p>{message}</p>
     </div>
   );

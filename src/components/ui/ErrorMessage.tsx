@@ -17,8 +17,8 @@ export function ErrorMessage({ error, onRetry }: ErrorMessageProps) {
     <div className={styles.errorBox} role="alert">
       <p>{message}</p>
       {onRetry && (
-        <Button variant="secondary" onClick={onRetry}>
-          Try Again
+        <Button variant="secondary" onClick={onRetry} className={styles.retry}>
+          Try again
         </Button>
       )}
     </div>

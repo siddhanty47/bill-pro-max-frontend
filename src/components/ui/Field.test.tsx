@@ -118,6 +118,28 @@ describe('Field wiring', () => {
     expect(screen.getByText('*', { exact: false })).toHaveAttribute('aria-hidden', 'true');
   });
 
+  it('marks the auto-wired control as required', () => {
+    render(
+      <Field label="Name" required>
+        <Input />
+      </Field>
+    );
+    const input = screen.getByLabelText(/^Name/);
+    expect(input).toBeRequired();
+    expect(input).toHaveAttribute('aria-required', 'true');
+  });
+
+  it('leaves the control optional without required', () => {
+    render(
+      <Field label="Nickname">
+        <Input />
+      </Field>
+    );
+    const input = screen.getByLabelText('Nickname');
+    expect(input).not.toBeRequired();
+    expect(input).not.toHaveAttribute('aria-required');
+  });
+
   it('labels a Checkbox through Field', () => {
     render(
       <Field label="Options">

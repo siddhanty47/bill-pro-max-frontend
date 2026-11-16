@@ -46,6 +46,23 @@ describe('Modal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('ignores an Escape a nested widget already handled', async () => {
+    const onClose = vi.fn();
+    render(
+      <Modal isOpen onClose={onClose} title="Edit party">
+        <input
+          aria-label="Search"
+          onKeyDown={e => {
+            if (e.key === 'Escape') e.preventDefault();
+          }}
+        />
+      </Modal>
+    );
+    await userEvent.click(screen.getByLabelText('Search'));
+    await userEvent.keyboard('{Escape}');
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('closes on overlay click but not on dialog click', async () => {
     const onClose = vi.fn();
     render(

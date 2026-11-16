@@ -1,19 +1,28 @@
 export type Tone = 'success' | 'info' | 'warning' | 'danger' | 'neutral';
 
+/** Unlisted statuses (draft, expired, inactive, …) are neutral. */
 const TONES: Record<string, Tone> = {
   paid: 'success',
   active: 'success',
   confirmed: 'success',
   completed: 'success',
+  accepted: 'success',
+  present: 'success',
   sent: 'info',
   delivery: 'info',
   partial: 'warning',
   pending: 'warning',
   return: 'warning',
+  'half-day': 'warning',
+  leave: 'warning',
   overdue: 'danger',
   failed: 'danger',
   cancelled: 'danger',
   terminated: 'danger',
+  declined: 'danger',
+  absent: 'danger',
+  revoked: 'danger',
+  suspended: 'danger',
 };
 
 export function statusTone(status: string | undefined): Tone {
