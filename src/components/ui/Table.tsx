@@ -1,21 +1,37 @@
-import type { KeyboardEvent, ReactNode } from 'react';
+import type {
+  KeyboardEvent,
+  MouseEvent,
+  ReactNode,
+  TdHTMLAttributes,
+  ThHTMLAttributes,
+  HTMLAttributes,
+} from 'react';
 import styles from './Table.module.css';
 
-export type CellProps = {
-  align?: 'left' | 'right';
+type CellExtras = {
+  align?: 'left' | 'right' | 'center';
   mono?: boolean;
   hideOnMobile?: boolean;
-  children?: ReactNode;
 };
 
-function cellClass({ align = 'left', mono, hideOnMobile }: Omit<CellProps, 'children'>) {
-  return [
-    align === 'right' ? styles.right : '',
-    mono ? styles.mono : '',
-    hideOnMobile ? styles.hideOnMobile : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
+export type ThProps = CellExtras & Omit<ThHTMLAttributes<HTMLTableCellElement>, 'align'>;
+export type TdProps = CellExtras & Omit<TdHTMLAttributes<HTMLTableCellElement>, 'align'>;
+
+function cellClass(
+  { align = 'left', mono, hideOnMobile }: CellExtras,
+  className: string | undefined
+) {
+  return (
+    [
+      align === 'right' ? styles.right : '',
+      align === 'center' ? styles.center : '',
+      mono ? styles.mono : '',
+      hideOnMobile ? styles.hideOnMobile : '',
+      className ?? '',
+    ]
+      .filter(Boolean)
+      .join(' ') || undefined
+  );
 }
 
 export function Table({ children, className }: { children: ReactNode; className?: string }) {
@@ -34,22 +50,55 @@ export function TBody({ children }: { children: ReactNode }) {
   return <tbody>{children}</tbody>;
 }
 
-export function Tr({ onClick, children }: { onClick?: () => void; children: ReactNode }) {
-  if (!onClick) return <tr>{children}</tr>;
+const INTERACTIVE = 'button, a, input, select, textarea, label';
+
+export type TrProps = Omit<HTMLAttributes<HTMLTableRowElement>, 'onClick'> & {
+  onClick?: (e: MouseEvent<HTMLTableRowElement>) => void;
+};
+
+export function Tr({ onClick, className, children, onKeyDown, ...rest }: TrProps) {
+  if (!onClick) {
+    return (
+      <tr className={className} onKeyDown={onKeyDown} {...rest}>
+        {children}
+      </tr>
+    );
+  }
+  const handleClick = (e: MouseEvent<HTMLTableRowElement>) => {
+    const hit = (e.target as Element).closest(INTERACTIVE);
+    if (hit && e.currentTarget.contains(hit)) return;
+    onClick(e);
+  };
   const handleKeyDown = (e: KeyboardEvent<HTMLTableRowElement>) => {
-    if (e.key === 'Enter' && e.target === e.currentTarget) onClick();
+    onKeyDown?.(e);
+    if (e.key === 'Enter' && e.target === e.currentTarget)
+      onClick(e as unknown as MouseEvent<HTMLTableRowElement>);
   };
   return (
-    <tr className={styles.clickable} tabIndex={0} onClick={onClick} onKeyDown={handleKeyDown}>
+    <tr
+      tabIndex={0}
+      {...rest}
+      className={[styles.clickable, className ?? ''].filter(Boolean).join(' ')}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+    >
       {children}
     </tr>
   );
 }
 
-export function Th({ children, ...rest }: CellProps) {
-  return <th className={cellClass(rest) || undefined}>{children}</th>;
+export function Th({ align, mono, hideOnMobile, className, children, ...rest }: ThProps) {
+  return (
+    <th {...rest} className={cellClass({ align, mono, hideOnMobile }, className)}>
+      {children}
+    </th>
+  );
 }
 
-export function Td({ children, ...rest }: CellProps) {
-  return <td className={cellClass(rest) || undefined}>{children}</td>;
+export function Td({ align, mono, hideOnMobile, className, children, ...rest }: TdProps) {
+  return (
+    <td {...rest} className={cellClass({ align, mono, hideOnMobile }, className)}>
+      {children}
+    </td>
+  );
 }

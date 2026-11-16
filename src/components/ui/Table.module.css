@@ -53,6 +53,10 @@
   text-align: right;
 }
 
+.table .center {
+  text-align: center;
+}
+
 .table .mono {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -66,8 +70,8 @@
     padding: 12px 14px;
   }
 
-  .clickable {
-    min-height: 44px;
+  .clickable td {
+    height: 44px;
   }
 
   .table .hideOnMobile {
