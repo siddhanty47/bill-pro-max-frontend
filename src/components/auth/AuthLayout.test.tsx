@@ -33,6 +33,11 @@ describe('AuthLayout', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
+  it('renders with only a title', () => {
+    render(<AuthLayout title="Done. Redirecting…" />);
+    expect(screen.getByRole('heading', { name: 'Done. Redirecting…' })).toBeInTheDocument();
+  });
+
   it('hides the art from assistive tech', () => {
     const { container } = render(
       <AuthLayout title="Sign in">

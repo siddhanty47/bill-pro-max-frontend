@@ -4,13 +4,15 @@ import { Icon, type IconName } from './Icon';
 import styles from './Button.module.css';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
-export type ButtonSize = 'sm' | 'md';
+export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export type ButtonProps = {
   variant?: ButtonVariant;
   size?: ButtonSize;
   icon?: IconName;
   loading?: boolean;
+  /** At ≤768 the label is visually hidden (kept in the accessible name) and the button becomes a 44px icon square. Needs `icon`. */
+  collapseLabel?: boolean;
   to?: string;
   href?: string;
   className?: string;
@@ -22,6 +24,7 @@ export function Button({
   size = 'md',
   icon,
   loading = false,
+  collapseLabel = false,
   to,
   href,
   className,
@@ -35,6 +38,7 @@ export function Button({
     styles.btn,
     styles[variant],
     styles[size],
+    collapseLabel ? styles.collapse : '',
     loading ? styles.loading : '',
     inert ? styles.inert : '',
     className ?? '',
@@ -47,7 +51,7 @@ export function Button({
       {loading && <span className={styles.spinner} aria-hidden="true" />}
       <span className={loading ? `${styles.content} ${styles.contentHidden}` : styles.content}>
         {icon && <Icon name={icon} size={size === 'sm' ? 14 : 16} />}
-        {children}
+        {collapseLabel ? <span className={styles.collapsibleLabel}>{children}</span> : children}
       </span>
     </>
   );

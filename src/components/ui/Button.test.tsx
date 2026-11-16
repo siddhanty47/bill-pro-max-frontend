@@ -144,4 +144,40 @@ describe('Button', () => {
     await userEvent.click(link, { pointerEventsCheck: 0 });
     expect(onClick).not.toHaveBeenCalled();
   });
+
+  it('collapseLabel keeps the label in the accessible name', () => {
+    const { container } = render(
+      <Button icon="chat" collapseLabel>
+        Ask
+      </Button>
+    );
+    const button = screen.getByRole('button', { name: 'Ask' });
+    expect(button).toHaveClass('collapse');
+    expect(screen.getByText('Ask')).toHaveClass('collapsibleLabel');
+    expect(container.querySelector('svg')).toBeInTheDocument();
+  });
+
+  it('renders the label bare without collapseLabel', () => {
+    const { container } = render(<Button icon="chat">Ask</Button>);
+    expect(screen.getByRole('button', { name: 'Ask' })).not.toHaveClass('collapse');
+    expect(container.querySelector('.collapsibleLabel')).toBeNull();
+  });
+
+  it('applies the lg size class', () => {
+    render(<Button size="lg">Sign in</Button>);
+    expect(screen.getByRole('button', { name: 'Sign in' })).toHaveClass('lg');
+  });
+
+  it.each(['primary', 'secondary', 'ghost', 'danger'] as const)(
+    'exposes aria-pressed on a %s toggle',
+    variant => {
+      render(
+        <Button variant={variant} aria-pressed>
+          Toggle
+        </Button>
+      );
+      const button = screen.getByRole('button', { name: 'Toggle', pressed: true });
+      expect(button).toHaveClass(variant);
+    }
+  );
 });

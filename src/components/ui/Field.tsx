@@ -20,6 +20,8 @@ export type FieldProps = {
   error?: ReactNode;
   required?: boolean;
   htmlFor?: string;
+  /** Rendered right-aligned on the label row, outside the <label> (e.g. a "Forgot?" link). */
+  labelAction?: ReactNode;
 } & Omit<HTMLAttributes<HTMLDivElement>, 'children'> & { children: ReactNode };
 
 type ControlProps = {
@@ -50,6 +52,7 @@ export function Field({
   error,
   required,
   htmlFor,
+  labelAction,
   className,
   children,
   ...rest
@@ -73,17 +76,28 @@ export function Field({
     });
   }
 
+  const labelEl = (
+    <label htmlFor={id} className={styles.label}>
+      {label}
+      {required && (
+        <span className={styles.required} aria-hidden="true">
+          {' '}
+          *
+        </span>
+      )}
+    </label>
+  );
+
   return (
     <div className={[styles.field, className ?? ''].filter(Boolean).join(' ')} {...rest}>
-      <label htmlFor={id} className={styles.label}>
-        {label}
-        {required && (
-          <span className={styles.required} aria-hidden="true">
-            {' '}
-            *
-          </span>
-        )}
-      </label>
+      {labelAction ? (
+        <div className={styles.labelRow}>
+          {labelEl}
+          <span className={styles.labelAction}>{labelAction}</span>
+        </div>
+      ) : (
+        labelEl
+      )}
       {content}
       {hint && (
         <span id={hintId} className={styles.hint}>
@@ -99,22 +113,27 @@ export function Field({
   );
 }
 
-type ControlExtras = { mono?: boolean; invalid?: boolean };
+/** `lg`: 44px tall, 15px text (auth forms). Replaces the native numeric `size` attribute. */
+export type ControlSize = 'md' | 'lg';
 
-function controlClass(className: string | undefined, mono?: boolean) {
-  return [styles.control, mono ? styles.mono : '', className ?? ''].filter(Boolean).join(' ');
+type ControlExtras = { mono?: boolean; invalid?: boolean; size?: ControlSize };
+
+function controlClass(className: string | undefined, mono?: boolean, size?: ControlSize) {
+  return [styles.control, mono ? styles.mono : '', size === 'lg' ? styles.lg : '', className ?? '']
+    .filter(Boolean)
+    .join(' ');
 }
 
-export type InputProps = InputHTMLAttributes<HTMLInputElement> & ControlExtras;
+export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & ControlExtras;
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { mono, invalid, className, ...rest },
+  { mono, invalid, size, className, ...rest },
   ref
 ) {
   const boxless = rest.type === 'checkbox' || rest.type === 'radio';
   const base = boxless
     ? [styles.check, className ?? ''].filter(Boolean).join(' ')
-    : controlClass(className, mono);
+    : controlClass(className, mono, size);
   return <input ref={ref} className={base} aria-invalid={invalid || undefined} {...rest} />;
 });
 
@@ -147,23 +166,24 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
   );
 });
 
-export type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & ControlExtras;
+export type SelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> & ControlExtras;
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
-  { mono, invalid, className, ...rest },
+  { mono, invalid, size, className, ...rest },
   ref
 ) {
   return (
     <select
       ref={ref}
-      className={controlClass(className, mono)}
+      className={controlClass(className, mono, size)}
       aria-invalid={invalid || undefined}
       {...rest}
     />
   );
 });
 
-export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & ControlExtras;
+export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> &
+  Omit<ControlExtras, 'size'>;
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
   { mono, invalid, className, ...rest },

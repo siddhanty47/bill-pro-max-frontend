@@ -5,7 +5,7 @@ import styles from './AuthLayout.module.css';
 
 interface AuthLayoutProps {
   title: string;
-  children: ReactNode;
+  children?: ReactNode;
   footer?: ReactNode;
 }
 

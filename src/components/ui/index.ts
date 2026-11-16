@@ -6,6 +6,8 @@ export { Button, type ButtonProps, type ButtonVariant, type ButtonSize } from '.
 export { IconButton, type IconButtonProps } from './IconButton';
 export { Icon, type IconName, type IconProps } from './Icon';
 export { GoogleIcon, type GoogleIconProps } from './GoogleIcon';
+export { Avatar, type AvatarProps } from './Avatar';
+export { Notice, type NoticeProps, type NoticeTone } from './Notice';
 export { Card, type CardProps } from './Card';
 export { StatCard, type StatCardProps } from './StatCard';
 export { Meter, type MeterSegment, type MeterTone } from './Meter';
@@ -28,6 +30,7 @@ export {
   type TextareaProps,
   type CheckboxProps,
   type FieldsetProps,
+  type ControlSize,
 } from './Field';
 export { FilterBar, type FilterBarProps } from './FilterBar';
 export {

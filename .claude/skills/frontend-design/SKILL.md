@@ -38,7 +38,7 @@ The landing page (billpromax.com), "calm workspace" variant: near-black surfaces
 
 **Fonts:** `--font-display` (Archivo, titles) · `--font-sans` (Inter, everything else) · `--font-mono` (JetBrains Mono, numbers). `--font-body` / `--font-heading` are migration aliases, removed in the last stage — don't use them in new code.
 
-**Type scale:** `--text-xs 12` · `--text-sm 13` (labels) · `--text-base 14` (body) · `--text-md 16` (card titles) · `--text-lg 20` · `--text-xl 28` · `--text-2xl 36` (page title).
+**Type scale:** `--text-xs 12` · `--text-sm 13` (labels) · `--text-base 14` (body) · `--text-md 16` (card titles) · `--text-lg 20` · `--text-xl 28` · `--text-2xl 36` (page title) · `--text-ui-lg 15` (large controls only: `size="lg"` buttons and inputs).
 
 **Space:** `--space-1 4` · `-2 8` · `-3 12` · `-4 16` · `-5 20` · `-6 24` · `-8 32` · `-10 40` · `-14 56`.
 
@@ -58,12 +58,17 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
 
 ### Actions
 
-- **`Button`** — every text button and button-styled link. `variant`: `'primary' | 'secondary' | 'ghost' | 'danger'` (default `secondary`) · `size`: `'sm' | 'md'` · `icon?: IconName` (leading) · `loading?` (disables, shows a spinner, keeps width and accessible name, sets `aria-busy`) · `to?` (renders a router `Link`) · `href?` (renders `<a>`) · native button props. Default `type="button"`; pass `type="submit"` in forms. `disabled`/`loading` links are inert (`aria-disabled`, `tabIndex -1`, click prevented). One primary per view.
+- **`Button`** — every text button and button-styled link. `variant`: `'primary' | 'secondary' | 'ghost' | 'danger'` (default `secondary`) · `size`: `'sm' | 'md' | 'lg'` (`lg` = 44px / `--text-ui-lg` 15px, auth forms only) · `icon?: IconName` (leading) · `loading?` (disables, shows a spinner, keeps width and accessible name, sets `aria-busy`) · `collapseLabel?` (with `icon`: at ≤768 the label is visually hidden but stays the accessible name, and the button becomes a 44px square — e.g. the header "Ask") · `to?` (renders a router `Link`) · `href?` (renders `<a>`) · native button props. Default `type="button"`; pass `type="submit"` in forms. `disabled`/`loading` links are inert (`aria-disabled`, `tabIndex -1`, click prevented). One primary per view.
+  - Toggle buttons: pass `aria-pressed`. Pressed reads as accent in every variant (secondary: accent-muted fill + accent border/text; ghost: `--bg-elevated` + accent text; primary: `--accent-hover`). Never restyle the pressed state from a page.
   ```tsx
   <Button variant="primary" type="submit" loading={isSaving}>Save bill</Button>
   <Button icon="plus" to="/challans/new">New challan</Button>
   ```
-- **`IconButton`** — icon-only buttons. `label` (required → `aria-label`) · `icon: IconName` · `badge?: boolean` (accent dot) · native button props. 44px at ≤768.
+- **`IconButton`** — icon-only buttons. `label` (required → `aria-label`) · `icon: IconName` **or** `children` (a non-interactive glyph such as an `Avatar`, e.g. the account menu trigger) · `badge?: boolean` (accent dot) · native button props. 36px, 44px at ≤768.
+- **`Avatar`** — initials badge. `initials` · `size?: 'sm' | 'md'` (24 / 32px, default `md`) · `variant?: 'person' | 'business'` (`person` = round neutral, default; `business` = 6px-radius accent-muted letter badge) · `className?`. A non-interactive `aria-hidden` span: put it inside an `IconButton` or `Button`, which owns the accessible name and the 44px tap area.
+  ```tsx
+  <Menu trigger={p => <IconButton label="Account" {...p}><Avatar initials="SY" /></IconButton>}>…</Menu>
+  ```
 - **`Icon`** — `name: IconName` · `size?` (default 16) · `className?`. Always `aria-hidden`; put the accessible name on the control. Names: `dashboard inventory parties agreements challans bills payments team search bell chat chevron-down plus close menu arrow-right rupee settings logout brand`.
 - **`GoogleIcon`** — Google's multi-colour logo for sign-in buttons only. `size?` (default 18) · `className?`. The only file allowed literal colours (token-check allowlist).
 
@@ -78,6 +83,7 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
 - **`Modal`** — `isOpen` · `onClose` · `title` · `children` · `size?: 'default' | 'form'` (wider, for forms) · `variant?: 'delivery' | 'return'` (challan flows only; coloured top edge). Autofocuses the first field; Escape and overlay click close (an Escape a nested widget already handled with `preventDefault`, e.g. an open `Menu`, is ignored); full-screen with safe-area padding at ≤768. Never build an ad-hoc overlay.
 - **`Spinner`** (alias `LoadingSpinner`) — `message?` (default "Loading…"). Accent ring + message in a `role="status"` region; static under reduced motion. Page/panel loading.
 - **`ErrorMessage`** — `error: unknown` (run through `getErrorMessage`) · `onRetry?`. Load/API errors.
+- **`Notice`** — inline message inside a form or panel. `tone: 'success' | 'info' | 'warning' | 'danger'` · `title?` · `children` · `className?` (placement). `danger` renders `role="alert"`, the others `role="status"`. Use it for a failed submit ("Invalid login credentials") or a confirmation ("Reset link sent"); never the legacy `.error-message` class or a bare `<p role="status">`. Page load failures with retry stay `ErrorMessage`.
 
 ### Data
 
@@ -89,11 +95,11 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
 
 ### Forms
 
-- **`Field`** — label + control + hint + error. `label` · `hint?` · `error?` · `required?` · `htmlFor?` · div props. 
+- **`Field`** — label + control + hint + error. `label` · `hint?` · `error?` · `required?` · `htmlFor?` · `labelAction?: ReactNode` (right-aligned on the label row, outside the `<label>`, e.g. a "Forgot?" link; links in it are styled by the kit) · div props. 
   - Auto-wiring: when its **single child** is `Input`, `Select`, `Textarea`, `Checkbox` or a native `input/select/textarea`, Field gives it an id (keeps an existing one), links the label, and sets `aria-describedby` (hint + error). For wrapper children (an input + button row, a custom autocomplete) pass `htmlFor` and put that id on the inner input yourself.
   - Pass the message as `error` on Field once; it renders a `role="alert"` line and sets `aria-invalid` on an auto-wired child. Don't also pass `invalid` or render your own error text.
   - Use the `required` prop (adds an `aria-hidden` marker and sets `required` + `aria-required="true"` on the auto-wired control). Never write a literal `*` in label text.
-- **`Input`, `Select`, `Textarea`** — `forwardRef` (work with `register()`), native props plus `mono?` (numeric/amount/code inputs) and `invalid?` (only when not inside a `Field` with `error`). 44px / 16px font at ≤768.
+- **`Input`, `Select`, `Textarea`** — `forwardRef` (work with `register()`), native props plus `mono?` (numeric/amount/code inputs) and `invalid?` (only when not inside a `Field` with `error`). `Input`/`Select` also take `size?: 'md' | 'lg'` (`lg` = 44px / 15px, auth forms; replaces the native numeric `size` attribute). 44px / 16px font at ≤768.
 - **`Checkbox`** — `label?` + native input props (forwardRef). Use it bare: `<Checkbox label="Include GST" {...register('gst')} />`, not inside `Field`. Several related checkboxes → group them in a `Fieldset`.
 - **`Fieldset`** — `legend` + native fieldset props. Titled group of fields or checkboxes; looks the same as legacy `.form-fieldset` (card background, 12px radius, muted legend).
 - **`FilterBar`** — wrapping row above a list for search and filter controls (children stack full width at ≤480). Div props.

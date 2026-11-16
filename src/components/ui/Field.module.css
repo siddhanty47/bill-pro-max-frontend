@@ -11,6 +11,32 @@
   color: var(--text-primary);
 }
 
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.labelAction {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* Explicit colours: globals' a:hover would otherwise win. */
+.labelAction a,
+.labelAction a:hover {
+  text-decoration: none;
+}
+
+.labelAction a {
+  color: var(--text-secondary);
+}
+
+.labelAction a:hover {
+  color: var(--accent);
+}
+
 .hint {
   font-size: var(--text-xs);
   color: var(--text-muted);
@@ -34,6 +60,11 @@
   transition:
     border-color var(--transition-fast),
     box-shadow var(--transition-fast);
+}
+
+.lg {
+  height: 44px;
+  font-size: var(--text-ui-lg);
 }
 
 .control::placeholder {

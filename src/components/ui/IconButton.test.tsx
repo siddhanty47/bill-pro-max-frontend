@@ -25,4 +25,16 @@ describe('IconButton', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
     expect(onClick).toHaveBeenCalledTimes(1);
   });
+
+  it('renders children in place of an icon', () => {
+    const { container } = render(
+      <IconButton label="Account">
+        <span data-testid="glyph">SY</span>
+      </IconButton>
+    );
+    expect(screen.getByRole('button', { name: 'Account' })).toContainElement(
+      screen.getByTestId('glyph')
+    );
+    expect(container.querySelector('svg')).toBeNull();
+  });
 });

@@ -97,6 +97,8 @@
   --text-lg: 20px;
   --text-xl: 28px;
   --text-2xl: 36px;
+  /* Large controls (size="lg" buttons and inputs, e.g. auth forms) */
+  --text-ui-lg: 15px;
 
   /* Space */
   --space-1: 4px;
