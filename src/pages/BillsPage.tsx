@@ -18,17 +18,29 @@ import {
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetAgreementsQuery } from '../api/agreementApi';
 import { useBillGenerationProgress } from '../hooks/useBillGenerationProgress';
-import { DataTable } from '../components/DataTable';
-import { Modal } from '../components/Modal';
-import { LoadingSpinner } from '../components/LoadingSpinner';
-import { ErrorMessage } from '../components/ErrorMessage';
+import {
+  Button,
+  Card,
+  DataTable,
+  DocNumber,
+  EmptyState,
+  ErrorMessage,
+  FilterBar,
+  Modal,
+  PageHeader,
+  SearchInput,
+  Select,
+  Spinner,
+  StatusChip,
+  type Column,
+} from '../components/ui';
 import { BillForm } from '../components/forms/BillForm';
 import { BulkBillForm } from '../components/forms/BulkBillForm';
 import { BulkBillProgress } from '../components/BulkBillProgress';
 import { getErrorMessage } from '../api/baseApi';
+import { formatDate, formatMoney } from '../utils/format';
 import type { Bill, GenerateBillInput, BulkGenerateBillInput } from '../types';
-
-type TableItem = Record<string, unknown>;
+import styles from './BillsPage.module.css';
 
 export function BillsPage() {
   const { currentBusinessId } = useCurrentBusiness();
@@ -179,127 +191,91 @@ export function BillsPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const columns = [
-    { key: 'billNumber', header: 'Bill #' },
+  const billDateOf = (bill: Bill) => bill.billDate ?? bill.billingPeriod?.end ?? bill.createdAt;
+  const periodOf = (bill: Bill) =>
+    `${formatDate(bill.billingPeriod.start)} – ${formatDate(bill.billingPeriod.end)}`;
+
+  const statusCell = (bill: Bill) => (
+    <span className={styles.status}>
+      <StatusChip status={bill.status} />
+      {bill.isStale && (
+        <span title="Stale — underlying challan data changed">
+          <StatusChip status="stale" tone="warning">
+            Stale
+          </StatusChip>
+        </span>
+      )}
+    </span>
+  );
+
+  const actionButtons = (bill: Bill) => (
+    <>
+      <Button
+        size="sm"
+        title="Download invoice PDF"
+        disabled={isDownloading}
+        onClick={() => handleDownloadPdf(bill)}
+      >
+        Download
+      </Button>
+      {bill.status === 'draft' && (
+        <Button size="sm" variant="primary" onClick={() => handleSendEmail(bill)}>
+          Send
+        </Button>
+      )}
+      {(bill.status === 'sent' || bill.status === 'partial') && (
+        <Button size="sm" onClick={() => handleStatusChange(bill, 'paid')}>
+          Mark paid
+        </Button>
+      )}
+      <Button
+        size="sm"
+        variant="danger"
+        onClick={() => handleDelete(bill)}
+        title={
+          bill.status === 'draft' || bill.status === 'cancelled'
+            ? 'Delete bill'
+            : 'Force delete (bill has payments/status)'
+        }
+      >
+        Delete
+      </Button>
+    </>
+  );
+
+  const columns: Column<Bill>[] = [
+    {
+      key: 'billNumber',
+      header: 'Bill',
+      render: bill => <DocNumber value={bill.billNumber} to={`/bills/${bill._id}`} />,
+    },
     {
       key: 'billDate',
-      header: 'Bill Date',
-      render: (row: TableItem) => {
-        const bill = row as unknown as Bill;
-        const date = bill.billDate ?? bill.billingPeriod?.end ?? bill.createdAt;
-        return date ? new Date(date).toLocaleDateString() : '-';
+      header: 'Date',
+      render: bill => {
+        const date = billDateOf(bill);
+        return date ? formatDate(date) : '—';
       },
     },
-    {
-      key: 'partyId',
-      header: 'Party',
-      render: (row: TableItem) => {
-        const bill = row as unknown as Bill;
-        return getPartyName(bill.partyId);
-      },
-    },
-    {
-      key: 'billingPeriod',
-      header: 'Period',
-      render: (row: TableItem) => {
-        const bill = row as unknown as Bill;
-        return `${new Date(bill.billingPeriod.start).toLocaleDateString()} - ${new Date(bill.billingPeriod.end).toLocaleDateString()}`;
-      },
-    },
+    { key: 'partyId', header: 'Party', render: bill => getPartyName(bill.partyId) },
+    { key: 'billingPeriod', header: 'Period', hideOnMobile: true, render: periodOf },
     {
       key: 'totalAmount',
       header: 'Amount',
-      render: (row: TableItem) => {
-        const bill = row as unknown as Bill;
-        return `₹${bill.totalAmount.toLocaleString()}`;
-      },
+      mono: true,
+      align: 'right',
+      render: bill => formatMoney(bill.totalAmount),
     },
     {
       key: 'amountPaid',
       header: 'Paid',
-      render: (row: TableItem) => {
-        const bill = row as unknown as Bill;
-        return `₹${bill.amountPaid.toLocaleString()}`;
-      },
+      mono: true,
+      align: 'right',
+      hideOnMobile: true,
+      render: bill => formatMoney(bill.amountPaid),
     },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row: TableItem) => {
-        const bill = row as unknown as Bill;
-        return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <span className={`status status-${bill.status}`}>{bill.status}</span>
-            {bill.isStale && (
-              <span title="Stale — underlying challan data changed" className="badge-warning">
-                &#9888; Stale
-              </span>
-            )}
-          </span>
-        );
-      },
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      render: (row: TableItem) => {
-        const bill = row as unknown as Bill;
-        return (
-          <div className="action-buttons" onClick={e => e.stopPropagation()}>
-            <button
-              className="btn btn-sm btn-secondary"
-              onClick={e => {
-                e.stopPropagation();
-                handleDownloadPdf(bill);
-              }}
-              title="Download invoice PDF"
-              disabled={isDownloading}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="icon-inline"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Download
-            </button>
-            {bill.status === 'draft' && (
-              <button className="btn btn-sm btn-primary" onClick={() => handleSendEmail(bill)}>
-                Send
-              </button>
-            )}
-            {(bill.status === 'sent' || bill.status === 'partial') && (
-              <button
-                className="btn btn-sm btn-secondary"
-                onClick={() => handleStatusChange(bill, 'paid')}
-              >
-                Mark Paid
-              </button>
-            )}
-            <button
-              className="btn btn-sm btn-danger"
-              onClick={() => handleDelete(bill)}
-              title={
-                bill.status === 'draft' || bill.status === 'cancelled'
-                  ? 'Delete bill'
-                  : 'Force delete (bill has payments/status)'
-              }
-            >
-              Delete
-            </button>
-          </div>
-        );
-      },
-    },
+    { key: 'status', header: 'Status', render: statusCell },
+    { key: 'actions', header: 'Actions', render: actionButtons },
   ];
 
   if (!currentBusinessId) {
@@ -307,7 +283,7 @@ export function BillsPage() {
   }
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading bills..." />;
+    return <Spinner message="Loading bills…" />;
   }
 
   if (error) {
@@ -316,55 +292,91 @@ export function BillsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Bills</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-secondary" onClick={handleBulkGenerate}>
-            Bulk Generate
-          </button>
-          <button className="btn btn-primary" onClick={handleGenerate}>
-            + Generate Bill <kbd className="kbd-hint">{modLabel}+N</kbd>
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Bills"
+        actions={
+          <>
+            <Button onClick={handleBulkGenerate}>Bulk generate</Button>
+            <Button variant="primary" icon="plus" hint={`${modLabel}+N`} onClick={handleGenerate}>
+              Generate bill
+            </Button>
+          </>
+        }
+      />
 
       <BulkBillProgress batches={batches} onDismiss={dismissBatch} />
 
-      <div className="filters">
-        <div className="search-wrapper">
-          <input
-            ref={searchRef}
-            type="text"
-            placeholder="Search bills..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-          <kbd className="kbd-hint search-kbd">/</kbd>
-        </div>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-          <option value="">All Status</option>
+      <FilterBar>
+        <SearchInput
+          ref={searchRef}
+          label="Search bills"
+          hint="/"
+          placeholder="Search bill no. or party"
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+        />
+        <Select
+          aria-label="Status"
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+        >
+          <option value="">All statuses</option>
           <option value="draft">Draft</option>
           <option value="sent">Sent</option>
           <option value="paid">Paid</option>
           <option value="partial">Partial</option>
           <option value="overdue">Overdue</option>
           <option value="cancelled">Cancelled</option>
-        </select>
-      </div>
+        </Select>
+      </FilterBar>
 
-      <DataTable
-        data={filteredBills as unknown as TableItem[]}
-        columns={columns}
-        keyField="_id"
-        onRowClick={row => navigate(`/bills/${String(row._id)}`)}
-        emptyMessage="No bills found. Generate your first bill to get started."
-      />
+      <Card padded={false}>
+        <DataTable
+          aria-label="Bills"
+          columns={columns}
+          rows={filteredBills}
+          rowKey={bill => bill._id}
+          onRowClick={bill => navigate(`/bills/${bill._id}`)}
+          empty={
+            (bills || []).length === 0 ? (
+              <EmptyState
+                title="No bills yet"
+                action={
+                  <Button variant="primary" icon="plus" onClick={handleGenerate}>
+                    Generate bill
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState title="No bills match these filters" />
+            )
+          }
+          mobile={{
+            title: bill => <DocNumber value={bill.billNumber} to={`/bills/${bill._id}`} />,
+            badge: statusCell,
+            subtitle: bill => getPartyName(bill.partyId),
+            meta: bill => {
+              const date = billDateOf(bill);
+              return [
+                date ? formatDate(date) : '',
+                <span key="amount" className="mono">
+                  {formatMoney(bill.totalAmount)}
+                </span>,
+                <span key="paid" className="mono">
+                  Paid {formatMoney(bill.amountPaid)}
+                </span>,
+                periodOf(bill),
+              ];
+            },
+            actions: actionButtons,
+          }}
+        />
+      </Card>
 
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Generate Bill"
+        title="Generate bill"
         size="form"
       >
         <BillForm
@@ -378,7 +390,7 @@ export function BillsPage() {
       <Modal
         isOpen={isBulkModalOpen}
         onClose={() => setIsBulkModalOpen(false)}
-        title="Bulk Generate Bills"
+        title="Bulk generate bills"
         size="form"
       >
         <BulkBillForm
