@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Button } from './Button';
 
 describe('Button', () => {
@@ -87,5 +87,61 @@ describe('Button', () => {
     expect(link).toHaveAttribute('data-track', 'x');
     await userEvent.click(link);
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('exposes the accessible name while loading', () => {
+    render(<Button loading>Save</Button>);
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+  });
+
+  it('does not navigate or call onClick for a disabled to link', async () => {
+    const onClick = vi.fn();
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <Button to="/next" disabled onClick={onClick as never}>
+                Go
+              </Button>
+            }
+          />
+          <Route path="/next" element={<p>Arrived</p>} />
+        </Routes>
+      </MemoryRouter>
+    );
+    const link = screen.getByRole('link', { name: 'Go' });
+    expect(link).toHaveAttribute('aria-disabled', 'true');
+    expect(link).toHaveAttribute('tabindex', '-1');
+    await userEvent.click(link, { pointerEventsCheck: 0 });
+    expect(screen.queryByText('Arrived')).not.toBeInTheDocument();
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('marks a loading to link busy and inert', () => {
+    render(
+      <MemoryRouter>
+        <Button to="/next" loading>
+          Go
+        </Button>
+      </MemoryRouter>
+    );
+    const link = screen.getByRole('link', { name: 'Go' });
+    expect(link).toHaveAttribute('aria-disabled', 'true');
+    expect(link).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('does not call onClick for a disabled href anchor', async () => {
+    const onClick = vi.fn();
+    render(
+      <Button href="https://example.com" disabled onClick={onClick as never}>
+        Docs
+      </Button>
+    );
+    const link = screen.getByRole('link', { name: 'Docs' });
+    expect(link).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(link, { pointerEventsCheck: 0 });
+    expect(onClick).not.toHaveBeenCalled();
   });
 });

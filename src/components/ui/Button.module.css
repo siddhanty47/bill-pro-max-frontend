@@ -89,7 +89,7 @@
 }
 
 .contentHidden {
-  visibility: hidden;
+  opacity: 0;
 }
 
 .spinner {
@@ -121,4 +121,10 @@
   .btn {
     min-height: 44px;
   }
+}
+
+.inert {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
