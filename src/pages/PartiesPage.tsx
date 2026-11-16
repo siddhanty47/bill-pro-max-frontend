@@ -217,7 +217,7 @@ export function PartiesPage() {
           ref={searchRef}
           label="Search parties"
           hint="/"
-          placeholder="Search name, code or contact person"
+          placeholder="Name, code or contact"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />
@@ -238,7 +238,7 @@ export function PartiesPage() {
           empty={
             (parties || []).length === 0 ? (
               <EmptyState
-                title="No parties yet. Add your first party to get started."
+                title="No parties yet"
                 action={
                   <Button variant="primary" icon="plus" onClick={handleAddParty}>
                     Add party
@@ -258,7 +258,8 @@ export function PartiesPage() {
             meta: party => [
               <span key="roles">{roleLabel(party)}</span>,
               <span key="sites">
-                <span className="mono">{siteCount(party)}</span> site{siteCount(party) !== 1 && 's'}
+                <span className="mono">{siteCount(party)}</span>{' '}
+                {siteCount(party) === 1 ? 'site' : 'sites'}
               </span>,
               <span key="agreements">
                 <span className="mono">{activeAgreements(party)}</span> active
@@ -275,7 +276,7 @@ export function PartiesPage() {
       <Modal
         isOpen={isPartyModalOpen}
         onClose={() => setIsPartyModalOpen(false)}
-        title="Add Party"
+        title="Add party"
         size="form"
       >
         <PartyForm
@@ -288,7 +289,7 @@ export function PartiesPage() {
       <Modal
         isOpen={isAgreementModalOpen}
         onClose={() => setIsAgreementModalOpen(false)}
-        title={`Add Agreement for ${selectedParty?.name || ''}`}
+        title={`Add agreement for ${selectedParty?.name || ''}`}
         size="form"
       >
         <AgreementForm

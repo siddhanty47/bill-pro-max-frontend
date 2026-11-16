@@ -146,7 +146,7 @@ describe('PartiesPage', () => {
   it('shows an empty state with no parties', async () => {
     useApi([]);
     renderPage();
-    expect(await screen.findByText(/No parties yet/)).toBeInTheDocument();
+    expect(await screen.findByText('No parties yet')).toBeInTheDocument();
   });
 
   it('navigates to the party when a row is clicked', async () => {
@@ -162,7 +162,7 @@ describe('PartiesPage', () => {
     const { user } = renderPage();
     await screen.findByRole('table');
     await user.click(screen.getByRole('button', { name: /Add party/ }));
-    expect(await screen.findByRole('dialog')).toHaveTextContent(/Add Party/);
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Add party');
     await user.click(screen.getByRole('button', { name: /^Cancel/ }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     fireEvent.keyDown(document, { code: 'KeyN', altKey: true });
@@ -190,7 +190,7 @@ describe('PartiesPage', () => {
     const table = await screen.findByRole('table');
     await user.click(within(table).getAllByRole('button', { name: 'More actions' })[1]);
     await user.click(screen.getByRole('menuitem', { name: 'Add site' }));
-    expect(await screen.findByRole('dialog')).toHaveTextContent('Add Site to Steel Traders');
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Add site to Steel Traders');
     expect(screen.queryByTestId('where')).not.toBeInTheDocument();
   });
 
@@ -200,7 +200,7 @@ describe('PartiesPage', () => {
     const table = await screen.findByRole('table');
     await user.click(within(table).getAllByRole('button', { name: 'More actions' })[0]);
     await user.click(screen.getByRole('menuitem', { name: 'Add agreement' }));
-    expect(await screen.findByRole('dialog')).toHaveTextContent('Add Agreement for Acme Builders');
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Add agreement for Acme Builders');
   });
 
   it('deletes a party after confirming, without navigating', async () => {
