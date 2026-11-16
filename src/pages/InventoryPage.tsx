@@ -12,18 +12,28 @@ import {
   useDeleteInventoryMutation,
   useGetOpeningBalancesQuery,
 } from '../api/inventoryApi';
-import { DataTable } from '../components/DataTable';
-import { Modal } from '../components/Modal';
-import { LoadingSpinner } from '../components/LoadingSpinner';
-import { ErrorMessage } from '../components/ErrorMessage';
+import {
+  Button,
+  Card,
+  DataTable,
+  EmptyState,
+  ErrorMessage,
+  FilterBar,
+  Modal,
+  PageHeader,
+  RowActions,
+  SearchInput,
+  Select,
+  Spinner,
+  type Column,
+} from '../components/ui';
 import { InventoryForm } from '../components/forms/InventoryForm';
 import { ImportPresetModal } from '../components/ImportPresetModal';
 import { CreatePresetModal } from '../components/CreatePresetModal';
 import { getErrorMessage } from '../api/baseApi';
+import { formatMoney } from '../utils/format';
 import type { Inventory, CreateInventoryInput } from '../types';
 import { computeRentedFromHistory, computeAvailable } from '../utils/inventoryUtils';
-
-type TableItem = Record<string, unknown>;
 
 export function InventoryPage() {
   const { currentBusinessId } = useCurrentBusiness();
@@ -97,66 +107,64 @@ export function InventoryPage() {
     return matchesSearch && matchesCategory;
   });
 
-  const columns = [
-    { key: 'code', header: 'Code' },
-    { key: 'name', header: 'Name' },
-    { key: 'category', header: 'Category' },
+  const rentedOf = (item: Inventory) =>
+    computeRentedFromHistory(item.quantityHistory) + (openingBalances?.[item._id] ?? 0);
+  const availableOf = (item: Inventory) =>
+    computeAvailable(item.totalQuantity, computeRentedFromHistory(item.quantityHistory));
+  const qty = (n: number, item: Inventory) => `${n} ${item.unit}`;
+
+  const rowActions = (item: Inventory) => (
+    <RowActions
+      items={[
+        {
+          label: 'Delete',
+          onClick: () => handleDelete(item),
+          tone: 'danger',
+          disabled: rentedOf(item) !== 0,
+        },
+      ]}
+    />
+  );
+
+  const columns: Column<Inventory>[] = [
+    { key: 'code', header: 'Code', mono: true, nowrap: true, render: item => item.code },
+    { key: 'name', header: 'Name', render: item => item.name },
+    { key: 'category', header: 'Category', hideOnMobile: true, render: item => item.category },
     {
       key: 'totalQuantity',
       header: 'Total',
-      render: (row: TableItem) => {
-        const item = row as unknown as Inventory;
-        return `${item.totalQuantity} ${item.unit}`;
-      },
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: item => qty(item.totalQuantity, item),
     },
     {
       key: 'availableQuantity',
       header: 'Available',
-      render: (row: TableItem) => {
-        const item = row as unknown as Inventory;
-        const rented = computeRentedFromHistory(item.quantityHistory);
-        return `${computeAvailable(item.totalQuantity, rented)} ${item.unit}`;
-      },
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: item => qty(availableOf(item), item),
     },
     {
       key: 'rentedQuantity',
       header: 'Rented',
-      render: (row: TableItem) => {
-        const item = row as unknown as Inventory;
-        const rented =
-          computeRentedFromHistory(item.quantityHistory) + (openingBalances?.[item._id] ?? 0);
-        return `${rented} ${item.unit}`;
-      },
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      hideOnMobile: true,
+      render: item => qty(rentedOf(item), item),
     },
     {
       key: 'defaultRatePerDay',
-      header: 'Daily Rate',
-      render: (row: TableItem) => {
-        const item = row as unknown as Inventory;
-        return item.defaultRatePerDay ? `₹${item.defaultRatePerDay}` : '-';
-      },
+      header: 'Daily rate',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      hideOnMobile: true,
+      render: item => (item.defaultRatePerDay ? formatMoney(item.defaultRatePerDay) : '—'),
     },
-    {
-      key: 'actions',
-      header: 'Actions',
-      render: (row: TableItem) => {
-        const item = row as unknown as Inventory;
-        const canDelete =
-          computeRentedFromHistory(item.quantityHistory) + (openingBalances?.[item._id] ?? 0) === 0;
-        return (
-          <div className="action-buttons" onClick={e => e.stopPropagation()}>
-            <button
-              className="btn btn-sm btn-danger"
-              onClick={() => handleDelete(item)}
-              disabled={!canDelete}
-              title={!canDelete ? 'Cannot delete: items are currently rented' : 'Delete item'}
-            >
-              Delete
-            </button>
-          </div>
-        );
-      },
-    },
+    { key: 'actions', header: 'Actions', align: 'right', nowrap: true, render: rowActions },
   ];
 
   if (!currentBusinessId) {
@@ -164,7 +172,7 @@ export function InventoryPage() {
   }
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading inventory..." />;
+    return <Spinner message="Loading inventory…" />;
   }
 
   if (error) {
@@ -173,55 +181,89 @@ export function InventoryPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Inventory</h1>
-        <div className="action-buttons">
-          <button className="btn btn-secondary" onClick={() => setIsImportPresetOpen(true)}>
-            Import Preset
-          </button>
-          <button className="btn btn-secondary" onClick={() => setIsCreatePresetOpen(true)}>
-            Create Preset
-          </button>
-          <button className="btn btn-primary" onClick={handleAdd}>
-            + Add Item <kbd className="kbd-hint">{modLabel}+N</kbd>
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Inventory"
+        actions={
+          <>
+            <Button onClick={() => setIsImportPresetOpen(true)}>Import preset</Button>
+            <Button onClick={() => setIsCreatePresetOpen(true)}>Create preset</Button>
+            <Button variant="primary" icon="plus" hint={`${modLabel}+N`} onClick={handleAdd}>
+              Add item
+            </Button>
+          </>
+        }
+      />
 
-      <div className="filters">
-        <div className="search-wrapper">
-          <input
-            ref={searchRef}
-            type="text"
-            placeholder="Search inventory..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-          <kbd className="kbd-hint search-kbd">/</kbd>
-        </div>
-        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
-          <option value="">All Categories</option>
+      <FilterBar>
+        <SearchInput
+          ref={searchRef}
+          label="Search inventory"
+          hint="/"
+          placeholder="Search name, code or category"
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+        />
+        <Select
+          aria-label="Category"
+          value={categoryFilter}
+          onChange={e => setCategoryFilter(e.target.value)}
+        >
+          <option value="">All categories</option>
           {categories.map(cat => (
             <option key={cat} value={cat}>
               {cat}
             </option>
           ))}
-        </select>
-      </div>
+        </Select>
+      </FilterBar>
 
-      <DataTable
-        data={filteredInventory as unknown as TableItem[]}
-        columns={columns}
-        keyField="_id"
-        onRowClick={row => navigate(`/inventory/${String(row._id)}`)}
-        emptyMessage="No inventory items found. Add your first item to get started."
-      />
+      <Card padded={false}>
+        <DataTable
+          aria-label="Inventory"
+          columns={columns}
+          rows={filteredInventory}
+          rowKey={item => item._id}
+          onRowClick={item => navigate(`/inventory/${item._id}`)}
+          empty={
+            (inventory || []).length === 0 ? (
+              <EmptyState
+                title="No inventory items yet"
+                action={
+                  <Button variant="primary" icon="plus" onClick={handleAdd}>
+                    Add item
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState title="No items match these filters" />
+            )
+          }
+          mobile={{
+            leading: item => <span className="mono">{item.code}</span>,
+            title: item => item.name,
+            subtitle: item => item.category,
+            meta: item => [
+              <span key="available" className="mono">
+                Available {qty(availableOf(item), item)}
+              </span>,
+              <span key="rented" className="mono">
+                Rented {qty(rentedOf(item), item)}
+              </span>,
+              item.defaultRatePerDay ? (
+                <span key="rate" className="mono">
+                  {formatMoney(item.defaultRatePerDay)}/day
+                </span>
+              ) : null,
+            ],
+            actions: rowActions,
+          }}
+        />
+      </Card>
 
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Add Inventory Item"
+        title="Add inventory item"
         size="form"
       >
         <InventoryForm
