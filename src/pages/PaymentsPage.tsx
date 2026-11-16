@@ -1,5 +1,5 @@
 /**
- * Payments management page
+ * Payments list page
  */
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -9,16 +9,37 @@ import { usePlatform } from '../hooks/usePlatform';
 import { useGetPaymentsQuery, useCreatePaymentMutation } from '../api/paymentApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetBillsQuery } from '../api/billApi';
-import { DataTable } from '../components/DataTable';
-import { Modal } from '../components/Modal';
-import { LoadingSpinner } from '../components/LoadingSpinner';
-import { ErrorMessage } from '../components/ErrorMessage';
+import {
+  Button,
+  Card,
+  DataTable,
+  EmptyState,
+  ErrorMessage,
+  FilterBar,
+  Modal,
+  PageHeader,
+  SearchInput,
+  Select,
+  Spinner,
+  StatCard,
+  StatusChip,
+  type Column,
+} from '../components/ui';
 import { PaymentForm } from '../components/forms/PaymentForm';
 import { getErrorMessage } from '../api/baseApi';
+import { formatDate, formatMoney } from '../utils/format';
 import type { Payment, CreatePaymentInput } from '../types';
 import styles from './PaymentsPage.module.css';
 
-type TableItem = Record<string, unknown>;
+const METHOD_LABELS: Record<Payment['method'], string> = {
+  cash: 'Cash',
+  bank_transfer: 'Bank transfer',
+  upi: 'UPI',
+  cheque: 'Cheque',
+  other: 'Other',
+};
+
+const typeLabel = (p: Payment) => (p.type === 'receivable' ? 'Received' : 'Paid');
 
 export function PaymentsPage() {
   const { currentBusinessId } = useCurrentBusiness();
@@ -70,12 +91,10 @@ export function PaymentsPage() {
     }
   };
 
-  // Get party name by ID
   const getPartyName = (partyId: string) => {
     return parties?.find(p => p._id === partyId)?.name || 'Unknown';
   };
 
-  // Filter payments
   const filteredPayments = (payments || []).filter(payment => {
     const matchesSearch =
       !searchTerm ||
@@ -86,59 +105,38 @@ export function PaymentsPage() {
     return matchesSearch && matchesType && matchesMethod;
   });
 
-  const columns = [
-    {
-      key: 'date',
-      header: 'Date',
-      render: (row: TableItem) => {
-        const payment = row as unknown as Payment;
-        return new Date(payment.date).toLocaleDateString();
-      },
-    },
-    {
-      key: 'type',
-      header: 'Type',
-      render: (row: TableItem) => {
-        const payment = row as unknown as Payment;
-        return (
-          <span className={`status status-${payment.type === 'receivable' ? 'active' : 'pending'}`}>
-            {payment.type === 'receivable' ? 'Received' : 'Paid'}
-          </span>
-        );
-      },
-    },
-    {
-      key: 'partyId',
-      header: 'Party',
-      render: (row: TableItem) => {
-        const payment = row as unknown as Payment;
-        return getPartyName(payment.partyId);
-      },
-    },
+  const columns: Column<Payment>[] = [
+    { key: 'date', header: 'Date', nowrap: true, render: p => formatDate(p.date) },
+    { key: 'type', header: 'Type', nowrap: true, hideOnMobile: true, render: typeLabel },
+    { key: 'partyId', header: 'Party', render: p => getPartyName(p.partyId) },
     {
       key: 'amount',
       header: 'Amount',
-      render: (row: TableItem) => {
-        const payment = row as unknown as Payment;
-        return `₹${payment.amount.toLocaleString()}`;
-      },
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: p => formatMoney(p.amount),
     },
     {
       key: 'method',
       header: 'Method',
-      render: (row: TableItem) => {
-        const payment = row as unknown as Payment;
-        return payment.method.replace('_', ' ');
-      },
+      hideOnMobile: true,
+      nowrap: true,
+      render: p => METHOD_LABELS[p.method] ?? p.method,
     },
-    { key: 'reference', header: 'Reference' },
+    {
+      key: 'reference',
+      header: 'Reference',
+      mono: true,
+      nowrap: true,
+      hideOnMobile: true,
+      render: p => p.reference || '—',
+    },
     {
       key: 'status',
       header: 'Status',
-      render: (row: TableItem) => {
-        const payment = row as unknown as Payment;
-        return <span className={`status status-${payment.status}`}>{payment.status}</span>;
-      },
+      nowrap: true,
+      render: p => <StatusChip status={p.status} />,
     },
   ];
 
@@ -147,14 +145,13 @@ export function PaymentsPage() {
   }
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading payments..." />;
+    return <Spinner message="Loading payments…" />;
   }
 
   if (error) {
     return <ErrorMessage error={error} onRetry={refetch} />;
   }
 
-  // Calculate summary stats
   const totalReceived = (payments || [])
     .filter(p => p.type === 'receivable' && p.status === 'completed')
     .reduce((sum, p) => sum + p.amount, 0);
@@ -165,67 +162,84 @@ export function PaymentsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Payments</h1>
-        <button className="btn btn-primary" onClick={handleCreate}>
-          + Record Payment <kbd className="kbd-hint">{modLabel}+N</kbd>
-        </button>
+      <PageHeader
+        title="Payments"
+        actions={
+          <Button variant="primary" icon="plus" hint={`${modLabel}+N`} onClick={handleCreate}>
+            Record payment
+          </Button>
+        }
+      />
+
+      <div className={styles.summaryGrid}>
+        <StatCard label="Total received" value={formatMoney(totalReceived)} />
+        <StatCard label="Total paid" value={formatMoney(totalPaid)} />
+        <StatCard label="Net" value={formatMoney(totalReceived - totalPaid)} />
       </div>
 
-      <div className={`stats-grid ${styles.summaryGrid}`}>
-        <div className="stat-card">
-          <h3>Total Received</h3>
-          <div className={`value ${styles.valueReceived}`}>₹{totalReceived.toLocaleString()}</div>
-        </div>
-        <div className="stat-card">
-          <h3>Total Paid</h3>
-          <div className={`value ${styles.valuePaid}`}>₹{totalPaid.toLocaleString()}</div>
-        </div>
-        <div className="stat-card">
-          <h3>Net</h3>
-          <div className="value">₹{(totalReceived - totalPaid).toLocaleString()}</div>
-        </div>
-      </div>
-
-      <div className="filters">
-        <div className="search-wrapper">
-          <input
-            ref={searchRef}
-            type="text"
-            placeholder="Search payments..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-          <kbd className="kbd-hint search-kbd">/</kbd>
-        </div>
-        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
-          <option value="">All Types</option>
+      <FilterBar>
+        <SearchInput
+          ref={searchRef}
+          label="Search payments"
+          hint="/"
+          placeholder="Party or reference"
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+        />
+        <Select aria-label="Type" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+          <option value="">All types</option>
           <option value="receivable">Received</option>
           <option value="payable">Paid</option>
-        </select>
-        <select value={methodFilter} onChange={e => setMethodFilter(e.target.value)}>
-          <option value="">All Methods</option>
+        </Select>
+        <Select
+          aria-label="Method"
+          value={methodFilter}
+          onChange={e => setMethodFilter(e.target.value)}
+        >
+          <option value="">All methods</option>
           <option value="cash">Cash</option>
-          <option value="bank_transfer">Bank Transfer</option>
+          <option value="bank_transfer">Bank transfer</option>
           <option value="upi">UPI</option>
           <option value="cheque">Cheque</option>
           <option value="other">Other</option>
-        </select>
-      </div>
+        </Select>
+      </FilterBar>
 
-      <DataTable
-        data={filteredPayments as unknown as TableItem[]}
-        columns={columns}
-        keyField="_id"
-        onRowClick={row => navigate(`/payments/${String(row._id)}`)}
-        emptyMessage="No payments found. Record your first payment to get started."
-      />
+      <Card padded={false}>
+        <DataTable
+          aria-label="Payments"
+          columns={columns}
+          rows={filteredPayments}
+          rowKey={p => p._id}
+          onRowClick={p => navigate(`/payments/${p._id}`)}
+          empty={
+            (payments || []).length === 0 ? (
+              <EmptyState
+                title="No payments yet"
+                action={
+                  <Button variant="primary" icon="plus" onClick={handleCreate}>
+                    Record payment
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState title="No payments match these filters" />
+            )
+          }
+          mobile={{
+            title: p => <span className="mono">{formatMoney(p.amount)}</span>,
+            badge: p => <StatusChip status={p.status} />,
+            subtitle: p => getPartyName(p.partyId),
+            meta: p => [typeLabel(p), formatDate(p.date), METHOD_LABELS[p.method] ?? p.method],
+            actionsPlacement: 'trailing',
+          }}
+        />
+      </Card>
 
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Record Payment"
+        title="Record payment"
         size="form"
       >
         <PaymentForm
