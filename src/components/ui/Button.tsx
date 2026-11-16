@@ -42,18 +42,21 @@ export function Button({
 
   const content = (
     <>
-      {loading ? (
-        <span className={styles.spinner} aria-hidden="true" />
-      ) : (
-        icon && <Icon name={icon} size={size === 'sm' ? 14 : 16} />
-      )}
-      {children}
+      {loading && <span className={styles.spinner} aria-hidden="true" />}
+      <span className={loading ? `${styles.content} ${styles.contentHidden}` : styles.content}>
+        {icon && <Icon name={icon} size={size === 'sm' ? 14 : 16} />}
+        {children}
+      </span>
     </>
   );
 
   if (to) {
     return (
-      <Link to={to} className={classes}>
+      <Link
+        to={to}
+        className={classes}
+        {...(rest as unknown as Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>)}
+      >
         {content}
       </Link>
     );

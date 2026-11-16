@@ -68,4 +68,24 @@ describe('Button', () => {
     await userEvent.click(screen.getByRole('button', { name: /Save/ }));
     expect(onClick).not.toHaveBeenCalled();
   });
+
+  it('keeps the label in the DOM while loading so width is stable', () => {
+    render(<Button loading>Save</Button>);
+    expect(screen.getByText('Save')).toBeInTheDocument();
+  });
+
+  it('passes onClick and aria attributes through to a link', async () => {
+    const onClick = vi.fn();
+    render(
+      <MemoryRouter>
+        <Button to="/x" onClick={onClick as never} aria-label="Go there" data-track="x">
+          Go
+        </Button>
+      </MemoryRouter>
+    );
+    const link = screen.getByRole('link', { name: 'Go there' });
+    expect(link).toHaveAttribute('data-track', 'x');
+    await userEvent.click(link);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
 });
