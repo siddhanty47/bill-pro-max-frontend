@@ -75,7 +75,7 @@ Defined in `src/App.tsx`.
 
 ### Shared Components
 
-**UI kit — `src/components/ui/`** (import from `components/ui`; one component per pattern, see `ui/README.md`): `Button`, `IconButton`, `Icon`, `GoogleIcon`, `Card`, `StatCard`, `Meter`, `PageHeader`, `EmptyState`, `StatusChip` (tone map in `ui/status.ts`), `DocNumber`, `DataTable` + `Table` primitives, `Field`/`Input`/`Select`/`Textarea`/`Checkbox`/`Fieldset`, `FilterBar`, `Menu`, `Modal`, `Tabs`, `Spinner`, `ErrorMessage`.
+**UI kit — `src/components/ui/`** (import from `components/ui`; one component per pattern, see `ui/README.md`): `Button`, `IconButton`, `Icon`, `GoogleIcon`, `Avatar`, `Notice`, `Card`, `StatCard`, `Meter`, `PageHeader`, `EmptyState`, `StatusChip` (tone map in `ui/status.ts`), `DocNumber`, `DataTable` + `Table` primitives, `Field`/`Input`/`Select`/`Textarea`/`Checkbox`/`Fieldset`, `FilterBar`, `Menu`, `Modal`, `Tabs`, `Spinner`, `ErrorMessage`.
 
 Feature components (being rebuilt from `ui/` parts during the revamp):
 - `Layout.tsx` — App shell with sidebar + header + business switcher
