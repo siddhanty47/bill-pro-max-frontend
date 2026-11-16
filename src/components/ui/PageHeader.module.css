@@ -5,7 +5,7 @@
   flex-wrap: wrap;
   gap: var(--space-6);
   margin-bottom: var(--space-8);
-  animation: rise var(--duration-enter) var(--ease-out) both;
+  animation: rise var(--duration-enter) var(--ease-out) backwards;
 }
 
 .eyebrow {

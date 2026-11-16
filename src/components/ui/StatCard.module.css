@@ -6,7 +6,7 @@
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  animation: rise var(--duration-enter) var(--ease-out) both;
+  animation: rise var(--duration-enter) var(--ease-out) backwards;
   transition:
     border-color 0.2s,
     transform 0.25s var(--ease-out);
