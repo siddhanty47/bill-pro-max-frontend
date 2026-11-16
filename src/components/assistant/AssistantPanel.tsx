@@ -52,8 +52,7 @@ const SUGGESTIONS = [
 
 const MAX_IMAGES = 4;
 
-/* Inline line-icons — monochrome, currentColor, square caps to match the terminal
-   theme (no emoji). Sized 16px to sit in the 34px icon buttons. */
+/* Inline line-icons — monochrome, currentColor, square caps (no emoji). Sized 16px to sit in the 34px icon buttons. */
 const svgProps = {
   width: 16,
   height: 16,
@@ -345,7 +344,7 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
       aria-label="AI assistant"
     >
       <header className={styles.header}>
-        <span className={styles.title}>✦ ASSISTANT</span>
+        <span className={styles.title}>Assistant</span>
         <div className={styles.headerActions}>
           <button
             type="button"
@@ -353,7 +352,7 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
             onClick={newConversation}
             title="New conversation"
           >
-            NEW
+            New chat
           </button>
           <button
             type="button"
@@ -410,7 +409,7 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
 
         {pending && (
           <div className={styles.confirm}>
-            <p className={styles.confirmTitle}>CONFIRM ACTION</p>
+            <p className={styles.confirmTitle}>Confirm action</p>
             <p className={styles.confirmSummary}>{pending.summary}</p>
             <div className={styles.confirmActions}>
               <button

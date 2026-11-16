@@ -66,7 +66,10 @@ export function NotificationBell() {
       {isOpen && (
         <div className={styles.panel}>
           <div className={styles.panelHeader}>
-            <span>Notifications</span>
+            <span className={styles.panelTitle}>
+              Notifications
+              {unreadCount > 0 && <span className={styles.count}>{unreadCount}</span>}
+            </span>
             {unreadCount > 0 && (
               <button className={styles.markAll} onClick={() => markAllAsRead()}>
                 Mark all read

@@ -28,6 +28,15 @@ describe('NotificationBell', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows the unread count in the open panel header', async () => {
+    server.use(http.get(apiUrl('/notifications/unread-count'), () => ok({ count: 4 })));
+    const { user } = renderWithProviders(<NotificationBell />, { preloadedState: signedIn() });
+
+    await user.click(await screen.findByRole('button', { name: 'Notifications, 4 unread' }));
+
+    expect(await screen.findByText('4')).toBeInTheDocument();
+  });
+
   it('loads notifications only when opened', async () => {
     let listCalls = 0;
     server.use(

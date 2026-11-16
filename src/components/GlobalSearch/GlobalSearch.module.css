@@ -171,6 +171,8 @@
   font-weight: 500;
   line-height: 16px;
   vertical-align: 1px;
+  font-family: var(--font-sans);
+  font-variant-numeric: normal;
   border-radius: var(--radius-full);
 }
 
