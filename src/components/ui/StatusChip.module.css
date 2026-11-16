@@ -1,0 +1,44 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.chip::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.success {
+  color: var(--status-success-text);
+  background: var(--status-success-bg);
+}
+
+.info {
+  color: var(--status-info-text);
+  background: var(--status-info-bg);
+}
+
+.warning {
+  color: var(--status-warning-text);
+  background: var(--status-warning-bg);
+}
+
+.danger {
+  color: var(--status-danger-text);
+  background: var(--status-danger-bg);
+}
+
+.neutral {
+  color: var(--status-neutral-text);
+  background: var(--status-neutral-bg);
+}
