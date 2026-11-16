@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
 import { usePlatform } from '../hooks/usePlatform';
+import { useAuth } from '../hooks/useAuth';
 import {
   useGetChallansQuery,
   useCreateChallanMutation,
@@ -13,27 +14,64 @@ import {
 } from '../api/challanApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetInventoryQuery } from '../api/inventoryApi';
-import { DataTable } from '../components/DataTable';
-import { Modal, type ModalVariant } from '../components/Modal';
-import { LoadingSpinner } from '../components/LoadingSpinner';
-import { ErrorMessage } from '../components/ErrorMessage';
+import {
+  Button,
+  DataTable,
+  DocNumber,
+  EmptyState,
+  ErrorMessage,
+  FilterBar,
+  Input,
+  Modal,
+  PageHeader,
+  SegmentedControl,
+  Select,
+  Spinner,
+  StatusChip,
+  type Column,
+  type ModalVariant,
+} from '../components/ui';
 import { ChallanForm } from '../components/forms/ChallanForm';
 import { getErrorMessage } from '../api/baseApi';
+import { formatDate } from '../utils/format';
 import type { Challan, CreateChallanInput } from '../types';
 import styles from './ChallansPage.module.css';
 
-type TableItem = Record<string, unknown>;
-import { useAuth } from '../hooks/useAuth';
+type TypeFilter = 'all' | Challan['type'];
+
+const TYPE_OPTIONS = [
+  { value: 'all' as const, label: 'All' },
+  { value: 'delivery' as const, label: 'Delivery', dot: 'info' as const },
+  { value: 'return' as const, label: 'Return', dot: 'warning' as const },
+];
+
+const TYPE_LABEL: Record<Challan['type'], string> = { delivery: 'Delivery', return: 'Return' };
+
+const byNewest = (a: Challan, b: Challan) =>
+  new Date(b.date).getTime() - new Date(a.date).getTime() ||
+  b.challanNumber.localeCompare(a.challanNumber, undefined, { numeric: true });
+
+const itemsLabel = (c: Challan) => `${c.items.length} ${c.items.length === 1 ? 'item' : 'items'}`;
+
+function TypeDot({ type }: { type: Challan['type'] }) {
+  return (
+    <span
+      className={`${styles.dot} ${type === 'delivery' ? styles.delivery : styles.return}`}
+      aria-hidden="true"
+    />
+  );
+}
 
 export function ChallansPage() {
   const { currentBusinessId } = useCurrentBusiness();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { modLabel } = usePlatform();
+  const { modLabel, isMac } = usePlatform();
+  const hint = (key: string) => `${modLabel}${isMac ? '' : '+'}${key}`;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalVariant, setModalVariant] = useState<ModalVariant>('delivery');
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [statusFilter, setStatusFilter] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -112,93 +150,59 @@ export function ChallansPage() {
     return agreement?.siteCode ?? '—';
   };
 
-  // Filter challans
-  const filteredChallans = (challans || []).filter(challan => {
-    const matchesSearch =
-      !searchTerm ||
-      challan.challanNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getPartyName(challan.partyId).toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = !typeFilter || challan.type === typeFilter;
-    const matchesStatus = !statusFilter || challan.status === statusFilter;
-    return matchesSearch && matchesType && matchesStatus;
-  });
-
-  // Split into delivery and return, sort each by challan number (highest first)
-  const sortByChallanNumberDesc = (a: Challan, b: Challan) =>
-    b.challanNumber.localeCompare(a.challanNumber, undefined, { numeric: true });
-  const deliveryChallans = filteredChallans
-    .filter(c => c.type === 'delivery')
-    .sort(sortByChallanNumberDesc);
-  const returnChallans = filteredChallans
-    .filter(c => c.type === 'return')
-    .sort(sortByChallanNumberDesc);
+  // Filter challans, newest first
+  const filteredChallans = (challans || [])
+    .filter(challan => {
+      const matchesSearch =
+        !searchTerm ||
+        challan.challanNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getPartyName(challan.partyId).toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = typeFilter === 'all' || challan.type === typeFilter;
+      const matchesStatus = !statusFilter || challan.status === statusFilter;
+      return matchesSearch && matchesType && matchesStatus;
+    })
+    .sort(byNewest);
 
   const hasDraftChallans = filteredChallans.some(c => c.status === 'draft');
 
-  const columns = [
-    { key: 'challanNumber', header: 'Challan #' },
+  const confirmButton = (challan: Challan) =>
+    challan.status === 'draft' ? (
+      <Button size="sm" variant="primary" onClick={() => handleConfirm(challan)}>
+        Confirm
+      </Button>
+    ) : null;
+
+  const columns: Column<Challan>[] = [
     {
-      key: 'partyId',
-      header: 'Party',
-      render: (row: TableItem) => {
-        const challan = row as unknown as Challan;
-        return getPartyName(challan.partyId);
-      },
+      key: 'challanNumber',
+      header: 'Challan',
+      render: c => <DocNumber value={c.challanNumber} to={`/challans/${c._id}`} />,
     },
     {
-      key: 'siteCode',
-      header: 'Site',
-      render: (row: TableItem) => {
-        const challan = row as unknown as Challan;
-        return getSiteCode(challan);
-      },
+      key: 'type',
+      header: 'Type',
+      hideOnMobile: true,
+      render: c => (
+        <span className={styles.type}>
+          <TypeDot type={c.type} />
+          {TYPE_LABEL[c.type]}
+        </span>
+      ),
     },
-    {
-      key: 'date',
-      header: 'Date',
-      render: (row: TableItem) => {
-        const challan = row as unknown as Challan;
-        return new Date(challan.date).toLocaleDateString();
-      },
-    },
+    { key: 'partyId', header: 'Party', render: c => getPartyName(c.partyId) },
+    { key: 'siteCode', header: 'Site', hideOnMobile: true, render: c => getSiteCode(c) },
+    { key: 'date', header: 'Date', hideOnMobile: true, render: c => formatDate(c.date) },
     {
       key: 'items',
       header: 'Items',
-      render: (row: TableItem) => {
-        const challan = row as unknown as Challan;
-        return `${challan.items.length} items`;
-      },
+      mono: true,
+      align: 'right',
+      hideOnMobile: true,
+      render: c => c.items.length,
     },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row: TableItem) => {
-        const challan = row as unknown as Challan;
-        return <span className={`status status-${challan.status}`}>{challan.status}</span>;
-      },
-    },
+    { key: 'status', header: 'Status', render: c => <StatusChip status={c.status} /> },
     ...(hasDraftChallans
-      ? [
-          {
-            key: 'actions',
-            header: 'Actions',
-            render: (row: TableItem) => {
-              const challan = row as unknown as Challan;
-              return (
-                <div className="action-buttons" onClick={e => e.stopPropagation()}>
-                  {challan.status === 'draft' && (
-                    <button
-                      className="btn btn-sm btn-primary"
-                      onClick={() => handleConfirm(challan)}
-                    >
-                      Confirm
-                    </button>
-                  )}
-                </div>
-              );
-            },
-          },
-        ]
+      ? [{ key: 'actions', header: 'Actions', render: confirmButton } as Column<Challan>]
       : []),
   ];
 
@@ -207,80 +211,100 @@ export function ChallansPage() {
   }
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading challans..." />;
+    return <Spinner message="Loading challans…" />;
   }
 
   if (error) {
     return <ErrorMessage error={error} onRetry={refetch} />;
   }
 
+  const newDelivery = (
+    <Button onClick={handleCreateDelivery}>
+      <span className={`${styles.dot} ${styles.delivery}`} aria-hidden="true" />
+      New delivery <kbd className={`kbd-hint ${styles.hint}`}>{hint('D')}</kbd>
+    </Button>
+  );
+
   return (
     <div>
-      <div className="page-header">
-        <h1>Challans</h1>
-        <div className={styles.createButtons}>
-          <button className={`btn ${styles.btnDelivery}`} onClick={handleCreateDelivery}>
-            + Delivery Challan <kbd className="kbd-hint">{modLabel}+D</kbd>
-          </button>
-          <button className={`btn ${styles.btnReturn}`} onClick={handleCreateReturn}>
-            + Return Challan <kbd className="kbd-hint">{modLabel}+R</kbd>
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Challans"
+        actions={
+          <>
+            {newDelivery}
+            <Button onClick={handleCreateReturn}>
+              <span className={`${styles.dot} ${styles.return}`} aria-hidden="true" />
+              New return <kbd className={`kbd-hint ${styles.hint}`}>{hint('R')}</kbd>
+            </Button>
+          </>
+        }
+      />
 
-      <div className="filters">
+      <FilterBar>
         <div className="search-wrapper">
-          <input
+          <Input
             ref={searchRef}
-            type="text"
-            placeholder="Search challans..."
+            type="search"
+            aria-label="Search challans"
+            placeholder="Search challan no. or party"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="search-input"
           />
           <kbd className="kbd-hint search-kbd">/</kbd>
         </div>
-        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
-          <option value="">All Types</option>
-          <option value="delivery">Delivery</option>
-          <option value="return">Return</option>
-        </select>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-          <option value="">All Status</option>
+        <SegmentedControl
+          label="Type"
+          options={TYPE_OPTIONS}
+          value={typeFilter}
+          onChange={setTypeFilter}
+        />
+        <Select
+          aria-label="Status"
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+        >
+          <option value="">All statuses</option>
           <option value="draft">Draft</option>
           <option value="confirmed">Confirmed</option>
           <option value="cancelled">Cancelled</option>
-        </select>
-      </div>
+        </Select>
+      </FilterBar>
 
-      <section className={styles.section}>
-        <h2 className={`${styles.sectionHeader} ${styles.sectionHeaderDelivery}`}>
-          Delivery Challans
-        </h2>
-        <DataTable
-          data={deliveryChallans as unknown as TableItem[]}
-          columns={columns}
-          keyField="_id"
-          onRowClick={row => navigate(`/challans/${String(row._id)}`)}
-          emptyMessage="No delivery challans found."
-        />
-      </section>
-
-      <section className={styles.section}>
-        <h2 className={`${styles.sectionHeader} ${styles.sectionHeaderReturn}`}>Return Challans</h2>
-        <DataTable
-          data={returnChallans as unknown as TableItem[]}
-          columns={columns}
-          keyField="_id"
-          onRowClick={row => navigate(`/challans/${String(row._id)}`)}
-          emptyMessage="No return challans found."
-        />
-      </section>
+      <DataTable
+        aria-label="Challans"
+        columns={columns}
+        rows={filteredChallans}
+        rowKey={c => c._id}
+        onRowClick={c => navigate(`/challans/${c._id}`)}
+        empty={
+          (challans || []).length === 0 ? (
+            <EmptyState
+              title="No challans yet"
+              action={
+                <Button variant="primary" icon="plus" onClick={handleCreateDelivery}>
+                  New delivery
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState title="No challans match these filters" />
+          )
+        }
+        mobile={{
+          leading: c => <TypeDot type={c.type} />,
+          title: c => <DocNumber value={c.challanNumber} to={`/challans/${c._id}`} />,
+          badge: c => <StatusChip status={c.status} />,
+          subtitle: c => getPartyName(c.partyId),
+          meta: c => [getSiteCode(c), formatDate(c.date), itemsLabel(c)],
+          actions: confirmButton,
+        }}
+      />
 
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={`Create ${modalVariant === 'return' ? 'Return' : 'Delivery'} Challan`}
+        title={`Create ${modalVariant === 'return' ? 'return' : 'delivery'} challan`}
         variant={modalVariant}
         size="form"
       >
