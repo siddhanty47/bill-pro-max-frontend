@@ -1,0 +1,28 @@
+import { describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { IconButton } from './IconButton';
+
+describe('IconButton', () => {
+  it('is named by its label', () => {
+    render(<IconButton label="Notifications" icon="bell" />);
+    expect(screen.getByRole('button', { name: 'Notifications' })).toBeInTheDocument();
+  });
+
+  it('shows a badge dot when badge', () => {
+    const { container } = render(<IconButton label="Notifications" icon="bell" badge />);
+    expect(container.querySelector('.badge')).toBeInTheDocument();
+  });
+
+  it('omits the badge dot by default', () => {
+    const { container } = render(<IconButton label="Notifications" icon="bell" />);
+    expect(container.querySelector('.badge')).not.toBeInTheDocument();
+  });
+
+  it('calls onClick', async () => {
+    const onClick = vi.fn();
+    render(<IconButton label="Menu" icon="menu" onClick={onClick} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+});
