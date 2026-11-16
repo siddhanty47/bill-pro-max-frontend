@@ -6,6 +6,12 @@
   margin-bottom: var(--space-4);
 }
 
+/* Controls size to their content on desktop (the search box grows on its own). */
+.bar > select,
+.bar > input {
+  width: auto;
+}
+
 @media (max-width: 480px) {
   .bar > * {
     flex: 1 1 100%;

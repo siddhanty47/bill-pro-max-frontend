@@ -16,6 +16,7 @@ import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetInventoryQuery } from '../api/inventoryApi';
 import {
   Button,
+  Card,
   DataTable,
   DocNumber,
   EmptyState,
@@ -261,35 +262,37 @@ export function ChallansPage() {
         </Select>
       </FilterBar>
 
-      <DataTable
-        aria-label="Challans"
-        columns={columns}
-        rows={filteredChallans}
-        rowKey={c => c._id}
-        onRowClick={c => navigate(`/challans/${c._id}`)}
-        empty={
-          (challans || []).length === 0 ? (
-            <EmptyState
-              title="No challans yet"
-              action={
-                <Button variant="primary" icon="plus" onClick={handleCreateDelivery}>
-                  New delivery
-                </Button>
-              }
-            />
-          ) : (
-            <EmptyState title="No challans match these filters" />
-          )
-        }
-        mobile={{
-          leading: c => <TypeDot type={c.type} />,
-          title: c => <DocNumber value={c.challanNumber} to={`/challans/${c._id}`} />,
-          badge: c => <StatusChip status={c.status} />,
-          subtitle: c => getPartyName(c.partyId),
-          meta: c => [getSiteCode(c), formatDate(c.date), itemsLabel(c)],
-          actions: confirmButton,
-        }}
-      />
+      <Card padded={false}>
+        <DataTable
+          aria-label="Challans"
+          columns={columns}
+          rows={filteredChallans}
+          rowKey={c => c._id}
+          onRowClick={c => navigate(`/challans/${c._id}`)}
+          empty={
+            (challans || []).length === 0 ? (
+              <EmptyState
+                title="No challans yet"
+                action={
+                  <Button variant="primary" icon="plus" onClick={handleCreateDelivery}>
+                    New delivery
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState title="No challans match these filters" />
+            )
+          }
+          mobile={{
+            leading: c => <TypeDot type={c.type} />,
+            title: c => <DocNumber value={c.challanNumber} to={`/challans/${c._id}`} />,
+            badge: c => <StatusChip status={c.status} />,
+            subtitle: c => getPartyName(c.partyId),
+            meta: c => [TYPE_LABEL[c.type], getSiteCode(c), formatDate(c.date), itemsLabel(c)],
+            actions: confirmButton,
+          }}
+        />
+      </Card>
 
       <Modal
         isOpen={isModalOpen}

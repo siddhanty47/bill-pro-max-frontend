@@ -253,12 +253,29 @@ describe('ChallansPage', () => {
     expect(await screen.findByRole('dialog')).toHaveTextContent(/Create return challan/);
   });
 
+  it('names the type in the phone list', async () => {
+    useApi();
+    renderPage();
+    await screen.findByRole('table');
+    const list = screen.getByRole('list', { name: 'Challans' });
+    const item = within(list).getByText('R-2026-27-0003').closest('li') as HTMLElement;
+    expect(within(item).getByText(/Return · SECT · 18 Nov/)).toBeInTheDocument();
+  });
+
   it('opens the modals with Alt+D and Alt+R', async () => {
     useApi();
     renderPage();
     await screen.findByRole('table');
     fireEvent.keyDown(document, { code: 'KeyD', altKey: true });
     expect(await screen.findByRole('dialog')).toHaveTextContent(/Create delivery challan/);
+  });
+
+  it('opens the return modal with Alt+R', async () => {
+    useApi();
+    renderPage();
+    await screen.findByRole('table');
+    fireEvent.keyDown(document, { code: 'KeyR', altKey: true });
+    expect(await screen.findByRole('dialog')).toHaveTextContent(/Create return challan/);
   });
 
   it('shows an error with retry when loading fails', async () => {

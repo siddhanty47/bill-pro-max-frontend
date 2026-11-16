@@ -2,6 +2,7 @@ import { forwardRef, type InputHTMLAttributes } from 'react';
 import { Icon } from './Icon';
 import styles from './SearchInput.module.css';
 
+/** `className` goes on the wrapper (placement only); other props go to the input. */
 export type SearchInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
   /** Accessible name (there is no visible label). */
   label: string;

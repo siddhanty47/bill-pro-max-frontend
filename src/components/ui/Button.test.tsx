@@ -188,7 +188,9 @@ describe('Button', () => {
       </Button>
     );
     expect(screen.getByRole('button', { name: 'New delivery' })).toBeInTheDocument();
-    expect(container.querySelector('[aria-hidden="true"]')).toBeInTheDocument();
+    const dot = container.querySelector('span[aria-hidden="true"]');
+    expect(dot).toBeInTheDocument();
+    expect(dot).toHaveClass('dot', 'dot-info');
     expect(screen.getByText('Alt+D')).toHaveAttribute('aria-hidden', 'true');
   });
 });

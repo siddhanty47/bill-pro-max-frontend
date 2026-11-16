@@ -1,7 +1,7 @@
 .wrap {
   position: relative;
   flex: 1 1 240px;
-  max-width: 320px;
+  max-width: 360px;
   min-width: 0;
 }
 
@@ -19,6 +19,10 @@
   transition:
     border-color var(--transition-fast),
     box-shadow var(--transition-fast);
+}
+
+.input::-webkit-search-cancel-button {
+  appearance: none;
 }
 
 .input::placeholder {
