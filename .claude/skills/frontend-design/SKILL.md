@@ -42,7 +42,7 @@ The landing page (billpromax.com), "calm workspace" variant: near-black surfaces
 
 **Space:** `--space-1 4` · `-2 8` · `-3 12` · `-4 16` · `-5 20` · `-6 24` · `-8 32` · `-10 40` · `-14 56`.
 
-**Radius:** `--radius-sm 4` (kbd, tiny) · `--radius-md 6` (buttons, inputs) · `--radius-lg 12` (cards, tables) · `--radius-xl 16` (modals, auth panel) · `--radius-full` (chips, avatars, pills).
+**Radius:** `--radius-sm 4` (kbd hints, tiny inline chips) · `--radius-md 6` (buttons, icon buttons, inputs/selects/textareas, menu items) · `--radius-lg 12` (cards, tables) · `--radius-xl 16` (modals, auth panel) · `--radius-full` (chips, avatars, pills).
 
 **Elevation:** `--shadow-sm/md/lg` are `none` (surfaces are flat) · `--shadow-pop` (menus, popovers, modals only) · `--shadow-accent` (primary button hover) · `--ring-focus` (3px accent-muted ring on inputs).
 
@@ -54,7 +54,7 @@ The landing page (billpromax.com), "calm workspace" variant: near-black surfaces
 
 ## Component catalogue (`src/components/ui`)
 
-Import from the barrel: `import { Button, Card, DataTable } from '../components/ui';`. Non-component helpers come from their module: `import { statusTone, statusLabel } from '../components/ui/status';`. Every component that wraps a native element accepts and spreads that element's native props (`id`, `aria-*`, `data-*`, handlers; `className` is merged). The one-line "when to use" table is `src/components/ui/README.md`.
+Import from the barrel: `import { Button, Card, DataTable } from '../components/ui';`. Non-component helpers come from their module: `import { statusTone, statusLabel } from '../components/ui/status';`. These accept and spread their native element's props (`id`, `aria-*`, `data-*`, handlers; `className` is merged): `Button`, `IconButton`, the `Field` family (`Field`, `Input`, `Select`, `Textarea`, `Checkbox`, `Fieldset`), the `Table` primitives (`Tr`, `Th`, `Td`), `FilterBar`, and the `Menu` parts (`Menu`, `MenuItem`, `MenuLabel`, `MenuDivider`). The others take only the props listed below. The one-line "when to use" table is `src/components/ui/README.md`.
 
 ### Actions
 
@@ -75,16 +75,16 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
 - **`Meter`** — segmented bar + legend. `segments: { value: number; tone: 'accent' | 'info' | 'warning' | 'danger'; label: string }[]`. Values formatted `en-IN`; bar has an `aria-label` summary.
 - **`EmptyState`** — `title` (one short line saying what's missing) · `action?: ReactNode` (at most one, usually a `Button`). No prose paragraph.
 - **`Tabs`** — `tabs: { id; label }[]` · `activeTab` · `onChange(id)`. Underline-accent style.
-- **`Modal`** — `isOpen` · `onClose` · `title` · `children` · `size?: 'default' | 'form'` (wider, for forms) · `variant?: 'delivery' | 'return'` (challan flows only; coloured top edge). Autofocuses the first field; Escape and overlay click close; full-screen with safe-area padding at ≤768. Never build an ad-hoc overlay.
-- **`Spinner`** (alias `LoadingSpinner`) — `message?`. Page/panel loading.
+- **`Modal`** — `isOpen` · `onClose` · `title` · `children` · `size?: 'default' | 'form'` (wider, for forms) · `variant?: 'delivery' | 'return'` (challan flows only; coloured top edge). Autofocuses the first field; Escape and overlay click close (an Escape a nested widget already handled with `preventDefault`, e.g. an open `Menu`, is ignored); full-screen with safe-area padding at ≤768. Never build an ad-hoc overlay.
+- **`Spinner`** (alias `LoadingSpinner`) — `message?` (default "Loading…"). Accent ring + message in a `role="status"` region; static under reduced motion. Page/panel loading.
 - **`ErrorMessage`** — `error: unknown` (run through `getErrorMessage`) · `onRetry?`. Load/API errors.
 
 ### Data
 
 - **`DataTable<T>`** — list data from an array. `columns: Column<T>[]` where `Column = { key; header; render?(row); align?: 'left' | 'right'; mono?; hideOnMobile? }` · `rows: T[]` · `rowKey(row): string` · `onRowClick?(row)` (rows become focusable, Enter activates) · `empty?: ReactNode` (defaults to `EmptyState title="Nothing here yet"`; pass a specific one). Without `render`, the cell shows `row[key]`. Owns the horizontal-scroll wrapper.
-- **`Table`, `THead`, `TBody`, `Tr`, `Th`, `Td`** — hand-built tables and editable grids (challan/bill item rows). `Th`/`Td`: `align?: 'left' | 'right' | 'center'` · `mono?` · `hideOnMobile?` · native cell props. `Tr`: `onClick?` makes the row clickable (focusable, Enter activates). `Table`: `className?`.
+- **`Table`, `THead`, `TBody`, `Tr`, `Th`, `Td`** — hand-built tables and editable grids (challan/bill item rows). `Th`/`Td`: `align?: 'left' | 'right' | 'center'` · `mono?` · `hideOnMobile?` · native cell props. `Tr`: `onClick?: (e: MouseEvent | KeyboardEvent) => void` makes the row clickable (focusable; fires on click and on Enter). `Table`: `className?`.
 - Table rules: amounts and quantities `mono` + `align="right"`; dates and doc numbers `mono`; secondary columns (`Due`, `Site`, `Created by`) `hideOnMobile`. Buttons, links, inputs, selects and labels inside a clickable row handle their own click and **do not** trigger the row click — put row actions (a `Menu`, a `Button`) straight in a cell. Tables have no frame of their own: put them in `Card padded={false}`.
-- **`StatusChip`** — every status badge, always `<StatusChip status={bill.status} />`. Tone comes from the single map in `ui/status.ts` (`paid/active/confirmed/completed` → success · `sent/delivery` → info · `partial/pending/return` → warning · `overdue/failed/cancelled/terminated` → danger · anything else, e.g. `draft/expired/inactive`, → neutral; case-insensitive, never throws). Label is the status in sentence case (`partially_paid` → "Partially paid"); `children` overrides it (e.g. `"12 days"`). To change a status colour, edit the map in `ui/status.ts` — never pass `tone` at a call site for a lifecycle status. `tone?: 'success' | 'info' | 'warning' | 'danger' | 'neutral'` is only for chips that are not lifecycle statuses.
+- **`StatusChip`** — every status badge, always `<StatusChip status={bill.status} />`. Tone comes from the single map in `ui/status.ts` (`paid/active/confirmed/completed/accepted/present` → success · `sent/delivery` → info · `partial/pending/return/half-day/leave` → warning · `overdue/failed/cancelled/terminated/declined/absent/revoked/suspended` → danger · anything else, e.g. `draft/expired/inactive`, → neutral; case-insensitive, never throws). Legacy `.status-*` classes in `globals.css` use the same tones (`.status-draft` is neutral). Label is the status in sentence case (`partially_paid` → "Partially paid"); `children` overrides it (e.g. `"12 days"`). To change a status colour, edit the map in `ui/status.ts` — never pass `tone` at a call site for a lifecycle status. `tone?: 'success' | 'info' | 'warning' | 'danger' | 'neutral'` is only for chips that are not lifecycle statuses.
 - **`DocNumber`** — bill/challan/agreement numbers. `value` · `to?` (link to the document). Mono.
 
 ### Forms
@@ -92,15 +92,15 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
 - **`Field`** — label + control + hint + error. `label` · `hint?` · `error?` · `required?` · `htmlFor?` · div props. 
   - Auto-wiring: when its **single child** is `Input`, `Select`, `Textarea`, `Checkbox` or a native `input/select/textarea`, Field gives it an id (keeps an existing one), links the label, and sets `aria-describedby` (hint + error). For wrapper children (an input + button row, a custom autocomplete) pass `htmlFor` and put that id on the inner input yourself.
   - Pass the message as `error` on Field once; it renders a `role="alert"` line and sets `aria-invalid` on an auto-wired child. Don't also pass `invalid` or render your own error text.
-  - Use the `required` prop (adds an `aria-hidden` marker). Never write a literal `*` in label text.
+  - Use the `required` prop (adds an `aria-hidden` marker and sets `required` + `aria-required="true"` on the auto-wired control). Never write a literal `*` in label text.
 - **`Input`, `Select`, `Textarea`** — `forwardRef` (work with `register()`), native props plus `mono?` (numeric/amount/code inputs) and `invalid?` (only when not inside a `Field` with `error`). 44px / 16px font at ≤768.
 - **`Checkbox`** — `label?` + native input props (forwardRef). Use it bare: `<Checkbox label="Include GST" {...register('gst')} />`, not inside `Field`. Several related checkboxes → group them in a `Fieldset`.
-- **`Fieldset`** — `legend` + native fieldset props. Titled group of fields or checkboxes.
+- **`Fieldset`** — `legend` + native fieldset props. Titled group of fields or checkboxes; looks the same as legacy `.form-fieldset` (card background, 12px radius, muted legend).
 - **`FilterBar`** — wrapping row above a list for search and filter controls (children stack full width at ≤480). Div props.
 
 ### Menus
 
-- **`Menu`** — `trigger: (props) => ReactNode` (spread `props` onto a `Button` or `IconButton`; it carries `onClick`, `aria-expanded`, `aria-haspopup`, `aria-controls` and the ref) · `align?: 'start' | 'end'` (default `end`) · `children`. Closes on outside click, Escape and Tab; returns focus to the trigger; arrow keys, Home and End move between items.
+- **`Menu`** — `trigger: (props) => ReactNode` (spread `props` onto a `Button` or `IconButton`; it carries `onClick`, `aria-expanded`, `aria-haspopup`, `aria-controls` and the ref) · `align?: 'start' | 'end'` (default `end`) · `className?` (on the root wrapper around trigger + panel — placement only) · `menuClassName?` (on the `role="menu"` panel) · other native div props (go to the panel, e.g. `aria-label`) · `children`. Closes on outside click, Escape and Tab; returns focus to the trigger; arrow keys, Home and End move between items (ArrowUp with nothing focused → last item). Escape is `preventDefault`ed, so a Menu inside a `Modal` closes only the Menu. At ≤480 the panel spans the viewport width (16px gutters) under the trigger.
 - **`MenuItem`** — `onSelect?` (or `to?` for a router link) · native button props. Closes the menu after select. **`MenuLabel`** (small heading inside a menu), **`MenuDivider`**.
   ```tsx
   <Menu trigger={p => <IconButton label="More actions" icon="menu" {...p} />}>
