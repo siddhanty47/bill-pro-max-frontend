@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useForm } from 'react-hook-form';
-import { Field, Fieldset, Input, Select, Textarea } from './Field';
+import { Checkbox, Field, Fieldset, Input, Select, Textarea } from './Field';
 
 describe('Field', () => {
   it('associates the label with the child via an auto id', () => {
@@ -56,6 +56,108 @@ describe('Field', () => {
   it('works with non-element children', () => {
     render(<Field label="Static">text only</Field>);
     expect(screen.getByText('Static')).toBeInTheDocument();
+  });
+});
+
+describe('Field wiring', () => {
+  it('does not attach the label to a wrapper child', () => {
+    render(
+      <Field label="GSTIN">
+        <div data-testid="wrap">
+          <input aria-label="inner" />
+        </div>
+      </Field>
+    );
+    expect(screen.getByTestId('wrap')).not.toHaveAttribute('id');
+    expect(screen.getByText('GSTIN')).not.toHaveAttribute('for');
+  });
+
+  it('works with a wrapper child when htmlFor targets the inner input', () => {
+    render(
+      <Field label="GSTIN" htmlFor="gst">
+        <div>
+          <input id="gst" />
+          <button type="button">Fetch</button>
+        </div>
+      </Field>
+    );
+    expect(screen.getByLabelText('GSTIN')).toHaveAttribute('id', 'gst');
+  });
+
+  it('merges className and spreads div props on the root', () => {
+    render(
+      <Field label="A" className="layout" data-testid="root">
+        <Input />
+      </Field>
+    );
+    expect(screen.getByTestId('root')).toHaveClass('field');
+    expect(screen.getByTestId('root')).toHaveClass('layout');
+  });
+
+  it('wires aria-describedby and aria-invalid from hint and error', () => {
+    render(
+      <Field label="Phone" hint="10 digits" error="Required">
+        <Input aria-describedby="other" />
+      </Field>
+    );
+    const input = screen.getByLabelText('Phone');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    const ids = input.getAttribute('aria-describedby')!.split(' ');
+    expect(ids).toContain('other');
+    expect(document.getElementById(ids[1])).toHaveTextContent('10 digits');
+    expect(document.getElementById(ids[2])).toHaveTextContent('Required');
+  });
+
+  it('shows an aria-hidden required marker', () => {
+    render(
+      <Field label="Name" required>
+        <Input />
+      </Field>
+    );
+    expect(screen.getByLabelText(/^Name/)).toBeInTheDocument();
+    expect(screen.getByText('*', { exact: false })).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('labels a Checkbox through Field', () => {
+    render(
+      <Field label="Options">
+        <Checkbox label="Is GST registered" />
+      </Field>
+    );
+    expect(screen.getByLabelText('Options')).toHaveAttribute('type', 'checkbox');
+  });
+});
+
+describe('Checkbox', () => {
+  it('renders its label and toggles', async () => {
+    render(<Checkbox label="Active" />);
+    const box = screen.getByLabelText('Active');
+    await userEvent.click(box);
+    expect(box).toBeChecked();
+  });
+
+  it('works with register', async () => {
+    const onSubmit = vi.fn();
+    function H() {
+      const { register, handleSubmit } = useForm<{ on: boolean }>({ defaultValues: { on: false } });
+      return (
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Checkbox label="On" {...register('on')} />
+          <button type="submit">Go</button>
+        </form>
+      );
+    }
+    render(<H />);
+    await userEvent.click(screen.getByLabelText('On'));
+    await userEvent.click(screen.getByRole('button', { name: 'Go' }));
+    expect(onSubmit.mock.calls[0][0]).toEqual({ on: true });
+  });
+
+  it('Input type checkbox does not get the box control class', () => {
+    render(<Input type="checkbox" aria-label="c" />);
+    const el = screen.getByLabelText('c');
+    expect(el).toHaveClass('check');
+    expect(el).not.toHaveClass('control');
   });
 });
 

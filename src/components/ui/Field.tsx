@@ -5,6 +5,7 @@ import {
   isValidElement,
   useId,
   type FieldsetHTMLAttributes,
+  type HTMLAttributes,
   type InputHTMLAttributes,
   type ReactElement,
   type ReactNode,
@@ -17,30 +18,73 @@ export type FieldProps = {
   label: ReactNode;
   hint?: ReactNode;
   error?: ReactNode;
+  required?: boolean;
   htmlFor?: string;
-  children: ReactNode;
-};
+} & Omit<HTMLAttributes<HTMLDivElement>, 'children'> & { children: ReactNode };
 
-export function Field({ label, hint, error, htmlFor, children }: FieldProps) {
+type ControlProps = { id?: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean | 'true' };
+
+function isControl(node: unknown): node is ReactElement<ControlProps> {
+  if (!isValidElement(node)) return false;
+  const t = node.type;
+  return (
+    t === Input ||
+    t === Select ||
+    t === Textarea ||
+    t === Checkbox ||
+    t === 'input' ||
+    t === 'select' ||
+    t === 'textarea'
+  );
+}
+
+export function Field({
+  label,
+  hint,
+  error,
+  required,
+  htmlFor,
+  className,
+  children,
+  ...rest
+}: FieldProps) {
   const autoId = useId();
   const only = Children.count(children) === 1 ? Children.toArray(children)[0] : null;
-  const childId = isValidElement<{ id?: string }>(only) ? only.props.id : undefined;
-  const id = htmlFor ?? childId ?? autoId;
+  const control = isControl(only) ? only : null;
+  const id = htmlFor ?? control?.props.id ?? (control ? autoId : undefined);
+  const hintId = hint ? `${autoId}-hint` : undefined;
+  const errorId = error ? `${autoId}-error` : undefined;
 
-  const control =
-    isValidElement<{ id?: string }>(only) && !only.props.id
-      ? cloneElement(only as ReactElement<{ id?: string }>, { id })
-      : children;
+  let content: ReactNode = children;
+  if (control) {
+    const describedBy =
+      [control.props['aria-describedby'], hintId, errorId].filter(Boolean).join(' ') || undefined;
+    content = cloneElement(control, {
+      id: control.props.id ?? id,
+      'aria-describedby': describedBy,
+      ...(error ? { 'aria-invalid': 'true' as const } : {}),
+    });
+  }
 
   return (
-    <div className={styles.field}>
+    <div className={[styles.field, className ?? ''].filter(Boolean).join(' ')} {...rest}>
       <label htmlFor={id} className={styles.label}>
         {label}
+        {required && (
+          <span className={styles.required} aria-hidden="true">
+            {' '}
+            *
+          </span>
+        )}
       </label>
-      {control}
-      {hint && <span className={styles.hint}>{hint}</span>}
+      {content}
+      {hint && (
+        <span id={hintId} className={styles.hint}>
+          {hint}
+        </span>
+      )}
       {error && (
-        <span role="alert" className={styles.error}>
+        <span id={errorId} role="alert" className={styles.error}>
           {error}
         </span>
       )}
@@ -60,13 +104,39 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { mono, invalid, className, ...rest },
   ref
 ) {
+  const boxless = rest.type === 'checkbox' || rest.type === 'radio';
+  const base = boxless
+    ? [styles.check, className ?? ''].filter(Boolean).join(' ')
+    : controlClass(className, mono);
+  return <input ref={ref} className={base} aria-invalid={invalid || undefined} {...rest} />;
+});
+
+export type CheckboxProps = { label?: ReactNode } & Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  'type'
+>;
+
+export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Checkbox(
+  { label, className, id, ...rest },
+  ref
+) {
+  const autoId = useId();
+  const inputId = id ?? autoId;
   return (
-    <input
-      ref={ref}
-      className={controlClass(className, mono)}
-      aria-invalid={invalid || undefined}
-      {...rest}
-    />
+    <span className={styles.checkRow}>
+      <input
+        ref={ref}
+        id={inputId}
+        type="checkbox"
+        className={[styles.check, className ?? ''].filter(Boolean).join(' ')}
+        {...rest}
+      />
+      {label && (
+        <label htmlFor={inputId} className={styles.checkLabel}>
+          {label}
+        </label>
+      )}
+    </span>
   );
 });
 
