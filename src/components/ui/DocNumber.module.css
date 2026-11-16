@@ -2,7 +2,7 @@
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   color: var(--text-heading);
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .link {

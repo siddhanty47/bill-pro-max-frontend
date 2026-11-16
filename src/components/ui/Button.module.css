@@ -6,25 +6,25 @@
   gap: 8px;
   height: 38px;
   padding: 0 16px;
-  border-radius: var(--radius-sm);
-  font: 500 14px var(--font-sans);
+  border-radius: var(--radius-md);
+  font: 500 var(--text-base) var(--font-sans);
   line-height: 1;
   white-space: nowrap;
   text-decoration: none;
   cursor: pointer;
   border: 1px solid transparent;
   transition:
-    transform 0.2s var(--ease-out),
-    background 0.2s,
-    border-color 0.2s,
-    box-shadow 0.2s,
-    color 0.2s;
+    transform var(--transition-default),
+    background var(--transition-default),
+    border-color var(--transition-default),
+    box-shadow var(--transition-default),
+    color var(--transition-default);
 }
 
 .sm {
   height: 30px;
   padding: 0 12px;
-  font-size: 13px;
+  font-size: var(--text-sm);
   gap: 6px;
 }
 
@@ -34,10 +34,12 @@
   font-weight: 600;
 }
 
+/* Every hover rule sets color: as a link (to/href) globals' a:hover would otherwise recolour it. */
 .primary:hover:not(:disabled) {
   background: var(--accent-hover);
+  color: var(--text-on-accent);
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px var(--accent-muted);
+  box-shadow: var(--shadow-accent);
 }
 
 .secondary {
@@ -48,6 +50,7 @@
 
 .secondary:hover:not(:disabled) {
   background: var(--bg-hover);
+  color: var(--text-heading);
   border-color: var(--border-medium);
 }
 
@@ -69,6 +72,7 @@
 
 .danger:hover:not(:disabled) {
   background: var(--status-danger-bg);
+  color: var(--status-danger-text);
 }
 
 .btn:disabled {

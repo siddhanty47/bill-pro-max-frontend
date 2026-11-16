@@ -25,7 +25,7 @@
   width: 100%;
   height: 40px;
   padding: 0 var(--space-3);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--bg-elevated);
   border: 1px solid var(--border-default);
   color: var(--text-heading);
@@ -96,23 +96,25 @@
   resize: vertical;
 }
 
+/* Matches legacy .form-fieldset / .form-fieldset-legend (globals.css) */
 .fieldset {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   margin: 0;
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   min-width: 0;
 }
 
 .legend {
-  padding: 0 var(--space-2);
-  font-family: var(--font-display);
+  padding: 0 6px;
+  font-family: var(--font-sans);
   font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--text-heading);
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
 @media (max-width: 768px) {

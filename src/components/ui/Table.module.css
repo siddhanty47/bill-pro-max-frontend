@@ -21,7 +21,8 @@
 .table thead th {
   padding-top: 10px;
   padding-bottom: 10px;
-  background: var(--bg-table-head);
+  /* Same opaque header as legacy .data-table (tint over --bg-card) */
+  background: linear-gradient(var(--bg-table-head), var(--bg-table-head)), var(--bg-card);
   font-size: var(--text-xs);
   font-weight: 500;
   color: var(--text-secondary);

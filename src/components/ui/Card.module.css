@@ -16,6 +16,8 @@
 }
 
 .clickable:hover {
+  /* beat globals' a:hover so card content keeps its colours */
+  color: inherit;
   border-color: var(--border-default);
   transform: translateY(-2px);
 }

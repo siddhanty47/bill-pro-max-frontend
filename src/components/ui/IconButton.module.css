@@ -6,13 +6,13 @@
   height: 36px;
   padding: 0;
   border: 0;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
   transition:
-    background 0.2s,
-    color 0.2s;
+    background var(--transition-default),
+    color var(--transition-default);
 }
 
 .iconBtn:hover:not(:disabled) {

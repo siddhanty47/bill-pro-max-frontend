@@ -81,7 +81,7 @@ function actionBadgeClass(action: string): string {
     case 'created':
       return 'status status-active';
     case 'updated':
-      return 'status status-draft';
+      return 'status status-pending';
     case 'deleted':
       return 'status status-cancelled';
     default:

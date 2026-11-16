@@ -548,7 +548,8 @@ a:hover {
   z-index: 1;
   padding-top: 10px;
   padding-bottom: 10px;
-  background: var(--bg-table-head);
+  /* Tint over an opaque base so scrolled rows don't show through the sticky header */
+  background: linear-gradient(var(--bg-table-head), var(--bg-table-head)), var(--bg-card);
   font-size: var(--text-xs);
   font-weight: 500;
   color: var(--text-secondary);
@@ -606,7 +607,6 @@ a:hover {
   background: var(--status-success-bg);
 }
 
-.status-draft,
 .status-pending,
 .status-partial {
   color: var(--status-warning-text);
@@ -621,6 +621,7 @@ a:hover {
   background: var(--status-danger-bg);
 }
 
+.status-draft,
 .status-expired,
 .status-inactive {
   color: var(--status-neutral-text);
