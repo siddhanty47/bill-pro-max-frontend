@@ -1,28 +1,38 @@
 /**
- * Agreements management page
- * Lists all agreements across all parties
+ * Agreements list page
+ * Lists all agreements across all parties; editing happens on the detail page.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
+import { useHotkey } from '../hooks/useHotkey';
 import { useGetAgreementsQuery } from '../api/agreementApi';
-import { DataTable } from '../components/DataTable';
-import { LoadingSpinner } from '../components/LoadingSpinner';
-import { ErrorMessage } from '../components/ErrorMessage';
+import {
+  Card,
+  DataTable,
+  DocNumber,
+  EmptyState,
+  ErrorMessage,
+  FilterBar,
+  PageHeader,
+  SearchInput,
+  Select,
+  Spinner,
+  StatusChip,
+  type Column,
+} from '../components/ui';
+import { formatDate } from '../utils/format';
 import type { AgreementWithParty } from '../types';
 
-type TableItem = Record<string, unknown>;
+const sentenceCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const dateOf = (d: string | undefined) => (d ? formatDate(d) || '—' : '—');
 
-/**
- * AgreementsPage component
- * Displays a table of all agreements with filtering options.
- * Editing is handled on the detail view page.
- */
 export function AgreementsPage() {
   const { currentBusinessId } = useCurrentBusiness();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const {
     data: agreements,
@@ -33,75 +43,63 @@ export function AgreementsPage() {
     skip: !currentBusinessId,
   });
 
+  useHotkey('/', () => searchRef.current?.focus());
+
   const filteredAgreements = (agreements || []).filter(agreement => {
+    const term = searchTerm.toLowerCase();
     const matchesSearch =
       !searchTerm ||
-      agreement.partyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agreement.agreementId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agreement.siteCode?.toLowerCase().includes(searchTerm.toLowerCase());
+      agreement.partyName.toLowerCase().includes(term) ||
+      agreement.agreementId.toLowerCase().includes(term) ||
+      agreement.siteCode?.toLowerCase().includes(term);
     const matchesStatus = !statusFilter || agreement.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  /**
-   * Format date for display
-   */
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  const columns = [
-    { key: 'agreementId', header: 'Agreement ID' },
-    { key: 'partyName', header: 'Party' },
-    { key: 'siteCode', header: 'Site' },
+  const columns: Column<AgreementWithParty>[] = [
     {
-      key: 'startDate',
-      header: 'Start Date',
-      render: (row: TableItem) => {
-        const agreement = row as unknown as AgreementWithParty;
-        return formatDate(agreement.startDate);
-      },
+      key: 'agreementId',
+      header: 'Agreement',
+      nowrap: true,
+      render: a => <DocNumber value={a.agreementId} to={`/agreements/${a.agreementId}`} />,
     },
+    { key: 'partyName', header: 'Party', render: a => a.partyName },
+    { key: 'siteCode', header: 'Site', nowrap: true, render: a => a.siteCode || '—' },
+    { key: 'startDate', header: 'Start', nowrap: true, render: a => dateOf(a.startDate) },
     {
       key: 'endDate',
-      header: 'End Date',
-      render: (row: TableItem) => {
-        const agreement = row as unknown as AgreementWithParty;
-        return formatDate(agreement.endDate);
-      },
+      header: 'End',
+      nowrap: true,
+      hideOnMobile: true,
+      render: a => dateOf(a.endDate),
     },
     {
-      key: 'terms',
-      header: 'Billing Cycle',
-      render: (row: TableItem) => {
-        const agreement = row as unknown as AgreementWithParty;
-        return agreement.terms.billingCycle;
-      },
+      key: 'billingCycle',
+      header: 'Billing cycle',
+      hideOnMobile: true,
+      nowrap: true,
+      render: a => sentenceCase(a.terms.billingCycle),
     },
     {
       key: 'paymentDueDays',
-      header: 'Payment Due',
-      render: (row: TableItem) => {
-        const agreement = row as unknown as AgreementWithParty;
-        return `${agreement.terms.paymentDueDays} days`;
-      },
+      header: 'Payment due',
+      hideOnMobile: true,
+      nowrap: true,
+      render: a => `${a.terms.paymentDueDays} days`,
     },
     {
       key: 'rates',
       header: 'Items',
-      render: (row: TableItem) => {
-        const agreement = row as unknown as AgreementWithParty;
-        return `${agreement.rates.length} items`;
-      },
+      mono: true,
+      align: 'right',
+      hideOnMobile: true,
+      render: a => a.rates.length,
     },
     {
       key: 'status',
       header: 'Status',
-      render: (row: TableItem) => {
-        const agreement = row as unknown as AgreementWithParty;
-        return <span className={`status status-${agreement.status}`}>{agreement.status}</span>;
-      },
+      nowrap: true,
+      render: a => <StatusChip status={a.status} />,
     },
   ];
 
@@ -110,7 +108,7 @@ export function AgreementsPage() {
   }
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading agreements..." />;
+    return <Spinner message="Loading agreements…" />;
   }
 
   if (error) {
@@ -119,37 +117,52 @@ export function AgreementsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Agreements</h1>
-        <p className="page-description">
-          Manage all agreements. To create a new agreement, go to the Parties page and click &quot;+
-          Agreement&quot; for a party.
-        </p>
-      </div>
+      <PageHeader title="Agreements" />
 
-      <div className="filters">
-        <input
-          type="text"
-          placeholder="Search by party or agreement ID..."
+      <FilterBar>
+        <SearchInput
+          ref={searchRef}
+          label="Search agreements"
+          hint="/"
+          placeholder="Party, agreement or site"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
-          className="search-input"
         />
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-          <option value="">All Statuses</option>
+        <Select
+          aria-label="Status"
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+        >
+          <option value="">All statuses</option>
           <option value="active">Active</option>
           <option value="expired">Expired</option>
           <option value="terminated">Terminated</option>
-        </select>
-      </div>
+        </Select>
+      </FilterBar>
 
-      <DataTable
-        data={filteredAgreements as unknown as TableItem[]}
-        columns={columns}
-        keyField="agreementId"
-        onRowClick={row => navigate(`/agreements/${String(row.agreementId)}`)}
-        emptyMessage="No agreements found. Create agreements from the Parties page."
-      />
+      <Card padded={false}>
+        <DataTable
+          aria-label="Agreements"
+          columns={columns}
+          rows={filteredAgreements}
+          rowKey={a => a.agreementId}
+          onRowClick={a => navigate(`/agreements/${a.agreementId}`)}
+          empty={
+            (agreements || []).length === 0 ? (
+              <EmptyState title="No agreements yet" />
+            ) : (
+              <EmptyState title="No agreements match these filters" />
+            )
+          }
+          mobile={{
+            title: a => <DocNumber value={a.agreementId} to={`/agreements/${a.agreementId}`} />,
+            badge: a => <StatusChip status={a.status} />,
+            subtitle: a => a.partyName,
+            meta: a => [a.siteCode || '', dateOf(a.startDate)],
+            actionsPlacement: 'trailing',
+          }}
+        />
+      </Card>
     </div>
   );
 }
