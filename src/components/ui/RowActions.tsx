@@ -1,4 +1,4 @@
-import type { MouseEvent, ReactNode } from 'react';
+import { useId, type MouseEvent, type ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
 import { IconButton } from './IconButton';
 import { Menu, MenuItem } from './Menu';
@@ -10,6 +10,8 @@ export type RowActionItem = {
   tone?: 'danger';
   disabled?: boolean;
   icon?: IconName;
+  /** A muted second line under the label (e.g. why the item is disabled); announced as the item's description. */
+  hint?: string;
 };
 
 export type RowActionsProps = {
@@ -23,20 +25,31 @@ const stop = (e: MouseEvent) => e.stopPropagation();
 
 /** Row actions for list tables and phone lists: one primary action + a "More actions" menu. */
 export function RowActions({ primary, items }: RowActionsProps) {
+  const baseId = useId();
   return (
     <span className={styles.actions} onClick={stop}>
       {primary}
       {items.length > 0 && (
         <Menu trigger={p => <IconButton label="More actions" icon="more" {...p} />}>
-          {items.map(item => (
+          {items.map((item, i) => (
             <MenuItem
               key={item.label}
               disabled={item.disabled}
               className={item.tone === 'danger' ? styles.danger : undefined}
               onSelect={item.onClick}
+              aria-describedby={item.hint ? `${baseId}-${i}` : undefined}
             >
               {item.icon && <Icon name={item.icon} size={16} />}
-              {item.label}
+              {item.hint ? (
+                <span className={styles.text}>
+                  {item.label}
+                  <span id={`${baseId}-${i}`} className={styles.hint} aria-hidden="true">
+                    {item.hint}
+                  </span>
+                </span>
+              ) : (
+                item.label
+              )}
             </MenuItem>
           ))}
         </Menu>

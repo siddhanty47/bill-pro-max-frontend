@@ -6,6 +6,7 @@ import { InventoryPage } from './InventoryPage';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
 import { apiUrl, ok } from '../test/msw/handlers';
+import type { UserEvent } from '@testing-library/user-event';
 import type { Inventory } from '../types';
 
 const item = (over: Partial<Inventory>) =>
@@ -73,6 +74,21 @@ const rowCodes = () =>
     .map(r => within(r).getAllByRole('cell')[0].textContent);
 
 afterEach(() => vi.restoreAllMocks());
+
+/** Fills and submits the add-item form. */
+async function fillForm(user: UserEvent, dialog: HTMLElement) {
+  await user.type(within(dialog).getByLabelText(/Item Code/), 'NEW-1');
+  await user.type(within(dialog).getByLabelText(/Item Name/), 'New thing');
+  await user.type(within(dialog).getByPlaceholderText(/category/i), 'Misc');
+  const qtyField = within(dialog).getByLabelText(/Total Quantity/);
+  await user.clear(qtyField);
+  await user.type(qtyField, '5');
+  // empty optional number inputs register as NaN and fail the form's schema
+  await user.type(within(dialog).getByLabelText(/Daily Rate/), '10');
+  await user.type(within(dialog).getByLabelText(/Damage Charge/), '11');
+  await user.type(within(dialog).getByLabelText(/Cost Price/), '12');
+  await user.click(within(dialog).getByRole('button', { name: 'Add Item' }));
+}
 
 describe('InventoryPage', () => {
   it('shows a spinner while loading', () => {
@@ -183,18 +199,18 @@ describe('InventoryPage', () => {
     await screen.findByRole('table');
     await user.click(screen.getByRole('button', { name: /Add item/ }));
     const dialog = await screen.findByRole('dialog');
-    await user.type(within(dialog).getByLabelText(/Item Code/), 'NEW-1');
-    await user.type(within(dialog).getByLabelText(/Item Name/), 'New thing');
-    await user.type(within(dialog).getByPlaceholderText(/category/i), 'Misc');
-    const qtyField = within(dialog).getByLabelText(/Total Quantity/);
-    await user.clear(qtyField);
-    await user.type(qtyField, '5');
-    // empty optional number inputs register as NaN and fail the form's schema
-    await user.type(within(dialog).getByLabelText(/Daily Rate/), '10');
-    await user.type(within(dialog).getByLabelText(/Damage Charge/), '10');
-    await user.type(within(dialog).getByLabelText(/Cost Price/), '10');
-    await user.click(within(dialog).getByRole('button', { name: 'Add Item' }));
+    await fillForm(user, dialog);
     await waitFor(() => expect(body).toBeDefined());
+    expect(body).toMatchObject({
+      code: 'NEW-1',
+      name: 'New thing',
+      category: 'Misc',
+      totalQuantity: 5,
+      unit: 'pcs',
+      defaultRatePerDay: 10,
+      damageRate: 11,
+      costPrice: 12,
+    });
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
@@ -210,17 +226,7 @@ describe('InventoryPage', () => {
     await screen.findByRole('table');
     await user.click(screen.getByRole('button', { name: /Add item/ }));
     const dialog = await screen.findByRole('dialog');
-    await user.type(within(dialog).getByLabelText(/Item Code/), 'NEW-1');
-    await user.type(within(dialog).getByLabelText(/Item Name/), 'New thing');
-    await user.type(within(dialog).getByPlaceholderText(/category/i), 'Misc');
-    const qtyField = within(dialog).getByLabelText(/Total Quantity/);
-    await user.clear(qtyField);
-    await user.type(qtyField, '5');
-    // empty optional number inputs register as NaN and fail the form's schema
-    await user.type(within(dialog).getByLabelText(/Daily Rate/), '10');
-    await user.type(within(dialog).getByLabelText(/Damage Charge/), '10');
-    await user.type(within(dialog).getByLabelText(/Cost Price/), '10');
-    await user.click(within(dialog).getByRole('button', { name: 'Add Item' }));
+    await fillForm(user, dialog);
     await waitFor(() => expect(alertSpy).toHaveBeenCalled());
   });
 
@@ -283,7 +289,10 @@ describe('InventoryPage', () => {
     const { user } = renderPage();
     const table = await screen.findByRole('table');
     await user.click(within(table).getByRole('button', { name: 'More actions' }));
-    expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeDisabled();
+    const del = screen.getByRole('menuitem', { name: 'Delete' });
+    expect(del).toBeDisabled();
+    expect(screen.getByText('Items are currently rented')).toBeVisible();
+    expect(del).toHaveAccessibleDescription('Items are currently rented');
   });
 
   it('shows code, category, availability and rate in the phone list', async () => {
@@ -294,8 +303,12 @@ describe('InventoryPage', () => {
     const li = within(list).getByText('Cuplock vertical').closest('li') as HTMLElement;
     expect(within(li).getByText('SC-01')).toBeInTheDocument();
     expect(within(li).getByText('Scaffolding')).toBeInTheDocument();
-    expect(within(li).getByText('Available 100 pcs')).toBeInTheDocument();
-    expect(within(li).getByText('Rented 0 pcs')).toBeInTheDocument();
+    expect(li).toHaveTextContent('Available 100 pcs');
+    expect(li).toHaveTextContent('Rented 0 pcs');
+    expect(within(li).getByText('100 pcs')).toHaveClass('mono');
+    expect(within(li).getByText('0 pcs')).toHaveClass('mono');
+    expect(within(li).getByText('Available', { exact: false })).not.toHaveClass('mono');
+    expect(within(li).getByRole('button', { name: 'More actions' }).closest('.end')).not.toBeNull();
     expect(within(li).getByText('₹1,250/day')).toBeInTheDocument();
   });
 

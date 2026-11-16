@@ -17,7 +17,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `EmptyState` | "Nothing here" states: one short title and at most one action |
 | `StatusChip` | Every status badge; tone comes from `status.ts` |
 | `DocNumber` | Bill, challan and other document numbers, optionally linked |
-| `DataTable` | Read-only list data from an array of rows (column flags `align`, `mono`, `nowrap`, `hideOnMobile`); `mobile` spec turns it into a two-line list on phones |
+| `DataTable` | Read-only list data from an array of rows (column flags `align`, `mono`, `nowrap`, `hideOnMobile`); `mobile` spec turns it into a two-line list on phones (`actionsPlacement: 'trailing'` puts row actions top-right instead of below) |
 | `Table`, `THead`, `TBody`, `Tr`, `Th`, `Td` | Hand-built tables and editable grids (challan/bill item rows); `aria-label`/`caption` name the table |
 | `Field` | Label + control + hint + error wrapper for one form control; `labelAction` for a link on the label row |
 | `Input`, `Select`, `Textarea` | Form controls (forwardRef, work with `register()`); `size="lg"` on Input/Select for auth forms; Select draws the kit chevron |
@@ -26,7 +26,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `SearchInput` | The search box of a list page (icon, optional shortcut hint such as `/`); forwards its ref |
 | `FilterBar` | The wrapping row of search and filter controls above a list |
 | `SegmentedControl` | A 2–4 option single-choice filter shown inline (All / Delivery / Return); radio group |
-| `RowActions` | A table/phone row's actions: one primary `Button` + a "More actions" menu for the rest (danger items supported); clicks never open the row |
+| `RowActions` | A table/phone row's actions: one primary `Button` + a "More actions" menu for the rest (danger items supported; an item's `hint` shows a muted line under its label, e.g. why it's disabled); clicks never open the row |
 | `Menu`, `MenuItem`, `MenuLabel`, `MenuDivider` | Dropdown menus (business switcher, profile, row actions) |
 | `Modal` | Dialogs; full-screen on phones |
 | `Tabs`, `TabPanel` | Tab navigation within a page; `idPrefix` + `TabPanel` wire tab ↔ panel |

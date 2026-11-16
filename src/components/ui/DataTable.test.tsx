@@ -192,6 +192,51 @@ describe('DataTable mobile list', () => {
     expect(within(items[0]).queryByRole('button')).not.toBeInTheDocument();
   });
 
+  it('places actions on the title line, after the badge, when actionsPlacement is trailing', async () => {
+    const user = userEvent.setup();
+    const onRowClick = vi.fn();
+    onConfirm.mockClear();
+    render(
+      <DataTable
+        columns={cols}
+        rows={bills}
+        rowKey={b => b.id}
+        mobile={{ ...mobile, actionsPlacement: 'trailing' }}
+        onRowClick={onRowClick}
+      />
+    );
+    const items = within(screen.getByRole('list')).getAllByRole('listitem');
+    const confirm = within(items[1]).getByRole('button', { name: 'Confirm' });
+    const line1 = items[1].querySelector('.line1') as HTMLElement;
+    expect(line1).toContainElement(confirm);
+    expect(items[1].querySelector('.actions')).toBeNull();
+    const end = line1.querySelector('.end') as HTMLElement;
+    expect(end.firstElementChild).toHaveClass('badge');
+    expect(end.lastElementChild).toHaveClass('trailing');
+    await user.click(confirm);
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onRowClick).not.toHaveBeenCalled();
+  });
+
+  it('shows trailing actions without a badge, and nothing when there are none', () => {
+    render(
+      <DataTable
+        columns={cols}
+        rows={bills}
+        rowKey={b => b.id}
+        mobile={{
+          title: b => b.no,
+          actions: b => (b.status === 'Draft' ? <button type="button">Confirm</button> : null),
+          actionsPlacement: 'trailing',
+        }}
+      />
+    );
+    const [first, second] = within(screen.getByRole('list')).getAllByRole('listitem');
+    expect(first.querySelector('.end')).toBeNull();
+    expect(second.querySelector('.end .badge')).toBeNull();
+    expect(within(second).getByRole('button', { name: 'Confirm' })).toBeInTheDocument();
+  });
+
   it('renders only the title when the spec has nothing else, and items are inert without onRowClick', () => {
     render(
       <DataTable columns={cols} rows={bills} rowKey={b => b.id} mobile={{ title: b => b.no }} />

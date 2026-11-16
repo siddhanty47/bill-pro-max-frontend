@@ -29,6 +29,20 @@ describe('RowActions', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
+  it('shows a hint under the label and describes the item with it', async () => {
+    const user = userEvent.setup();
+    render(
+      <RowActions
+        items={[{ label: 'Delete', onClick: vi.fn(), disabled: true, hint: 'Items are rented' }]}
+      />
+    );
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    const item = screen.getByRole('menuitem', { name: 'Delete' });
+    expect(item).toBeDisabled();
+    expect(screen.getByText('Items are rented')).toBeVisible();
+    expect(item).toHaveAccessibleDescription('Items are rented');
+  });
+
   it('disables an item', async () => {
     const user = userEvent.setup();
     const onClick = vi.fn();

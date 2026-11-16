@@ -121,6 +121,7 @@ export function InventoryPage() {
           onClick: () => handleDelete(item),
           tone: 'danger',
           disabled: rentedOf(item) !== 0,
+          hint: rentedOf(item) !== 0 ? 'Items are currently rented' : undefined,
         },
       ]}
     />
@@ -242,12 +243,13 @@ export function InventoryPage() {
             leading: item => <span className="mono">{item.code}</span>,
             title: item => item.name,
             subtitle: item => item.category,
+            actionsPlacement: 'trailing',
             meta: item => [
-              <span key="available" className="mono">
-                Available {qty(availableOf(item), item)}
+              <span key="available">
+                Available <span className="mono">{qty(availableOf(item), item)}</span>
               </span>,
-              <span key="rented" className="mono">
-                Rented {qty(rentedOf(item), item)}
+              <span key="rented">
+                Rented <span className="mono">{qty(rentedOf(item), item)}</span>
               </span>,
               item.defaultRatePerDay ? (
                 <span key="rate" className="mono">

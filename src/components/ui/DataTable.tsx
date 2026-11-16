@@ -26,6 +26,8 @@ export type DataTableMobile<T> = {
   subtitle?: (row: T) => ReactNode;
   meta?: (row: T) => ReactNode[];
   actions?: (row: T) => ReactNode;
+  /** `below` (default): actions on their own line under the row. `trailing`: top-right of the title line, after any badge. */
+  actionsPlacement?: 'below' | 'trailing';
 };
 
 export type DataTableProps<T> = {
@@ -62,6 +64,7 @@ function MobileList<T>({
         const subtitle = spec.subtitle?.(row);
         const meta = (spec.meta?.(row) ?? []).filter(m => !isEmpty(m));
         const actions = spec.actions?.(row);
+        const trailing = spec.actionsPlacement === 'trailing';
         const interactive = onRowClick
           ? {
               tabIndex: 0,
@@ -82,7 +85,14 @@ function MobileList<T>({
             <div className={styles.line1}>
               {spec.leading?.(row)}
               <span className={styles.title}>{spec.title(row)}</span>
-              {!isEmpty(badge) && <span className={styles.badge}>{badge}</span>}
+              {trailing
+                ? (!isEmpty(badge) || !isEmpty(actions)) && (
+                    <span className={styles.end}>
+                      {!isEmpty(badge) && <span className={styles.badge}>{badge}</span>}
+                      {!isEmpty(actions) && <span className={styles.trailing}>{actions}</span>}
+                    </span>
+                  )
+                : !isEmpty(badge) && <span className={styles.badge}>{badge}</span>}
             </div>
             {(!isEmpty(subtitle) || meta.length > 0) && (
               <div className={styles.line2}>
@@ -99,7 +109,7 @@ function MobileList<T>({
                 )}
               </div>
             )}
-            {!isEmpty(actions) && <div className={styles.actions}>{actions}</div>}
+            {!trailing && !isEmpty(actions) && <div className={styles.actions}>{actions}</div>}
           </li>
         );
       })}

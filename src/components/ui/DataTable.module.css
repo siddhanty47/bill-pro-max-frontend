@@ -90,3 +90,16 @@
     display: block;
   }
 }
+
+.end {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.trailing {
+  display: inline-flex;
+  align-items: center;
+}
