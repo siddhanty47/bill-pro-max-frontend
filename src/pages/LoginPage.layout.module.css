@@ -1,0 +1,42 @@
+/* Layout for the sign-in form; look comes from the ui kit. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.form :global(.error-message) {
+  margin-bottom: 0;
+}
+
+.full {
+  width: 100%;
+}
+
+.passwordField {
+  position: relative;
+}
+
+.forgot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: auto;
+  padding: 0;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
