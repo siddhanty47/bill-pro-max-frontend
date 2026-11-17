@@ -65,7 +65,9 @@ function NotificationList({ unreadCount }: { unreadCount: number }) {
       </MenuLabel>
       {unreadCount > 0 && <MenuItem onSelect={() => markAllAsRead()}>Mark all read</MenuItem>}
       {notifications.length === 0 ? (
-        <p className={styles.empty}>No notifications</p>
+        <p role="presentation" className={styles.empty}>
+          No notifications
+        </p>
       ) : (
         notifications.map(n => (
           <MenuItem

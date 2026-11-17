@@ -48,6 +48,12 @@ describe('Tabs', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it('keeps the first tab tabbable when activeTab matches no tab', () => {
+    render(<Tabs tabs={TABS} activeTab="nope" onChange={vi.fn()} />);
+    expect(screen.getByRole('tab', { name: 'Bills' })).toHaveAttribute('tabindex', '0');
+    expect(screen.getByRole('tab', { name: 'Challans' })).toHaveAttribute('tabindex', '-1');
+  });
+
   it('is re-exported from the legacy path', () => {
     expect(TabsShim).toBe(Tabs);
   });

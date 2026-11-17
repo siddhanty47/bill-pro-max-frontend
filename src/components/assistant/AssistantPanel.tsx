@@ -396,14 +396,12 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
           {previews.map((src, i) => (
             <div key={i} className={styles.thumb}>
               <img src={src} alt="pending attachment" className={styles.thumbImg} />
-              <button
-                type="button"
+              <IconButton
+                icon="close"
+                label="Remove attachment"
                 className={styles.thumbRemove}
                 onClick={() => removeImage(i)}
-                aria-label="Remove attachment"
-              >
-                ✕
-              </button>
+              />
             </div>
           ))}
         </div>
@@ -449,7 +447,7 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
               icon={recording ? 'stop' : 'mic'}
               label={recording ? 'Stop recording' : 'Record voice'}
               title={recording ? 'Stop recording' : 'Record voice'}
-              className={recording ? styles.recording : undefined}
+              tone={recording ? 'danger' : undefined}
               onClick={toggleRecording}
               disabled={inputLocked || transcribing}
             />

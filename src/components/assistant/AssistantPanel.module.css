@@ -320,55 +320,16 @@
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
 }
+/* Placement only: the kit IconButton sits on the thumbnail's corner. */
 .thumbRemove {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  font-size: var(--text-xs);
-  line-height: 1;
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-md);
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-.thumbRemove:hover {
-  color: var(--status-danger-text);
-  border-color: var(--status-danger-border);
+  top: calc(var(--space-2) * -1);
+  right: calc(var(--space-2) * -1);
 }
 
 /* Hidden native file input */
 .hiddenFile {
   display: none;
-}
-
-/* Active recording state — pulsing danger accent */
-.recording {
-  color: var(--status-danger-text);
-  border-color: var(--status-danger-border);
-  background: var(--status-danger-bg);
-  animation: recordPulse 1.1s ease-in-out infinite;
-}
-@keyframes recordPulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.55;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .recording {
-    animation: none;
-  }
 }
 
 /* --- Mobile (≤768px): full-screen chat ---

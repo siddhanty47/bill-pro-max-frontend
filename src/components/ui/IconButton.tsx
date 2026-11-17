@@ -5,6 +5,8 @@ import styles from './IconButton.module.css';
 export type IconButtonProps = {
   label: string;
   badge?: boolean;
+  /** `danger` tints the button as an active/hazard state (e.g. recording); sets `data-tone`. */
+  tone?: 'danger';
 } & (
   | { icon: IconName; children?: never }
   /** A non-interactive glyph other than an Icon, e.g. an `Avatar` for the account menu. */
@@ -16,6 +18,7 @@ export function IconButton({
   label,
   icon,
   badge = false,
+  tone,
   className,
   type = 'button',
   children,
@@ -25,7 +28,10 @@ export function IconButton({
     <button
       type={type}
       aria-label={label}
-      className={[styles.iconBtn, className ?? ''].filter(Boolean).join(' ')}
+      data-tone={tone}
+      className={[styles.iconBtn, tone === 'danger' ? styles.danger : '', className ?? '']
+        .filter(Boolean)
+        .join(' ')}
       {...rest}
     >
       {icon ? <Icon name={icon} size={18} /> : children}

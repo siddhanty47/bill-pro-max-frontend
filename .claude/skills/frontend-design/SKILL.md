@@ -64,7 +64,7 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
   <Button variant="primary" type="submit" loading={isSaving}>Save bill</Button>
   <Button icon="plus" to="/challans/new">New challan</Button>
   ```
-- **`IconButton`** — icon-only buttons. `label` (required → `aria-label`) · `icon: IconName` **or** `children` (a non-interactive glyph such as an `Avatar`, e.g. the account menu trigger) · `badge?: boolean` (accent dot) · native button props. 36px, 44px at ≤768.
+- **`IconButton`** — icon-only buttons. `label` (required → `aria-label`) · `icon: IconName` **or** `children` (a non-interactive glyph such as an `Avatar`, e.g. the account menu trigger) · `badge?: boolean` (accent dot) · `tone?: 'danger'` (danger tint for an active hazard state, e.g. recording; pair with a changed icon/label) · native button props. 36px, 44px at ≤768.
 - **`Avatar`** — initials badge. `initials` · `size?: 'sm' | 'md'` (24 / 32px, default `md`) · `variant?: 'person' | 'business'` (`person` = round neutral, default; `business` = 6px-radius accent-muted letter badge) · `className?`. A non-interactive `aria-hidden` span: put it inside an `IconButton` or `Button`, which owns the accessible name and the 44px tap area.
   ```tsx
   <Menu trigger={p => <IconButton label="Account" {...p}><Avatar initials="SY" /></IconButton>}>…</Menu>

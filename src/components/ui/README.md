@@ -5,7 +5,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | Component | Use it for |
 |---|---|
 | `Button` | Every text button and button-styled link (`to` for routes, `href` for external, `loading` for submits, `aria-pressed` for toggles, `collapseLabel` for icon-only on phones, `dot` status-tone dot and `hint` shortcut kbd, `size="lg"` on auth forms) |
-| `IconButton` | Icon-only buttons (close, menu, bell) or an `Avatar` trigger; `label` becomes the accessible name |
+| `IconButton` | Icon-only buttons (close, menu, bell, mic) or an `Avatar` trigger; `tone="danger"` for an active hazard state such as recording; `label` becomes the accessible name |
 | `Avatar` | Initials badge: `person` (account) or `business` (letter badge); non-interactive, put it in a trigger |
 | `Notice` | Inline form/page message (sign-in error, "link sent"); `danger` is an alert, others a status |
 | `Icon` | Every line icon; add new glyphs here, never inline an SVG in a page |

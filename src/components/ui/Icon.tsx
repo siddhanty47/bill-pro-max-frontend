@@ -25,7 +25,6 @@ export type IconName =
   | 'paperclip'
   | 'mic'
   | 'stop'
-  | 'send'
   | 'brand';
 
 export interface IconProps {
@@ -129,7 +128,6 @@ const GLYPHS: Record<Exclude<IconName, 'brand'>, ReactNode> = {
     </>
   ),
   stop: <rect x="4.5" y="4.5" width="9" height="9" rx="1.5" fill="currentColor" />,
-  send: <path d="M3 9h12M10.5 4.5 15 9l-4.5 4.5" />,
 };
 
 export function Icon({ name, size = 16, className }: IconProps) {

@@ -46,6 +46,8 @@ function useOverflowFade(tabCount: number) {
 
 export function Tabs({ tabs, activeTab, onChange, idPrefix }: TabsProps) {
   const [ref, fade] = useOverflowFade(tabs.length);
+  // If activeTab matches nothing, the first tab stays reachable.
+  const tabbableId = tabs.some(t => t.id === activeTab) ? activeTab : tabs[0]?.id;
   // Roving tabindex: only the active tab is in the Tab order; arrows move and activate.
   const onKeyDown = (e: KeyboardEvent<HTMLElement>) => {
     const keys = ['ArrowRight', 'ArrowLeft', 'Home', 'End'];
@@ -75,7 +77,7 @@ export function Tabs({ tabs, activeTab, onChange, idPrefix }: TabsProps) {
           id={idPrefix ? tabId(idPrefix, tab.id) : undefined}
           aria-controls={idPrefix ? panelId(idPrefix, tab.id) : undefined}
           aria-selected={activeTab === tab.id}
-          tabIndex={activeTab === tab.id ? 0 : -1}
+          tabIndex={tab.id === tabbableId ? 0 : -1}
           className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`}
           onClick={() => onChange(tab.id)}
         >

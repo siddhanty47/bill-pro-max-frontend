@@ -25,6 +25,12 @@
   cursor: not-allowed;
 }
 
+.danger,
+.danger:hover:not(:disabled) {
+  background: var(--status-danger-bg);
+  color: var(--status-danger-text);
+}
+
 .badge {
   position: absolute;
   top: 8px;

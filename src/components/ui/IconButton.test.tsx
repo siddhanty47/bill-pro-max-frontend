@@ -19,6 +19,16 @@ describe('IconButton', () => {
     expect(container.querySelector('.badge')).not.toBeInTheDocument();
   });
 
+  it('tints a danger tone', () => {
+    render(<IconButton label="Stop" icon="stop" tone="danger" />);
+    expect(screen.getByRole('button', { name: 'Stop' })).toHaveAttribute('data-tone', 'danger');
+  });
+
+  it('has no tone by default', () => {
+    render(<IconButton label="Mic" icon="mic" />);
+    expect(screen.getByRole('button', { name: 'Mic' })).not.toHaveAttribute('data-tone');
+  });
+
   it('calls onClick', async () => {
     const onClick = vi.fn();
     render(<IconButton label="Menu" icon="menu" onClick={onClick} />);
