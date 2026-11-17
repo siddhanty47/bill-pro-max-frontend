@@ -1,58 +1,24 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
   position: relative;
-}
-
-.label {
-  font-weight: 500;
-  font-size: var(--text-sm);
-  color: var(--text-primary);
+  min-width: 0;
 }
 
 .inputContainer {
   position: relative;
 }
 
-.input {
-  width: 100%;
-  height: 40px;
-  padding: 0 12px;
-  font-size: var(--text-base);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+/* Portalled panel: fixed, placed by placePanel (top/left) against the input;
+   above Modal like the kit Menu. Width follows the input, never under 320px. */
+.panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: var(--z-menu);
   box-sizing: border-box;
-  background: var(--bg-input);
-  color: var(--text-heading);
-  transition:
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast);
-}
-
-.input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: var(--ring-focus);
-}
-
-.inputError {
-  border-color: var(--status-danger-text);
-}
-
-.inputError:focus {
-  box-shadow: none;
-}
-
-.input:disabled {
-  background-color: var(--bg-card);
-  color: var(--text-muted);
-  cursor: not-allowed;
-}
-
-/* Wrapper for portaled dropdown (position applied inline) */
-.dropdownPortal {
-  z-index: 9999; /* above modals (portaled) */
+  min-width: min(320px, calc(100vw - 32px));
 }
 
 .dropdown {
@@ -60,8 +26,7 @@
   padding: 6px;
   list-style: none;
   background: var(--bg-elevated);
-  border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-pop);
   max-height: 250px;
   overflow-y: auto;
@@ -70,8 +35,8 @@
 .item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
+  gap: var(--space-3);
+  padding: var(--space-2) 10px;
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: background-color var(--transition-fast);
@@ -102,21 +67,34 @@
 }
 
 .itemSublabel {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--text-secondary);
 }
 
 .noResults {
-  padding: 12px;
+  padding: var(--space-3);
   text-align: center;
   color: var(--text-muted);
   font-size: var(--text-sm);
   background: var(--bg-elevated);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-pop);
 }
 
 .error {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--status-danger-text);
+}
+
+/* Narrow phones: span the viewport with 16px gutters (placePanel sets only top). */
+@media (max-width: 480px) {
+  .panel {
+    left: var(--space-4);
+    right: var(--space-4);
+    min-width: 0;
+  }
+
+  .item {
+    min-height: 44px;
+  }
 }

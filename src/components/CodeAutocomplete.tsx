@@ -2,25 +2,27 @@
  * CodeAutocomplete Component
  * A reusable, keyboard-accessible autocomplete component for code-based selection.
  * Uses client-side filtering of pre-loaded data for instant results.
- * Renders dropdown via portal to avoid clipping by parent overflow.
+ * The listbox is portalled to `document.body` and fixed-positioned against the
+ * input (same placement as the kit Menu), so table wrappers and modals never clip it.
  */
 import {
   useState,
   useRef,
   useEffect,
+  useId,
+  useLayoutEffect,
   useMemo,
   useCallback,
   type KeyboardEvent,
   type ChangeEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { Field, Input } from './ui';
+import { placePanel } from './ui/placePanel';
 import styles from './CodeAutocomplete.module.css';
 
-/** Minimum dropdown width so content is visible when input is narrow */
-const DROPDOWN_MIN_WIDTH = 320;
-/** Max height from CSS - used for flip-above calculation */
-const DROPDOWN_MAX_HEIGHT = 250;
-const DROPDOWN_GAP = 4;
+/** Matches the 480px breakpoint where the panel spans the viewport (CSS). */
+const NARROW = 480;
 
 /**
  * Interface for autocomplete items
@@ -40,8 +42,10 @@ export interface AutocompleteItem {
  * Props for the CodeAutocomplete component
  */
 interface CodeAutocompleteProps {
-  /** Label for the input field */
+  /** Visible label; `""` renders the bare input (name it with `aria-label`). */
   label: string;
+  /** Accessible name when there is no visible label (e.g. inside a table row). */
+  'aria-label'?: string;
   /** Placeholder text */
   placeholder?: string;
   /** Current input value */
@@ -56,7 +60,7 @@ interface CodeAutocompleteProps {
   disabled?: boolean;
   /** Error message to display */
   error?: string;
-  /** Whether the field is required */
+  /** Whether the field is required (label star + aria-required; validation stays with the form) */
   required?: boolean;
 }
 
@@ -67,12 +71,13 @@ interface CodeAutocompleteProps {
  * - Text input that filters dropdown as user types
  * - Client-side filtering of pre-loaded items (instant, no API calls)
  * - Keyboard navigation: ArrowDown/Up, Enter, Escape, Tab
- * - Visual highlight for currently selected option
+ * - Visual highlight for currently selected option (aria-activedescendant)
  * - Shows "No results" when empty
  * - Click outside closes dropdown
  */
 export function CodeAutocomplete({
   label,
+  'aria-label': ariaLabel,
   placeholder = 'Type to search...',
   value,
   onChange,
@@ -84,67 +89,15 @@ export function CodeAutocomplete({
 }: CodeAutocompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [position, setPosition] = useState<{
-    top?: number;
-    bottom?: number;
-    left: number;
-    width: number;
-  } | null>(null);
+
+  const inputId = useId();
+  const listboxId = `${inputId}-listbox`;
+  const optionId = (index: number) => `${inputId}-option-${index}`;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  /**
-   * Compute dropdown position from input rect (for portal).
-   * Flips above when would overflow bottom; aligns right when would overflow right.
-   */
-  const updatePosition = useCallback(() => {
-    const rect = inputRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    const dropdownWidth = Math.max(rect.width, DROPDOWN_MIN_WIDTH);
-    const spaceBelow = window.innerHeight - rect.bottom - DROPDOWN_GAP;
-    const showAbove = spaceBelow < DROPDOWN_MAX_HEIGHT;
-
-    let left: number;
-    if (rect.left + dropdownWidth > window.innerWidth) {
-      left = Math.max(0, rect.right - dropdownWidth);
-    } else {
-      left = rect.left;
-    }
-
-    if (showAbove) {
-      setPosition({
-        bottom: window.innerHeight - rect.top + DROPDOWN_GAP,
-        left,
-        width: dropdownWidth,
-      });
-    } else {
-      setPosition({
-        top: rect.bottom + DROPDOWN_GAP,
-        left,
-        width: dropdownWidth,
-      });
-    }
-  }, []);
-
-  /**
-   * Update position when open, and on scroll/resize
-   */
-  useEffect(() => {
-    if (!isOpen) return;
-    // Measure after layout; setState from a callback, not the effect body.
-    const frame = requestAnimationFrame(updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
-    window.addEventListener('resize', updatePosition);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener('scroll', updatePosition, true);
-      window.removeEventListener('resize', updatePosition);
-    };
-  }, [isOpen, updatePosition]);
 
   /**
    * Filter items based on input value
@@ -168,6 +121,37 @@ export function CodeAutocomplete({
     setPrevFilterInput({ value, items });
     setHighlightedIndex(-1);
   }
+
+  const hasResults = filteredItems.length > 0;
+  const showPanel = isOpen && (hasResults || !!value);
+  const showListbox = showPanel && hasResults;
+
+  /**
+   * Place the panel against the input while open (below it, flipped above when
+   * there is no room), and keep it there on scroll and resize.
+   */
+  useLayoutEffect(() => {
+    if (!showPanel) return;
+    const place = () => {
+      if (dropdownRef.current && inputRef.current) {
+        // Narrow phones: CSS spans the viewport, so only placePanel's `top` applies.
+        if (window.innerWidth <= NARROW) dropdownRef.current.style.removeProperty('width');
+        else
+          dropdownRef.current.style.setProperty(
+            'width',
+            `${inputRef.current.getBoundingClientRect().width}px`
+          );
+        placePanel(dropdownRef.current, inputRef.current, 'start');
+      }
+    };
+    place();
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    return () => {
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+    };
+  }, [showPanel, filteredItems.length]);
 
   /**
    * Handle click outside to close dropdown (includes portaled dropdown)
@@ -275,78 +259,85 @@ export function CodeAutocomplete({
     setIsOpen(true);
   }, []);
 
+  const activeOption =
+    showListbox && highlightedIndex >= 0 && highlightedIndex < filteredItems.length
+      ? optionId(highlightedIndex)
+      : undefined;
+
+  // Wrapped in a div so Field links the label (htmlFor) without auto-wiring a
+  // native `required` onto the input: the form's zod schema owns validation.
+  const input = (
+    <div className={styles.inputContainer}>
+      <Input
+        ref={inputRef}
+        id={inputId}
+        type="text"
+        value={value}
+        onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
+        onFocus={handleFocus}
+        placeholder={placeholder}
+        disabled={disabled}
+        autoComplete="off"
+        role="combobox"
+        aria-label={label ? undefined : ariaLabel}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-autocomplete="list"
+        aria-controls={showListbox ? listboxId : undefined}
+        aria-activedescendant={activeOption}
+        aria-required={required || undefined}
+        invalid={!!error}
+      />
+    </div>
+  );
+
   return (
     <div className={styles.container} ref={containerRef}>
-      <label className={styles.label}>
-        {label}
-        {required && ' *'}
-      </label>
-
-      <div className={styles.inputContainer}>
-        <input
-          ref={inputRef}
-          type="text"
-          className={`${styles.input} ${error ? styles.inputError : ''}`}
-          value={value}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          onFocus={handleFocus}
-          placeholder={placeholder}
-          disabled={disabled}
-          autoComplete="off"
-          role="combobox"
-          aria-expanded={isOpen}
-          aria-haspopup="listbox"
-          aria-autocomplete="list"
-        />
-
-        {isOpen &&
-          position &&
-          (filteredItems.length > 0 || (value && filteredItems.length === 0)) &&
-          createPortal(
-            <div
-              ref={dropdownRef}
-              className={styles.dropdownPortal}
-              style={{
-                position: 'fixed',
-                ...(position.top !== undefined
-                  ? { top: position.top }
-                  : { bottom: position.bottom }),
-                left: position.left,
-                width: position.width,
-                minWidth: DROPDOWN_MIN_WIDTH,
-              }}
-            >
-              {filteredItems.length > 0 ? (
-                <ul ref={listRef} className={styles.dropdown} role="listbox">
-                  {filteredItems.map((item, index) => (
-                    <li
-                      key={item.id}
-                      className={`${styles.item} ${
-                        index === highlightedIndex ? styles.itemHighlighted : ''
-                      }`}
-                      onClick={() => handleSelect(item)}
-                      onMouseEnter={() => setHighlightedIndex(index)}
-                      role="option"
-                      aria-selected={index === highlightedIndex}
-                    >
-                      <span className={styles.itemCode}>{item.code}</span>
-                      <span className={styles.itemLabel}>{item.label}</span>
-                      {item.sublabel && (
-                        <span className={styles.itemSublabel}>{item.sublabel}</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              ) : value ? (
-                <div className={styles.noResults}>No results found</div>
-              ) : null}
-            </div>,
-            document.body
+      {label ? (
+        <Field label={label} htmlFor={inputId} required={required} error={error}>
+          {input}
+        </Field>
+      ) : (
+        <>
+          {input}
+          {error && (
+            <span role="alert" className={styles.error}>
+              {error}
+            </span>
           )}
-      </div>
+        </>
+      )}
 
-      {error && <span className={styles.error}>{error}</span>}
+      {showPanel &&
+        createPortal(
+          <div ref={dropdownRef} className={styles.panel}>
+            {hasResults ? (
+              <ul ref={listRef} id={listboxId} className={styles.dropdown} role="listbox">
+                {filteredItems.map((item, index) => (
+                  <li
+                    key={item.id}
+                    id={optionId(index)}
+                    className={`${styles.item} ${
+                      index === highlightedIndex ? styles.itemHighlighted : ''
+                    }`}
+                    onClick={() => handleSelect(item)}
+                    onMouseEnter={() => setHighlightedIndex(index)}
+                    role="option"
+                    aria-selected={index === highlightedIndex}
+                  >
+                    <span className={styles.itemCode}>{item.code}</span>
+                    <span className={styles.itemLabel}>{item.label}</span>
+                    {item.sublabel && <span className={styles.itemSublabel}>{item.sublabel}</span>}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className={styles.noResults}>No results found</div>
+            )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

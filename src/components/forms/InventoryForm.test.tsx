@@ -75,6 +75,12 @@ describe('InventoryForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('labels the category autocomplete with exactly one star', () => {
+    setup();
+    expect(screen.getByLabelText(/^category/i)).toHaveAttribute('role', 'combobox');
+    expect(screen.getByText(/^Category/, { selector: 'label' }).textContent).toBe('Category *');
+  });
+
   it('blocks submit when the code already exists', async () => {
     const { user, onSubmit } = setup({}, true);
     await fillRequired(user);

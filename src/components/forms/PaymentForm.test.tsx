@@ -117,6 +117,14 @@ describe('PaymentForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('labels the party autocomplete with exactly one star', () => {
+    setup();
+    const input = screen.getByLabelText(/^party/i);
+    expect(input).toHaveAttribute('role', 'combobox');
+    expect(input).toHaveAttribute('aria-required', 'true');
+    expect(screen.getByText(/^Party/, { selector: 'label' }).textContent).toBe('Party *');
+  });
+
   it('cancels', async () => {
     const { user, onCancel } = setup();
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
