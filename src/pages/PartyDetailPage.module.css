@@ -1,60 +1,37 @@
-.siteFilterRow {
+/* Party detail: layout only. Cards, tables, fields and buttons are kit components. */
+
+/* Bills card: site filter in the card header */
+.siteFilter {
+  width: 160px;
+}
+
+/* Phone site row: "State code" + its inline editor */
+.inline {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+/* Statements card */
+.statementFields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--space-4);
+}
+
+.statementActions {
   display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
 }
 
-.siteFilterSelect {
-  padding: 6px 10px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  background: var(--bg-input);
-  color: var(--text-primary);
-}
+@media (max-width: 768px) {
+  .siteFilter {
+    width: 130px;
+  }
 
-/* Statement form styles */
-.statementForm {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-width: 400px;
-}
-
-.statementRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.statementLabel {
-  width: 80px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
-
-.statementSelect {
-  flex: 1;
-  padding: 6px 10px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  background: var(--bg-input);
-  color: var(--text-primary);
-}
-
-.statementDateInput {
-  flex: 1;
-  padding: 6px 10px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  background: var(--bg-input);
-  color: var(--text-primary);
-}
-
-.statementButtons {
-  display: flex;
-  gap: 8px;
+  .statementFields {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

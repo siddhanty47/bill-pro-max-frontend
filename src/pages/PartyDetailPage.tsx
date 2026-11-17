@@ -1,13 +1,14 @@
 /**
  * @fileoverview Party detail view page
- * @description Detail page showing all information for a single party, including
- * contact info, sites, and agreements. Supports Jira-style inline editing for
- * name, contact fields, notes, and site details. Provides modals to add new
- * sites and agreements, reusing the same components as the list page.
+ * @description Detail page for a single party: contact and notes (inline-editable),
+ * sites and agreements, bills, payments, statements, share links and change history,
+ * one tab each. The reference detail page for the kit's detail recipe:
+ * DetailPageShell (eyebrow, status once, tabs with counts, sidebar) + DetailSection /
+ * DetailField rows + kit Cards holding DataTables.
  */
-import { useCallback, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import pageStyles from './PartyDetailPage.module.css';
+import { useCallback, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import styles from './PartyDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
   useGetPartyQuery,
@@ -21,23 +22,42 @@ import { useGetInventoryQuery } from '../api/inventoryApi';
 import { useLazyGetStatementPdfQuery, useLazyGetStatementDataQuery } from '../api/statementApi';
 import { StatementPreview } from '../components/statements/StatementPreview';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
-import { Modal } from '../components/Modal';
-import { Tabs } from '../components/Tabs';
+import {
+  Button,
+  Card,
+  DataTable,
+  DocNumber,
+  EmptyState,
+  Field,
+  Input,
+  Modal,
+  Select,
+  StatusChip,
+  type Column,
+} from '../components/ui';
 import { AddSiteModal } from '../components/AddSiteModal';
 import { AgreementForm } from '../components/forms/AgreementForm';
 import { getErrorMessage } from '../api/baseApi';
 import { ShareLinkManager } from '../components/ShareLinkManager';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { EditableField } from '../components/EditableField';
-import type { CreateAgreementInput } from '../types';
+import { formatDate, formatMoney } from '../utils/format';
+import type { Agreement, Bill, CreateAgreementInput, Payment, Site } from '../types';
 
-/**
- * Formats an ISO date string for display.
- */
-function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString();
-}
+type StatementType = 'ledger' | 'bills' | 'items' | 'aging';
+
+/** formatDate for optional dates; missing → empty cell. */
+const date = (d?: string) => (d ? formatDate(d) : '');
+
+/** "client" → "Client"; "bank_transfer" → "Bank transfer". */
+const sentence = (s: string) => {
+  const words = s.replace(/_/g, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+/** The date a bill is listed and sorted by (legacy bills have no billDate). */
+const billSortDate = (b: Bill) => b.billDate ?? b.billingPeriod?.start ?? b.createdAt ?? '';
+const billShownDate = (b: Bill) => b.billDate ?? b.billingPeriod?.end ?? b.createdAt;
 
 /**
  * PartyDetailPage displays the full details of a single party (customer/supplier).
@@ -46,6 +66,7 @@ function formatDate(dateStr: string | undefined): string {
 export function PartyDetailPage() {
   const { partyId } = useParams<{ partyId: string }>();
   const { currentBusinessId } = useCurrentBusiness();
+  const navigate = useNavigate();
 
   const {
     data: party,
@@ -70,9 +91,7 @@ export function PartyDetailPage() {
   const [billSiteFilter, setBillSiteFilter] = useState('');
 
   // Statement PDF state
-  const [statementType, setStatementType] = useState<'ledger' | 'bills' | 'items' | 'aging'>(
-    'ledger'
-  );
+  const [statementType, setStatementType] = useState<StatementType>('ledger');
   const [statementFrom, setStatementFrom] = useState('');
   const [statementTo, setStatementTo] = useState('');
   const [statementAgreementId, setStatementAgreementId] = useState('');
@@ -92,16 +111,6 @@ export function PartyDetailPage() {
   );
 
   const [activeTab, setActiveTab] = useState('about');
-
-  const TABS = [
-    { id: 'about', label: 'About' },
-    { id: 'sites-agreements', label: 'Sites & Agreements' },
-    { id: 'bills', label: 'Bills' },
-    { id: 'payments', label: 'Payments' },
-    { id: 'statements', label: 'Statements' },
-    { id: 'share-links', label: 'Share Links' },
-    { id: 'change-history', label: 'Change History' },
-  ];
 
   /** Save handler for top-level party fields (e.g. name, notes) */
   const handleSave = useCallback(
@@ -129,6 +138,19 @@ export function PartyDetailPage() {
       }).unwrap();
     },
     [currentBusinessId, party, partyId, updateParty]
+  );
+
+  /** Save handler for one site's address or state code */
+  const handleSiteSave = useCallback(
+    async (siteCode: string, data: { address?: string; stateCode?: string }) => {
+      await updateSite({
+        businessId: currentBusinessId!,
+        partyId: partyId!,
+        siteCode,
+        data,
+      }).unwrap();
+    },
+    [currentBusinessId, partyId, updateSite]
   );
 
   /** Submit handler for the agreement creation modal */
@@ -202,44 +224,213 @@ export function PartyDetailPage() {
     triggerStatementData,
   ]);
 
+  const sites = useMemo(() => party?.sites ?? [], [party]);
+  const agreements = useMemo(() => party?.agreements ?? [], [party]);
+
+  const agreementSite = useMemo(
+    () => Object.fromEntries(agreements.map(a => [a.agreementId, a.siteCode])),
+    [agreements]
+  );
+
+  /** Bills for the chosen site, newest first */
+  const shownBills = useMemo(
+    () =>
+      (bills ?? [])
+        .filter(b => billSiteFilter === '' || agreementSite[b.agreementId] === billSiteFilter)
+        .sort((a, b) => new Date(billSortDate(b)).getTime() - new Date(billSortDate(a)).getTime()),
+    [bills, billSiteFilter, agreementSite]
+  );
+
+  /** Payments, newest first */
+  const shownPayments = useMemo(
+    () =>
+      [...(payments ?? [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [payments]
+  );
+
+  // ─── Sites & agreements ───────────────────────────────────────────
+
+  const siteAddress = (site: Site) => (
+    <EditableField
+      label="Address"
+      value={site.address}
+      inputType="text"
+      compact
+      onSave={v => handleSiteSave(site.code, { address: String(v).trim() })}
+      isSaving={isUpdatingSite}
+    />
+  );
+
+  const siteStateCode = (site: Site) => (
+    <EditableField
+      label="State code"
+      value={site.stateCode ?? ''}
+      inputType="text"
+      compact
+      mono
+      onSave={v => handleSiteSave(site.code, { stateCode: String(v).trim() || undefined })}
+      isSaving={isUpdatingSite}
+    />
+  );
+
+  const siteColumns: Column<Site>[] = [
+    { key: 'code', header: 'Code', mono: true, nowrap: true },
+    { key: 'address', header: 'Address', render: siteAddress },
+    { key: 'stateCode', header: 'State code', nowrap: true, render: siteStateCode },
+  ];
+
+  const agreementLink = (a: Agreement) => (
+    <DocNumber value={a.agreementId} to={`/agreements/${a.agreementId}`} />
+  );
+
+  const agreementColumns: Column<Agreement>[] = [
+    { key: 'agreementId', header: 'Agreement', nowrap: true, render: agreementLink },
+    { key: 'siteCode', header: 'Site', mono: true, nowrap: true },
+    {
+      key: 'status',
+      header: 'Status',
+      nowrap: true,
+      render: a => <StatusChip status={a.status} />,
+    },
+    { key: 'start', header: 'Start', mono: true, nowrap: true, render: a => date(a.startDate) },
+    { key: 'end', header: 'End', mono: true, nowrap: true, render: a => date(a.endDate) },
+  ];
+
+  // ─── Bills ────────────────────────────────────────────────────────
+
+  const billLink = (b: Bill) => <DocNumber value={b.billNumber} to={`/bills/${b._id}`} />;
+  const billAgreement = (b: Bill) =>
+    agreementSite[b.agreementId]
+      ? `${b.agreementId} / ${agreementSite[b.agreementId]}`
+      : b.agreementId;
+  const billPeriod = (b: Bill) =>
+    b.billingPeriod
+      ? `${formatDate(b.billingPeriod.start)} – ${formatDate(b.billingPeriod.end)}`
+      : '';
+
+  const billColumns: Column<Bill>[] = [
+    { key: 'date', header: 'Date', mono: true, nowrap: true, render: b => date(billShownDate(b)) },
+    { key: 'billNumber', header: 'Bill', nowrap: true, render: billLink },
+    {
+      key: 'agreement',
+      header: 'Agreement / site',
+      mono: true,
+      nowrap: true,
+      render: billAgreement,
+    },
+    {
+      key: 'period',
+      header: 'Period',
+      mono: true,
+      nowrap: true,
+      hideOnMobile: true,
+      render: billPeriod,
+    },
+    {
+      key: 'amount',
+      header: 'Amount',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: b => formatMoney(b.totalAmount),
+    },
+  ];
+
+  // ─── Payments ─────────────────────────────────────────────────────
+
+  const paymentBill = (p: Payment) =>
+    p.billId ? (
+      <Button size="sm" variant="ghost" to={`/bills/${p.billId}`}>
+        View bill
+      </Button>
+    ) : null;
+
+  const paymentColumns: Column<Payment>[] = [
+    { key: 'date', header: 'Date', mono: true, nowrap: true, render: p => date(p.date) },
+    {
+      key: 'amount',
+      header: 'Amount',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: p => formatMoney(p.amount),
+    },
+    { key: 'method', header: 'Method', nowrap: true, render: p => sentence(p.method) },
+    { key: 'bill', header: 'Bill', nowrap: true, render: paymentBill },
+    {
+      key: 'status',
+      header: 'Status',
+      nowrap: true,
+      render: p => <StatusChip status={p.status} />,
+    },
+    { key: 'reference', header: 'Reference', mono: true, hideOnMobile: true },
+  ];
+
+  // ─── Shell ────────────────────────────────────────────────────────
+
+  const tabs = party
+    ? [
+        { id: 'about', label: 'About' },
+        { id: 'sites-agreements', label: 'Sites & agreements', count: sites.length },
+        { id: 'bills', label: 'Bills', count: bills?.length },
+        { id: 'payments', label: 'Payments', count: payments?.length },
+        { id: 'statements', label: 'Statements' },
+        { id: 'share-links', label: 'Share links' },
+        { id: 'change-history', label: 'Change history' },
+      ]
+    : undefined;
+
   const sidebar = party ? (
     <DetailSection title="Details">
-      <DetailField label="Code" value={party.code} />
-      <DetailField label="Roles" value={party.roles.join(', ')} />
-      <DetailField
-        label="Status"
-        value={
-          <span className={`status status-${party.isActive ? 'active' : 'inactive'}`}>
-            {party.isActive ? 'Active' : 'Inactive'}
-          </span>
-        }
-      />
-      <DetailField label="Created" value={formatDate(party.createdAt)} />
-      <DetailField label="Updated" value={formatDate(party.updatedAt)} />
+      <DetailField label="Code" value={party.code} mono />
+      <DetailField label="Roles" value={party.roles.map(sentence).join(', ')} />
+      <DetailField label="Created" value={date(party.createdAt)} />
+      <DetailField label="Updated" value={date(party.updatedAt)} />
     </DetailSection>
   ) : null;
+
+  const contactField = (
+    label: string,
+    field: 'person' | 'phone' | 'email' | 'address' | 'gst' | 'stateCode',
+    mono = false
+  ) =>
+    party && (
+      <DetailField
+        label={label}
+        value={party.contact[field]}
+        mono={mono}
+        editable={{
+          rawValue: party.contact[field] ?? '',
+          inputType: 'text',
+          onSave: v => handleContactSave(field, v),
+          isSaving,
+        }}
+      />
+    );
 
   return (
     <DetailPageShell
       title={party?.name || 'Party'}
-      subtitle={party?.code ? `Code: ${party.code}` : undefined}
-      status={party ? (party.isActive ? 'Active' : 'Inactive') : undefined}
-      statusClassName={`status status-${party?.isActive ? 'active' : 'inactive'}`}
+      eyebrow="Party"
+      code={party?.code}
+      status={party ? (party.isActive ? 'active' : 'inactive') : undefined}
       backTo="/parties"
       backLabel="Parties"
       isLoading={isLoading}
+      loadingLabel="Loading party…"
       error={error}
       onRetry={refetch}
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      idPrefix="party"
       sidebar={sidebar}
     >
       {party && (
         <>
-          <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
-
           {activeTab === 'about' && (
             <>
-              {/* Contact Info */}
-              <DetailSection title="Contact Information">
+              <DetailSection title="Contact">
                 <DetailField
                   label="Name"
                   value={party.name}
@@ -250,74 +441,18 @@ export function PartyDetailPage() {
                     isSaving,
                   }}
                 />
-                <DetailField
-                  label="Contact Person"
-                  value={party.contact.person}
-                  editable={{
-                    rawValue: party.contact.person,
-                    inputType: 'text',
-                    onSave: v => handleContactSave('person', v),
-                    isSaving,
-                  }}
-                />
-                <DetailField
-                  label="Phone"
-                  value={party.contact.phone}
-                  editable={{
-                    rawValue: party.contact.phone,
-                    inputType: 'text',
-                    onSave: v => handleContactSave('phone', v),
-                    isSaving,
-                  }}
-                />
-                <DetailField
-                  label="Email"
-                  value={party.contact.email}
-                  editable={{
-                    rawValue: party.contact.email ?? '',
-                    inputType: 'text',
-                    onSave: v => handleContactSave('email', v),
-                    isSaving,
-                  }}
-                />
-                <DetailField
-                  label="Address"
-                  value={party.contact.address}
-                  editable={{
-                    rawValue: party.contact.address ?? '',
-                    inputType: 'text',
-                    onSave: v => handleContactSave('address', v),
-                    isSaving,
-                  }}
-                />
-                <DetailField
-                  label="GST"
-                  value={party.contact.gst}
-                  editable={{
-                    rawValue: party.contact.gst ?? '',
-                    inputType: 'text',
-                    onSave: v => handleContactSave('gst', v),
-                    isSaving,
-                  }}
-                />
-                <DetailField
-                  label="State Code"
-                  value={party.contact.stateCode}
-                  editable={{
-                    rawValue: party.contact.stateCode ?? '',
-                    inputType: 'text',
-                    onSave: v => handleContactSave('stateCode', v),
-                    isSaving,
-                  }}
-                />
+                {contactField('Contact person', 'person')}
+                {contactField('Phone', 'phone', true)}
+                {contactField('Email', 'email')}
+                {contactField('Address', 'address')}
+                {contactField('GST', 'gst', true)}
+                {contactField('State code', 'stateCode', true)}
               </DetailSection>
 
-              {/* Notes */}
               <DetailSection title="Notes">
                 <DetailField
                   label=""
                   value={party.notes || undefined}
-                  emptyText="No notes."
                   editable={{
                     rawValue: party.notes ?? '',
                     inputType: 'textarea',
@@ -331,357 +466,221 @@ export function PartyDetailPage() {
 
           {activeTab === 'sites-agreements' && (
             <>
-              {/* Sites */}
-              <DetailSection
-                title={`Sites (${party.sites?.length || 0})`}
-                headerActions={
-                  <button
-                    className="btn btn-sm btn-primary"
-                    onClick={() => setIsSiteModalOpen(true)}
-                  >
-                    + Add Site
-                  </button>
+              <Card
+                title="Sites"
+                count={sites.length}
+                padded={false}
+                actions={
+                  <Button size="sm" icon="plus" onClick={() => setIsSiteModalOpen(true)}>
+                    Add site
+                  </Button>
                 }
               >
-                {party.sites && party.sites.length > 0 ? (
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Site Code</th>
-                        <th>Address</th>
-                        <th>State Code</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {party.sites.map(site => (
-                        <tr key={site.code}>
-                          <td>{site.code}</td>
-                          <td>
-                            <EditableField
-                              label="Address"
-                              value={site.address}
-                              inputType="text"
-                              compact
-                              onSave={async (newValue: string | number) => {
-                                await updateSite({
-                                  businessId: currentBusinessId!,
-                                  partyId: partyId!,
-                                  siteCode: site.code,
-                                  data: { address: String(newValue).trim() },
-                                }).unwrap();
-                              }}
-                              isSaving={isUpdatingSite}
-                            />
-                          </td>
-                          <td>
-                            <EditableField
-                              label="State Code"
-                              value={site.stateCode ?? ''}
-                              inputType="text"
-                              compact
-                              emptyText="-"
-                              onSave={async (newValue: string | number) => {
-                                await updateSite({
-                                  businessId: currentBusinessId!,
-                                  partyId: partyId!,
-                                  siteCode: site.code,
-                                  data: { stateCode: String(newValue).trim() || undefined },
-                                }).unwrap();
-                              }}
-                              isSaving={isUpdatingSite}
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p className="text-empty">No sites added yet.</p>
-                )}
-              </DetailSection>
+                <DataTable
+                  aria-label="Sites"
+                  columns={siteColumns}
+                  rows={sites}
+                  rowKey={s => s.code}
+                  empty={<EmptyState title="No sites yet" />}
+                  mobile={{
+                    title: s => <span className="mono">{s.code}</span>,
+                    subtitle: siteAddress,
+                    meta: s => [
+                      <span key="state" className={styles.inline}>
+                        State code {siteStateCode(s)}
+                      </span>,
+                    ],
+                  }}
+                />
+              </Card>
 
-              {/* Agreements */}
-              <DetailSection
-                title={`Agreements (${party.agreements?.length || 0})`}
-                headerActions={
-                  <button
-                    className="btn btn-sm btn-primary"
-                    onClick={() => setIsAgreementModalOpen(true)}
-                  >
-                    + Agreement
-                  </button>
+              <Card
+                title="Agreements"
+                count={agreements.length}
+                padded={false}
+                actions={
+                  <Button size="sm" icon="plus" onClick={() => setIsAgreementModalOpen(true)}>
+                    Add agreement
+                  </Button>
                 }
               >
-                {party.agreements && party.agreements.length > 0 ? (
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Agreement ID</th>
-                        <th>Site</th>
-                        <th>Status</th>
-                        <th>Start Date</th>
-                        <th>End Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {party.agreements.map(agreement => (
-                        <tr key={agreement.agreementId}>
-                          <td>
-                            <Link
-                              to={`/agreements/${agreement.agreementId}`}
-                              className="link-accent"
-                            >
-                              {agreement.agreementId}
-                            </Link>
-                          </td>
-                          <td>{agreement.siteCode}</td>
-                          <td>
-                            <span className={`status status-${agreement.status}`}>
-                              {agreement.status}
-                            </span>
-                          </td>
-                          <td>{formatDate(agreement.startDate)}</td>
-                          <td>{formatDate(agreement.endDate)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p className="text-empty">No agreements yet.</p>
-                )}
-              </DetailSection>
+                <DataTable
+                  aria-label="Agreements"
+                  columns={agreementColumns}
+                  rows={agreements}
+                  rowKey={a => a.agreementId}
+                  onRowClick={a => navigate(`/agreements/${a.agreementId}`)}
+                  empty={<EmptyState title="No agreements yet" />}
+                  mobile={{
+                    title: agreementLink,
+                    badge: a => <StatusChip status={a.status} />,
+                    meta: a => [
+                      <span key="site" className="mono">
+                        {a.siteCode}
+                      </span>,
+                      <span key="dates" className="mono">
+                        {a.endDate
+                          ? `${date(a.startDate)} – ${date(a.endDate)}`
+                          : `From ${date(a.startDate)}`}
+                      </span>,
+                    ],
+                  }}
+                />
+              </Card>
             </>
           )}
 
           {activeTab === 'bills' && (
-            <>
-              {/* Bills */}
-              {(() => {
-                const agreementIdToSiteCode = Object.fromEntries(
-                  (party.agreements || []).map(a => [a.agreementId, a.siteCode])
-                );
-                const filteredBills = (bills || []).filter(
-                  bill =>
-                    billSiteFilter === '' ||
-                    agreementIdToSiteCode[bill.agreementId] === billSiteFilter
-                );
-                const sortedBills = [...filteredBills].sort((a, b) => {
-                  const dateA = a.billDate ?? a.billingPeriod?.start ?? a.createdAt ?? '';
-                  const dateB = b.billDate ?? b.billingPeriod?.start ?? b.createdAt ?? '';
-                  return new Date(dateB).getTime() - new Date(dateA).getTime();
-                });
-                return (
-                  <DetailSection title={`Bills (${sortedBills.length})`}>
-                    {party.sites && party.sites.length > 0 && (
-                      <div className={pageStyles.siteFilterRow}>
-                        <label>Site:</label>
-                        <select
-                          value={billSiteFilter}
-                          onChange={e => setBillSiteFilter(e.target.value)}
-                          className={`form-input ${pageStyles.siteFilterSelect}`}
-                        >
-                          <option value="">All</option>
-                          {party.sites.map(s => (
-                            <option key={s.code} value={s.code}>
-                              {s.code}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                    {sortedBills.length > 0 ? (
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>Bill Date</th>
-                            <th>Bill #</th>
-                            <th>Agreement / Site</th>
-                            <th>Period</th>
-                            <th>Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sortedBills.map(bill => (
-                            <tr key={bill._id}>
-                              <td>
-                                {formatDate(
-                                  bill.billDate ?? bill.billingPeriod?.end ?? bill.createdAt
-                                )}
-                              </td>
-                              <td>
-                                <Link to={`/bills/${bill._id}`} className="link-accent">
-                                  {bill.billNumber}
-                                </Link>
-                              </td>
-                              <td>
-                                {bill.agreementId}
-                                {agreementIdToSiteCode[bill.agreementId] && (
-                                  <> / {agreementIdToSiteCode[bill.agreementId]}</>
-                                )}
-                              </td>
-                              <td>
-                                {bill.billingPeriod
-                                  ? `${new Date(bill.billingPeriod.start).toLocaleDateString()} - ${new Date(bill.billingPeriod.end).toLocaleDateString()}`
-                                  : '-'}
-                              </td>
-                              <td>₹{bill.totalAmount.toLocaleString()}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <p className="text-empty">No bills found.</p>
-                    )}
-                  </DetailSection>
-                );
-              })()}
-            </>
+            <Card
+              title="Bills"
+              count={shownBills.length}
+              padded={false}
+              actions={
+                sites.length > 0 && (
+                  <div className={styles.siteFilter}>
+                    <Select
+                      aria-label="Site"
+                      value={billSiteFilter}
+                      onChange={e => setBillSiteFilter(e.target.value)}
+                    >
+                      <option value="">All sites</option>
+                      {sites.map(s => (
+                        <option key={s.code} value={s.code}>
+                          {s.code}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )
+              }
+            >
+              <DataTable
+                aria-label="Bills"
+                columns={billColumns}
+                rows={shownBills}
+                rowKey={b => b._id}
+                onRowClick={b => navigate(`/bills/${b._id}`)}
+                empty={<EmptyState title="No bills yet" />}
+                mobile={{
+                  title: billLink,
+                  subtitle: billAgreement,
+                  meta: b => [
+                    <span key="date" className="mono">
+                      {date(billShownDate(b))}
+                    </span>,
+                    <span key="amount" className="mono">
+                      {formatMoney(b.totalAmount)}
+                    </span>,
+                  ],
+                }}
+              />
+            </Card>
           )}
 
           {activeTab === 'payments' && (
+            <Card title="Payments" count={shownPayments.length} padded={false}>
+              <DataTable
+                aria-label="Payments"
+                columns={paymentColumns}
+                rows={shownPayments}
+                rowKey={p => p._id}
+                onRowClick={p => navigate(`/payments/${p._id}`)}
+                empty={<EmptyState title="No payments yet" />}
+                mobile={{
+                  title: p => <span className="mono">{formatMoney(p.amount)}</span>,
+                  badge: p => <StatusChip status={p.status} />,
+                  meta: p => [
+                    <span key="date" className="mono">
+                      {date(p.date)}
+                    </span>,
+                    sentence(p.method),
+                    p.reference && (
+                      <span key="ref" className="mono">
+                        {p.reference}
+                      </span>
+                    ),
+                  ],
+                  actions: paymentBill,
+                }}
+              />
+            </Card>
+          )}
+
+          {activeTab === 'statements' && (
             <>
-              {/* Payments */}
-              {(() => {
-                const sortedPayments = [...(payments || [])].sort(
-                  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-                );
-                return (
-                  <DetailSection title={`Payments (${sortedPayments.length})`}>
-                    {sortedPayments.length > 0 ? (
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Amount</th>
-                            <th>Method</th>
-                            <th>Bill</th>
-                            <th>Status</th>
-                            <th>Reference</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sortedPayments.map(payment => (
-                            <tr key={payment._id}>
-                              <td>
-                                <Link to={`/payments/${payment._id}`} className="link-accent">
-                                  {formatDate(payment.date)}
-                                </Link>
-                              </td>
-                              <td>₹{payment.amount.toLocaleString()}</td>
-                              <td>{payment.method.replace('_', ' ')}</td>
-                              <td>
-                                {payment.billId ? (
-                                  <Link to={`/bills/${payment.billId}`} className="link-accent">
-                                    View Bill
-                                  </Link>
-                                ) : (
-                                  '-'
-                                )}
-                              </td>
-                              <td>
-                                <span className={`status status-${payment.status}`}>
-                                  {payment.status}
-                                </span>
-                              </td>
-                              <td>{payment.reference || '-'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <p className="text-empty">No payments found.</p>
-                    )}
-                  </DetailSection>
-                );
-              })()}
+              <Card title="Statements">
+                <div className={styles.statementFields}>
+                  <Field label="Type">
+                    <Select
+                      value={statementType}
+                      onChange={e => setStatementType(e.target.value as StatementType)}
+                    >
+                      <option value="ledger">Ledger</option>
+                      <option value="bills">Bills</option>
+                      <option value="items">Items</option>
+                      <option value="aging">Aging / outstanding</option>
+                    </Select>
+                  </Field>
+                  <Field label="From">
+                    <Input
+                      type="date"
+                      mono
+                      value={statementFrom}
+                      onChange={e => setStatementFrom(e.target.value)}
+                    />
+                  </Field>
+                  <Field label="To">
+                    <Input
+                      type="date"
+                      mono
+                      value={statementTo}
+                      onChange={e => setStatementTo(e.target.value)}
+                    />
+                  </Field>
+                  {agreements.length > 0 && (
+                    <Field label="Agreement">
+                      <Select
+                        value={statementAgreementId}
+                        onChange={e => setStatementAgreementId(e.target.value)}
+                      >
+                        <option value="">All agreements</option>
+                        {agreements.map(a => (
+                          <option key={a.agreementId} value={a.agreementId}>
+                            {a.agreementId} ({a.siteCode})
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+                  )}
+                </div>
+                <div className={styles.statementActions}>
+                  <Button
+                    onClick={handlePreviewStatement}
+                    loading={isLoadingPreview}
+                    disabled={!statementFrom || !statementTo}
+                  >
+                    Preview
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={handleDownloadStatement}
+                    loading={isDownloadingStatement}
+                    disabled={!statementFrom || !statementTo}
+                  >
+                    Download PDF
+                  </Button>
+                </div>
+              </Card>
+              {previewData && <StatementPreview data={previewData} />}
             </>
           )}
 
-          {/* Statements */}
-          {activeTab === 'statements' && (
-            <DetailSection title="Statements">
-              <div className={pageStyles.statementForm}>
-                <div className={pageStyles.statementRow}>
-                  <label className={pageStyles.statementLabel}>Type</label>
-                  <select
-                    value={statementType}
-                    onChange={e => setStatementType(e.target.value as typeof statementType)}
-                    className={`form-input ${pageStyles.statementSelect}`}
-                  >
-                    <option value="ledger">Ledger</option>
-                    <option value="bills">Bills</option>
-                    <option value="items">Items</option>
-                    <option value="aging">Aging / Outstanding</option>
-                  </select>
-                </div>
-                <div className={pageStyles.statementRow}>
-                  <label className={pageStyles.statementLabel}>From</label>
-                  <input
-                    type="date"
-                    value={statementFrom}
-                    onChange={e => setStatementFrom(e.target.value)}
-                    className={`form-input ${pageStyles.statementDateInput}`}
-                  />
-                </div>
-                <div className={pageStyles.statementRow}>
-                  <label className={pageStyles.statementLabel}>To</label>
-                  <input
-                    type="date"
-                    value={statementTo}
-                    onChange={e => setStatementTo(e.target.value)}
-                    className={`form-input ${pageStyles.statementDateInput}`}
-                  />
-                </div>
-                {party.agreements && party.agreements.length > 0 && (
-                  <div className={pageStyles.statementRow}>
-                    <label className={pageStyles.statementLabel}>Agreement</label>
-                    <select
-                      value={statementAgreementId}
-                      onChange={e => setStatementAgreementId(e.target.value)}
-                      className={`form-input ${pageStyles.statementSelect}`}
-                    >
-                      <option value="">All Agreements</option>
-                      {party.agreements.map(a => (
-                        <option key={a.agreementId} value={a.agreementId}>
-                          {a.agreementId} ({a.siteCode})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                <div className={`${pageStyles.statementRow} ${pageStyles.statementButtons}`}>
-                  <button
-                    className="btn btn-secondary"
-                    onClick={handlePreviewStatement}
-                    disabled={isLoadingPreview || !statementFrom || !statementTo}
-                  >
-                    {isLoadingPreview ? 'Loading...' : 'Preview'}
-                  </button>
-                  <button
-                    className="btn btn-primary"
-                    onClick={handleDownloadStatement}
-                    disabled={isDownloadingStatement || !statementFrom || !statementTo}
-                  >
-                    {isDownloadingStatement ? 'Generating...' : 'Download PDF'}
-                  </button>
-                </div>
-              </div>
-              {previewData && <StatementPreview data={previewData} />}
-            </DetailSection>
-          )}
-
-          {/* Share Links */}
-          {activeTab === 'share-links' && (
-            <DetailSection title="Share Links">
-              <ShareLinkManager partyId={partyId!} sites={party.sites || []} />
-            </DetailSection>
-          )}
+          {activeTab === 'share-links' && <ShareLinkManager partyId={partyId!} sites={sites} />}
 
           {activeTab === 'change-history' && (
             <ChangeHistoryTable documentType="party" documentId={partyId!} />
           )}
 
-          {/* Add Site Modal */}
           {currentBusinessId && (
             <AddSiteModal
               isOpen={isSiteModalOpen}
@@ -691,17 +690,16 @@ export function PartyDetailPage() {
             />
           )}
 
-          {/* Add Agreement Modal */}
           <Modal
             isOpen={isAgreementModalOpen}
             onClose={() => setIsAgreementModalOpen(false)}
-            title={`Add Agreement for ${party.name}`}
+            title={`Add agreement for ${party.name}`}
             size="form"
           >
             <AgreementForm
               inventoryItems={inventory || []}
-              sites={party.sites || []}
-              existingAgreements={party.agreements || []}
+              sites={sites}
+              existingAgreements={agreements}
               onSubmit={handleAgreementSubmit}
               onCancel={() => setIsAgreementModalOpen(false)}
               isLoading={isCreatingAgreement}
