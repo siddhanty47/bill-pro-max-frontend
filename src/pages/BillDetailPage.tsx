@@ -43,6 +43,7 @@ import {
   Tr,
   type Column,
 } from '../components/ui';
+import type { ValueTone } from '../components/ui/status';
 import { getErrorMessage } from '../api/baseApi';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { formatDate, formatMoney } from '../utils/format';
@@ -354,12 +355,18 @@ export function BillDetailPage() {
     </DetailSection>
   ) : null;
 
-  const summaryRow = (label: string, amount: string, strong = false, pct?: number) => {
+  const summaryRow = (
+    label: string,
+    amount: string,
+    strong = false,
+    pct?: number,
+    tone?: ValueTone
+  ) => {
     const value = <span className="mono">{amount}</span>;
     return (
       <Tr key={label}>
         <Td>{strong ? <strong>{label}</strong> : label}</Td>
-        <Td align="right" nowrap>
+        <Td align="right" nowrap tone={tone}>
           {strong ? <strong>{value}</strong> : value}
           {pct !== undefined && <span> ({pct}%)</span>}
         </Td>
@@ -452,7 +459,7 @@ export function BillDetailPage() {
               </DetailSection>
 
               <Card title="Summary" padded={false}>
-                <Table aria-label="Summary">
+                <Table aria-label="Summary" detail>
                   <TBody>
                     {summaryRow('Rental subtotal', formatMoney(rentalSubtotal))}
                     {summaryRow('Transportation', formatMoney(bill.transportationCharges || 0))}
@@ -493,7 +500,13 @@ export function BillDetailPage() {
                     )}
                     {summaryRow('Total', formatMoney(bill.totalAmount), true)}
                     {summaryRow('Paid', formatMoney(bill.amountPaid))}
-                    {summaryRow('Balance due', formatMoney(outstanding), true)}
+                    {summaryRow(
+                      'Balance due',
+                      formatMoney(outstanding),
+                      true,
+                      undefined,
+                      outstanding > 0 ? 'negative' : 'positive'
+                    )}
                   </TBody>
                 </Table>
               </Card>

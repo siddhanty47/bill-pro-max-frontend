@@ -135,6 +135,53 @@ describe('Menu', () => {
     expect(screen.getByRole('menu')).toHaveClass('alignEnd');
   });
 
+  it('is default width unless width="wide"', async () => {
+    const first = setup();
+    await first.user.click(first.trigger);
+    expect(screen.getByRole('menu')).not.toHaveClass('wide');
+    const user = userEvent.setup();
+    render(
+      <Menu
+        width="wide"
+        aria-label="Wide"
+        trigger={p => (
+          <button type="button" {...p}>
+            W
+          </button>
+        )}
+      >
+        <MenuItem>One</MenuItem>
+      </Menu>
+    );
+    await user.click(screen.getByRole('button', { name: 'W' }));
+    expect(screen.getByRole('menu', { name: 'Wide' })).toHaveClass('wide');
+  });
+
+  it('marks a danger item and keeps others plain', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <Menu
+          trigger={p => (
+            <button type="button" {...p}>
+              Open
+            </button>
+          )}
+        >
+          <MenuItem>Edit</MenuItem>
+          <MenuItem tone="danger">Delete</MenuItem>
+          <MenuItem tone="danger" to="/x">
+            Delete link
+          </MenuItem>
+        </Menu>
+      </MemoryRouter>
+    );
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    expect(screen.getByRole('menuitem', { name: 'Delete' })).toHaveClass('item', 'danger');
+    expect(screen.getByRole('menuitem', { name: 'Delete link' })).toHaveClass('danger');
+    expect(screen.getByRole('menuitem', { name: 'Edit' })).not.toHaveClass('danger');
+  });
+
   it('applies start alignment', async () => {
     const { user, trigger } = setup(vi.fn(), 'start');
     await user.click(trigger);
@@ -340,6 +387,105 @@ describe('Menu portal and placement', () => {
     menu.style.setProperty('top', '999px');
     fireEvent(window, new Event('resize'));
     expect(menu.style.top).not.toBe('999px');
+  });
+
+  // jsdom has no layout: give the trigger a rect and the panel a size, then check
+  // the exact coordinates placePanel writes (window is 1024×768 in jsdom).
+  const withLayout = (trigger: HTMLElement, rect: Partial<DOMRect>, panelHeight = 120) => {
+    trigger.getBoundingClientRect = () =>
+      ({ top: 0, bottom: 0, left: 0, right: 0, ...rect }) as DOMRect;
+    const height = vi
+      .spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+      .mockReturnValue(panelHeight);
+    const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(200);
+    return () => {
+      height.mockRestore();
+      width.mockRestore();
+    };
+  };
+
+  it('opens the panel above a trigger near the bottom of the viewport', async () => {
+    const { user, trigger } = setup();
+    const restore = withLayout(trigger, { top: 700, bottom: 730, left: 700, right: 740 });
+    try {
+      await user.click(trigger);
+      // 700 - 6 gap - 120 tall
+      expect(screen.getByRole('menu').style.top).toBe('574px');
+      expect(screen.getByRole('menu').style.left).toBe('540px');
+    } finally {
+      restore();
+    }
+  });
+
+  it('moves to the trigger’s new place on resize', async () => {
+    const { user, trigger } = setup();
+    const restore = withLayout(trigger, { top: 100, bottom: 130, left: 700, right: 740 });
+    try {
+      await user.click(trigger);
+      const menu = screen.getByRole('menu');
+      expect(menu.style.top).toBe('136px');
+      trigger.getBoundingClientRect = () =>
+        ({ top: 200, bottom: 230, left: 500, right: 540 }) as DOMRect;
+      fireEvent(window, new Event('resize'));
+      expect(menu.style.top).toBe('236px');
+      expect(menu.style.left).toBe('340px');
+    } finally {
+      restore();
+    }
+  });
+
+  it('removes its window and document listeners when it closes', async () => {
+    const { user, trigger } = setup();
+    const winRemove = vi.spyOn(window, 'removeEventListener');
+    const docRemove = vi.spyOn(document, 'removeEventListener');
+    try {
+      await user.click(trigger);
+      winRemove.mockClear();
+      docRemove.mockClear();
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      const removed = (spy: typeof winRemove) => spy.mock.calls.map(c => [c[0], c[2] ?? false]);
+      expect(removed(winRemove)).toEqual(
+        expect.arrayContaining([
+          ['resize', false],
+          ['scroll', true],
+        ])
+      );
+      expect(removed(docRemove)).toEqual(expect.arrayContaining([['mousedown', false]]));
+      // Nothing listens any more: a resize or scroll after closing is a no-op.
+      fireEvent(window, new Event('resize'));
+      fireEvent.scroll(window);
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    } finally {
+      winRemove.mockRestore();
+      docRemove.mockRestore();
+    }
+  });
+
+  it('removes its listeners when unmounted while open', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(
+      <Menu
+        trigger={p => (
+          <button type="button" {...p}>
+            Open
+          </button>
+        )}
+      >
+        <MenuItem>One</MenuItem>
+      </Menu>
+    );
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    const winRemove = vi.spyOn(window, 'removeEventListener');
+    const docRemove = vi.spyOn(document, 'removeEventListener');
+    try {
+      unmount();
+      const events = [...winRemove.mock.calls, ...docRemove.mock.calls].map(c => c[0]);
+      expect(events).toEqual(expect.arrayContaining(['resize', 'scroll', 'mousedown']));
+    } finally {
+      winRemove.mockRestore();
+      docRemove.mockRestore();
+    }
   });
 });
 

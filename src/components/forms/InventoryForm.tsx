@@ -163,7 +163,7 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
                     handleCodeBlur();
                   }}
                   disabled={isLoading}
-                  className={styles.uppercaseInput}
+                  uppercase
                   placeholder="Enter code"
                 />
               </Field>

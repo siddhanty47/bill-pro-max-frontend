@@ -197,3 +197,38 @@ describe('Table primitives', () => {
     expect(screen.getByText('Totals').closest('tr')).toHaveClass('total');
   });
 });
+
+describe('Table detail padding and value tones', () => {
+  it('applies the detail class and colours cells by tone', () => {
+    render(
+      <Table detail aria-label="Summary">
+        <THead>
+          <Tr>
+            <Th tone="warning">Head</Th>
+          </Tr>
+        </THead>
+        <TBody>
+          <Tr>
+            <Td tone="negative">₹500</Td>
+            <Td tone="positive">₹0</Td>
+            <Td>plain</Td>
+          </Tr>
+        </TBody>
+      </Table>
+    );
+    expect(screen.getByRole('table', { name: 'Summary' })).toHaveClass('detail');
+    expect(screen.getByText('Head')).toHaveClass('tone-warning');
+    expect(screen.getByText('₹500')).toHaveClass('tone-negative');
+    expect(screen.getByText('₹0')).toHaveClass('tone-positive');
+    expect(screen.getByText('plain')).not.toHaveAttribute('class');
+  });
+});
+
+describe('signTone', () => {
+  it('maps the sign of a number to a value tone', async () => {
+    const { signTone } = await import('./status');
+    expect(signTone(5)).toBe('positive');
+    expect(signTone(-5)).toBe('negative');
+    expect(signTone(0)).toBeUndefined();
+  });
+});

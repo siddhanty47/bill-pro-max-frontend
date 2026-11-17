@@ -211,13 +211,15 @@ export function DetailSection({
   return (
     <Card title={title} count={count} actions={actions ?? headerActions} padded={false}>
       {!padded ? (
-        children
+        <InFieldList.Provider value={false}>{children}</InFieldList.Provider>
       ) : isFieldList(children) ? (
         <dl className={styles.sectionBody}>
           <InFieldList.Provider value>{children}</InFieldList.Provider>
         </dl>
       ) : (
-        <div className={styles.sectionBody}>{children}</div>
+        <div className={styles.sectionBody}>
+          <InFieldList.Provider value={false}>{children}</InFieldList.Provider>
+        </div>
       )}
     </Card>
   );
@@ -315,15 +317,19 @@ export function DetailField({
     .filter(Boolean)
     .join(' ');
 
+  // A DetailField nested inside this value (or inside a section in it) is not a row
+  // of this list: reset the context so it renders its own <dl>.
+  const body = <InFieldList.Provider value={false}>{content}</InFieldList.Provider>;
+
   if (!label) {
-    return <div className={`${styles.field} ${styles.bare} ${valueClass}`}>{content}</div>;
+    return <div className={`${styles.field} ${styles.bare} ${valueClass}`}>{body}</div>;
   }
 
   const Row = inList ? 'div' : 'dl';
   return (
     <Row className={styles.field}>
       <dt className={styles.label}>{label}</dt>
-      <dd className={valueClass}>{content}</dd>
+      <dd className={valueClass}>{body}</dd>
     </Row>
   );
 }

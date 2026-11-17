@@ -35,7 +35,7 @@ export function RowActions({ primary, items }: RowActionsProps) {
             <MenuItem
               key={item.label}
               aria-disabled={item.disabled || undefined}
-              className={item.tone === 'danger' ? styles.danger : undefined}
+              tone={item.tone}
               onSelect={item.onClick}
               aria-describedby={item.hint ? `${baseId}-${i}` : undefined}
             >

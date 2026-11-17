@@ -6,6 +6,7 @@ import type { Invitation } from '../types';
 import { useCancelInvitationMutation, useResendInvitationMutation } from '../api/invitationApi';
 import { formatDate } from '../utils/format';
 import { Button, DataTable, EmptyState, RowActions, StatusChip, type Column } from './ui';
+import { roleTone } from './ui/status';
 
 interface InvitationListProps {
   invitations: Invitation[];
@@ -56,7 +57,12 @@ export function InvitationList({ invitations, businessId }: InvitationListProps)
 
   const columns: Column<Invitation>[] = [
     { key: 'email', header: 'Email' },
-    { key: 'role', header: 'Role', nowrap: true, render: inv => <StatusChip status={inv.role} /> },
+    {
+      key: 'role',
+      header: 'Role',
+      nowrap: true,
+      render: inv => <StatusChip status={inv.role} tone={roleTone(inv.role)} />,
+    },
     {
       key: 'status',
       header: 'Status',

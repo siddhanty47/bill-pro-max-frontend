@@ -68,3 +68,29 @@ describe('Card', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });
+
+describe('entrance animation', () => {
+  // The file name is a parameter: Vite rewrites a literal `new URL('./x', import.meta.url)`.
+  async function readSource(file: string) {
+    const fs = (await import(/* @vite-ignore */ 'node:fs' as string)) as {
+      readFileSync(path: URL, encoding: 'utf8'): string;
+    };
+    return fs.readFileSync(new URL(file, import.meta.url), 'utf8');
+  }
+
+  it('defines @keyframes rise once, globally, and the kit uses it through the token', async () => {
+    const globals = await readSource('../../globals.css');
+    expect(globals.match(/@keyframes rise\b/g)).toHaveLength(1);
+    expect(globals).toMatch(/--animate-rise:\s*rise var\(--duration-enter\)/);
+    for (const file of [
+      './Card.module.css',
+      './StatCard.module.css',
+      './PageHeader.module.css',
+      '../auth/AuthLayout.module.css',
+    ]) {
+      const css = await readSource(file);
+      expect(css, file).not.toMatch(/@keyframes rise/);
+      expect(css, file).toMatch(/animation:\s*var\(--animate-rise\)/);
+    }
+  });
+});

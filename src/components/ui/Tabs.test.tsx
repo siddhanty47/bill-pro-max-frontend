@@ -122,3 +122,56 @@ describe('Tabs', () => {
     expect(list.className).not.toMatch(/scrollable/);
   });
 });
+
+describe('Tabs overflow fade on content growth', () => {
+  it('re-measures when a count arrives after mount', () => {
+    const { rerender } = render(<Tabs tabs={TABS} activeTab="bills" onChange={vi.fn()} />);
+    const list = screen.getByRole('tablist');
+    expect(list.className).not.toMatch(/scrollable/);
+    // The counts make the row wider than its box, with no resize or scroll event.
+    Object.defineProperty(list, 'scrollWidth', { configurable: true, value: 600 });
+    Object.defineProperty(list, 'clientWidth', { configurable: true, value: 300 });
+    rerender(
+      <Tabs
+        tabs={[
+          { id: 'bills', label: 'Bills', count: 1200 },
+          { id: 'challans', label: 'Challans', count: 3400 },
+        ]}
+        activeTab="bills"
+        onChange={vi.fn()}
+      />
+    );
+    expect(list.className).toMatch(/scrollable/);
+  });
+
+  it('observes the row and every tab, and disconnects on unmount', () => {
+    const observed: Element[] = [];
+    let callback: () => void = () => {};
+    const disconnect = vi.fn();
+    class FakeObserver {
+      constructor(cb: () => void) {
+        callback = cb;
+      }
+      observe(el: Element) {
+        observed.push(el);
+      }
+      disconnect = disconnect;
+      unobserve() {}
+    }
+    vi.stubGlobal('ResizeObserver', FakeObserver);
+    try {
+      const { unmount } = render(<Tabs tabs={TABS} activeTab="bills" onChange={vi.fn()} />);
+      const list = screen.getByRole('tablist');
+      expect(observed).toEqual([list, ...screen.getAllByRole('tab')]);
+      // A tab grows (e.g. its label wraps into a wider font): the observer fires.
+      Object.defineProperty(list, 'scrollWidth', { configurable: true, value: 600 });
+      Object.defineProperty(list, 'clientWidth', { configurable: true, value: 300 });
+      act(() => callback());
+      expect(list.className).toMatch(/scrollable/);
+      unmount();
+      expect(disconnect).toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});

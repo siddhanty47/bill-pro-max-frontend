@@ -124,16 +124,24 @@ function controlClass(className: string | undefined, mono?: boolean, size?: Cont
     .join(' ');
 }
 
-export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & ControlExtras;
+export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> &
+  ControlExtras & {
+    /** Show the typed value in capitals (codes, GSTIN, vehicle numbers); the placeholder keeps its case. Display only: the value is not changed. */
+    uppercase?: boolean;
+  };
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { mono, invalid, size, className, ...rest },
+  { mono, invalid, size, uppercase, className, ...rest },
   ref
 ) {
   const boxless = rest.type === 'checkbox' || rest.type === 'radio';
   const base = boxless
     ? [styles.check, className ?? ''].filter(Boolean).join(' ')
-    : controlClass(className, mono, size);
+    : controlClass(
+        [uppercase ? styles.uppercase : '', className ?? ''].join(' ').trim() || undefined,
+        mono,
+        size
+      );
   return <input ref={ref} className={base} aria-invalid={invalid || undefined} {...rest} />;
 });
 

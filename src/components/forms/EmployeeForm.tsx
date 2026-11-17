@@ -198,7 +198,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel, isLoading }: Emp
                 mono
                 {...register('vehicleNumber')}
                 disabled={isLoading}
-                className={styles.uppercaseInput}
+                uppercase
                 placeholder="e.g. MH12AB1234"
               />
             </Field>

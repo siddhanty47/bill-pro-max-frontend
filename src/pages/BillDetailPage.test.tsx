@@ -241,6 +241,22 @@ describe('BillDetailPage', () => {
     expect(within(row('Total')).getByText('₹1,00,000')).toBeVisible();
     expect(within(row('Paid')).getByText('₹40,000')).toBeVisible();
     expect(within(row('Balance due')).getByText('₹60,000')).toBeVisible();
+    // Summary lines up with the DetailSection cards; an unpaid balance reads as owed.
+    expect(table).toHaveClass('detail');
+    expect(within(row('Balance due')).getByText('₹60,000').closest('td')).toHaveClass(
+      'tone-negative'
+    );
+    expect(within(row('Total')).getByText('₹1,00,000').closest('td')?.className).not.toMatch(
+      /tone-/
+    );
+  });
+
+  it('shows a settled balance due in the positive tone', async () => {
+    useApi(makeBill({ amountPaid: 100000, status: 'paid' }));
+    renderPage();
+    const table = await screen.findByRole('table', { name: 'Summary' });
+    const balance = within(table).getByText('Balance due').closest('tr')!;
+    expect(within(balance).getByText('₹0').closest('td')).toHaveClass('tone-positive');
   });
 
   it('shows IGST for inter-state and a single tax row without a tax mode', async () => {

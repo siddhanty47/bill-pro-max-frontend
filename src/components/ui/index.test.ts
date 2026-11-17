@@ -9,6 +9,7 @@ describe('ui barrel', () => {
     'GoogleIcon',
     'Brand',
     'Avatar',
+    'Dot',
     'Notice',
     'Card',
     'StatCard',

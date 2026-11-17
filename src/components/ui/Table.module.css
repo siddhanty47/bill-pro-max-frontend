@@ -65,6 +65,25 @@
   padding: 8px 12px;
 }
 
+/* Same insets as a DetailSection row; beats the ≤768 cell padding too. */
+.table.detail th,
+.table.detail td {
+  padding: var(--space-3) var(--space-5);
+}
+
+/* Value tones (Td/Th tone): colour the number, everything inside inherits. */
+.table .tone-positive {
+  color: var(--status-success-text);
+}
+
+.table .tone-negative {
+  color: var(--status-danger-text);
+}
+
+.table .tone-warning {
+  color: var(--status-warning-text);
+}
+
 .table tbody .total td {
   font-weight: 600;
   background: var(--bg-elevated);

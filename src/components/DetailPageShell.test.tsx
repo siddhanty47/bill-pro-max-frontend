@@ -332,3 +332,40 @@ describe('NotAdded', () => {
     expect(screen.getByText('Not set')).toHaveClass('empty');
   });
 });
+
+describe('DetailField list context nesting', () => {
+  it('gives a DetailField nested in a row value its own <dl>', () => {
+    renderInRouter(
+      <DetailSection title="Outer">
+        <DetailField label="Address" value={<DetailField label="City" value="Pune" />} />
+      </DetailSection>
+    );
+    const outerRow = screen.getByText('Address').closest('div');
+    expect(outerRow?.parentElement?.tagName).toBe('DL');
+    // The inner field is not a row of the outer list: it is a <dl> of its own.
+    expect(screen.getByText('City').parentElement?.tagName).toBe('DL');
+  });
+
+  it('resets the context inside non-list and unpadded sections nested in a list', () => {
+    renderInRouter(
+      <DetailSection title="Outer">
+        <DetailField
+          label="Nested"
+          value={
+            <>
+              <DetailSection title="Mixed">
+                <p>text</p>
+                <DetailField label="A" value="1" />
+              </DetailSection>
+              <DetailSection title="Bare" padded={false}>
+                <DetailField label="B" value="2" />
+              </DetailSection>
+            </>
+          }
+        />
+      </DetailSection>
+    );
+    expect(screen.getByText('A').parentElement?.tagName).toBe('DL');
+    expect(screen.getByText('B').parentElement?.tagName).toBe('DL');
+  });
+});

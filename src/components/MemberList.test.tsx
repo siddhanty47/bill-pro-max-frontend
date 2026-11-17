@@ -44,6 +44,10 @@ describe('MemberList', () => {
     const rows = within(table).getAllByRole('row');
     expect(within(rows[1]).getByText('Asha Patel')).toBeInTheDocument();
     expect(within(rows[1]).getByText('Owner')).toBeInTheDocument();
+    // Roles are colour-distinct: owner success, manager info, staff neutral.
+    expect(within(rows[1]).getByText('Owner')).toHaveClass('success');
+    expect(within(rows[2]).getByText('Manager')).toHaveClass('info');
+    expect(within(rows[3]).getByText('Staff')).toHaveClass('neutral');
     expect(within(rows[1]).getByText('5 Mar 2020')).toBeInTheDocument();
     expect(within(rows[3]).getByText('—')).toBeInTheDocument();
   });

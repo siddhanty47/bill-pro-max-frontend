@@ -29,6 +29,8 @@ describe('EmployeeForm', () => {
     await user.type(screen.getByLabelText(/designation/i), 'Driver');
     await user.type(screen.getByLabelText(/joining date/i), '2026-04-01');
     await user.type(screen.getByLabelText(/vehicle number/i), 'mh12ab1234');
+    // Shown in capitals (kit Input uppercase), sent as typed.
+    expect(screen.getByLabelText(/vehicle number/i)).toHaveClass('uppercase');
     await chooseSalary(user, 'Monthly');
     await user.type(screen.getByLabelText(/monthly salary/i), '18000');
     await user.type(screen.getByLabelText(/overtime rate/i), '90.5');

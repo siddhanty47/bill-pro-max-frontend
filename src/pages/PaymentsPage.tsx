@@ -25,6 +25,7 @@ import {
   StatusChip,
   type Column,
 } from '../components/ui';
+import { signTone } from '../components/ui/status';
 import { PaymentForm } from '../components/forms/PaymentForm';
 import { getErrorMessage } from '../api/baseApi';
 import { formatDate, formatMoney } from '../utils/format';
@@ -171,9 +172,13 @@ export function PaymentsPage() {
       />
 
       <div className={styles.summaryGrid}>
-        <StatCard label="Total received" value={formatMoney(totalReceived)} />
-        <StatCard label="Total paid" value={formatMoney(totalPaid)} />
-        <StatCard label="Net" value={formatMoney(totalReceived - totalPaid)} />
+        <StatCard label="Total received" value={formatMoney(totalReceived)} valueTone="positive" />
+        <StatCard label="Total paid" value={formatMoney(totalPaid)} valueTone="negative" />
+        <StatCard
+          label="Net"
+          value={formatMoney(totalReceived - totalPaid)}
+          valueTone={signTone(totalReceived - totalPaid)}
+        />
       </div>
 
       <FilterBar>

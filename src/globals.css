@@ -133,6 +133,12 @@
   --transition-fast: 0.15s ease;
   --transition-default: 0.2s ease;
   --duration-enter: 0.45s;
+  /*
+   * The one-time entrance (keyframes `rise` below). CSS modules rename a bare
+   * animation name to a local one, so modules use this token instead:
+   * `animation: var(--animate-rise);` (override `animation-duration`/`-delay` after it).
+   */
+  --animate-rise: rise var(--duration-enter) var(--ease-out) backwards;
 
   /* Layout */
   --header-height: 56px;
@@ -228,6 +234,18 @@ textarea {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+/* Entrance used by Card, StatCard, PageHeader and AuthLayout via --animate-rise. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

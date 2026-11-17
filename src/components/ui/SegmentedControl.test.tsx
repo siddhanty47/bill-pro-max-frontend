@@ -49,8 +49,8 @@ describe('SegmentedControl', () => {
     );
     const dots = container.querySelectorAll('.dot');
     expect(dots).toHaveLength(2);
-    expect(dots[0]).toHaveClass('dot-info');
-    expect(dots[1]).toHaveClass('dot-warning');
+    expect(dots[0]).toHaveClass('info');
+    expect(dots[1]).toHaveClass('warning');
     expect(dots[0]).toHaveAttribute('aria-hidden', 'true');
   });
 

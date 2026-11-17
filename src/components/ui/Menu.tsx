@@ -35,6 +35,8 @@ export type MenuTriggerProps = {
 export type MenuProps = {
   trigger: (props: MenuTriggerProps) => ReactNode;
   align?: 'start' | 'end';
+  /** `wide`: a 340px panel for rich items (notifications); full width at ≤480 like any menu. */
+  width?: 'default' | 'wide';
   menuClassName?: string;
   children?: ReactNode;
 } & Omit<HTMLAttributes<HTMLDivElement>, 'children'>;
@@ -48,6 +50,7 @@ const ENABLED_ITEM_SELECTOR = '[role="menuitem"]:not([aria-disabled="true"]):not
 export function Menu({
   trigger,
   align = 'end',
+  width = 'default',
   children,
   className,
   menuClassName,
@@ -150,6 +153,7 @@ export function Menu({
               className={[
                 styles.menu,
                 align === 'end' ? styles.alignEnd : styles.alignStart,
+                width === 'wide' ? styles.wide : '',
                 menuClassName,
               ]
                 .filter(Boolean)
@@ -170,6 +174,8 @@ export type MenuItemProps = {
   to?: string;
   /** Marks the item as unread/new: accent tint and a leading bar. */
   unread?: boolean;
+  /** `danger`: a destructive item (Delete), in the danger text colour while enabled. */
+  tone?: 'danger';
   children?: ReactNode;
 } & ButtonHTMLAttributes<HTMLButtonElement>;
 
@@ -177,6 +183,7 @@ export function MenuItem({
   onSelect,
   to,
   unread,
+  tone,
   children,
   className,
   onClick,
@@ -184,7 +191,14 @@ export function MenuItem({
   ...rest
 }: MenuItemProps) {
   const { close } = useContext(MenuContext);
-  const classes = [styles.item, unread && styles.unread, className].filter(Boolean).join(' ');
+  const classes = [
+    styles.item,
+    unread && styles.unread,
+    tone === 'danger' && styles.danger,
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
   const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
     // aria-disabled items are focusable but never activate: no consumer onClick,
     // no select, and a router link must not navigate.

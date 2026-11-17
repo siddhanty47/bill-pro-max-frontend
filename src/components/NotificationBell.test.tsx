@@ -91,6 +91,7 @@ describe('NotificationBell', () => {
     await user.click(await screen.findByRole('button', { name: /^Notifications/ }));
 
     const unread = await screen.findByRole('menuitem', { name: /Unread one/ });
+    expect(screen.getByRole('menu', { name: 'Notifications' })).toHaveClass('wide');
     expect(unread).toHaveAttribute('data-unread', 'true');
     expect(screen.getByRole('menuitem', { name: /Read one/ })).not.toHaveAttribute('data-unread');
     await user.keyboard('{ArrowDown}');

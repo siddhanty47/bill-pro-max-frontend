@@ -7,6 +7,7 @@ import type {
   HTMLAttributes,
 } from 'react';
 import { fromInnerControl } from './innerControl';
+import type { ValueTone } from './status';
 import styles from './Table.module.css';
 
 type CellExtras = {
@@ -15,13 +16,15 @@ type CellExtras = {
   hideOnMobile?: boolean;
   /** Keep the cell's content on one line. */
   nowrap?: boolean;
+  /** Colour the value (e.g. a balance due): see `ValueTone` in `status.ts`. */
+  tone?: ValueTone;
 };
 
 export type ThProps = CellExtras & Omit<ThHTMLAttributes<HTMLTableCellElement>, 'align'>;
 export type TdProps = CellExtras & Omit<TdHTMLAttributes<HTMLTableCellElement>, 'align'>;
 
 function cellClass(
-  { align = 'left', mono, hideOnMobile, nowrap }: CellExtras,
+  { align = 'left', mono, hideOnMobile, nowrap, tone }: CellExtras,
   className: string | undefined
 ) {
   return (
@@ -31,6 +34,7 @@ function cellClass(
       mono ? styles.mono : '',
       hideOnMobile ? styles.hideOnMobile : '',
       nowrap ? styles.nowrap : '',
+      tone ? styles[`tone-${tone}`] : '',
       className ?? '',
     ]
       .filter(Boolean)
@@ -48,6 +52,11 @@ export type TableProps = {
   caption?: ReactNode;
   /** Tighter cell padding for wide statement tables. */
   dense?: boolean;
+  /**
+   * Cell padding of a DetailSection row (20px sides, 12px rows), for a label/amount
+   * table inside a detail page (e.g. a bill summary) so it lines up with the cards around it.
+   */
+  detail?: boolean;
 };
 
 export function Table({
@@ -55,12 +64,15 @@ export function Table({
   className,
   caption,
   dense,
+  detail,
   'aria-label': ariaLabel,
 }: TableProps) {
   return (
     <div className={[styles.wrap, className ?? ''].filter(Boolean).join(' ')}>
       <table
-        className={[styles.table, dense ? styles.dense : ''].filter(Boolean).join(' ')}
+        className={[styles.table, dense ? styles.dense : '', detail ? styles.detail : '']
+          .filter(Boolean)
+          .join(' ')}
         aria-label={ariaLabel}
       >
         {caption && <caption className={styles.caption}>{caption}</caption>}
@@ -136,17 +148,35 @@ export function Tr({
   );
 }
 
-export function Th({ align, mono, hideOnMobile, nowrap, className, children, ...rest }: ThProps) {
+export function Th({
+  align,
+  mono,
+  hideOnMobile,
+  nowrap,
+  tone,
+  className,
+  children,
+  ...rest
+}: ThProps) {
   return (
-    <th {...rest} className={cellClass({ align, mono, hideOnMobile, nowrap }, className)}>
+    <th {...rest} className={cellClass({ align, mono, hideOnMobile, nowrap, tone }, className)}>
       {children}
     </th>
   );
 }
 
-export function Td({ align, mono, hideOnMobile, nowrap, className, children, ...rest }: TdProps) {
+export function Td({
+  align,
+  mono,
+  hideOnMobile,
+  nowrap,
+  tone,
+  className,
+  children,
+  ...rest
+}: TdProps) {
   return (
-    <td {...rest} className={cellClass({ align, mono, hideOnMobile, nowrap }, className)}>
+    <td {...rest} className={cellClass({ align, mono, hideOnMobile, nowrap, tone }, className)}>
       {children}
     </td>
   );

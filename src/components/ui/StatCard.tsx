@@ -1,11 +1,15 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon, type IconName } from './Icon';
+import type { ValueTone } from './status';
 import styles from './StatCard.module.css';
 
 export type StatCardProps = {
   label: string;
-  value: ReactNode;
+  /** Rendered mono. Optional: a card can carry only `children` (e.g. a Meter). */
+  value?: ReactNode;
+  /** Colour of the value: `positive` (money in), `negative` (money out / owed), `warning`. */
+  valueTone?: ValueTone;
   icon?: IconName;
   to?: string;
   tone?: 'default' | 'highlight';
@@ -16,6 +20,7 @@ export type StatCardProps = {
 export function StatCard({
   label,
   value,
+  valueTone,
   icon,
   to,
   tone = 'default',
@@ -36,7 +41,15 @@ export function StatCard({
         {icon && <Icon name={icon} size={16} />}
         {label}
       </div>
-      <div className={`${styles.value} mono`}>{value}</div>
+      {value !== undefined && value !== null && value !== '' && (
+        <div
+          className={[styles.value, 'mono', valueTone ? styles[`tone-${valueTone}`] : '']
+            .filter(Boolean)
+            .join(' ')}
+        >
+          {value}
+        </div>
+      )}
       {children}
     </>
   );

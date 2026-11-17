@@ -40,29 +40,6 @@
   color: var(--text-heading);
 }
 
-.dot {
-  width: 8px;
-  height: 8px;
-  flex-shrink: 0;
-  border-radius: var(--radius-full);
-}
-
-.dot-info {
-  background: var(--status-info-text);
-}
-
-.dot-warning {
-  background: var(--status-warning-text);
-}
-
-.dot-success {
-  background: var(--status-success-text);
-}
-
-.dot-danger {
-  background: var(--status-danger-text);
-}
-
 @media (max-width: 768px) {
   .seg {
     display: flex;

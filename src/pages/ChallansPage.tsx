@@ -19,6 +19,7 @@ import {
   Card,
   DataTable,
   DocNumber,
+  Dot,
   EmptyState,
   ErrorMessage,
   FilterBar,
@@ -55,12 +56,7 @@ const byNewest = (a: Challan, b: Challan) =>
 const itemsLabel = (c: Challan) => `${c.items.length} ${c.items.length === 1 ? 'item' : 'items'}`;
 
 function TypeDot({ type }: { type: Challan['type'] }) {
-  return (
-    <span
-      className={`${styles.dot} ${type === 'delivery' ? styles.delivery : styles.return}`}
-      aria-hidden="true"
-    />
-  );
+  return <Dot tone={type === 'delivery' ? 'info' : 'warning'} />;
 }
 
 export function ChallansPage() {

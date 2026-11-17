@@ -1,0 +1,23 @@
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+}
+
+.info {
+  background: var(--status-info-text);
+}
+
+.warning {
+  background: var(--status-warning-text);
+}
+
+.success {
+  background: var(--status-success-text);
+}
+
+.danger {
+  background: var(--status-danger-text);
+}

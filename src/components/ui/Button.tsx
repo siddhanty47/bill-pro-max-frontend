@@ -1,5 +1,6 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, MouseEvent, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { Dot, type DotTone } from './Dot';
 import { Icon, type IconName } from './Icon';
 import styles from './Button.module.css';
 
@@ -14,7 +15,7 @@ export type ButtonProps = {
   /** At ≤768 the label is visually hidden (kept in the accessible name) and the button becomes a 44px icon square. Needs `icon`. */
   collapseLabel?: boolean;
   /** Small status-tone dot before the label (e.g. delivery = info, return = warning). */
-  dot?: 'info' | 'warning' | 'success' | 'danger';
+  dot?: DotTone;
   /** Keyboard-shortcut hint shown after the label (hidden at ≤768). Decorative: wire the key itself with `useHotkey`. */
   hint?: string;
   to?: string;
@@ -57,7 +58,7 @@ export function Button({
       {loading && <span className={styles.spinner} aria-hidden="true" />}
       <span className={loading ? `${styles.content} ${styles.contentHidden}` : styles.content}>
         {icon && <Icon name={icon} size={size === 'sm' ? 14 : 16} />}
-        {dot && <span className={`${styles.dot} ${styles[`dot-${dot}`]}`} aria-hidden="true" />}
+        {dot && <Dot tone={dot} />}
         {collapseLabel ? <span className={styles.collapsibleLabel}>{children}</span> : children}
         {hint && (
           <kbd className={styles.hint} aria-hidden="true">

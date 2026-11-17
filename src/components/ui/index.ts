@@ -8,6 +8,7 @@ export { Icon, type IconName, type IconProps } from './Icon';
 export { Brand, type BrandProps } from './Brand';
 export { GoogleIcon, type GoogleIconProps } from './GoogleIcon';
 export { Avatar, type AvatarProps } from './Avatar';
+export { Dot, type DotTone } from './Dot';
 export { Notice, type NoticeProps, type NoticeTone } from './Notice';
 export { Card, type CardProps } from './Card';
 export { StatCard, type StatCardProps } from './StatCard';
