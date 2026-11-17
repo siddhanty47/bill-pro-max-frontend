@@ -81,7 +81,9 @@ export function BillsPreview({ data }: BillsPreviewProps) {
               </Tr>
             ))}
             <Tr variant="total">
-              <Td colSpan={4}>Totals ({totals.billCount} bills)</Td>
+              <Td colSpan={4}>
+                Totals ({totals.billCount} {totals.billCount === 1 ? 'bill' : 'bills'})
+              </Td>
               {amountsOf(totals).map((amount, i) => (
                 <Td key={AMOUNT_HEADERS[i]} align="right" mono nowrap>
                   {formatMoney(amount)}

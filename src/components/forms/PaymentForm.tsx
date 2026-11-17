@@ -146,7 +146,7 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
           <div>
             <CodeAutocomplete
               label="Party"
-              placeholder="Type party code or name..."
+              placeholder="Party code or name"
               value={partySearchValue}
               onChange={setPartySearchValue}
               items={partyAutocompleteItems}

@@ -212,6 +212,63 @@ describe('SharedPortalPage', () => {
     expect(within(list).getByText(/Paid ₹50,000\.50/)).toBeInTheDocument();
   });
 
+  it('shows Not added for a bill without period or due date, with no dangling Due label', async () => {
+    useApi({ bills: [{ ...bill, billingPeriod: null, dueDate: '' }] });
+    const { user } = renderPage();
+    await screen.findByRole('heading', { name: 'Mehta Builders' });
+    await openTab(user, 'Bills');
+    const table = await screen.findByRole('table');
+    expect(within(table).getAllByText('Not added')).toHaveLength(2);
+    expect(within(table).queryByText('-')).not.toBeInTheDocument();
+    const list = screen.getByRole('list', { name: 'Bills' });
+    expect(within(list).queryByText(/Due/)).not.toBeInTheDocument();
+    expect(within(list).getByText(/Paid ₹50,000\.50/)).toBeInTheDocument();
+  });
+
+  it('shows the challan phone list', async () => {
+    useApi();
+    const { user } = renderPage();
+    await screen.findByRole('heading', { name: 'Mehta Builders' });
+    await openTab(user, 'Challans');
+    const list = await screen.findByRole('list', { name: 'Challans' });
+    const item = within(list).getAllByRole('listitem')[0];
+    expect(within(item).getByText('CH-001')).toBeInTheDocument();
+    expect(within(item).getByText('Delivery')).toBeInTheDocument();
+    expect(within(item).getByText('Cuplock vertical 2m x30, Ledger 1.5m x12')).toBeInTheDocument();
+    expect(within(item).getByText('10 Mar 2025')).toBeInTheDocument();
+    expect(
+      within(item).getByRole('button', { name: 'Download challan CH-001 PDF' })
+    ).toBeInTheDocument();
+  });
+
+  it('shows the payment phone list', async () => {
+    useApi();
+    const { user } = renderPage();
+    await screen.findByRole('heading', { name: 'Mehta Builders' });
+    await openTab(user, 'Payments');
+    const list = await screen.findByRole('list', { name: 'Payments' });
+    const item = within(list).getAllByRole('listitem')[0];
+    expect(within(item).getByText('₹75,000')).toBeInTheDocument();
+    expect(within(item).getByText('Completed')).toBeInTheDocument();
+    expect(within(item).getByText('Bank transfer')).toBeInTheDocument();
+    expect(within(item).getByText('UTR998877')).toBeInTheDocument();
+    expect(item).toHaveTextContent('2 Apr 2025 · UTR998877 · March part payment');
+  });
+
+  it('shows the running items phone list', async () => {
+    useApi();
+    const { user } = renderPage();
+    await screen.findByRole('heading', { name: 'Mehta Builders' });
+    await openTab(user, 'Running items');
+    const list = await screen.findByRole('list', { name: 'Running items' });
+    const items = within(list).getAllByRole('listitem');
+    expect(items).toHaveLength(2);
+    expect(within(items[0]).getByText('Cuplock vertical 2m')).toBeInTheDocument();
+    expect(within(items[0]).getByText('30')).toBeInTheDocument();
+    expect(within(items[1]).getByText('Ledger 1.5m')).toBeInTheDocument();
+    expect(within(items[1]).getByText('12')).toBeInTheDocument();
+  });
+
   it('shows empty messages', async () => {
     useApi({ bills: [], payments: [], challans: [] });
     const { user } = renderPage();

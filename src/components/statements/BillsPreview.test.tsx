@@ -101,6 +101,15 @@ describe('BillsPreview', () => {
     expect(screen.getByRole('link', { name: 'B-002' })).toHaveAttribute('href', '/bills/b2');
   });
 
+  it('says "1 bill" in the totals row for a single bill', () => {
+    renderWithProviders(
+      <BillsPreview
+        data={{ ...base, bills: [base.bills[0]], totals: { ...base.totals, billCount: 1 } }}
+      />
+    );
+    expect(screen.getByText('Totals (1 bill)')).toBeInTheDocument();
+  });
+
   it('shows a notice for an empty period', () => {
     renderWithProviders(<BillsPreview data={{ ...base, bills: [], siteCode: undefined }} />);
     expect(screen.getByText('No bills found for this period.')).toBeInTheDocument();

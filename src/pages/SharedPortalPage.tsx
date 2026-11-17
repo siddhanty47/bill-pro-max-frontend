@@ -12,6 +12,7 @@ import {
   Button,
   Card,
   DataTable,
+  DocNumber,
   EmptyState,
   Notice,
   PageHeader,
@@ -60,6 +61,7 @@ const periodText = (b: PortalBill) =>
   b.billingPeriod
     ? `${formatDate(b.billingPeriod.start)} - ${formatDate(b.billingPeriod.end)}`
     : '';
+const dueText = (b: PortalBill) => (b.dueDate ? `Due ${formatDate(b.dueDate)}` : '');
 
 type PagerProps = {
   page: number;
@@ -196,7 +198,12 @@ export function SharedPortalPage() {
   );
 
   const challanColumns: Column<PortalChallan>[] = [
-    { key: 'challanNumber', header: 'Challan #', mono: true, nowrap: true },
+    {
+      key: 'challanNumber',
+      header: 'Challan #',
+      nowrap: true,
+      render: c => <DocNumber value={c.challanNumber} />,
+    },
     {
       key: 'type',
       header: 'Type',
@@ -221,8 +228,18 @@ export function SharedPortalPage() {
   ];
 
   const billColumns: Column<PortalBill>[] = [
-    { key: 'billNumber', header: 'Bill #', mono: true, nowrap: true },
-    { key: 'billingPeriod', header: 'Period', nowrap: true, render: b => periodText(b) || '-' },
+    {
+      key: 'billNumber',
+      header: 'Bill #',
+      nowrap: true,
+      render: b => <DocNumber value={b.billNumber} />,
+    },
+    {
+      key: 'billingPeriod',
+      header: 'Period',
+      nowrap: true,
+      render: b => periodText(b) || notAdded,
+    },
     {
       key: 'totalAmount',
       header: 'Amount',
@@ -239,7 +256,12 @@ export function SharedPortalPage() {
       nowrap: true,
       render: b => formatMoney(b.amountPaid),
     },
-    { key: 'dueDate', header: 'Due date', nowrap: true, render: b => formatDate(b.dueDate) },
+    {
+      key: 'dueDate',
+      header: 'Due date',
+      nowrap: true,
+      render: b => (b.dueDate ? formatDate(b.dueDate) : notAdded),
+    },
     {
       key: 'status',
       header: 'Status',
@@ -358,7 +380,7 @@ export function SharedPortalPage() {
               rowKey={c => c._id}
               empty={<EmptyState title="No challans found." />}
               mobile={{
-                title: c => <span className="mono">{c.challanNumber}</span>,
+                title: c => <DocNumber value={c.challanNumber} />,
                 badge: c => <StatusChip status={c.type} />,
                 subtitle: c => itemsText(c),
                 meta: c => [formatDate(c.date)],
@@ -399,7 +421,7 @@ export function SharedPortalPage() {
               rowKey={b => b._id}
               empty={<EmptyState title="No bills found." />}
               mobile={{
-                title: b => <span className="mono">{b.billNumber}</span>,
+                title: b => <DocNumber value={b.billNumber} />,
                 badge: b => <StatusChip status={b.status} />,
                 subtitle: b => <span className="mono">{formatMoney(b.totalAmount)}</span>,
                 meta: b => [
@@ -407,7 +429,7 @@ export function SharedPortalPage() {
                   <span key="paid" className="mono">
                     Paid {formatMoney(b.amountPaid)}
                   </span>,
-                  `Due ${formatDate(b.dueDate)}`,
+                  dueText(b),
                 ],
                 actions: b =>
                   pdfAction(`Download bill ${b.billNumber} PDF`, () =>

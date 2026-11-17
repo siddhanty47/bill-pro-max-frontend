@@ -63,6 +63,31 @@ describe('EmployeeForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('ignores a negative salary hidden by a salary type switch', async () => {
+    const { user, onSubmit } = setup();
+    await user.type(screen.getByLabelText(/^name/i, { selector: '#emp-name' }), 'Anil');
+    await chooseSalary(user, 'Monthly');
+    await user.type(screen.getByLabelText(/monthly salary/i), '-5');
+    await chooseSalary(user, 'Daily');
+    await user.type(screen.getByLabelText(/daily rate/i), '650');
+    await user.click(screen.getByRole('button', { name: /^add employee$/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('Enter 0 or more')).not.toBeInTheDocument();
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ salaryType: 'daily', dailyRate: 650 });
+    expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('monthlySalary');
+  });
+
+  it('rejects a negative overtime rate and a negative daily rate', async () => {
+    const { user, onSubmit } = setup();
+    await user.type(screen.getByLabelText(/^name/i, { selector: '#emp-name' }), 'Anil');
+    await chooseSalary(user, 'Daily');
+    await user.type(screen.getByLabelText(/daily rate/i), '-1');
+    await user.type(screen.getByLabelText(/overtime rate/i), '-2');
+    await user.click(screen.getByRole('button', { name: /^add employee$/i }));
+    expect(await screen.findAllByText('Enter 0 or more')).toHaveLength(2);
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it('submits a daily rate and drops the monthly one', async () => {
     const { user, onSubmit } = setup();
     await user.type(screen.getByLabelText(/^name/i, { selector: '#emp-name' }), 'Anil');
