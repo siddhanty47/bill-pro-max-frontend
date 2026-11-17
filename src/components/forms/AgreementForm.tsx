@@ -10,6 +10,20 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { CreateAgreementInput, Inventory, Site, Agreement } from '../../types';
+import {
+  Button,
+  Checkbox,
+  Field,
+  Fieldset,
+  Input,
+  Select,
+  Table,
+  TBody,
+  THead,
+  Td,
+  Th,
+  Tr,
+} from '../ui';
 import styles from './AgreementForm.module.css';
 
 const agreementSchema = z.object({
@@ -217,252 +231,230 @@ export function AgreementForm({
   const isSomeSelected = selectedCategories.size > 0 && !isAllSelected;
 
   return (
-    <form onSubmit={onFormSubmit}>
-      <div className="form-content">
-        <div className="form-columns">
-          <div>
-            <div className="form-group">
-              <label htmlFor="siteCode">Site *</label>
-              <select id="siteCode" {...register('siteCode')} disabled={isLoading}>
-                <option value="">Select a site</option>
-                {availableSites.map(site => (
-                  <option key={site.code} value={site.code}>
-                    {site.code} - {site.address.substring(0, 50)}
-                    {site.address.length > 50 ? '...' : ''}
-                  </option>
-                ))}
-              </select>
-              {errors.siteCode && <span className="error-message">{errors.siteCode.message}</span>}
-              {availableSites.length === 0 && (
-                <small className={styles.warningText}>
-                  No sites available. All sites have active agreements.
-                </small>
-              )}
-            </div>
+    <form onSubmit={onFormSubmit} noValidate>
+      <div className={styles.columns}>
+        <div className={styles.column}>
+          <Field
+            label="Site"
+            required
+            error={errors.siteCode?.message}
+            hint={
+              availableSites.length === 0
+                ? 'No sites available. All sites have active agreements.'
+                : undefined
+            }
+          >
+            <Select {...register('siteCode')} disabled={isLoading}>
+              <option value="">Select a site</option>
+              {availableSites.map(site => (
+                <option key={site.code} value={site.code}>
+                  {site.code} - {site.address.substring(0, 50)}
+                  {site.address.length > 50 ? '...' : ''}
+                </option>
+              ))}
+            </Select>
+          </Field>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="startDate">Start Date *</label>
-                <input id="startDate" type="date" {...register('startDate')} disabled={isLoading} />
-                {errors.startDate && (
-                  <span className="error-message">{errors.startDate.message}</span>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="endDate">End Date</label>
-                <input id="endDate" type="date" {...register('endDate')} disabled={isLoading} />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="billingCycle">Billing Cycle *</label>
-                <select id="billingCycle" {...register('billingCycle')} disabled={isLoading}>
-                  <option value="monthly">Monthly</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="yearly">Yearly</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="paymentDueDays">Payment Due (days) *</label>
-                <input
-                  id="paymentDueDays"
-                  type="number"
-                  {...register('paymentDueDays', { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="securityDeposit">Security Deposit (₹)</label>
-                <input
-                  id="securityDeposit"
-                  type="number"
-                  {...register('securityDeposit', { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
+          <div className={styles.pair}>
+            <Field label="Start date" required error={errors.startDate?.message}>
+              <Input type="date" {...register('startDate')} disabled={isLoading} />
+            </Field>
+            <Field label="End date">
+              <Input type="date" {...register('endDate')} disabled={isLoading} />
+            </Field>
           </div>
-          <div>
-            {/* Transportation Charges */}
-            <fieldset className="form-fieldset">
-              <legend className="form-fieldset-legend">Transportation Charges (optional)</legend>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="deliveryCartage">Delivery Cartage (₹)</label>
-                  <input
-                    id="deliveryCartage"
+
+          <div className={styles.triple}>
+            <Field label="Billing cycle" required>
+              <Select {...register('billingCycle')} disabled={isLoading}>
+                <option value="monthly">Monthly</option>
+                <option value="weekly">Weekly</option>
+                <option value="yearly">Yearly</option>
+              </Select>
+            </Field>
+            <Field label="Payment due (days)" required>
+              <Input
+                mono
+                type="number"
+                {...register('paymentDueDays', { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+            </Field>
+            <Field label="Security deposit (₹)">
+              <Input
+                mono
+                type="number"
+                {...register('securityDeposit', { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+            </Field>
+          </div>
+        </div>
+
+        <div className={styles.column}>
+          <Fieldset legend="Transportation charges (optional)">
+            <div className={styles.fieldsetBody}>
+              <div className={styles.pair}>
+                <Field label="Delivery cartage (₹)">
+                  <Input
+                    mono
                     type="number"
                     step="0.01"
                     {...register('deliveryCartage', { valueAsNumber: true })}
                     disabled={isLoading}
                     placeholder="0"
                   />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="returnCartage">Return Cartage (₹)</label>
-                  <input
-                    id="returnCartage"
+                </Field>
+                <Field label="Return cartage (₹)">
+                  <Input
+                    mono
                     type="number"
                     step="0.01"
                     {...register('returnCartage', { valueAsNumber: true })}
                     disabled={isLoading}
                     placeholder="0"
                   />
-                </div>
+                </Field>
               </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="loadingCharge">Loading Charge (₹)</label>
-                  <input
-                    id="loadingCharge"
+              <div className={styles.pair}>
+                <Field label="Loading charge (₹)">
+                  <Input
+                    mono
                     type="number"
                     step="0.01"
                     {...register('loadingCharge', { valueAsNumber: true })}
                     disabled={isLoading}
                     placeholder="0"
                   />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="unloadingCharge">Unloading Charge (₹)</label>
-                  <input
-                    id="unloadingCharge"
+                </Field>
+                <Field label="Unloading charge (₹)">
+                  <Input
+                    mono
                     type="number"
                     step="0.01"
                     {...register('unloadingCharge', { valueAsNumber: true })}
                     disabled={isLoading}
                     placeholder="0"
                   />
-                </div>
+                </Field>
               </div>
-            </fieldset>
-          </div>
+            </div>
+          </Fieldset>
         </div>
+      </div>
 
-        {/* Category selection - full width */}
-        <div className="form-group">
-          <label>Select Categories *</label>
-
-          {allCategories.length === 0 && (
-            <small className={styles.warningText}>No inventory items available.</small>
-          )}
-
+      <div className={styles.section}>
+        <Field
+          label="Categories"
+          required
+          role="group"
+          aria-label="Categories"
+          error={errors.rates?.message}
+          hint={allCategories.length === 0 ? 'No inventory items available.' : undefined}
+        >
           {allCategories.length > 0 && (
             <div className={styles.categoryPanel}>
-              {/* Select All / Unselect All */}
-              <label className={styles.selectAllLabel}>
-                <input
-                  className={styles.formCheckbox}
-                  type="checkbox"
-                  checked={isAllSelected}
-                  ref={el => {
-                    if (el) el.indeterminate = isSomeSelected;
-                  }}
-                  onChange={handleSelectAllToggle}
-                  disabled={isLoading}
-                />
-                {isAllSelected ? 'Unselect All' : 'Select All'}
-              </label>
-
-              {/* Individual categories */}
+              <Checkbox
+                label={isAllSelected ? 'Unselect all' : 'Select all'}
+                checked={isAllSelected}
+                ref={el => {
+                  if (el) el.indeterminate = isSomeSelected;
+                }}
+                onChange={handleSelectAllToggle}
+                disabled={isLoading}
+              />
               {allCategories.map(category => {
                 const items = categorizedItems.get(category) || [];
                 return (
-                  <label key={category} className={styles.categoryLabel}>
-                    <input
-                      type="checkbox"
-                      className={styles.formCheckbox}
-                      checked={selectedCategories.has(category)}
-                      onChange={() => handleCategoryToggle(category)}
-                      disabled={isLoading}
-                    />
-                    {category}
-                    <span className={styles.categoryCount}>
-                      ({items.length} {items.length === 1 ? 'item' : 'items'})
-                    </span>
-                  </label>
+                  <Checkbox
+                    key={category}
+                    label={`${category} (${items.length} ${items.length === 1 ? 'item' : 'items'})`}
+                    checked={selectedCategories.has(category)}
+                    onChange={() => handleCategoryToggle(category)}
+                    disabled={isLoading}
+                  />
                 );
               })}
             </div>
           )}
-
-          {errors.rates && <span className="error-message">{errors.rates.message}</span>}
-        </div>
-
-        {/* Selected items preview with editable rates */}
-        {fields.length > 0 && (
-          <div className="form-group">
-            <label>Selected Items ({fields.length})</label>
-            <div className={styles.previewContainer}>
-              <table className={styles.previewTable}>
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Name</th>
-                    <th>Category</th>
-                    <th className={styles.rateColumn}>Rate/day (₹)</th>
-                    <th className={styles.rateColumn}>Opening Bal.</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {fields.map((field, index) => {
-                    const item = inventoryById.get(field.itemId);
-                    return (
-                      <tr key={field.id}>
-                        <td className={styles.codeCell}>{item?.code || '-'}</td>
-                        <td className={styles.cell}>{item?.name || '-'}</td>
-                        <td className={styles.cell}>{item?.category || '-'}</td>
-                        <td className={styles.cell}>
-                          <input
-                            type="number"
-                            step="0.01"
-                            {...register(`rates.${index}.ratePerDay`, { valueAsNumber: true })}
-                            onChange={e =>
-                              handleRateChange(index, field.itemId, parseFloat(e.target.value) || 0)
-                            }
-                            disabled={isLoading}
-                            className={styles.rateInput}
-                          />
-                          <input type="hidden" {...register(`rates.${index}.itemId`)} />
-                        </td>
-                        <td className={styles.cell}>
-                          <input
-                            type="number"
-                            step="1"
-                            min="0"
-                            {...register(`rates.${index}.openingBalance`, { valueAsNumber: true })}
-                            onChange={e =>
-                              handleOpeningBalanceChange(
-                                index,
-                                field.itemId,
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                            disabled={isLoading}
-                            className={styles.rateInput}
-                            placeholder="0"
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        </Field>
       </div>
 
-      <div className="form-actions">
-        <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={isLoading}>
+      {fields.length > 0 && (
+        <div className={styles.section}>
+          <span className={styles.gridTitle}>Selected items ({fields.length})</span>
+          <div className={styles.gridScroll}>
+            <Table aria-label="Selected items">
+              <THead>
+                <Tr>
+                  <Th>Code</Th>
+                  <Th>Name</Th>
+                  <Th hideOnMobile>Category</Th>
+                  <Th align="right">Rate/day (₹)</Th>
+                  <Th align="right">Opening balance</Th>
+                </Tr>
+              </THead>
+              <TBody>
+                {fields.map((field, index) => {
+                  const item = inventoryById.get(field.itemId);
+                  return (
+                    <Tr key={field.id}>
+                      <Td mono nowrap>
+                        {item?.code || '-'}
+                      </Td>
+                      <Td>{item?.name || '-'}</Td>
+                      <Td hideOnMobile>{item?.category || '-'}</Td>
+                      <Td align="right">
+                        <Input
+                          mono
+                          type="number"
+                          step="0.01"
+                          aria-label={`Rate per day for ${item?.name ?? 'item'}`}
+                          {...register(`rates.${index}.ratePerDay`, { valueAsNumber: true })}
+                          onChange={e =>
+                            handleRateChange(index, field.itemId, parseFloat(e.target.value) || 0)
+                          }
+                          disabled={isLoading}
+                          className={styles.rateInput}
+                        />
+                        <input type="hidden" {...register(`rates.${index}.itemId`)} />
+                      </Td>
+                      <Td align="right">
+                        <Input
+                          mono
+                          type="number"
+                          step="1"
+                          min="0"
+                          aria-label={`Opening balance for ${item?.name ?? 'item'}`}
+                          {...register(`rates.${index}.openingBalance`, { valueAsNumber: true })}
+                          onChange={e =>
+                            handleOpeningBalanceChange(
+                              index,
+                              field.itemId,
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          disabled={isLoading}
+                          className={styles.rateInput}
+                          placeholder="0"
+                        />
+                      </Td>
+                    </Tr>
+                  );
+                })}
+              </TBody>
+            </Table>
+          </div>
+        </div>
+      )}
+
+      <div className={styles.actions}>
+        <Button onClick={onCancel} disabled={isLoading}>
           Cancel
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={isLoading}>
-          {isLoading ? 'Creating...' : 'Create Agreement'}
-        </button>
+        </Button>
+        <Button variant="primary" type="submit" loading={isLoading}>
+          Create agreement
+        </Button>
       </div>
     </form>
   );
