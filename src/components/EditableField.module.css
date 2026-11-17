@@ -57,12 +57,25 @@
   opacity: 1;
 }
 
+/* Right-aligned (numeric table cells): value flush right, hint just before it */
+.right {
+  justify-content: flex-end;
+}
+
 /* Edit mode */
 .editor {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   width: 100%;
+}
+
+.editorRight {
+  align-items: flex-end;
+}
+
+.rightInput {
+  text-align: right;
 }
 
 .custom {

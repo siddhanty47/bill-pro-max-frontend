@@ -16,7 +16,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `PageHeader` | The title row at the top of every page, with optional eyebrow, actions and a `badge` beside the title |
 | `EmptyState` | "Nothing here" states: one short title and at most one action |
 | `StatusChip` | Every status badge; tone comes from `status.ts` |
-| `DocNumber` | Bill, challan and other document numbers, optionally linked |
+| `DocNumber` | Bill, challan and other document numbers, optionally linked; `wrap` lets a long code wrap in a narrow sidebar |
 | `DataTable` | Read-only list data from an array of rows (column flags `align`, `mono`, `nowrap`, `hideOnMobile`); `mobile` spec turns it into a two-line list on phones (`actionsPlacement: 'trailing'` puts row actions top-right instead of below) |
 | `Table`, `THead`, `TBody`, `Tr`, `Th`, `Td` | Hand-built tables and editable grids (challan/bill item rows); `aria-label`/`caption` name the table |
 | `Field` | Label + control + hint + error wrapper for one form control; `labelAction` for a link on the label row |

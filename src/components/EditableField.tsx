@@ -62,6 +62,8 @@ export interface EditableFieldProps {
   renderEditInput?: (props: RenderEditInputProps) => ReactNode;
   /** Compact spacing for table cells */
   compact?: boolean;
+  /** `right` for right-aligned numeric table cells: value flush right, hint before it, input right-aligned */
+  align?: 'left' | 'right';
 }
 
 const errorMessage = (err: unknown) =>
@@ -86,6 +88,7 @@ export function EditableField({
   mono = false,
   renderEditInput,
   compact = false,
+  align = 'left',
 }: EditableFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState<string | number>(value ?? '');
@@ -188,7 +191,14 @@ export function EditableField({
 
     return (
       <span
-        className={[containerClass, styles.trigger, mono ? 'mono' : ''].filter(Boolean).join(' ')}
+        className={[
+          containerClass,
+          styles.trigger,
+          align === 'right' ? styles.right : '',
+          mono ? 'mono' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
         onClick={enterEditMode}
         role="button"
         tabIndex={0}
@@ -200,10 +210,11 @@ export function EditableField({
           }
         }}
       >
+        {align === 'right' && <span className={styles.hint}>Edit</span>}
         <span className={styles.value}>
           {isSaving ? <span className={styles.spinner} aria-hidden="true" /> : viewContent}
         </span>
-        <span className={styles.hint}>Edit</span>
+        {align === 'left' && <span className={styles.hint}>Edit</span>}
       </span>
     );
   }
@@ -216,6 +227,7 @@ export function EditableField({
     onKeyDown: handleKeyDown,
     invalid: !!error,
     mono,
+    className: align === 'right' ? styles.rightInput : undefined,
   };
 
   const renderDefaultInput = () => {
@@ -259,7 +271,13 @@ export function EditableField({
   };
 
   return (
-    <div ref={editorRef} className={`${containerClass} ${styles.editor}`} onBlur={handleEditorBlur}>
+    <div
+      ref={editorRef}
+      className={[containerClass, styles.editor, align === 'right' ? styles.editorRight : '']
+        .filter(Boolean)
+        .join(' ')}
+      onBlur={handleEditorBlur}
+    >
       {renderEditInput ? (
         <div className={styles.custom}>
           {renderEditInput({

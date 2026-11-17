@@ -6,6 +6,11 @@
   white-space: nowrap;
 }
 
+.wrap {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .link {
   text-decoration: none;
 }

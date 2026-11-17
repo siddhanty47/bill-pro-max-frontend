@@ -52,6 +52,11 @@ const LOSS_LABEL: Record<LossType, string> = {
   need_repair: 'Need repair',
 };
 
+const CHALLAN_TYPE_WORD: Record<'delivery' | 'return', string> = {
+  delivery: 'Delivery',
+  return: 'Return',
+};
+
 /** Row types carry their list position so repeated items keep distinct keys. */
 type ItemRow = ChallanItem & { idx: number };
 type LossRow = DamagedItem & { idx: number };
@@ -294,6 +299,7 @@ export function ChallanDetailPage() {
       inputType="number"
       compact
       mono
+      align="right"
       onSave={v => handleItemQuantitySave(row.itemId, Number(v))}
       isSaving={isSavingItem}
     />
@@ -468,7 +474,9 @@ export function ChallanDetailPage() {
       />
       <DetailField
         label="Agreement"
-        value={<DocNumber value={challan.agreementId} to={`/agreements/${challan.agreementId}`} />}
+        value={
+          <DocNumber wrap value={challan.agreementId} to={`/agreements/${challan.agreementId}`} />
+        }
       />
       <DetailField
         label="Date"
@@ -525,8 +533,7 @@ export function ChallanDetailPage() {
   return (
     <DetailPageShell
       title={challan?.challanNumber || 'Challan'}
-      eyebrow="Challan"
-      code={challan?.challanNumber}
+      eyebrow={challan ? `${CHALLAN_TYPE_WORD[challan.type]} challan` : 'Challan'}
       status={challan?.status}
       backTo="/challans"
       backLabel="Challans"

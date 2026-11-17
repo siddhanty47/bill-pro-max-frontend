@@ -138,6 +138,25 @@ describe('EditableField', () => {
     );
   });
 
+  it('right-aligns the trigger (hint before the value) and the input', async () => {
+    const user = userEvent.setup();
+    render(
+      <EditableField
+        label="Quantity"
+        value={10}
+        inputType="number"
+        align="right"
+        onSave={vi.fn()}
+      />
+    );
+    const trigger = screen.getByRole('button', { name: /10/ });
+    expect(trigger).toHaveClass('trigger', 'right');
+    expect(trigger.firstElementChild).toHaveTextContent('Edit');
+    expect(trigger.lastElementChild).toHaveTextContent('10');
+    await user.click(trigger);
+    expect(screen.getByRole('spinbutton', { name: 'Quantity' })).toHaveClass('rightInput');
+  });
+
   it('shows "Not added" for an empty value and edits selects and textareas', async () => {
     const onSave = vi.fn(async () => {});
     const user = userEvent.setup();

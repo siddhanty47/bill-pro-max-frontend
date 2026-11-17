@@ -154,8 +154,7 @@ describe('ChallanDetailPage', () => {
     useApi();
     renderPage();
     expect(await screen.findByRole('heading', { name: 'R-2026-27-0003', level: 1 })).toBeVisible();
-    expect(screen.getByText(/^Challan ·/)).toHaveTextContent('Challan · R-2026-27-0003');
-    expect(within(screen.getByText(/^Challan ·/)).getByText('R-2026-27-0003')).toHaveClass('mono');
+    expect(screen.getByText('Return challan')).toBeVisible();
     expect(screen.getAllByText('Draft')).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'Back to Challans' })).toHaveAttribute(
       'href',
@@ -183,6 +182,7 @@ describe('ChallanDetailPage', () => {
       'href',
       '/parties/p1'
     );
+    expect(within(details).getByRole('link', { name: 'AG-001' })).toHaveClass('wrap');
     expect(within(details).getByRole('link', { name: 'AG-001' })).toHaveAttribute(
       'href',
       '/agreements/AG-001'
@@ -324,7 +324,8 @@ describe('ChallanDetailPage', () => {
     const table = screen.getByRole('table', { name: 'Items' });
     const row = within(table).getByRole('row', { name: /Ladder 1.5m/ });
     const qty = within(row).getByRole('button', { name: /10/ });
-    expect(qty.closest('td')).toHaveClass('mono');
+    expect(qty.closest('td')).toHaveClass('mono', 'right');
+    expect(qty).toHaveClass('right');
 
     await user.click(qty);
     const input = within(row).getByRole('spinbutton', { name: 'Quantity' });
@@ -438,7 +439,7 @@ describe('ChallanDetailPage', () => {
     await openTab(user, /^Items/);
     await screen.findByRole('table', { name: 'Items' });
     expect(screen.queryByRole('heading', { name: 'Loss items' })).not.toBeInTheDocument();
-    expect(screen.getByText('Delivery')).toBeInTheDocument();
+    expect(screen.getByText('Delivery challan')).toBeInTheDocument();
   });
 
   it('edits loss items and saves the same payload', async () => {
