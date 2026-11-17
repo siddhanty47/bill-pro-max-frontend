@@ -1,7 +1,8 @@
 /**
  * @fileoverview Payment detail view page
- * @description Read-only detail page showing all information for a single payment,
- * including type, method, amount, linked bill, and notes.
+ * @description Read-only detail page for a single payment: amount, type, method,
+ * reference, linked party and bill, notes and change history. Built on the kit's
+ * detail recipe.
  */
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
@@ -9,31 +10,23 @@ import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useGetPaymentQuery } from '../api/paymentApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
-import { Tabs } from '../components/Tabs';
+import { DocNumber } from '../components/ui';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
+import { formatDate, formatMoney } from '../utils/format';
+import type { Payment } from '../types';
 
-/**
- * Formats an ISO date string for display.
- */
-function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString();
-}
+const METHOD_LABEL: Record<Payment['method'], string> = {
+  cash: 'Cash',
+  bank_transfer: 'Bank transfer',
+  upi: 'UPI',
+  cheque: 'Cheque',
+  other: 'Other',
+};
 
-/**
- * Formats an ISO datetime string including time.
- */
-function formatDateTime(dateStr: string | undefined): string {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleString();
-}
-
-/**
- * Formats a payment method enum value for display.
- */
-function formatMethod(method: string): string {
-  return method.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-}
+const TABS = [
+  { id: 'about', label: 'About' },
+  { id: 'change-history', label: 'Change history' },
+];
 
 /**
  * PaymentDetailPage displays the full details of a single payment record.
@@ -59,34 +52,15 @@ export function PaymentDetailPage() {
 
   const [activeTab, setActiveTab] = useState('about');
 
-  const TABS = [
-    { id: 'about', label: 'About' },
-    { id: 'change-history', label: 'Change History' },
-  ];
-
   const partyName = parties?.find(p => p._id === payment?.partyId)?.name || payment?.partyId || '';
 
   const sidebar = payment ? (
     <DetailSection title="Details">
-      <DetailField
-        label="Type"
-        value={
-          <span className={`status status-${payment.type === 'receivable' ? 'active' : 'pending'}`}>
-            {payment.type === 'receivable' ? 'Received' : 'Paid'}
-          </span>
-        }
-      />
-      <DetailField
-        label="Status"
-        value={<span className={`status status-${payment.status}`}>{payment.status}</span>}
-      />
-      <DetailField
-        label="Amount"
-        value={<strong>{`₹${payment.amount.toLocaleString()}`}</strong>}
-      />
+      <DetailField label="Type" value={payment.type === 'receivable' ? 'Received' : 'Paid'} />
+      <DetailField label="Amount" value={formatMoney(payment.amount)} mono />
       <DetailField label="Currency" value={payment.currency} />
-      <DetailField label="Method" value={formatMethod(payment.method)} />
-      <DetailField label="Reference" value={payment.reference} />
+      <DetailField label="Method" value={METHOD_LABEL[payment.method] ?? payment.method} />
+      <DetailField label="Reference" value={payment.reference} mono />
       <DetailField
         label="Party"
         value={
@@ -98,48 +72,40 @@ export function PaymentDetailPage() {
       {payment.billId && (
         <DetailField
           label="Bill"
-          value={
-            <Link to={`/bills/${payment.billId}`} className="link-accent">
-              {payment.billId}
-            </Link>
-          }
+          value={<DocNumber wrap value={payment.billId} to={`/bills/${payment.billId}`} />}
         />
       )}
       <DetailField label="Date" value={formatDate(payment.date)} />
-      <DetailField label="Created" value={formatDateTime(payment.createdAt)} />
-      <DetailField label="Updated" value={formatDateTime(payment.updatedAt)} />
+      <DetailField label="Created" value={formatDate(payment.createdAt)} />
+      <DetailField label="Updated" value={formatDate(payment.updatedAt)} />
     </DetailSection>
   ) : null;
 
   return (
     <DetailPageShell
-      title={payment ? `₹${payment.amount.toLocaleString()}` : 'Payment'}
-      subtitle={partyName ? `Party: ${partyName}` : undefined}
+      title={payment ? formatMoney(payment.amount) : 'Payment'}
+      eyebrow="Payment"
       status={payment?.status}
-      statusClassName={`status status-${payment?.status}`}
       backTo="/payments"
       backLabel="Payments"
       isLoading={isLoading}
+      loadingLabel="Loading payment…"
       error={error}
       onRetry={refetch}
+      tabs={payment ? TABS : undefined}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      idPrefix="payment"
       sidebar={sidebar}
     >
-      {payment && (
-        <>
-          <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+      {payment && activeTab === 'about' && (
+        <DetailSection title="Notes">
+          <DetailField label="" value={payment.notes || undefined} />
+        </DetailSection>
+      )}
 
-          {activeTab === 'about' && (
-            <DetailSection title="Notes">
-              <p className={payment.notes ? 'text-notes' : 'text-notes-empty'}>
-                {payment.notes || 'No notes.'}
-              </p>
-            </DetailSection>
-          )}
-
-          {activeTab === 'change-history' && (
-            <ChangeHistoryTable documentType="payment" documentId={paymentId!} />
-          )}
-        </>
+      {payment && activeTab === 'change-history' && (
+        <ChangeHistoryTable documentType="payment" documentId={paymentId!} />
       )}
     </DetailPageShell>
   );
