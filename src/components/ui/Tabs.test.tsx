@@ -25,6 +25,29 @@ describe('Tabs', () => {
     expect(onChange).toHaveBeenCalledWith('challans');
   });
 
+  it('uses a roving tabindex and moves with arrow keys, Home and End', async () => {
+    const onChange = vi.fn();
+    const tabs = [...TABS, { id: 'payments', label: 'Payments' }];
+    const user = userEvent.setup();
+    render(<Tabs tabs={tabs} activeTab="bills" onChange={onChange} />);
+    expect(screen.getByRole('tab', { name: 'Bills' })).toHaveAttribute('tabindex', '0');
+    expect(screen.getByRole('tab', { name: 'Challans' })).toHaveAttribute('tabindex', '-1');
+
+    screen.getByRole('tab', { name: 'Bills' }).focus();
+    await user.keyboard('{ArrowRight}');
+    expect(onChange).toHaveBeenLastCalledWith('challans');
+    expect(screen.getByRole('tab', { name: 'Challans' })).toHaveFocus();
+    await user.keyboard('{ArrowLeft}');
+    expect(onChange).toHaveBeenLastCalledWith('payments');
+    await user.keyboard('{End}');
+    expect(onChange).toHaveBeenLastCalledWith('payments');
+    await user.keyboard('{Home}');
+    expect(onChange).toHaveBeenLastCalledWith('bills');
+    onChange.mockClear();
+    await user.keyboard('a');
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it('is re-exported from the legacy path', () => {
     expect(TabsShim).toBe(Tabs);
   });

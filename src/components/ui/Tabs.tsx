@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import styles from './Tabs.module.css';
 
 interface Tab {
@@ -46,8 +46,27 @@ function useOverflowFade(tabCount: number) {
 
 export function Tabs({ tabs, activeTab, onChange, idPrefix }: TabsProps) {
   const [ref, fade] = useOverflowFade(tabs.length);
+  // Roving tabindex: only the active tab is in the Tab order; arrows move and activate.
+  const onKeyDown = (e: KeyboardEvent<HTMLElement>) => {
+    const keys = ['ArrowRight', 'ArrowLeft', 'Home', 'End'];
+    if (!keys.includes(e.key) || tabs.length === 0) return;
+    const current = tabs.findIndex(t => t.id === activeTab);
+    let next: number;
+    if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = tabs.length - 1;
+    else if (e.key === 'ArrowRight') next = (current + 1) % tabs.length;
+    else next = (current - 1 + tabs.length) % tabs.length;
+    e.preventDefault();
+    onChange(tabs[next].id);
+    ref.current?.querySelectorAll<HTMLElement>('[role="tab"]')[next]?.focus();
+  };
   return (
-    <nav ref={ref} className={`${styles.tabs} ${fade ? styles.scrollable : ''}`} role="tablist">
+    <nav
+      ref={ref}
+      className={`${styles.tabs} ${fade ? styles.scrollable : ''}`}
+      role="tablist"
+      onKeyDown={onKeyDown}
+    >
       {tabs.map(tab => (
         <button
           key={tab.id}
@@ -56,6 +75,7 @@ export function Tabs({ tabs, activeTab, onChange, idPrefix }: TabsProps) {
           id={idPrefix ? tabId(idPrefix, tab.id) : undefined}
           aria-controls={idPrefix ? panelId(idPrefix, tab.id) : undefined}
           aria-selected={activeTab === tab.id}
+          tabIndex={activeTab === tab.id ? 0 : -1}
           className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`}
           onClick={() => onChange(tab.id)}
         >
