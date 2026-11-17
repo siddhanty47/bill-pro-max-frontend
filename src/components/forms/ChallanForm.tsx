@@ -2,7 +2,7 @@
  * Challan creation form with predicted challan number,
  * color-coded type support, and running-quantity display per item.
  */
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -25,6 +25,24 @@ import { getErrorMessage } from '../../api/baseApi';
 import { useGetEmployeesQuery } from '../../api/employeeApi';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
 import { DocumentNumberBadge } from '../DocumentNumberBadge';
+import {
+  Button,
+  Field,
+  Fieldset,
+  IconButton,
+  Input,
+  Notice,
+  Select,
+  StatusChip,
+  Table,
+  TBody,
+  Td,
+  Textarea,
+  Th,
+  THead,
+  Tr,
+} from '../ui';
+import { formatDate } from '../../utils/format';
 import styles from './ChallanForm.module.css';
 
 /**
@@ -94,7 +112,10 @@ const challanSchema = z.object({
       z.object({
         itemId: z.string().min(1, 'Select an item'),
         itemName: z.string().min(1),
-        quantity: z.number().int().min(1, 'Quantity must be at least 1'),
+        quantity: z
+          .number({ error: 'Enter a quantity' })
+          .int('Quantity must be a whole number')
+          .min(1, 'Quantity must be at least 1'),
       })
     )
     .min(1, 'Add at least one item'),
@@ -103,8 +124,11 @@ const challanSchema = z.object({
       z.object({
         itemId: z.string().min(1, 'Select an item'),
         itemName: z.string().min(1),
-        quantity: z.number().int().min(1, 'Quantity must be at least 1'),
-        damageRate: z.number().min(0),
+        quantity: z
+          .number({ error: 'Enter a quantity' })
+          .int('Quantity must be a whole number')
+          .min(1, 'Quantity must be at least 1'),
+        damageRate: z.number({ error: 'Enter a rate' }).min(0, 'Rate cannot be negative'),
         note: z.string().max(500).optional(),
         lossType: z.enum(['damage', 'short', 'need_repair']),
       })
@@ -120,6 +144,21 @@ const challanSchema = z.object({
 });
 
 type FormData = z.infer<typeof challanSchema>;
+
+/** "Row 2: Select an item" for each grid row the schema rejected (first message per row). */
+function rowMessages(rows: unknown): string[] {
+  if (!Array.isArray(rows)) return [];
+  const messages: string[] = [];
+  rows.forEach((row, i) => {
+    if (!row) return;
+    const fields = row as Record<string, { message?: string } | undefined>;
+    const message = ['itemId', 'quantity', 'damageRate', 'note']
+      .map(key => fields[key]?.message)
+      .find(Boolean);
+    if (message) messages.push(`Row ${i + 1}: ${message}`);
+  });
+  return messages;
+}
 
 interface ChallanFormProps {
   businessId: string;
@@ -158,6 +197,7 @@ export function ChallanForm({
   const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
   const [extractionReview, setExtractionReview] = useState<ExtractedChallanData | null>(null);
   const [extractChallanFromPhoto] = useExtractChallanFromPhotoMutation();
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -530,39 +570,46 @@ export function ChallanForm({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onFormSubmit = handleSubmit(handleFormSubmit as any);
 
-  return (
-    <form onSubmit={onFormSubmit}>
-      <div className="form-content">
-        {/* Photo upload for auto-fill */}
-        <div className={styles.photoUpload}>
-          <input
-            type="file"
-            id="challan-photo"
-            accept="image/jpeg,image/png,image/webp"
-            className={styles.hiddenFileInput}
-            onChange={handlePhotoUpload}
-            disabled={isLoading || isExtracting}
-          />
-          <label htmlFor="challan-photo" className={`btn btn-secondary ${styles.uploadBtn}`}>
-            {isExtracting ? 'Extracting...' : 'Scan from Photo'}
-          </label>
-          {extractionWarnings.length > 0 && (
-            <div className={styles.extractionWarnings}>
-              {extractionWarnings.map((w, i) => (
-                <span key={i} className={styles.warning}>
-                  {w}
-                </span>
-              ))}
-            </div>
-          )}
-          {extractionReview && (
-            <ScanReviewPanel
-              result={extractionReview}
-              onDismiss={() => setExtractionReview(null)}
-            />
-          )}
-        </div>
+  /** Per-row messages from the schema (item not picked, bad quantity), shown under each grid. */
+  const itemRowErrors = rowMessages(errors.items);
+  const lossRowErrors = rowMessages(errors.damagedItems);
 
+  return (
+    <form onSubmit={onFormSubmit} noValidate>
+      {/* Photo upload for auto-fill */}
+      <div className={styles.scan}>
+        <input
+          ref={photoInputRef}
+          type="file"
+          id="challan-photo"
+          accept="image/jpeg,image/png,image/webp"
+          className={styles.hiddenFileInput}
+          onChange={handlePhotoUpload}
+          disabled={isLoading || isExtracting}
+          tabIndex={-1}
+          aria-hidden="true"
+        />
+        <Button
+          className={styles.scanButton}
+          onClick={() => photoInputRef.current?.click()}
+          loading={isExtracting}
+          disabled={isLoading}
+        >
+          Scan from photo
+        </Button>
+        {extractionWarnings.length > 0 && (
+          <Notice tone="danger">
+            {extractionWarnings.map((w, i) => (
+              <p key={i}>{w}</p>
+            ))}
+          </Notice>
+        )}
+        {extractionReview && (
+          <ScanReviewPanel result={extractionReview} onDismiss={() => setExtractionReview(null)} />
+        )}
+      </div>
+
+      <div className={styles.grid}>
         {/* Challan number: prefix (read-only) + editable sequence */}
         <DocumentNumberBadge
           label="Challan #"
@@ -573,183 +620,169 @@ export function ChallanForm({
           register={register('challanSequence', { valueAsNumber: true })}
           error={errors.challanSequence?.message}
         />
+        <Field label="Date" required error={errors.date?.message}>
+          <Input type="date" {...register('date')} disabled={isLoading} />
+        </Field>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="date">Date *</label>
-            <input id="date" type="date" {...register('date')} disabled={isLoading} />
-            {errors.date && <span className="error-message">{errors.date.message}</span>}
-          </div>
+        <div>
+          <CodeAutocomplete
+            label="Party"
+            placeholder="Party code or name"
+            value={partySearchValue}
+            onChange={setPartySearchValue}
+            items={partyAutocompleteItems}
+            onSelect={handlePartySelect}
+            disabled={isLoading}
+            error={errors.partyId?.message}
+            required
+          />
+          <input type="hidden" {...register('partyId')} />
         </div>
-        <input type="hidden" {...register('type')} />
+        <Field label="Agreement" required error={errors.agreementId?.message}>
+          <Select {...register('agreementId')} disabled={isLoading || !selectedPartyId}>
+            <option value="">Select agreement</option>
+            {activeAgreements.map(agreement => (
+              <option key={agreement.agreementId} value={agreement.agreementId}>
+                {agreement.agreementId} (from {formatDate(agreement.startDate)})
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </div>
+      <input type="hidden" {...register('type')} />
 
-        <div className="form-row">
-          <div className={`form-group ${styles.flexGroup}`}>
-            <CodeAutocomplete
-              label="Party *"
-              placeholder="Type party code or name..."
-              value={partySearchValue}
-              onChange={setPartySearchValue}
-              items={partyAutocompleteItems}
-              onSelect={handlePartySelect}
-              disabled={isLoading}
-              error={errors.partyId?.message}
-              required
-            />
-            <input type="hidden" {...register('partyId')} />
-          </div>
+      {/* Items — spreadsheet-style grid */}
+      <Fieldset legend="Items" className={styles.section}>
+        <Table aria-label="Items">
+          <THead>
+            <Tr>
+              <Th className={styles.colItem}>Item</Th>
+              <Th align="right" className={styles.colQty}>
+                Qty
+              </Th>
+              <Th align="right" className={styles.colRunning}>
+                Running
+              </Th>
+              <Th className={styles.colAction} aria-label="Actions" />
+            </Tr>
+          </THead>
+          <TBody>
+            {fields.map((field, index) => {
+              const currentItemId = watch(`items.${index}.itemId`);
+              const runningQty = getRunningQty(currentItemId);
+              const rowErrors = errors.items?.[index];
 
-          <div className={`form-group ${styles.flexGroup}`}>
-            <label htmlFor="agreementId">Agreement *</label>
-            <select
-              id="agreementId"
-              {...register('agreementId')}
-              disabled={isLoading || !selectedPartyId}
-            >
-              <option value="">Select agreement...</option>
-              {activeAgreements.map(agreement => (
-                <option key={agreement.agreementId} value={agreement.agreementId}>
-                  {agreement.agreementId} (from {new Date(agreement.startDate).toLocaleDateString()}
-                  )
-                </option>
-              ))}
-            </select>
-            {errors.agreementId && (
-              <span className="error-message">{errors.agreementId.message}</span>
-            )}
-          </div>
-        </div>
-
-        {/* Items section — table/spreadsheet style */}
-        <div className="form-group">
-          <label>Items *</label>
-          <div className={styles.itemsTableWrap}>
-            <table className={styles.itemsTable}>
-              <thead>
-                <tr>
-                  <th className={styles.colItem}>Item</th>
-                  <th className={styles.colQty}>Qty</th>
-                  <th className={styles.colRunning}>Running</th>
-                  <th className={styles.colAction}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {fields.map((field, index) => {
-                  const currentItemId = watch(`items.${index}.itemId`);
-                  const runningQty = getRunningQty(currentItemId);
-
-                  return (
-                    <tr key={field.id}>
-                      <td className={styles.colItem}>
-                        <div className={styles.tableCellAutocomplete}>
-                          <CodeAutocomplete
-                            label=""
-                            placeholder="Type item code or name..."
-                            value={itemSearchValues[index] || ''}
-                            onChange={value => handleItemSearchChange(index, value)}
-                            items={inventoryAutocompleteItems}
-                            onSelect={item => handleInventorySelect(index, item)}
-                            disabled={isLoading}
-                          />
-                          <input type="hidden" {...register(`items.${index}.itemId`)} />
-                          <input type="hidden" {...register(`items.${index}.itemName`)} />
-                        </div>
-                      </td>
-                      <td className={styles.colQty}>
-                        <input
-                          type="number"
-                          placeholder="Qty"
-                          {...register(`items.${index}.quantity`, { valueAsNumber: true })}
-                          disabled={isLoading}
-                        />
-                      </td>
-                      <td className={styles.colRunning}>
-                        <span className="badge-neutral">{runningQty}</span>
-                      </td>
-                      <td className={styles.colAction}>
-                        <button
-                          type="button"
-                          className={styles.deleteIconBtn}
-                          onClick={() => remove(index)}
-                          disabled={isLoading || fields.length <= 1}
-                          title="Delete row"
-                        >
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                            <line x1="10" y1="11" x2="10" y2="17" />
-                            <line x1="14" y1="11" x2="14" y2="17" />
-                          </svg>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          {errors.items && <span className="error-message">{errors.items.message}</span>}
-          <button
-            type="button"
-            className={`btn btn-secondary btn-sm ${styles.addRowBtn}`}
+              return (
+                <Tr key={field.id}>
+                  <Td className={styles.colItem}>
+                    <CodeAutocomplete
+                      label=""
+                      aria-label={`Item for row ${index + 1}`}
+                      placeholder="Item code or name"
+                      value={itemSearchValues[index] || ''}
+                      onChange={value => handleItemSearchChange(index, value)}
+                      items={inventoryAutocompleteItems}
+                      onSelect={item => handleInventorySelect(index, item)}
+                      disabled={isLoading}
+                    />
+                    <input type="hidden" {...register(`items.${index}.itemId`)} />
+                    <input type="hidden" {...register(`items.${index}.itemName`)} />
+                  </Td>
+                  <Td align="right" className={styles.colQty}>
+                    <Input
+                      mono
+                      type="number"
+                      inputMode="numeric"
+                      aria-label={`Quantity for row ${index + 1}`}
+                      className={styles.numberInput}
+                      invalid={!!rowErrors?.quantity}
+                      {...register(`items.${index}.quantity`, { valueAsNumber: true })}
+                      disabled={isLoading}
+                    />
+                  </Td>
+                  <Td align="right" className={styles.colRunning}>
+                    <StatusChip status="running" tone="neutral" title="With the party now">
+                      <span className="mono">{runningQty}</span>
+                    </StatusChip>
+                  </Td>
+                  <Td align="right" className={styles.colAction}>
+                    <IconButton
+                      label={`Remove row ${index + 1}`}
+                      icon="close"
+                      onClick={() => remove(index)}
+                      disabled={isLoading || fields.length <= 1}
+                    />
+                  </Td>
+                </Tr>
+              );
+            })}
+          </TBody>
+        </Table>
+        {errors.items?.message && <Notice tone="danger">{errors.items.message}</Notice>}
+        {itemRowErrors.length > 0 && (
+          <Notice tone="danger">
+            {itemRowErrors.map(m => (
+              <p key={m}>{m}</p>
+            ))}
+          </Notice>
+        )}
+        <div>
+          <Button
+            size="sm"
+            icon="plus"
             onClick={() => append({ itemId: '', itemName: '', quantity: 1 })}
             disabled={isLoading}
           >
-            + Add Item
-          </button>
+            Add item
+          </Button>
         </div>
+      </Fieldset>
 
-        <div className="form-group">
-          <label htmlFor="notes">Notes</label>
-          <textarea id="notes" {...register('notes')} rows={2} disabled={isLoading} />
-        </div>
+      <Field label="Notes" className={styles.section}>
+        <Textarea {...register('notes')} rows={2} disabled={isLoading} />
+      </Field>
 
-        {/* Loss section (return challans only) — table style */}
-        {challanType === 'return' && (
-          <fieldset className="form-fieldset">
-            <legend className="form-fieldset-legend">Loss</legend>
-
-            <div className={styles.lossTableWrap}>
-              <table className={styles.lossTable}>
-                <thead>
-                  <tr>
-                    <th className={styles.colItem}>Item</th>
-                    <th className={styles.colType}>Type</th>
-                    <th className={styles.colQty}>Qty</th>
-                    <th className={styles.colRate}>Rate</th>
-                    <th className={styles.colNote}>Note</th>
-                    <th className={styles.colAction}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {damagedFields.map((field, index) => (
-                    <tr key={field.id}>
-                      <td className={styles.colItem}>
-                        <div className={styles.tableCellAutocomplete}>
-                          <CodeAutocomplete
-                            label=""
-                            placeholder="Type item code or name..."
-                            value={damagedItemSearchValues[index] || ''}
-                            onChange={value => handleDamagedItemSearchChange(index, value)}
-                            items={inventoryAutocompleteItems}
-                            onSelect={item => handleDamagedItemSelect(index, item)}
-                            disabled={isLoading}
-                          />
-                          <input type="hidden" {...register(`damagedItems.${index}.itemId`)} />
-                          <input type="hidden" {...register(`damagedItems.${index}.itemName`)} />
-                        </div>
-                      </td>
-                      <td className={styles.colType}>
-                        <select
+      {/* Loss section (return challans only) */}
+      {challanType === 'return' && (
+        <Fieldset legend="Loss" className={styles.section}>
+          {damagedFields.length > 0 && (
+            <Table aria-label="Loss items">
+              <THead>
+                <Tr>
+                  <Th className={styles.colItem}>Item</Th>
+                  <Th className={styles.colType}>Type</Th>
+                  <Th align="right" className={styles.colQty}>
+                    Qty
+                  </Th>
+                  <Th align="right" className={styles.colRate}>
+                    Rate (₹)
+                  </Th>
+                  <Th className={styles.colNote}>Note</Th>
+                  <Th className={styles.colAction} aria-label="Actions" />
+                </Tr>
+              </THead>
+              <TBody>
+                {damagedFields.map((field, index) => {
+                  const rowErrors = errors.damagedItems?.[index];
+                  return (
+                    <Tr key={field.id}>
+                      <Td className={styles.colItem}>
+                        <CodeAutocomplete
+                          label=""
+                          aria-label={`Loss item for row ${index + 1}`}
+                          placeholder="Item code or name"
+                          value={damagedItemSearchValues[index] || ''}
+                          onChange={value => handleDamagedItemSearchChange(index, value)}
+                          items={inventoryAutocompleteItems}
+                          onSelect={item => handleDamagedItemSelect(index, item)}
+                          disabled={isLoading}
+                        />
+                        <input type="hidden" {...register(`damagedItems.${index}.itemId`)} />
+                        <input type="hidden" {...register(`damagedItems.${index}.itemName`)} />
+                      </Td>
+                      <Td className={styles.colType}>
+                        <Select
+                          aria-label={`Loss type for row ${index + 1}`}
                           {...register(`damagedItems.${index}.lossType`, {
                             onChange: e => {
                               const lossType = e.target.value as 'damage' | 'short' | 'need_repair';
@@ -765,72 +798,72 @@ export function ChallanForm({
                             },
                           })}
                           disabled={isLoading}
-                          title="Damage = received damaged; Short = missing/less; Need Repair = can be fixed"
+                          title="Damaged = received damaged; Short = missing or less; Need repair = can be fixed"
                         >
                           <option value="damage">Damaged</option>
                           <option value="short">Short</option>
-                          <option value="need_repair">Need Repair</option>
-                        </select>
-                      </td>
-                      <td className={styles.colQty}>
-                        <input
+                          <option value="need_repair">Need repair</option>
+                        </Select>
+                      </Td>
+                      <Td align="right" className={styles.colQty}>
+                        <Input
+                          mono
                           type="number"
-                          placeholder="Qty"
+                          inputMode="numeric"
+                          aria-label={`Loss quantity for row ${index + 1}`}
+                          className={styles.numberInput}
+                          invalid={!!rowErrors?.quantity}
                           {...register(`damagedItems.${index}.quantity`, { valueAsNumber: true })}
                           disabled={isLoading}
                         />
-                      </td>
-                      <td className={styles.colRate}>
-                        <input
+                      </Td>
+                      <Td align="right" className={styles.colRate}>
+                        <Input
+                          mono
                           type="number"
                           step="0.01"
-                          placeholder="Rate"
+                          inputMode="decimal"
+                          aria-label={`Rate for row ${index + 1}`}
+                          className={styles.numberInput}
+                          invalid={!!rowErrors?.damageRate}
                           {...register(`damagedItems.${index}.damageRate`, { valueAsNumber: true })}
                           disabled={isLoading}
                         />
-                      </td>
-                      <td className={styles.colNote}>
-                        <input
+                      </Td>
+                      <Td className={styles.colNote}>
+                        <Input
                           type="text"
-                          placeholder="Note (optional)"
+                          aria-label={`Note for row ${index + 1}`}
+                          placeholder="Optional"
                           {...register(`damagedItems.${index}.note`)}
                           disabled={isLoading}
                         />
-                      </td>
-                      <td className={styles.colAction}>
-                        <button
-                          type="button"
-                          className={styles.deleteIconBtn}
+                      </Td>
+                      <Td align="right" className={styles.colAction}>
+                        <IconButton
+                          label={`Remove loss row ${index + 1}`}
+                          icon="close"
                           onClick={() => removeDamaged(index)}
                           disabled={isLoading}
-                          title="Delete row"
-                        >
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                            <line x1="10" y1="11" x2="10" y2="17" />
-                            <line x1="14" y1="11" x2="14" y2="17" />
-                          </svg>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <button
-              type="button"
-              className={`btn btn-secondary btn-sm ${styles.addLossRowBtn}`}
+                        />
+                      </Td>
+                    </Tr>
+                  );
+                })}
+              </TBody>
+            </Table>
+          )}
+          {lossRowErrors.length > 0 && (
+            <Notice tone="danger">
+              {lossRowErrors.map(m => (
+                <p key={m}>{m}</p>
+              ))}
+            </Notice>
+          )}
+          <div>
+            <Button
+              size="sm"
+              icon="plus"
               onClick={() =>
                 appendDamaged({
                   itemId: '',
@@ -843,102 +876,93 @@ export function ChallanForm({
               }
               disabled={isLoading}
             >
-              + Add Loss Item
-            </button>
-          </fieldset>
-        )}
-
-        {/* Transportation section */}
-        <fieldset className="form-fieldset">
-          <legend className="form-fieldset-legend">Transportation</legend>
-
-          <div className="form-row">
-            <div className={`form-group ${styles.flexGrow2}`}>
-              <label htmlFor="transporterId">Transporter</label>
-              <select
-                id="transporterId"
-                {...register('transporterId')}
-                onChange={e => handleTransporterChange(e.target.value)}
-                disabled={isLoading}
-              >
-                <option value="">Select transporter...</option>
-                {transporters.map(t => (
-                  <option key={t._id} value={t._id}>
-                    {t.name} — {t.details?.vehicleNumber}
-                  </option>
-                ))}
-              </select>
-            </div>
+              Add loss item
+            </Button>
           </div>
+        </Fieldset>
+      )}
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="transporterName">Transporter Name</label>
-              <input
-                id="transporterName"
-                type="text"
-                {...register('transporterName')}
-                disabled={isLoading}
-                placeholder="Auto-filled from selection"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="vehicleNumber">Vehicle Number</label>
-              <input
-                id="vehicleNumber"
-                type="text"
-                {...register('vehicleNumber')}
-                disabled={isLoading}
-                placeholder="Auto-filled from selection"
-              />
-            </div>
-          </div>
+      {/* Transportation */}
+      <Fieldset legend="Transportation" className={styles.section}>
+        <Field label="Transporter">
+          <Select
+            {...register('transporterId')}
+            onChange={e => handleTransporterChange(e.target.value)}
+            disabled={isLoading}
+          >
+            <option value="">Select transporter</option>
+            {transporters.map(t => (
+              <option key={t._id} value={t._id}>
+                {t.name} — {t.details?.vehicleNumber}
+              </option>
+            ))}
+          </Select>
+        </Field>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="cartageCharge">Cartage (₹)</label>
-              <input
-                id="cartageCharge"
-                type="number"
-                step="0.01"
-                {...register('cartageCharge', { valueAsNumber: true })}
-                disabled={isLoading}
-                placeholder="Auto-filled from agreement"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="loadingCharge">Loading (₹)</label>
-              <input
-                id="loadingCharge"
-                type="number"
-                step="0.01"
-                {...register('loadingCharge', { valueAsNumber: true })}
-                disabled={isLoading}
-                placeholder="Auto-filled from agreement"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="unloadingCharge">Unloading (₹)</label>
-              <input
-                id="unloadingCharge"
-                type="number"
-                step="0.01"
-                {...register('unloadingCharge', { valueAsNumber: true })}
-                disabled={isLoading}
-                placeholder="Auto-filled from agreement"
-              />
-            </div>
-          </div>
-        </fieldset>
-      </div>
+        <div className={styles.pair}>
+          <Field label="Transporter name">
+            <Input
+              type="text"
+              {...register('transporterName')}
+              disabled={isLoading}
+              placeholder="From transporter"
+            />
+          </Field>
+          <Field label="Vehicle number">
+            <Input
+              mono
+              type="text"
+              {...register('vehicleNumber')}
+              disabled={isLoading}
+              placeholder="From transporter"
+            />
+          </Field>
+        </div>
 
-      <div className="form-actions">
-        <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={isLoading}>
+        <div className={styles.trio}>
+          <Field label="Cartage (₹)">
+            <Input
+              mono
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              {...register('cartageCharge', { valueAsNumber: true })}
+              disabled={isLoading}
+              placeholder="From agreement"
+            />
+          </Field>
+          <Field label="Loading (₹)">
+            <Input
+              mono
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              {...register('loadingCharge', { valueAsNumber: true })}
+              disabled={isLoading}
+              placeholder="From agreement"
+            />
+          </Field>
+          <Field label="Unloading (₹)">
+            <Input
+              mono
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              {...register('unloadingCharge', { valueAsNumber: true })}
+              disabled={isLoading}
+              placeholder="From agreement"
+            />
+          </Field>
+        </div>
+      </Fieldset>
+
+      <div className={styles.actions}>
+        <Button onClick={onCancel} disabled={isLoading}>
           Cancel
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={isLoading}>
-          {isLoading ? 'Creating...' : 'Create Challan'}
-        </button>
+        </Button>
+        <Button variant="primary" type="submit" loading={isLoading}>
+          Create challan
+        </Button>
       </div>
     </form>
   );

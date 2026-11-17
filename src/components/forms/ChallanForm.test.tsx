@@ -105,10 +105,12 @@ function setup({
 
 type User = ReturnType<typeof setup>['user'];
 
-const partyInput = () => screen.getByPlaceholderText(/party code/i);
-const itemInputs = () => screen.getAllByPlaceholderText(/item code/i);
+const partyInput = () => screen.getByRole('combobox', { name: /^party/i });
+/** Item pickers of both grids (items, then loss rows). */
+const itemInputs = () => screen.getAllByRole('combobox', { name: /item for row/i });
+const qtyInputs = () => screen.getAllByLabelText(/quantity for row/i);
 const submit = () => screen.getByRole('button', { name: /^create challan$/i });
-const deleteButtons = () => screen.getAllByRole('button', { name: /delete row|remove/i });
+const deleteButtons = () => screen.getAllByRole('button', { name: /^remove (loss )?row/i });
 
 async function pickParty(user: User) {
   await user.type(partyInput(), 'MEH');
@@ -130,7 +132,7 @@ describe('ChallanForm', () => {
     await pickParty(user);
     await waitFor(() => expect(screen.getByLabelText(/^cartage/i)).toHaveValue(500));
     await pickItem(user, itemInputs()[0], 'pi', /Steel Pipe/);
-    const qty = screen.getAllByPlaceholderText('Qty')[0];
+    const qty = qtyInputs()[0];
     await user.clear(qty);
     await user.type(qty, '25');
     await user.type(screen.getByLabelText(/^notes/i), 'Handle with care');
@@ -166,12 +168,12 @@ describe('ChallanForm', () => {
     await user.click(screen.getByRole('button', { name: /add loss item/i }));
     await pickItem(user, itemInputs()[1], 'cl', /Clamp/);
     expect(screen.getByDisplayValue('20')).toBeInTheDocument(); // damage rate
-    await user.selectOptions(screen.getAllByDisplayValue('Damaged')[0], 'short');
+    await user.selectOptions(screen.getByLabelText('Loss type for row 1'), 'short');
     expect(screen.getByDisplayValue('40')).toBeInTheDocument(); // cost price for short
-    const lossQty = screen.getAllByPlaceholderText('Qty')[1];
+    const lossQty = screen.getByLabelText('Loss quantity for row 1');
     await user.clear(lossQty);
     await user.type(lossQty, '2');
-    await user.type(screen.getAllByPlaceholderText(/note/i)[0], 'Bent');
+    await user.type(screen.getByLabelText('Note for row 1'), 'Bent');
 
     await user.click(submit());
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
@@ -235,6 +237,40 @@ describe('ChallanForm', () => {
     expect(itemInputs()).toHaveLength(2);
     await user.click(deleteButtons()[1]);
     expect(itemInputs()).toHaveLength(1);
+  });
+
+  it('names each empty or invalid grid row instead of failing silently', async () => {
+    const { user, onSubmit } = setup({ type: 'return' });
+    await pickParty(user);
+    await pickItem(user, itemInputs()[0], 'pi', /Steel Pipe/);
+    await user.click(screen.getByRole('button', { name: /add item/i }));
+    fireEvent.change(qtyInputs()[0], { target: { value: '1.5' } });
+    await user.click(screen.getByRole('button', { name: /add loss item/i }));
+    await user.click(submit());
+    expect(await screen.findByText('Row 2: Select an item')).toBeInTheDocument();
+    expect(screen.getByText('Row 1: Quantity must be a whole number')).toBeInTheDocument();
+    expect(screen.getByLabelText('Quantity for row 1')).toHaveAttribute('aria-invalid', 'true');
+    // Loss grid has its own message list.
+    expect(screen.getAllByText('Row 1: Select an item')).toHaveLength(1);
+    fireEvent.change(screen.getByLabelText('Rate for row 1'), { target: { value: '-1' } });
+    fireEvent.change(screen.getByLabelText('Loss quantity for row 1'), { target: { value: '' } });
+    await user.click(submit());
+    expect(await screen.findByText('Row 1: Select an item')).toBeInTheDocument();
+    expect(screen.getByLabelText('Loss quantity for row 1')).toHaveAttribute(
+      'aria-invalid',
+      'true'
+    );
+    expect(screen.getByLabelText('Rate for row 1')).toHaveAttribute('aria-invalid', 'true');
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('marks required header fields with one star and keeps the grid numbers mono', () => {
+    setup();
+    expect(screen.getByText(/^Party/, { selector: 'label' }).textContent).toBe('Party *');
+    expect(screen.getByText(/^Agreement/, { selector: 'label' }).textContent).toBe('Agreement *');
+    expect(screen.getByText(/^Date/, { selector: 'label' }).textContent).toBe('Date *');
+    expect(qtyInputs()[0].className).toMatch(/mono/);
+    expect(screen.getByRole('table', { name: 'Items' })).toBeInTheDocument();
   });
 
   it('shows required messages and does not submit', async () => {
@@ -338,9 +374,7 @@ describe('ChallanForm', () => {
         'Mystery bolt',
         'CLMP',
       ]);
-      expect(screen.getAllByPlaceholderText('Qty').map(i => (i as HTMLInputElement).value)).toEqual(
-        ['40', '3', '2']
-      );
+      expect(qtyInputs().map(i => (i as HTMLInputElement).value)).toEqual(['40', '3', '2']);
       expect(screen.getByLabelText(/^vehicle number/i)).toHaveValue('GJ01XY9999');
       expect(screen.getByLabelText(/^transporter name/i)).toHaveValue('Suresh');
 
