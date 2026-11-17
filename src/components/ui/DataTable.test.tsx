@@ -132,6 +132,32 @@ describe('DataTable mobile list', () => {
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
   });
 
+  it('keeps meta in the body font; only an explicit mono span is mono', async () => {
+    const css = await readCss('./DataTable.module.css');
+    expect(css.match(/\.meta\s*\{[^}]*\}/)![0]).not.toMatch(/font-family/);
+    const { container } = render(
+      <DataTable
+        aria-label="B"
+        columns={[{ key: 'n', header: 'N', render: () => 'x' }]}
+        rows={[{ id: '1' }]}
+        rowKey={r => r.id}
+        mobile={{
+          title: () => 'T',
+          meta: () => [
+            'Due 1 Dec',
+            <span key="a" className="mono">
+              ₹10
+            </span>,
+          ],
+        }}
+      />
+    );
+    const meta = container.querySelector('.meta')!;
+    expect(meta).not.toHaveClass('mono');
+    expect(within(meta as HTMLElement).getByText('₹10')).toHaveClass('mono');
+    expect(meta.querySelectorAll('.mono')).toHaveLength(1);
+  });
+
   it('shows title, leading, badge, subtitle and meta joined with a middle dot', () => {
     render(<DataTable columns={cols} rows={bills} rowKey={b => b.id} mobile={mobile} />);
     const [first, second] = within(screen.getByRole('list')).getAllByRole('listitem');

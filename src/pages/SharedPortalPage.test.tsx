@@ -208,8 +208,16 @@ describe('SharedPortalPage', () => {
     await openTab(user, 'Bills');
     const list = await screen.findByRole('list', { name: 'Bills' });
     expect(within(list).getByText('BILL-001')).toBeInTheDocument();
-    expect(within(list).getByText(/Total ₹1,84,200/)).toBeInTheDocument();
-    expect(within(list).getByText(/Paid ₹50,000\.50/)).toBeInTheDocument();
+    const total = within(list).getByText('₹1,84,200');
+    const paid = within(list).getByText('₹50,000.50');
+    expect(total).toHaveClass('mono');
+    expect(paid).toHaveClass('mono');
+    // Only the amounts are mono; the words and the due date stay in the body font.
+    expect(total.parentElement).toHaveTextContent('Total ₹1,84,200');
+    expect(total.parentElement).not.toHaveClass('mono');
+    expect(paid.parentElement).toHaveTextContent('Paid ₹50,000.50');
+    expect(paid.parentElement).not.toHaveClass('mono');
+    expect(within(list).getByText(/^Due /)).not.toHaveClass('mono');
   });
 
   it('shows Not added for a bill without period or due date, with no dangling Due label', async () => {
@@ -222,7 +230,7 @@ describe('SharedPortalPage', () => {
     expect(within(table).queryByText('-')).not.toBeInTheDocument();
     const list = screen.getByRole('list', { name: 'Bills' });
     expect(within(list).queryByText(/Due/)).not.toBeInTheDocument();
-    expect(within(list).getByText(/Paid ₹50,000\.50/)).toBeInTheDocument();
+    expect(within(list).getByText('₹50,000.50')).toBeInTheDocument();
   });
 
   it('shows the challan phone list', async () => {

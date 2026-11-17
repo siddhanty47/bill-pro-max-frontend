@@ -80,7 +80,7 @@ Defined in `src/App.tsx`.
 Feature components (being rebuilt from `ui/` parts during the revamp):
 - `Layout.tsx` — App shell with sidebar + header + business switcher
 - `ProtectedRoute.tsx` — Auth guard, redirects to `/login` if unauthenticated
-- `DataTable.tsx`, `Modal.tsx`, `Tabs.tsx`, `LoadingSpinner.tsx`, `ErrorMessage.tsx`, `DocumentNumberBadge.tsx` — legacy paths; use the `ui/` versions in new code
+- `DocumentNumberBadge.tsx` — legacy; use `ui/` `DocNumber` in new code. Tables, modals, tabs, spinner and error message live in `components/ui`
 - `DetailPageShell.tsx` — Consistent detail page layout
 - `NotificationBell.tsx` — In-app notification dropdown
 - `EditableField.tsx` — Inline-editable field component

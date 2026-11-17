@@ -426,11 +426,11 @@ export function SharedPortalPage() {
                 badge: b => <StatusChip status={b.status} />,
                 subtitle: b => periodText(b),
                 meta: b => [
-                  <span key="total" className="mono">
-                    Total {formatMoney(b.totalAmount)}
+                  <span key="total">
+                    Total <span className="mono">{formatMoney(b.totalAmount)}</span>
                   </span>,
-                  <span key="paid" className="mono">
-                    Paid {formatMoney(b.amountPaid)}
+                  <span key="paid">
+                    Paid <span className="mono">{formatMoney(b.amountPaid)}</span>
                   </span>,
                   dueText(b),
                 ],
