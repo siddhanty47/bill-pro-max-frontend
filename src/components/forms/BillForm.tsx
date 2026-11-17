@@ -10,6 +10,8 @@ import { z } from 'zod';
 import type { Party, GenerateBillInput } from '../../types';
 import { useCurrentBusiness } from '../../hooks/useCurrentBusiness';
 import { useGetNextBillNumberQuery } from '../../api/billApi';
+import { Button, Field, Input, Select, Textarea } from '../ui';
+import styles from './BillForm.module.css';
 
 const billSchema = z.object({
   billDate: z.string().min(1, 'Bill date is required'),
@@ -208,160 +210,126 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
   const onFormSubmit = handleSubmit(handleFormSubmit as any);
 
   return (
-    <form onSubmit={onFormSubmit}>
-      <div className="form-content">
-        {canFetchBillNumber && (
-          <DocumentNumberBadge
-            label="Bill #"
-            prefix={billPrefix}
-            isLoading={isBillNumberLoading}
-            disabled={isLoading || isBillNumberLoading}
-            variant="bill"
-            register={register('billSequence', { valueAsNumber: true })}
-            error={errors.billSequence?.message}
-          />
-        )}
-        <div className="form-columns">
-          <div>
-            <div className="form-group">
-              <label htmlFor="billDate">Bill Date</label>
-              <input id="billDate" type="date" {...register('billDate')} disabled={isLoading} />
-              {errors.billDate && <span className="error-message">{errors.billDate.message}</span>}
+    <form onSubmit={onFormSubmit} noValidate>
+      {canFetchBillNumber && (
+        <DocumentNumberBadge
+          label="Bill #"
+          prefix={billPrefix}
+          isLoading={isBillNumberLoading}
+          disabled={isLoading || isBillNumberLoading}
+          variant="bill"
+          register={register('billSequence', { valueAsNumber: true })}
+          error={errors.billSequence?.message}
+        />
+      )}
+      <div className={styles.columns}>
+        <div className={styles.column}>
+          <Field label="Bill date" required error={errors.billDate?.message}>
+            <Input type="date" {...register('billDate')} disabled={isLoading} />
+          </Field>
+          <div className={styles.pair}>
+            <div>
+              <CodeAutocomplete
+                label="Party"
+                placeholder="Type party code or name..."
+                value={partySearchValue}
+                onChange={setPartySearchValue}
+                items={partyAutocompleteItems}
+                onSelect={handlePartySelect}
+                disabled={isLoading}
+                error={errors.partyId?.message}
+                required
+              />
+              <input type="hidden" {...register('partyId')} />
             </div>
-            <div className="form-row">
-              <div className="form-group">
-                <CodeAutocomplete
-                  label="Party *"
-                  placeholder="Type party code or name..."
-                  value={partySearchValue}
-                  onChange={setPartySearchValue}
-                  items={partyAutocompleteItems}
-                  onSelect={handlePartySelect}
-                  disabled={isLoading}
-                  error={errors.partyId?.message}
-                  required
-                />
-                <input type="hidden" {...register('partyId')} />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="agreementId">Agreement *</label>
-                <select
-                  id="agreementId"
-                  {...register('agreementId')}
-                  disabled={isLoading || !selectedPartyId}
-                >
-                  <option value="">Select agreement...</option>
-                  {activeAgreements.map(agreement => (
-                    <option key={agreement.agreementId} value={agreement.agreementId}>
-                      {agreement.agreementId} ({agreement.terms.billingCycle})
-                    </option>
-                  ))}
-                </select>
-                {errors.agreementId && (
-                  <span className="error-message">{errors.agreementId.message}</span>
-                )}
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="periodStart">Period Start *</label>
-                <input
-                  id="periodStart"
-                  type="date"
-                  {...register('periodStart')}
-                  disabled={isLoading}
-                />
-                {errors.periodStart && (
-                  <span className="error-message">{errors.periodStart.message}</span>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="periodEnd">Period End *</label>
-                <input id="periodEnd" type="date" {...register('periodEnd')} disabled={isLoading} />
-                {errors.periodEnd && (
-                  <span className="error-message">{errors.periodEnd.message}</span>
-                )}
-              </div>
-            </div>
+            <Field label="Agreement" required error={errors.agreementId?.message}>
+              <Select {...register('agreementId')} disabled={isLoading || !selectedPartyId}>
+                <option value="">Select agreement...</option>
+                {activeAgreements.map(agreement => (
+                  <option key={agreement.agreementId} value={agreement.agreementId}>
+                    {agreement.agreementId} ({agreement.terms.billingCycle})
+                  </option>
+                ))}
+              </Select>
+            </Field>
           </div>
-          <div>
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="taxMode">Tax Mode</label>
-                <select id="taxMode" {...register('taxMode')} disabled={isLoading}>
-                  <option value="intra">Intra-state (SGST + CGST)</option>
-                  <option value="inter">Inter-state (IGST)</option>
-                </select>
-              </div>
+          <div className={styles.pair}>
+            <Field label="Period start" required error={errors.periodStart?.message}>
+              <Input type="date" {...register('periodStart')} disabled={isLoading} />
+            </Field>
+            <Field label="Period end" required error={errors.periodEnd?.message}>
+              <Input type="date" {...register('periodEnd')} disabled={isLoading} />
+            </Field>
+          </div>
+        </div>
 
-              <div className="form-group">
-                <label htmlFor="discountRate">Discount Rate (%)</label>
-                <input
-                  id="discountRate"
+        <div className={styles.column}>
+          <div className={styles.pair}>
+            <Field label="Tax mode" required>
+              <Select {...register('taxMode')} disabled={isLoading}>
+                <option value="intra">Intra-state (SGST + CGST)</option>
+                <option value="inter">Inter-state (IGST)</option>
+              </Select>
+            </Field>
+            <Field label="Discount rate (%)">
+              <Input
+                mono
+                type="number"
+                step="0.01"
+                {...register('discountRate', { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+            </Field>
+          </div>
+
+          {taxMode === 'intra' ? (
+            <div className={styles.pair}>
+              <Field label="SGST rate (%)">
+                <Input
+                  mono
                   type="number"
                   step="0.01"
-                  {...register('discountRate', { valueAsNumber: true })}
+                  {...register('sgstRate', { valueAsNumber: true })}
                   disabled={isLoading}
                 />
-              </div>
+              </Field>
+              <Field label="CGST rate (%)">
+                <Input
+                  mono
+                  type="number"
+                  step="0.01"
+                  {...register('cgstRate', { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+              </Field>
             </div>
-
-            {taxMode === 'intra' ? (
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="sgstRate">SGST Rate (%)</label>
-                  <input
-                    id="sgstRate"
-                    type="number"
-                    step="0.01"
-                    {...register('sgstRate', { valueAsNumber: true })}
-                    disabled={isLoading}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="cgstRate">CGST Rate (%)</label>
-                  <input
-                    id="cgstRate"
-                    type="number"
-                    step="0.01"
-                    {...register('cgstRate', { valueAsNumber: true })}
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="igstRate">IGST Rate (%)</label>
-                  <input
-                    id="igstRate"
-                    type="number"
-                    step="0.01"
-                    {...register('igstRate', { valueAsNumber: true })}
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="form-group">
-              <label htmlFor="notes">Notes</label>
-              <textarea id="notes" {...register('notes')} rows={2} disabled={isLoading} />
+          ) : (
+            <div className={styles.pair}>
+              <Field label="IGST rate (%)">
+                <Input
+                  mono
+                  type="number"
+                  step="0.01"
+                  {...register('igstRate', { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+              </Field>
             </div>
-          </div>
+          )}
+
+          <Field label="Notes" error={errors.notes?.message}>
+            <Textarea {...register('notes')} rows={2} disabled={isLoading} />
+          </Field>
         </div>
       </div>
 
-      <div className="form-actions">
-        <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={isLoading}>
+      <div className={styles.actions}>
+        <Button onClick={onCancel} disabled={isLoading}>
           Cancel
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={isLoading}>
-          {isLoading ? 'Generating...' : 'Generate Bill'}
-        </button>
+        </Button>
+        <Button variant="primary" type="submit" loading={isLoading}>
+          Generate bill
+        </Button>
       </div>
     </form>
   );
