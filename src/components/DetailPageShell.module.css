@@ -84,6 +84,9 @@
 }
 
 .empty {
+  /* "Not added" is a word, never mono, even on a mono field */
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
   color: var(--text-muted);
 }
 

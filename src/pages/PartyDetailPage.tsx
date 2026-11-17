@@ -46,6 +46,9 @@ import type { Agreement, Bill, CreateAgreementInput, Payment, Site } from '../ty
 
 type StatementType = 'ledger' | 'bills' | 'items' | 'aging';
 
+/** Says why Preview / Download PDF are disabled. */
+const STATEMENT_REASON_ID = 'party-statement-reason';
+
 /** formatDate for optional dates; missing → empty cell. */
 const date = (d?: string) => (d ? formatDate(d) : '');
 
@@ -99,6 +102,7 @@ export function PartyDetailPage() {
     useLazyGetStatementPdfQuery();
   const [triggerStatementData, { data: previewData, isFetching: isLoadingPreview }] =
     useLazyGetStatementDataQuery();
+  const hasStatementDates = !!statementFrom && !!statementTo;
 
   const { data: bills } = useGetBillsByPartyQuery(
     { businessId: currentBusinessId!, partyId: partyId! },
@@ -292,8 +296,8 @@ export function PartyDetailPage() {
       nowrap: true,
       render: a => <StatusChip status={a.status} />,
     },
-    { key: 'start', header: 'Start', mono: true, nowrap: true, render: a => date(a.startDate) },
-    { key: 'end', header: 'End', mono: true, nowrap: true, render: a => date(a.endDate) },
+    { key: 'start', header: 'Start', nowrap: true, render: a => date(a.startDate) },
+    { key: 'end', header: 'End', nowrap: true, render: a => date(a.endDate) },
   ];
 
   // ─── Bills ────────────────────────────────────────────────────────
@@ -309,7 +313,7 @@ export function PartyDetailPage() {
       : '';
 
   const billColumns: Column<Bill>[] = [
-    { key: 'date', header: 'Date', mono: true, nowrap: true, render: b => date(billShownDate(b)) },
+    { key: 'date', header: 'Date', nowrap: true, render: b => date(billShownDate(b)) },
     { key: 'billNumber', header: 'Bill', nowrap: true, render: billLink },
     {
       key: 'agreement',
@@ -321,7 +325,6 @@ export function PartyDetailPage() {
     {
       key: 'period',
       header: 'Period',
-      mono: true,
       nowrap: true,
       hideOnMobile: true,
       render: billPeriod,
@@ -346,7 +349,7 @@ export function PartyDetailPage() {
     ) : null;
 
   const paymentColumns: Column<Payment>[] = [
-    { key: 'date', header: 'Date', mono: true, nowrap: true, render: p => date(p.date) },
+    { key: 'date', header: 'Date', nowrap: true, render: p => date(p.date) },
     {
       key: 'amount',
       header: 'Amount',
@@ -518,11 +521,9 @@ export function PartyDetailPage() {
                       <span key="site" className="mono">
                         {a.siteCode}
                       </span>,
-                      <span key="dates" className="mono">
-                        {a.endDate
-                          ? `${date(a.startDate)} – ${date(a.endDate)}`
-                          : `From ${date(a.startDate)}`}
-                      </span>,
+                      a.endDate
+                        ? `${date(a.startDate)} – ${date(a.endDate)}`
+                        : `From ${date(a.startDate)}`,
                     ],
                   }}
                 />
@@ -565,9 +566,7 @@ export function PartyDetailPage() {
                   title: billLink,
                   subtitle: billAgreement,
                   meta: b => [
-                    <span key="date" className="mono">
-                      {date(billShownDate(b))}
-                    </span>,
+                    date(billShownDate(b)),
                     <span key="amount" className="mono">
                       {formatMoney(b.totalAmount)}
                     </span>,
@@ -590,9 +589,7 @@ export function PartyDetailPage() {
                   title: p => <span className="mono">{formatMoney(p.amount)}</span>,
                   badge: p => <StatusChip status={p.status} />,
                   meta: p => [
-                    <span key="date" className="mono">
-                      {date(p.date)}
-                    </span>,
+                    date(p.date),
                     sentence(p.method),
                     p.reference && (
                       <span key="ref" className="mono">
@@ -624,7 +621,6 @@ export function PartyDetailPage() {
                   <Field label="From">
                     <Input
                       type="date"
-                      mono
                       value={statementFrom}
                       onChange={e => setStatementFrom(e.target.value)}
                     />
@@ -632,7 +628,6 @@ export function PartyDetailPage() {
                   <Field label="To">
                     <Input
                       type="date"
-                      mono
                       value={statementTo}
                       onChange={e => setStatementTo(e.target.value)}
                     />
@@ -657,7 +652,8 @@ export function PartyDetailPage() {
                   <Button
                     onClick={handlePreviewStatement}
                     loading={isLoadingPreview}
-                    disabled={!statementFrom || !statementTo}
+                    disabled={!hasStatementDates}
+                    aria-describedby={hasStatementDates ? undefined : STATEMENT_REASON_ID}
                   >
                     Preview
                   </Button>
@@ -665,10 +661,16 @@ export function PartyDetailPage() {
                     variant="primary"
                     onClick={handleDownloadStatement}
                     loading={isDownloadingStatement}
-                    disabled={!statementFrom || !statementTo}
+                    disabled={!hasStatementDates}
+                    aria-describedby={hasStatementDates ? undefined : STATEMENT_REASON_ID}
                   >
                     Download PDF
                   </Button>
+                  {!hasStatementDates && (
+                    <span id={STATEMENT_REASON_ID} className={styles.reason}>
+                      Pick both dates
+                    </span>
+                  )}
                 </div>
               </Card>
               {previewData && <StatementPreview data={previewData} />}

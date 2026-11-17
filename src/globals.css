@@ -711,9 +711,12 @@ a:hover {
   border-radius: var(--radius-full);
 }
 
-/* Table cell zero padding */
+/* Table cell holding a compact EditableField: no vertical padding, but keep the
+   inline padding so the editor's trigger can bleed into it and stay flush with
+   the column header. */
 .cell-compact {
-  padding: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
 }
 
 /* Fixed-width column for inline-editable numeric fields */

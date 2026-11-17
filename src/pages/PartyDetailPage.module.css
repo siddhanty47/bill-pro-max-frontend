@@ -22,8 +22,15 @@
 .statementActions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
   margin-top: var(--space-5);
+}
+
+/* Why the statement buttons are disabled */
+.reason {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 
 @media (max-width: 768px) {

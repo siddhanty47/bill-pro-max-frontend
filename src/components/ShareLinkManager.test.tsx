@@ -64,7 +64,7 @@ describe('ShareLinkManager', () => {
     ).findByRole('row', { name: /For Rajesh/ });
     expect(within(rajesh).getByText('PLOT')).toHaveClass('mono');
     expect(within(rajesh).getByText('4')).toBeInTheDocument();
-    expect(within(rajesh).getByText('1 Sep 2025')).toBeInTheDocument();
+    expect(within(rajesh).getByText('1 Sep 2025')).not.toHaveClass('mono');
     expect(within(rajesh).getByText('2 Oct 2025')).toBeInTheDocument();
     expect(within(rajesh).getByText('Active')).toBeInTheDocument();
 
@@ -97,6 +97,7 @@ describe('ShareLinkManager', () => {
     await user.selectOptions(screen.getByRole('combobox', { name: 'Site scope' }), 'SECT');
     await user.type(screen.getByRole('textbox', { name: 'Label' }), 'For Rajesh');
     const expires = screen.getByLabelText('Expires');
+    expect(expires).not.toHaveClass('mono');
     await user.type(expires, '2026-12-31');
     await user.click(screen.getByRole('button', { name: 'Create link' }));
     await waitFor(() =>

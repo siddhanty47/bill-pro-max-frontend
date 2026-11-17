@@ -335,8 +335,9 @@ describe('PartyDetailPage', () => {
     await waitFor(() => expect(numbers()).toEqual(['B-0002', 'B-0001']));
     const b1 = within(table).getByRole('row', { name: /B-0001/ });
     expect(within(b1).getByText('₹1,84,200')).toBeInTheDocument();
-    expect(within(b1).getByText('30 Sep 2025')).toBeInTheDocument();
-    expect(within(b1).getByText('1 Sep 2025 – 30 Sep 2025')).toBeInTheDocument();
+    expect(within(b1).getByText('30 Sep 2025')).not.toHaveClass('mono');
+    expect(within(b1).getByText('1 Sep 2025 – 30 Sep 2025')).not.toHaveClass('mono');
+    expect(within(b1).getByText('₹1,84,200')).toHaveClass('mono');
     expect(within(b1).getByText('AG-001 / PLOT')).toBeInTheDocument();
     expect(
       within(within(table).getByRole('row', { name: /B-0002/ })).getByText('₹99.50')
@@ -404,11 +405,16 @@ describe('PartyDetailPage', () => {
     const download = screen.getByRole('button', { name: 'Download PDF' });
     expect(preview).toBeDisabled();
     expect(download).toBeDisabled();
+    expect(preview).toHaveAccessibleDescription('Pick both dates');
+    expect(download).toHaveAccessibleDescription('Pick both dates');
+    expect(screen.getByLabelText('From')).not.toHaveClass('mono');
 
     await user.selectOptions(screen.getByRole('combobox', { name: 'Type' }), 'bills');
     await user.type(screen.getByLabelText('From'), '2025-09-01');
     await user.type(screen.getByLabelText('To'), '2025-09-30');
     await user.selectOptions(screen.getByRole('combobox', { name: 'Agreement' }), 'AG-001');
+    expect(screen.queryByText('Pick both dates')).not.toBeInTheDocument();
+    expect(preview).not.toHaveAccessibleDescription();
 
     await user.click(preview);
     expect(await screen.findByText('No bills found for this period.')).toBeInTheDocument();

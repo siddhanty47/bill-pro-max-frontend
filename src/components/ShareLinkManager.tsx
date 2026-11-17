@@ -129,11 +129,10 @@ export function ShareLinkManager({ partyId, sites }: ShareLinkManagerProps) {
     { key: 'label', header: 'Link', render: linkName },
     { key: 'scope', header: 'Scope', nowrap: true, render: scope },
     { key: 'views', header: 'Views', mono: true, align: 'right', render: l => l.accessCount },
-    { key: 'created', header: 'Created', mono: true, nowrap: true, render: l => date(l.createdAt) },
+    { key: 'created', header: 'Created', nowrap: true, render: l => date(l.createdAt) },
     {
       key: 'expires',
       header: 'Expires',
-      mono: true,
       nowrap: true,
       hideOnMobile: true,
       render: l => date(l.expiresAt),
@@ -141,7 +140,6 @@ export function ShareLinkManager({ partyId, sites }: ShareLinkManagerProps) {
     {
       key: 'lastViewed',
       header: 'Last viewed',
-      mono: true,
       nowrap: true,
       hideOnMobile: true,
       render: l => date(l.lastAccessedAt),
@@ -178,12 +176,7 @@ export function ShareLinkManager({ partyId, sites }: ShareLinkManagerProps) {
             />
           </Field>
           <Field label="Expires" className={styles.expires}>
-            <Input
-              type="date"
-              mono
-              value={expiresAt}
-              onChange={e => setExpiresAt(e.target.value)}
-            />
+            <Input type="date" value={expiresAt} onChange={e => setExpiresAt(e.target.value)} />
           </Field>
           <Button variant="primary" icon="plus" onClick={handleCreate} loading={isCreating}>
             Create link
@@ -206,14 +199,8 @@ export function ShareLinkManager({ partyId, sites }: ShareLinkManagerProps) {
               <span key="views">
                 <span className="mono">{l.accessCount}</span> views
               </span>,
-              <span key="created">
-                Created <span className="mono">{date(l.createdAt)}</span>
-              </span>,
-              l.expiresAt && (
-                <span key="expires">
-                  Expires <span className="mono">{date(l.expiresAt)}</span>
-                </span>
-              ),
+              <span key="created">Created {date(l.createdAt)}</span>,
+              l.expiresAt && <span key="expires">Expires {date(l.expiresAt)}</span>,
             ],
             actions,
           }}

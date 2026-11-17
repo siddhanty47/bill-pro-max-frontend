@@ -5,7 +5,10 @@
   min-width: 0;
 }
 
-/* View mode: the value is the click/focus target; "Edit" is revealed on hover/focus */
+/* View mode: the value is the click/focus target; "Edit" is revealed on hover/focus.
+   The trigger bleeds into its container's padding (negative inline margin + matching
+   width) so the text stays flush with labels and table headers, in table cells
+   (`compact`) too; the cell padding absorbs the bleed. */
 .trigger {
   display: flex;
   align-items: baseline;
@@ -34,6 +37,8 @@
 }
 
 .empty {
+  /* "Not added" is a word, never mono, even on a mono field */
+  font-family: var(--font-sans);
   color: var(--text-muted);
 }
 
@@ -89,12 +94,6 @@
   to {
     transform: rotate(360deg);
   }
-}
-
-/* Table cells: no negative margin so columns don't shift */
-.compact.trigger {
-  width: 100%;
-  margin: 0;
 }
 
 /* Touch devices have no hover: keep the hint visible */
