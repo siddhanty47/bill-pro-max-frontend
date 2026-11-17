@@ -1,0 +1,25 @@
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-heading);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-stretch: 108%;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.md {
+  font-size: 15px;
+}
+
+.sm {
+  gap: 8px;
+  font-size: 13px;
+}
+
+.mark {
+  color: var(--accent);
+  flex-shrink: 0;
+}

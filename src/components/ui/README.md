@@ -9,6 +9,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `Avatar` | Initials badge: `person` (account) or `business` (letter badge); non-interactive, put it in a trigger |
 | `Notice` | Inline form/page message (sign-in error, "link sent"); `danger` is an alert, others a status |
 | `Icon` | Every line icon; add new glyphs here, never inline an SVG in a page |
+| `Brand` | The Bill Pro Max mark + wordmark for headers (`size`: `md` default, `sm`); placement-only `className` |
 | `GoogleIcon` | The Google logo on sign-in buttons (brand colours, token-check allowlisted) |
 | `Card` | Any surface panel or section, with optional title, count pill and actions |
 | `StatCard` | A single headline number with a label; `tone="highlight"` for the one key stat |

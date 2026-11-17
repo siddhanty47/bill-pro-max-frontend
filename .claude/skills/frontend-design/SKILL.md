@@ -70,6 +70,7 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
   <Menu trigger={p => <IconButton label="Account" {...p}><Avatar initials="SY" /></IconButton>}>…</Menu>
   ```
 - **`Icon`** — `name: IconName` · `size?` (default 16) · `className?`. Always `aria-hidden`; put the accessible name on the control. Names: `dashboard inventory parties agreements challans bills payments team search bell chat chevron-down plus close menu more arrow-left arrow-right rupee settings logout brand paperclip mic stop`.
+- **`Brand`** — the brand mark (`Icon name="brand"`, accent) plus the "Bill Pro Max" wordmark in the display font. `size?: 'sm' | 'md'` (default `md`, 15px/20px mark; `sm` 13px/16px) · `className?` (placement only). Use it for every header/wordmark; never rebuild it from `Icon` + text in a page.
 - **`GoogleIcon`** — Google's multi-colour logo for sign-in buttons only. `size?` (default 18) · `className?`. The only file allowed literal colours (token-check allowlist).
 
 ### Surfaces and page structure

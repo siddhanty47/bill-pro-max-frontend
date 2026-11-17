@@ -5,6 +5,7 @@
 export { Button, type ButtonProps, type ButtonVariant, type ButtonSize } from './Button';
 export { IconButton, type IconButtonProps } from './IconButton';
 export { Icon, type IconName, type IconProps } from './Icon';
+export { Brand, type BrandProps } from './Brand';
 export { GoogleIcon, type GoogleIconProps } from './GoogleIcon';
 export { Avatar, type AvatarProps } from './Avatar';
 export { Notice, type NoticeProps, type NoticeTone } from './Notice';
