@@ -74,18 +74,16 @@ Defined in `src/App.tsx`.
 - Forms: `BusinessForm`, `PartyForm`, `InventoryForm`, `AgreementForm`, `ChallanForm`, `BillForm`, `BulkBillForm`, `PaymentForm`
 
 ### Shared Components
-
-**UI kit — `src/components/ui/`** (import from `components/ui`; one component per pattern, see `ui/README.md`): `Button`, `IconButton`, `Icon`, `GoogleIcon`, `Avatar`, `Notice`, `Card`, `StatCard`, `Meter`, `PageHeader`, `EmptyState`, `StatusChip` (tone map in `ui/status.ts`), `DocNumber`, `DataTable` + `Table` primitives, `Field`/`Input`/`Select`/`Textarea`/`Checkbox`/`Fieldset`, `FilterBar`, `Menu`, `Modal`, `Tabs`, `Spinner`, `ErrorMessage`.
-
-Feature components (being rebuilt from `ui/` parts during the revamp):
+- `src/components/ui/` — the design-system kit (import from `components/ui`; list and props in `src/components/ui/README.md`): `Button`, `IconButton`, `Icon`, `Brand`, `GoogleIcon`, `Avatar`, `Dot`, `NotAdded`, `TextLink`, `Notice`, `Card`, `StatCard`, `Meter`, `ProgressBar`, `PageHeader`, `EmptyState`, `StatusChip` (+ `status.ts`), `DocNumber`, `DataTable`, `Table`/`THead`/`TBody`/`Tr`/`Th`/`Td`, `SegmentedControl`, `Field`/`Input`/`Select`/`Textarea`/`Checkbox`/`Fieldset`, `SearchInput`, `FilterBar`, `Menu`/`MenuItem`/`MenuLabel`/`MenuDivider`, `RowActions`, `Modal`, `Tabs`/`TabPanel`, `Spinner`, `ErrorMessage`
 - `Layout.tsx` — App shell with sidebar + header + business switcher
 - `ProtectedRoute.tsx` — Auth guard, redirects to `/login` if unauthenticated
-- `DocumentNumberBadge.tsx` — legacy; use `ui/` `DocNumber` in new code. Tables, modals, tabs, spinner and error message live in `components/ui`
-- `DetailPageShell.tsx` — Consistent detail page layout
+- `DetailPageShell.tsx` — `DetailPageShell`, `DetailSection`, `DetailField` (detail page layout, built on the kit)
 - `NotificationBell.tsx` — In-app notification dropdown
+- `DocumentNumberBadge.tsx` — Styled document number display
 - `EditableField.tsx` — Inline-editable field component
 - `ShareLinkManager.tsx` — Share link CRUD (embedded in PartyDetailPage)
 - `ChangeHistoryTable.tsx` — Shared Jira-style audit history table (used in all detail pages)
+- Formatters: `formatMoney`, `formatDate`, `formatDateTime`, `formatMonth` in `src/utils/format.ts`
 
 ### Statement Previews
 - Located in `src/components/statements/`
@@ -93,16 +91,16 @@ Feature components (being rebuilt from `ui/` parts during the revamp):
 
 ## Styling Rules
 
-**Before building, restyling or migrating ANY component or page, invoke the `frontend-design` skill** (`.claude/skills/frontend-design/`). It documents the design system (the landing page's "calm workspace" language): tokens, the `src/components/ui/` kit and its props, page/form recipes, copy rules and mobile rules.
+**Before building or restyling ANY component, invoke the `frontend-design` skill** (`.claude/skills/frontend-design/`). It documents the design system: the "calm workspace" look, the exact CSS tokens, the `src/components/ui/` kit with its props, and the page, form, copy and mobile rules.
 
 **MANDATORY: Never use inline `style={}` attributes in JSX.**
 
-- Use the `ui/` kit for every pattern it covers (buttons, cards, tables, fields, status chips, menus, modals). Never restyle a kit component from a page — change the kit file instead.
-- Page/feature CSS modules (`.module.css`) are **layout only**: grid, flex, gap, margins with `--space-*` tokens.
-- All design tokens live in `src/globals.css` `:root`. **Never hardcode colors/fonts/radii/shadows** — always `var(--…)`. `npm run lint` runs `scripts/check-design-tokens.mjs` to flag violations.
-- Monospace only for numbers, amounts and document numbers; sentence case; no filler copy.
-- If you encounter existing inline styles, refactor them into CSS class definitions
-- Class names: `className={styles.myClass}` or `className="global-class"`
+- Use the `src/components/ui/` kit for every pattern it covers; never restyle it or override its classes from a page.
+- Page styles: CSS modules (`.module.css`), layout only (grid/flex/gap/margins/widths using `--space-*`). `import styles from './Component.module.css'`; `className={styles.myClass}`.
+- Design tokens live in `:root` of `src/globals.css`. **Never hardcode colors/fonts/radii/shadows**; always use `var(--…)` tokens.
+- There are no legacy global classes (`.btn`, `.card`, `.data-table`, `.status-*`, `.form-group`, `.link-accent`, `.text-empty` are gone); everything comes from the kit.
+- **Strict token check:** `npm run lint` runs ESLint and then `node scripts/check-design-tokens.mjs --strict`; any finding (literal colour, non-token font or shadow, literal border-radius, inline `style={`) fails lint. Only `GoogleIcon.tsx` is allowlisted; `src/components/ui/**` and `globals.css` are excluded from the scan.
+- If you encounter existing inline styles, refactor them into CSS module classes
 
 ## WebSocket Integration
 
