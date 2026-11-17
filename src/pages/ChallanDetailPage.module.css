@@ -1,105 +1,55 @@
-/* Classes for inline style migration from ChallanDetailPage.tsx */
+/* Challan detail: layout only. Cards, tables, fields and buttons are kit components. */
 
-.inlineEditRow {
+/* Phone rows: "Qty" + its inline editor */
+.inline {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+/* Add-item row under the items table */
+.addRow {
   display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  margin-top: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-top: 1px solid var(--border-default);
 }
 
-.inlineEditRowBottom {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.flexGrow2 {
-  flex: 2;
-}
-
-.flexGrow1 {
+.grow {
   flex: 1;
+  min-width: 200px;
 }
 
-.inputSmall {
-  width: 70px;
-  padding: 4px 6px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  background: var(--bg-input);
-  color: var(--text-primary);
+.qty {
+  width: 90px;
 }
 
-.inputMedium {
-  width: 110px;
-  padding: 4px 6px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  background: var(--bg-input);
-  color: var(--text-primary);
+/* Loss items editor */
+.lossEditor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
-.inputSmMd {
-  width: 80px;
-  padding: 4px 6px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  background: var(--bg-input);
-  color: var(--text-primary);
-}
-
-.editableText {
-  cursor: pointer;
-  border-bottom: 1px dashed var(--text-muted);
-  padding-bottom: 1px;
-}
-
-.inlineDeleteBtn {
-  background: none;
-  border: none;
-  color: var(--status-danger-text);
-  cursor: pointer;
-  padding: 2px 8px;
-  font-size: 12px;
-}
-
-.inlineDeleteBtn:hover {
-  text-decoration: underline;
-}
-
-.inlineSaveBtn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 2px 8px;
-  font-size: 12px;
-  color: var(--accent);
-}
-
-.inlineSaveBtn:hover {
-  text-decoration: underline;
-}
-
-.marginTop8 {
-  margin-top: 8px;
-}
-
-.qtyEditGroup {
-  display: inline-flex;
+.lossRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) minmax(130px, 1fr) 80px 110px minmax(120px, 1.5fr) auto;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
-.statusBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.editActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
-.colActions {
-  width: 80px;
+@media (max-width: 768px) {
+  .lossRow {
+    grid-template-columns: minmax(0, 1fr);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--border-default);
+  }
 }

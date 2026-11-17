@@ -1,16 +1,18 @@
 /**
  * @fileoverview Challan detail view page
- * @description Detail page showing all information for a single
- * challan (delivery or return), including editable items, damaged items,
- * vehicle details, and notes.
+ * @description Detail page for a single challan (delivery or return): transport
+ * charges and notes (inline-editable), items (inline quantity edit, add, delete),
+ * loss items on returns, and change history. Built on the kit's detail recipe:
+ * DetailPageShell + DetailSection/DetailField + Cards holding DataTables.
  */
 import { useState, useCallback, useMemo } from 'react';
-import { Tabs } from '../components/Tabs';
 import { useParams, Link } from 'react-router-dom';
-import pageStyles from './ChallanDetailPage.module.css';
+import styles from './ChallanDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
+import { useAuth } from '../hooks/useAuth';
 import {
   useGetChallanQuery,
+  useConfirmChallanMutation,
   useUpdateChallanTransportationMutation,
   useUpdateChallanItemMutation,
   useAddChallanItemMutation,
@@ -23,25 +25,44 @@ import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetInventoryQuery } from '../api/inventoryApi';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import { CodeAutocomplete, type AutocompleteItem } from '../components/CodeAutocomplete';
-import type { DamagedItem } from '../types';
+import {
+  Button,
+  Card,
+  DataTable,
+  DocNumber,
+  EmptyState,
+  Input,
+  RowActions,
+  Select,
+  StatusChip,
+  type Column,
+} from '../components/ui';
+import { EditableField } from '../components/EditableField';
+import type { ChallanItem, DamagedItem } from '../types';
 import { getErrorMessage } from '../api/baseApi';
 import { computeRentedFromHistory, computeAvailable } from '../utils/inventoryUtils';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
+import { formatDate, formatMoney } from '../utils/format';
 
-/**
- * Formats an ISO date string for display.
- */
-function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString();
-}
+type LossType = NonNullable<DamagedItem['lossType']>;
 
-/**
- * Formats an ISO datetime string including time.
- */
+const LOSS_LABEL: Record<LossType, string> = {
+  damage: 'Damaged',
+  short: 'Short',
+  need_repair: 'Need repair',
+};
+
+/** Row types carry their list position so repeated items keep distinct keys. */
+type ItemRow = ChallanItem & { idx: number };
+type LossRow = DamagedItem & { idx: number };
+
+/** `10 Nov 2026, 08:30`; missing/invalid → '' (DetailField shows "Not added"). */
 function formatDateTime(dateStr: string | undefined): string {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleString();
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return '';
+  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${formatDate(d)}, ${time}`;
 }
 
 /**
@@ -51,6 +72,7 @@ function formatDateTime(dateStr: string | undefined): string {
 export function ChallanDetailPage() {
   const { challanId } = useParams<{ challanId: string }>();
   const { currentBusinessId } = useCurrentBusiness();
+  const { user } = useAuth();
 
   const {
     data: challan,
@@ -71,6 +93,7 @@ export function ChallanDetailPage() {
 
   const [updateTransportation, { isLoading: isSavingTransportation }] =
     useUpdateChallanTransportationMutation();
+  const [confirmChallan, { isLoading: isConfirming }] = useConfirmChallanMutation();
   const [updateItem, { isLoading: isSavingItem }] = useUpdateChallanItemMutation();
   const [addItem, { isLoading: isAddingItem }] = useAddChallanItemMutation();
   const [deleteItem] = useDeleteChallanItemMutation();
@@ -78,9 +101,6 @@ export function ChallanDetailPage() {
     useUpdateChallanDamagedItemsMutation();
   const [updateChallanDate, { isLoading: isSavingDate }] = useUpdateChallanDateMutation();
   const [downloadPdf, { isLoading: isDownloading }] = useLazyGetChallanPdfQuery();
-
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [editQty, setEditQty] = useState<number>(0);
 
   // Add item state
   const [showAddItem, setShowAddItem] = useState(false);
@@ -97,12 +117,6 @@ export function ChallanDetailPage() {
   const [editingDamage, setEditingDamage] = useState(false);
   const [localDamagedItems, setLocalDamagedItems] = useState<DamagedItem[]>([]);
   const [damageItemSearch, setDamageItemSearch] = useState<Record<number, string>>({});
-
-  const TABS = [
-    { id: 'about', label: 'About' },
-    { id: 'items', label: 'Items' },
-    { id: 'change-history', label: 'Change History' },
-  ];
 
   const partyName = parties?.find(p => p._id === challan?.partyId)?.name || challan?.partyId || '';
 
@@ -137,21 +151,16 @@ export function ChallanDetailPage() {
   );
 
   const handleItemQuantitySave = useCallback(
-    async (itemId: string) => {
+    async (itemId: string, quantity: number) => {
       if (!currentBusinessId || !challanId) return;
-      try {
-        await updateItem({
-          businessId: currentBusinessId,
-          challanId,
-          itemId,
-          quantity: editQty,
-        }).unwrap();
-        setEditingItemId(null);
-      } catch {
-        // error is handled by RTK Query
-      }
+      await updateItem({
+        businessId: currentBusinessId,
+        challanId,
+        itemId,
+        quantity,
+      }).unwrap();
     },
-    [currentBusinessId, challanId, editQty, updateItem]
+    [currentBusinessId, challanId, updateItem]
   );
 
   const handleAddItem = useCallback(async () => {
@@ -245,17 +254,210 @@ export function ChallanDetailPage() {
     }
   }, [currentBusinessId, challanId, localDamagedItems, updateDamagedItems]);
 
+  const handleConfirm = useCallback(async () => {
+    if (!challan || !currentBusinessId) return;
+    if (!confirm(`Confirm challan ${challan.challanNumber}?`)) return;
+    try {
+      await confirmChallan({
+        businessId: currentBusinessId,
+        challanId: challan._id,
+        confirmedBy: user?.name || user?.email || 'Unknown',
+      }).unwrap();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    }
+  }, [challan, currentBusinessId, confirmChallan, user]);
+
+  const resetAddItem = () => {
+    setShowAddItem(false);
+    setAddItemData(null);
+    setAddItemSearch('');
+  };
+
+  const updateLoss = (idx: number, patch: Partial<DamagedItem>) =>
+    setLocalDamagedItems(items => items.map((d, i) => (i === idx ? { ...d, ...patch } : d)));
+
+  const tabs = challan
+    ? [
+        { id: 'about', label: 'About' },
+        { id: 'items', label: 'Items', count: challan.items.length },
+        { id: 'change-history', label: 'Change history' },
+      ]
+    : undefined;
+
+  // ─── Items ────────────────────────────────────────────────────────
+
+  const itemQuantity = (row: ItemRow) => (
+    <EditableField
+      label="Quantity"
+      value={row.quantity}
+      inputType="number"
+      compact
+      mono
+      onSave={v => handleItemQuantitySave(row.itemId, Number(v))}
+      isSaving={isSavingItem}
+    />
+  );
+
+  const itemActions = (row: ItemRow) =>
+    challan && challan.items.length > 1 ? (
+      <RowActions
+        items={[{ label: 'Delete', tone: 'danger', onClick: () => handleDeleteItem(row.itemId) }]}
+      />
+    ) : null;
+
+  const itemColumns: Column<ItemRow>[] = [
+    { key: 'itemName', header: 'Item' },
+    {
+      key: 'quantity',
+      header: 'Quantity',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: itemQuantity,
+    },
+    { key: 'actions', header: '', align: 'right', nowrap: true, render: itemActions },
+  ];
+
+  const itemRows: ItemRow[] = (challan?.items ?? []).map((item, idx) => ({ ...item, idx }));
+
+  // ─── Loss items ───────────────────────────────────────────────────
+
+  const lossAmount = (d: DamagedItem) => formatMoney(d.quantity * d.damageRate);
+  const lossType = (d: DamagedItem) => LOSS_LABEL[d.lossType ?? 'damage'];
+  const lossNote = (d: DamagedItem) =>
+    d.note ? d.note : <span className="text-empty">Not added</span>;
+
+  const lossColumns: Column<LossRow>[] = [
+    { key: 'itemName', header: 'Item' },
+    { key: 'type', header: 'Type', nowrap: true, render: lossType },
+    { key: 'quantity', header: 'Qty', mono: true, align: 'right', nowrap: true },
+    {
+      key: 'rate',
+      header: 'Rate',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: d => formatMoney(d.damageRate),
+    },
+    {
+      key: 'amount',
+      header: 'Amount',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: lossAmount,
+    },
+    { key: 'note', header: 'Note', hideOnMobile: true, render: lossNote },
+  ];
+
+  const lossRows: LossRow[] = (challan?.damagedItems ?? []).map((d, idx) => ({ ...d, idx }));
+
+  const lossEditor = (
+    <div className={styles.lossEditor}>
+      {localDamagedItems.map((d, idx) => (
+        <div key={idx} className={styles.lossRow}>
+          <CodeAutocomplete
+            label=""
+            placeholder="Item…"
+            value={damageItemSearch[idx] || d.itemName || ''}
+            onChange={v => setDamageItemSearch(prev => ({ ...prev, [idx]: v }))}
+            items={inventoryAutocompleteItems}
+            onSelect={item => {
+              const inv = inventoryItems?.find(i => i._id === item.id);
+              updateLoss(idx, {
+                itemId: item.id,
+                itemName: inv?.name || item.label,
+                damageRate: inv?.damageRate ?? d.damageRate,
+              });
+              setDamageItemSearch(prev => ({ ...prev, [idx]: item.code }));
+            }}
+          />
+          <Select
+            aria-label="Loss type"
+            value={d.lossType ?? 'damage'}
+            onChange={e => {
+              const type = e.target.value as LossType;
+              const inv = inventoryItems?.find(i => i._id === d.itemId);
+              const rate = inv
+                ? type === 'short'
+                  ? (inv.costPrice ?? 0)
+                  : (inv.damageRate ?? 0)
+                : d.damageRate;
+              updateLoss(idx, { lossType: type, damageRate: rate });
+            }}
+          >
+            <option value="damage">Damaged</option>
+            <option value="short">Short</option>
+            <option value="need_repair">Need repair</option>
+          </Select>
+          <Input
+            type="number"
+            mono
+            min={1}
+            aria-label="Loss quantity"
+            placeholder="Qty"
+            value={d.quantity}
+            onChange={e => updateLoss(idx, { quantity: Number(e.target.value) })}
+          />
+          <Input
+            type="number"
+            mono
+            min={0}
+            step="0.01"
+            aria-label="Loss rate"
+            placeholder="Rate"
+            value={d.damageRate}
+            onChange={e => updateLoss(idx, { damageRate: Number(e.target.value) })}
+          />
+          <Input
+            type="text"
+            aria-label="Loss note"
+            placeholder="Note"
+            value={d.note || ''}
+            onChange={e => updateLoss(idx, { note: e.target.value })}
+          />
+          <Button
+            variant="ghost"
+            onClick={() => setLocalDamagedItems(items => items.filter((_, i) => i !== idx))}
+          >
+            Remove
+          </Button>
+        </div>
+      ))}
+      <div className={styles.editActions}>
+        <Button
+          icon="plus"
+          onClick={() =>
+            setLocalDamagedItems(items => [
+              ...items,
+              {
+                itemId: '',
+                itemName: '',
+                quantity: 1,
+                damageRate: 0,
+                note: '',
+                lossType: 'damage',
+              },
+            ])
+          }
+        >
+          Add loss item
+        </Button>
+        <Button variant="primary" onClick={handleSaveDamagedItems} loading={isSavingDamage}>
+          Save
+        </Button>
+        <Button onClick={() => setEditingDamage(false)}>Cancel</Button>
+      </div>
+    </div>
+  );
+
+  // ─── Shell ────────────────────────────────────────────────────────
+
   const sidebar = challan ? (
     <DetailSection title="Details">
-      <DetailField label="Challan Number" value={challan.challanNumber} />
-      <DetailField
-        label="Type"
-        value={<span className={`status status-${challan.type}`}>{challan.type}</span>}
-      />
-      <DetailField
-        label="Status"
-        value={<span className={`status status-${challan.status}`}>{challan.status}</span>}
-      />
+      <DetailField label="Challan number" value={challan.challanNumber} mono />
+      <DetailField label="Type" value={<StatusChip status={challan.type} />} />
       <DetailField
         label="Party"
         value={
@@ -266,11 +468,7 @@ export function ChallanDetailPage() {
       />
       <DetailField
         label="Agreement"
-        value={
-          <Link to={`/agreements/${challan.agreementId}`} className="link-accent">
-            {challan.agreementId}
-          </Link>
-        }
+        value={<DocNumber value={challan.agreementId} to={`/agreements/${challan.agreementId}`} />}
       />
       <DetailField
         label="Date"
@@ -282,141 +480,145 @@ export function ChallanDetailPage() {
           isSaving: isSavingDate,
         }}
       />
-      <DetailField label="Confirmed By" value={challan.confirmedBy} />
-      <DetailField label="Confirmed At" value={formatDateTime(challan.confirmedAt)} />
+      <DetailField label="Confirmed by" value={challan.confirmedBy} />
+      <DetailField label="Confirmed at" value={formatDateTime(challan.confirmedAt)} />
       <DetailField label="Created" value={formatDateTime(challan.createdAt)} />
     </DetailSection>
   ) : null;
 
+  const chargeField = (
+    label: string,
+    field: 'cartageCharge' | 'loadingCharge' | 'unloadingCharge'
+  ) =>
+    challan && (
+      <DetailField
+        label={label}
+        value={challan[field] != null ? formatMoney(challan[field]) : undefined}
+        mono
+        editable={{
+          rawValue: challan[field],
+          inputType: 'number',
+          prefix: '₹',
+          onSave: v => handleTransportationSave(field, v),
+          isSaving: isSavingTransportation,
+        }}
+      />
+    );
+
+  const textField = (label: string, field: 'transporterName' | 'vehicleNumber', mono = false) =>
+    challan && (
+      <DetailField
+        label={label}
+        value={challan[field]}
+        mono={mono}
+        editable={{
+          rawValue: challan[field],
+          inputType: 'text',
+          onSave: v => handleTransportationSave(field, v),
+          isSaving: isSavingTransportation,
+        }}
+      />
+    );
+
+  const isDraft = challan?.status === 'draft';
+
   return (
     <DetailPageShell
       title={challan?.challanNumber || 'Challan'}
-      subtitle={partyName ? `Party: ${partyName}` : undefined}
+      eyebrow="Challan"
+      code={challan?.challanNumber}
       status={challan?.status}
-      statusClassName={`status status-${challan?.status}`}
       backTo="/challans"
       backLabel="Challans"
       isLoading={isLoading}
+      loadingLabel="Loading challan…"
       error={error}
       onRetry={refetch}
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      idPrefix="challan"
       sidebar={sidebar}
       headerActions={
         challan && currentBusinessId ? (
-          <button className="btn btn-primary" onClick={handleDownloadPdf} disabled={isDownloading}>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="icon-inline"
+          <>
+            <Button
+              variant={isDraft ? 'secondary' : 'primary'}
+              onClick={handleDownloadPdf}
+              loading={isDownloading}
             >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            Download PDF
-          </button>
+              Download PDF
+            </Button>
+            {isDraft && (
+              <Button variant="primary" onClick={handleConfirm} loading={isConfirming}>
+                Confirm
+              </Button>
+            )}
+          </>
         ) : undefined
       }
     >
       {challan && (
         <>
-          <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+          {activeTab === 'about' && (
+            <>
+              <DetailSection title="Transportation">
+                {textField('Transporter', 'transporterName')}
+                {textField('Vehicle number', 'vehicleNumber', true)}
+                {chargeField('Cartage charge', 'cartageCharge')}
+                {chargeField('Loading charge', 'loadingCharge')}
+                {chargeField('Unloading charge', 'unloadingCharge')}
+              </DetailSection>
+
+              <DetailSection title="Notes">
+                <DetailField label="" value={challan.notes || undefined} />
+              </DetailSection>
+
+              {challan.signature && (
+                <DetailSection title="Signature">
+                  <DetailField label="" value={challan.signature} />
+                </DetailSection>
+              )}
+            </>
+          )}
 
           {activeTab === 'items' && (
             <>
-              {/* Items */}
-              <DetailSection title={`Items (${challan.items.length})`}>
-                {challan.items.length > 0 ? (
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Item</th>
-                        <th>Quantity</th>
-                        <th className={pageStyles.colActions}></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {challan.items.map((item, idx) => (
-                        <tr key={`${item.itemId}-${idx}`}>
-                          <td>{item.itemName}</td>
-                          <td>
-                            {editingItemId === item.itemId ? (
-                              <span className={pageStyles.statusBadge}>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  step={1}
-                                  value={editQty}
-                                  onChange={e => setEditQty(Number(e.target.value))}
-                                  onKeyDown={e => {
-                                    if (e.key === 'Enter') handleItemQuantitySave(item.itemId);
-                                    if (e.key === 'Escape') setEditingItemId(null);
-                                  }}
-                                  disabled={isSavingItem}
-                                  className={pageStyles.inputSmall}
-                                  autoFocus
-                                />
-                                <button
-                                  onClick={() => handleItemQuantitySave(item.itemId)}
-                                  disabled={isSavingItem}
-                                  className={pageStyles.inlineSaveBtn}
-                                  title="Save (Enter)"
-                                >
-                                  {isSavingItem ? '...' : '[ok]'}
-                                </button>
-                                <button
-                                  onClick={() => setEditingItemId(null)}
-                                  disabled={isSavingItem}
-                                  className={pageStyles.inlineSaveBtn}
-                                  title="Cancel (Esc)"
-                                >
-                                  [x]
-                                </button>
-                              </span>
-                            ) : (
-                              <span
-                                onClick={() => {
-                                  setEditingItemId(item.itemId);
-                                  setEditQty(item.quantity);
-                                }}
-                                className={pageStyles.editableText}
-                                title="Click to edit"
-                              >
-                                {item.quantity}
-                              </span>
-                            )}
-                          </td>
-                          <td>
-                            {challan.items.length > 1 && (
-                              <button
-                                onClick={() => handleDeleteItem(item.itemId)}
-                                className={pageStyles.inlineDeleteBtn}
-                                title="Delete item"
-                              >
-                                Delete
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p className="text-empty">No items in this challan.</p>
-                )}
-
-                {/* Add item row */}
-                {showAddItem ? (
-                  <div className={pageStyles.inlineEditRow}>
-                    <div className={pageStyles.flexGrow2}>
+              <Card
+                title="Items"
+                count={challan.items.length}
+                padded={false}
+                actions={
+                  !showAddItem && (
+                    <Button size="sm" icon="plus" onClick={() => setShowAddItem(true)}>
+                      Add item
+                    </Button>
+                  )
+                }
+              >
+                <DataTable
+                  aria-label="Items"
+                  columns={itemColumns}
+                  rows={itemRows}
+                  rowKey={r => `${r.itemId}-${r.idx}`}
+                  empty={<EmptyState title="No items in this challan" />}
+                  mobile={{
+                    title: r => r.itemName,
+                    meta: r => [
+                      <span key="qty" className={styles.inline}>
+                        Qty {itemQuantity(r)}
+                      </span>,
+                    ],
+                    actions: itemActions,
+                    actionsPlacement: 'trailing',
+                  }}
+                />
+                {showAddItem && (
+                  <div className={styles.addRow}>
+                    <div className={styles.grow}>
                       <CodeAutocomplete
                         label=""
-                        placeholder="Type item code or name..."
+                        placeholder="Type item code or name…"
                         value={addItemSearch}
                         onChange={setAddItemSearch}
                         items={inventoryAutocompleteItems}
@@ -432,321 +634,76 @@ export function ChallanDetailPage() {
                       />
                     </div>
                     {addItemData && (
-                      <input
-                        type="number"
-                        min={1}
-                        value={addItemData.quantity}
-                        onChange={e =>
-                          setAddItemData({ ...addItemData, quantity: Number(e.target.value) })
-                        }
-                        className={pageStyles.inputSmall}
-                      />
-                    )}
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={handleAddItem}
-                      disabled={!addItemData || isAddingItem}
-                    >
-                      {isAddingItem ? '...' : 'Add'}
-                    </button>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => {
-                        setShowAddItem(false);
-                        setAddItemData(null);
-                        setAddItemSearch('');
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    className={`btn btn-secondary btn-sm ${pageStyles.marginTop8}`}
-                    onClick={() => setShowAddItem(true)}
-                  >
-                    + Add Item
-                  </button>
-                )}
-              </DetailSection>
-
-              {/* Loss (return challans only) */}
-              {challan.type === 'return' && (
-                <DetailSection title="Loss">
-                  {editingDamage ? (
-                    <>
-                      {localDamagedItems.map((d, idx) => (
-                        <div key={idx} className={pageStyles.inlineEditRowBottom}>
-                          <div className={pageStyles.flexGrow2}>
-                            <CodeAutocomplete
-                              label=""
-                              placeholder="Item..."
-                              value={damageItemSearch[idx] || d.itemName || ''}
-                              onChange={v => setDamageItemSearch(prev => ({ ...prev, [idx]: v }))}
-                              items={inventoryAutocompleteItems}
-                              onSelect={item => {
-                                const inv = inventoryItems?.find(i => i._id === item.id);
-                                const updated = [...localDamagedItems];
-                                updated[idx] = {
-                                  ...updated[idx],
-                                  itemId: item.id,
-                                  itemName: inv?.name || item.label,
-                                  damageRate: inv?.damageRate ?? updated[idx].damageRate,
-                                };
-                                setLocalDamagedItems(updated);
-                                setDamageItemSearch(prev => ({ ...prev, [idx]: item.code }));
-                              }}
-                            />
-                          </div>
-                          <select
-                            value={d.lossType ?? 'damage'}
-                            onChange={e => {
-                              const lossType = e.target.value as 'damage' | 'short' | 'need_repair';
-                              const inv = inventoryItems?.find(i => i._id === d.itemId);
-                              const rate = inv
-                                ? lossType === 'short'
-                                  ? (inv.costPrice ?? 0)
-                                  : (inv.damageRate ?? 0)
-                                : d.damageRate;
-                              const updated = [...localDamagedItems];
-                              updated[idx] = {
-                                ...updated[idx],
-                                lossType,
-                                damageRate: rate,
-                              };
-                              setLocalDamagedItems(updated);
-                            }}
-                            className={pageStyles.inputMedium}
-                          >
-                            <option value="damage">Damaged</option>
-                            <option value="short">Short</option>
-                            <option value="need_repair">Need Repair</option>
-                          </select>
-                          <input
-                            type="number"
-                            min={1}
-                            placeholder="Qty"
-                            value={d.quantity}
-                            onChange={e => {
-                              const updated = [...localDamagedItems];
-                              updated[idx] = { ...updated[idx], quantity: Number(e.target.value) };
-                              setLocalDamagedItems(updated);
-                            }}
-                            className={pageStyles.inputSmall}
-                          />
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            placeholder="Rate"
-                            value={d.damageRate}
-                            onChange={e => {
-                              const updated = [...localDamagedItems];
-                              updated[idx] = {
-                                ...updated[idx],
-                                damageRate: Number(e.target.value),
-                              };
-                              setLocalDamagedItems(updated);
-                            }}
-                            className={pageStyles.inputSmMd}
-                          />
-                          <input
-                            type="text"
-                            placeholder="Note"
-                            value={d.note || ''}
-                            onChange={e => {
-                              const updated = [...localDamagedItems];
-                              updated[idx] = { ...updated[idx], note: e.target.value };
-                              setLocalDamagedItems(updated);
-                            }}
-                            className={pageStyles.flexGrow1}
-                          />
-                          <button
-                            onClick={() => {
-                              const updated = [...localDamagedItems];
-                              updated.splice(idx, 1);
-                              setLocalDamagedItems(updated);
-                            }}
-                            className={pageStyles.inlineDeleteBtn}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-                      <div className={pageStyles.inlineEditRow}>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => {
-                            setLocalDamagedItems([
-                              ...localDamagedItems,
-                              {
-                                itemId: '',
-                                itemName: '',
-                                quantity: 1,
-                                damageRate: 0,
-                                note: '',
-                                lossType: 'damage',
-                              },
-                            ]);
-                          }}
-                        >
-                          + Add Loss Item
-                        </button>
-                        <button
-                          className="btn btn-primary btn-sm"
-                          onClick={handleSaveDamagedItems}
-                          disabled={isSavingDamage}
-                        >
-                          {isSavingDamage ? 'Saving...' : 'Save'}
-                        </button>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => setEditingDamage(false)}
-                        >
-                          Cancel
-                        </button>
+                      <div className={styles.qty}>
+                        <Input
+                          type="number"
+                          mono
+                          min={1}
+                          aria-label="Quantity to add"
+                          value={addItemData.quantity}
+                          onChange={e =>
+                            setAddItemData({ ...addItemData, quantity: Number(e.target.value) })
+                          }
+                        />
                       </div>
-                    </>
+                    )}
+                    <Button
+                      variant="primary"
+                      onClick={handleAddItem}
+                      disabled={!addItemData}
+                      loading={isAddingItem}
+                    >
+                      Add
+                    </Button>
+                    <Button onClick={resetAddItem}>Cancel</Button>
+                  </div>
+                )}
+              </Card>
+
+              {challan.type === 'return' && (
+                <Card
+                  title="Loss items"
+                  count={lossRows.length}
+                  padded={editingDamage}
+                  actions={
+                    !editingDamage && (
+                      <Button size="sm" onClick={startEditingDamage}>
+                        Edit loss items
+                      </Button>
+                    )
+                  }
+                >
+                  {editingDamage ? (
+                    lossEditor
                   ) : (
-                    <>
-                      {challan.damagedItems && challan.damagedItems.length > 0 ? (
-                        <table className="data-table">
-                          <thead>
-                            <tr>
-                              <th>Item</th>
-                              <th>Type</th>
-                              <th>Qty</th>
-                              <th>Rate</th>
-                              <th>Amount</th>
-                              <th>Note</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {challan.damagedItems.map((d, idx) => (
-                              <tr key={`${d.itemId}-${idx}`}>
-                                <td>{d.itemName}</td>
-                                <td>
-                                  {d.lossType === 'short'
-                                    ? 'Short'
-                                    : d.lossType === 'need_repair'
-                                      ? 'Need Repair'
-                                      : 'Damaged'}
-                                </td>
-                                <td>{d.quantity}</td>
-                                <td>₹{d.damageRate}</td>
-                                <td>₹{(d.quantity * d.damageRate).toLocaleString()}</td>
-                                <td className={d.note ? 'text-notes' : 'text-notes-empty'}>
-                                  {d.note || '-'}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      ) : (
-                        <p className="text-empty">No loss items recorded.</p>
-                      )}
-                      <button
-                        className={`btn btn-secondary btn-sm ${pageStyles.marginTop8}`}
-                        onClick={startEditingDamage}
-                      >
-                        Edit Loss Items
-                      </button>
-                    </>
+                    <DataTable
+                      aria-label="Loss items"
+                      columns={lossColumns}
+                      rows={lossRows}
+                      rowKey={r => `${r.itemId}-${r.idx}`}
+                      empty={<EmptyState title="No loss items recorded" />}
+                      mobile={{
+                        title: r => r.itemName,
+                        badge: r => lossType(r),
+                        meta: r => [
+                          <span key="qty" className="mono">
+                            {r.quantity} × {formatMoney(r.damageRate)}
+                          </span>,
+                          <span key="amount" className="mono">
+                            {lossAmount(r)}
+                          </span>,
+                          r.note,
+                        ],
+                      }}
+                    />
                   )}
-                </DetailSection>
+                </Card>
               )}
             </>
           )}
 
           {activeTab === 'change-history' && (
             <ChangeHistoryTable documentType="challan" documentId={challanId!} />
-          )}
-
-          {activeTab === 'about' && (
-            <>
-              {/* Transportation */}
-              <DetailSection title="Transportation">
-                <DetailField
-                  label="Transporter"
-                  value={challan.transporterName}
-                  editable={{
-                    rawValue: challan.transporterName,
-                    inputType: 'text',
-                    onSave: v => handleTransportationSave('transporterName', v),
-                    isSaving: isSavingTransportation,
-                  }}
-                />
-                <DetailField
-                  label="Vehicle Number"
-                  value={challan.vehicleNumber}
-                  editable={{
-                    rawValue: challan.vehicleNumber,
-                    inputType: 'text',
-                    onSave: v => handleTransportationSave('vehicleNumber', v),
-                    isSaving: isSavingTransportation,
-                  }}
-                />
-                <DetailField
-                  label="Cartage Charge"
-                  value={
-                    challan.cartageCharge != null
-                      ? `₹${challan.cartageCharge.toLocaleString()}`
-                      : undefined
-                  }
-                  editable={{
-                    rawValue: challan.cartageCharge,
-                    inputType: 'number',
-                    prefix: '₹',
-                    onSave: v => handleTransportationSave('cartageCharge', v),
-                    isSaving: isSavingTransportation,
-                  }}
-                />
-                <DetailField
-                  label="Loading Charge"
-                  value={
-                    challan.loadingCharge != null
-                      ? `₹${challan.loadingCharge.toLocaleString()}`
-                      : undefined
-                  }
-                  editable={{
-                    rawValue: challan.loadingCharge,
-                    inputType: 'number',
-                    prefix: '₹',
-                    onSave: v => handleTransportationSave('loadingCharge', v),
-                    isSaving: isSavingTransportation,
-                  }}
-                />
-                <DetailField
-                  label="Unloading Charge"
-                  value={
-                    challan.unloadingCharge != null
-                      ? `₹${challan.unloadingCharge.toLocaleString()}`
-                      : undefined
-                  }
-                  editable={{
-                    rawValue: challan.unloadingCharge,
-                    inputType: 'number',
-                    prefix: '₹',
-                    onSave: v => handleTransportationSave('unloadingCharge', v),
-                    isSaving: isSavingTransportation,
-                  }}
-                />
-              </DetailSection>
-
-              {/* Notes */}
-              <DetailSection title="Notes">
-                <p className={challan.notes ? 'text-notes' : 'text-notes-empty'}>
-                  {challan.notes || 'No notes.'}
-                </p>
-              </DetailSection>
-
-              {/* Signature */}
-              {challan.signature && (
-                <DetailSection title="Signature">
-                  <p>{challan.signature}</p>
-                </DetailSection>
-              )}
-            </>
           )}
         </>
       )}
