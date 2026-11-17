@@ -13,6 +13,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `Card` | Any surface panel or section, with optional title, count pill and actions |
 | `StatCard` | A single headline number with a label; `tone="highlight"` for the one key stat |
 | `Meter` | A segmented bar with legend (e.g. available vs rented stock) |
+| `ProgressBar` | A determinate progress bar for a running job (takes the surrounding text colour, e.g. inside a `Notice`) |
 | `PageHeader` | The title row at the top of every page, with optional eyebrow, actions and a `badge` beside the title |
 | `EmptyState` | "Nothing here" states: one short title and at most one action |
 | `StatusChip` | Every status badge; tone comes from `status.ts` |

@@ -1,143 +1,42 @@
+/* Bulk bill progress banner: layout only; the banner is a kit Notice. */
+
 .container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.banner {
-  border: 1px solid var(--status-info-border);
-  background: var(--status-info-bg);
-  border-radius: var(--radius-lg);
-  padding: 12px 16px;
-  transition: background var(--transition-default);
-}
-
-.banner.done {
-  background: var(--status-success-bg);
-  border-color: var(--status-success-border);
-}
-
-.banner.hasErrors.done {
-  background: var(--status-warning-bg);
-  border-color: var(--status-warning-border);
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
 }
 
-.info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.spinner {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--status-info-border);
-  border-top-color: var(--status-info-text);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  flex-shrink: 0;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.checkmark {
-  color: var(--status-success-text);
-  font-weight: 700;
-  font-size: 16px;
-}
-
-.failCount {
-  color: var(--status-danger-text);
-  font-weight: 600;
+.message {
+  min-width: 0;
 }
 
 .actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-shrink: 0;
 }
 
-.toggleBtn {
-  background: none;
-  border: none;
-  color: var(--accent);
-  font-size: 13px;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-}
-
-.toggleBtn:hover {
-  background: var(--accent-muted);
-}
-
-.dismissBtn {
-  background: none;
-  border: none;
-  font-size: 20px;
-  line-height: 1;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0 4px;
-}
-
-.dismissBtn:hover {
-  color: var(--text-primary);
-}
-
-.progressTrack {
-  margin-top: 8px;
-  height: 6px;
-  background: var(--status-info-bg);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-}
-
-.progressBar {
-  height: 100%;
-  background: var(--status-info-text);
-  border-radius: var(--radius-full);
-  transition: width 0.3s var(--ease-out);
-}
-
 .errorList {
-  margin-top: 10px;
-  border-top: 1px solid var(--status-warning-border);
-  padding-top: 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
 }
 
 .errorItem {
   display: flex;
-  gap: 8px;
-  font-size: 13px;
-  padding: 4px 0;
-}
-
-.errorAgreement {
-  font-weight: 600;
-  color: var(--status-warning-text);
-  white-space: nowrap;
-}
-
-.errorMsg {
-  color: var(--status-danger-text);
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
