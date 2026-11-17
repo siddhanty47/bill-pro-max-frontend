@@ -23,7 +23,12 @@ import {
 } from '../api/challanApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetInventoryQuery } from '../api/inventoryApi';
-import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
+import {
+  DetailPageShell,
+  DetailSection,
+  DetailField,
+  NotAdded,
+} from '../components/DetailPageShell';
 import { CodeAutocomplete, type AutocompleteItem } from '../components/CodeAutocomplete';
 import {
   Button,
@@ -331,8 +336,7 @@ export function ChallanDetailPage() {
 
   const lossAmount = (d: DamagedItem) => formatMoney(d.quantity * d.damageRate);
   const lossType = (d: DamagedItem) => LOSS_LABEL[d.lossType ?? 'damage'];
-  const lossNote = (d: DamagedItem) =>
-    d.note ? d.note : <span className="text-empty">Not added</span>;
+  const lossNote = (d: DamagedItem) => (d.note ? d.note : <NotAdded />);
 
   const lossColumns: Column<LossRow>[] = [
     { key: 'itemName', header: 'Item' },

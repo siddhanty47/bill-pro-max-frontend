@@ -45,4 +45,4 @@ Detail pages are composed from `components/DetailPageShell` (`DetailPageShell`, 
 </DetailPageShell>
 ```
 
-Formatters for amounts and dates live in `src/utils/format.ts` (`formatMoney`, `formatDate`), not in the kit.
+Formatters for amounts and dates live in `src/utils/format.ts` (`formatMoney`, `formatDate`, `formatDateTime`, `formatMonth`), not in the kit. The muted "Not added" placeholder for a table cell is `NotAdded` from `components/DetailPageShell`.

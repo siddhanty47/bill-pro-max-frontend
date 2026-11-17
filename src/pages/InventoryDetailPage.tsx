@@ -16,7 +16,12 @@ import {
   useAdjustQuantityMutation,
   useGetOpeningBalancesQuery,
 } from '../api/inventoryApi';
-import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
+import {
+  DetailPageShell,
+  DetailSection,
+  DetailField,
+  NotAdded,
+} from '../components/DetailPageShell';
 import { CodeAutocomplete, type AutocompleteItem } from '../components/CodeAutocomplete';
 import {
   Button,
@@ -57,11 +62,6 @@ const TRANSACTION_TYPE_OPTIONS: { value: AdjustQuantityInput['type']; label: str
 /** Returns today as YYYY-MM-DD for the date input max attribute */
 function getTodayISO(): string {
   return new Date().toISOString().split('T')[0];
-}
-
-/** Display date, or undefined so the field shows "Not added". */
-function displayDate(dateStr: string | undefined): string | undefined {
-  return dateStr ? formatDate(dateStr) : undefined;
 }
 
 /** Chip tone for transaction types. */
@@ -133,7 +133,7 @@ const withUnit = (n: number, unit: string): ReactNode => (
   </>
 );
 
-const notAdded = <span className="text-empty">Not added</span>;
+const notAdded = <NotAdded />;
 
 /**
  * InventoryDetailPage displays the full details of a single inventory item.
@@ -318,8 +318,8 @@ export function InventoryDetailPage() {
       {/* Used when an item is lost (short) */}
       {rateField('Cost price', 'costPrice')}
 
-      <DetailField label="Created" value={displayDate(item.createdAt)} />
-      <DetailField label="Updated" value={displayDate(item.updatedAt)} />
+      <DetailField label="Created" value={formatDate(item.createdAt)} />
+      <DetailField label="Updated" value={formatDate(item.updatedAt)} />
     </DetailSection>
   ) : null;
 
@@ -456,7 +456,7 @@ export function InventoryDetailPage() {
                     value={formatMoney(item.purchaseInfo.costPerUnit)}
                     mono
                   />
-                  <DetailField label="Purchase date" value={displayDate(item.purchaseInfo.date)} />
+                  <DetailField label="Purchase date" value={formatDate(item.purchaseInfo.date)} />
                   <DetailField
                     label="Payment status"
                     value={<StatusChip status={item.purchaseInfo.paymentStatus} />}

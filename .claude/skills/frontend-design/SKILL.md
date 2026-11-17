@@ -239,7 +239,7 @@ Loading → `Spinner`; error → `ErrorMessage onRetry={refetch}`.
 
 **Amounts** = mono, right-aligned, `formatMoney(n)` from `src/utils/format.ts` (₹ prefix, Indian grouping, decimals only when non-integer: `₹1,84,200`, `₹99.50`). In a sentence: `<span className="mono">{formatMoney(amount)}</span>`. Never `toLocaleString()` without `'en-IN'`.
 
-**Dates** = `formatDate(d)` from the same file: `16 Nov` this year, `16 Nov 2025` otherwise. Dates are text font everywhere: table cells, phone-list meta, `Input type="date"` (no `mono`).
+**Dates** = `formatDate(d)` from the same file: `16 Nov` this year, `16 Nov 2025` otherwise; a date-only `YYYY-MM-DD` string is that local day; missing/invalid → `''` (a `DetailField` then shows "Not added"). `formatDateTime(d)` → `16 Nov, 3:05 pm`. Month headings (calendars, salary) → `formatMonth(year, month1to12)` → `November 2026`. An empty value outside a `DetailField` (a table cell) → `<NotAdded />` from `components/DetailPageShell`. `formatMoney` never shows `-₹0`. Dates are text font everywhere: table cells, phone-list meta, `Input type="date"` (no `mono`).
 
 ## Copy rules
 

@@ -19,7 +19,12 @@ import {
 } from '../api/billApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetPaymentsByBillQuery } from '../api/paymentApi';
-import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
+import {
+  DetailPageShell,
+  DetailSection,
+  DetailField,
+  NotAdded,
+} from '../components/DetailPageShell';
 import {
   Button,
   Card,
@@ -66,7 +71,7 @@ type ItemRow = BillItem & { idx: number };
 type DamageRow = DamageBillItem & { idx: number };
 type TransportRow = TransportationBreakupItem & { idx: number };
 
-const notAdded = <span className="text-empty">Not added</span>;
+const notAdded = <NotAdded />;
 
 /**
  * BillDetailPage displays the full details of a single bill/invoice.

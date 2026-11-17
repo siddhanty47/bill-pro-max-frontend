@@ -50,7 +50,6 @@ type StatementType = 'ledger' | 'bills' | 'items' | 'aging';
 const STATEMENT_REASON_ID = 'party-statement-reason';
 
 /** formatDate for optional dates; missing → empty cell. */
-const date = (d?: string) => (d ? formatDate(d) : '');
 
 /** "client" → "Client"; "bank_transfer" → "Bank transfer". */
 const sentence = (s: string) => {
@@ -296,8 +295,8 @@ export function PartyDetailPage() {
       nowrap: true,
       render: a => <StatusChip status={a.status} />,
     },
-    { key: 'start', header: 'Start', nowrap: true, render: a => date(a.startDate) },
-    { key: 'end', header: 'End', nowrap: true, render: a => date(a.endDate) },
+    { key: 'start', header: 'Start', nowrap: true, render: a => formatDate(a.startDate) },
+    { key: 'end', header: 'End', nowrap: true, render: a => formatDate(a.endDate) },
   ];
 
   // ─── Bills ────────────────────────────────────────────────────────
@@ -313,7 +312,7 @@ export function PartyDetailPage() {
       : '';
 
   const billColumns: Column<Bill>[] = [
-    { key: 'date', header: 'Date', nowrap: true, render: b => date(billShownDate(b)) },
+    { key: 'date', header: 'Date', nowrap: true, render: b => formatDate(billShownDate(b)) },
     { key: 'billNumber', header: 'Bill', nowrap: true, render: billLink },
     {
       key: 'agreement',
@@ -349,7 +348,7 @@ export function PartyDetailPage() {
     ) : null;
 
   const paymentColumns: Column<Payment>[] = [
-    { key: 'date', header: 'Date', nowrap: true, render: p => date(p.date) },
+    { key: 'date', header: 'Date', nowrap: true, render: p => formatDate(p.date) },
     {
       key: 'amount',
       header: 'Amount',
@@ -387,8 +386,8 @@ export function PartyDetailPage() {
     <DetailSection title="Details">
       <DetailField label="Code" value={party.code} mono />
       <DetailField label="Roles" value={party.roles.map(sentence).join(', ')} />
-      <DetailField label="Created" value={date(party.createdAt)} />
-      <DetailField label="Updated" value={date(party.updatedAt)} />
+      <DetailField label="Created" value={formatDate(party.createdAt)} />
+      <DetailField label="Updated" value={formatDate(party.updatedAt)} />
     </DetailSection>
   ) : null;
 
@@ -522,8 +521,8 @@ export function PartyDetailPage() {
                         {a.siteCode}
                       </span>,
                       a.endDate
-                        ? `${date(a.startDate)} – ${date(a.endDate)}`
-                        : `From ${date(a.startDate)}`,
+                        ? `${formatDate(a.startDate)} – ${formatDate(a.endDate)}`
+                        : `From ${formatDate(a.startDate)}`,
                     ],
                   }}
                 />
@@ -566,7 +565,7 @@ export function PartyDetailPage() {
                   title: billLink,
                   subtitle: billAgreement,
                   meta: b => [
-                    date(billShownDate(b)),
+                    formatDate(billShownDate(b)),
                     <span key="amount" className="mono">
                       {formatMoney(b.totalAmount)}
                     </span>,
@@ -589,7 +588,7 @@ export function PartyDetailPage() {
                   title: p => <span className="mono">{formatMoney(p.amount)}</span>,
                   badge: p => <StatusChip status={p.status} />,
                   meta: p => [
-                    date(p.date),
+                    formatDate(p.date),
                     sentence(p.method),
                     p.reference && (
                       <span key="ref" className="mono">

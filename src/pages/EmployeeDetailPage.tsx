@@ -14,7 +14,7 @@ import { useGetSalaryBreakdownQuery } from '../api/attendanceApi';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import { MonthNav } from '../components/MonthNav';
 import { Card, RowActions, EmptyState, Spinner, Table, TBody, Td, Tr } from '../components/ui';
-import { formatDate, formatMoney } from '../utils/format';
+import { formatDate, formatMoney, formatMonth } from '../utils/format';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { AttendanceCalendar } from '../components/AttendanceCalendar';
 import { getErrorMessage } from '../api/baseApi';
@@ -81,10 +81,7 @@ export function EmployeeDetailPage() {
   );
   const salary = salaryResponse?.data;
 
-  const salaryMonthLabel = new Date(salaryYear, salaryMonth - 1).toLocaleString('default', {
-    month: 'long',
-    year: 'numeric',
-  });
+  const salaryMonthLabel = formatMonth(salaryYear, salaryMonth);
 
   const isSalaryFutureMonth =
     salaryYear > today.getFullYear() ||

@@ -47,11 +47,6 @@ const BILLING_CYCLE_OPTIONS = [
   { value: 'yearly', label: 'Yearly' },
 ];
 
-/** Display date, or undefined so the field shows "Not added". */
-function displayDate(dateStr: string | undefined): string | undefined {
-  return dateStr ? formatDate(dateStr) : undefined;
-}
-
 /**
  * Extracts the YYYY-MM-DD portion from an ISO date string for date inputs.
  */
@@ -198,7 +193,7 @@ export function AgreementDetailPage() {
         }
       />
       <DetailField label="Site code" value={agreement.siteCode} mono />
-      <DetailField label="Created" value={displayDate(agreement.createdAt)} />
+      <DetailField label="Created" value={formatDate(agreement.createdAt)} />
     </DetailSection>
   ) : null;
 
@@ -379,7 +374,7 @@ export function AgreementDetailPage() {
               <DetailSection title="Period">
                 <DetailField
                   label="Start date"
-                  value={displayDate(agreement.startDate)}
+                  value={formatDate(agreement.startDate)}
                   editable={{
                     rawValue: toDateInputValue(agreement.startDate),
                     inputType: 'date',
@@ -389,7 +384,7 @@ export function AgreementDetailPage() {
                 />
                 <DetailField
                   label="End date"
-                  value={displayDate(agreement.endDate)}
+                  value={formatDate(agreement.endDate)}
                   editable={{
                     rawValue: toDateInputValue(agreement.endDate),
                     inputType: 'date',

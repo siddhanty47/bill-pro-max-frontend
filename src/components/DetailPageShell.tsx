@@ -269,6 +269,14 @@ export interface DetailFieldProps {
 const isEmptyValue = (value: ReactNode) => value === undefined || value === null || value === '';
 
 /**
+ * The muted "Not added" placeholder for an empty value outside a DetailField
+ * (table cells, custom rows). Always the text font, even in a mono cell.
+ */
+export function NotAdded({ children = 'Not added' }: { children?: string }) {
+  return <span className={styles.empty}>{children}</span>;
+}
+
+/**
  * A label/value row: a `<div>` group inside a DetailSection's `<dl>`, or its own
  * `<dl>` elsewhere. With `editable`, the value is an EditableField.
  */

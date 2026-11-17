@@ -3,7 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactElement } from 'react';
-import { DetailField, DetailPageShell, DetailSection } from './DetailPageShell';
+import { DetailField, DetailPageShell, DetailSection, NotAdded } from './DetailPageShell';
 
 /** Reads a CSS module's source (vitest runs from the repo root). */
 async function cssSource(path: string) {
@@ -314,5 +314,21 @@ describe('DetailField', () => {
     expect(lists).toHaveLength(1);
     expect(lists[0].parentElement?.tagName).toBe('DIV');
     expect(screen.getByText('Free text').closest('dl')).toBeNull();
+  });
+});
+
+describe('NotAdded', () => {
+  it('renders the muted placeholder, same class as an empty DetailField', () => {
+    render(
+      <>
+        <NotAdded />
+        <NotAdded>Not set</NotAdded>
+        <DetailField label="Email" value={undefined} />
+      </>
+    );
+    const [standalone, fieldEmpty] = screen.getAllByText('Not added');
+    expect(standalone).toHaveClass('empty');
+    expect(fieldEmpty).toHaveClass('empty');
+    expect(screen.getByText('Not set')).toHaveClass('empty');
   });
 });

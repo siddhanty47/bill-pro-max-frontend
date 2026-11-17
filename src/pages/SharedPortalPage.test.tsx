@@ -314,7 +314,9 @@ describe('SharedPortalPage', () => {
     );
     renderPage();
     expect(await screen.findByText('Link expired')).toBeInTheDocument();
-    expect(screen.getByText(/has expired/)).toBeInTheDocument();
+    expect(
+      screen.getByText('This share link has expired. Ask the business for a new link.')
+    ).toBeInTheDocument();
   });
 
   it('shows the invalid state', async () => {

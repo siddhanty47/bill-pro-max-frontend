@@ -23,6 +23,7 @@ import {
   Spinner,
   type Column,
 } from '../components/ui';
+import { NotAdded } from '../components/DetailPageShell';
 import { formatDate, formatMoney } from '../utils/format';
 import {
   useGetPortalInfoQuery,
@@ -54,7 +55,7 @@ const METHOD_LABELS: Record<string, string> = {
   other: 'Other',
 };
 
-const notAdded = <span className="text-empty">Not added</span>;
+const notAdded = <NotAdded />;
 
 const itemsText = (c: PortalChallan) => c.items.map(i => `${i.itemName} x${i.quantity}`).join(', ');
 const periodText = (b: PortalBill) =>
@@ -183,7 +184,7 @@ export function SharedPortalPage() {
             title={isExpired ? 'Link expired' : 'Invalid link'}
           >
             {isExpired
-              ? 'This share link has expired. Please contact the business for a new link.'
+              ? 'This share link has expired. Ask the business for a new link.'
               : 'This share link is invalid or has been revoked.'}
           </Notice>
         </div>

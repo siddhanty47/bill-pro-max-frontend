@@ -139,9 +139,40 @@ describe('DataTable mobile list', () => {
     expect(within(first).getByText('Paid').parentElement).toHaveClass('badge');
     expect(within(first).getByTestId('lead-1')).toBeInTheDocument();
     expect(within(first).getByText('Mehta Builders')).toHaveClass('subtitle');
-    expect(within(first).getByText('PLOT · 16 Nov · 3 items')).toHaveClass('meta');
+    const meta = first.querySelector('.meta')!;
+    expect(meta).toHaveTextContent('PLOT · 16 Nov · 3 items');
+    // The middle dots are decoration: hidden from assistive tech.
+    const dots = meta.querySelectorAll('[aria-hidden="true"]');
+    expect(dots).toHaveLength(2);
+    dots.forEach(d => expect(d).toHaveTextContent('·'));
     // Empty meta parts are skipped, not joined as blank segments.
     expect(within(second).getByText('3 items')).toHaveClass('meta');
+  });
+
+  it('activates an item with Space (and keeps the page from scrolling)', async () => {
+    const user = userEvent.setup();
+    const onRowClick = vi.fn();
+    render(
+      <DataTable
+        columns={cols}
+        rows={bills}
+        rowKey={b => b.id}
+        mobile={mobile}
+        onRowClick={onRowClick}
+      />
+    );
+    const items = within(screen.getByRole('list')).getAllByRole('listitem');
+    items[0].focus();
+    await user.keyboard(' ');
+    expect(onRowClick).toHaveBeenCalledWith(bills[0]);
+    const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    items[1].dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    // Space inside an action button is the button's own business.
+    onRowClick.mockClear();
+    within(items[1]).getByRole('button', { name: 'Confirm' }).focus();
+    await user.keyboard(' ');
+    expect(onRowClick).not.toHaveBeenCalled();
   });
 
   it('calls onRowClick when an item is tapped or activated with Enter', async () => {
