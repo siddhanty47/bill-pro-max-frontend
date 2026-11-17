@@ -41,7 +41,9 @@ export type MenuProps = {
 
 const MenuContext = createContext<{ close: () => void }>({ close: () => {} });
 
-const ITEM_SELECTOR = '[role="menuitem"]:not([aria-disabled="true"]):not(:disabled)';
+// aria-disabled items stay in the arrow-key order (focusable, so their hint can be read).
+const ITEM_SELECTOR = '[role="menuitem"]:not(:disabled)';
+const ENABLED_ITEM_SELECTOR = '[role="menuitem"]:not([aria-disabled="true"]):not(:disabled)';
 
 export function Menu({
   trigger,
@@ -73,6 +75,8 @@ export function Menu({
     place();
     const onScroll = (e: Event) => {
       if (e.target instanceof Node && menuRef.current?.contains(e.target)) return;
+      // Only pull focus back to the trigger if it was inside the panel.
+      if (menuRef.current?.contains(document.activeElement)) triggerRef.current?.focus();
       setOpen(false);
     };
     window.addEventListener('resize', place);
@@ -85,7 +89,9 @@ export function Menu({
 
   useEffect(() => {
     if (!open) return;
-    const first = menuRef.current?.querySelector<HTMLElement>(ITEM_SELECTOR);
+    const first =
+      menuRef.current?.querySelector<HTMLElement>(ENABLED_ITEM_SELECTOR) ??
+      menuRef.current?.querySelector<HTMLElement>(ITEM_SELECTOR);
     (first ?? menuRef.current)?.focus();
     const onMouseDown = (e: globalThis.MouseEvent) => {
       const target = e.target as Node;
@@ -179,6 +185,8 @@ export function MenuItem({
   const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
     onClick?.(e);
     if (e.defaultPrevented) return;
+    // aria-disabled items are focusable but never activate.
+    if (rest['aria-disabled'] === true || rest['aria-disabled'] === 'true') return;
     onSelect?.();
     close();
   };

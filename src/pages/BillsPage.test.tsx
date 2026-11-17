@@ -306,7 +306,8 @@ describe('BillsPage', () => {
     const item = within(list).getByText('B-2026-27-0001').closest('li') as HTMLElement;
     expect(within(item).getByText('Mehta Builders')).toBeInTheDocument();
     expect(within(item).getByText(/₹1,84,200/)).toBeInTheDocument();
-    expect(within(item).getByText(/Paid ₹50,000/)).toBeInTheDocument();
+    expect(within(item).getByText('₹50,000')).toHaveClass('mono');
+    expect(within(item).getByText(/^Paid/)).toBeInTheDocument();
   });
 
   it('runs a phone-list action without navigating', async () => {

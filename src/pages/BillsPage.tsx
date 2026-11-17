@@ -5,7 +5,7 @@ import { useState, useRef, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
-import { usePlatform } from '../hooks/usePlatform';
+import { shortcutLabel } from '../hooks/usePlatform';
 import {
   useGetBillsQuery,
   useGenerateBillMutation,
@@ -45,7 +45,6 @@ import styles from './BillsPage.module.css';
 
 export function BillsPage() {
   const { currentBusinessId } = useCurrentBusiness();
-  const { modLabel } = usePlatform();
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -298,7 +297,12 @@ export function BillsPage() {
         actions={
           <>
             <Button onClick={handleBulkGenerate}>Bulk generate</Button>
-            <Button variant="primary" icon="plus" hint={`${modLabel}+N`} onClick={handleGenerate}>
+            <Button
+              variant="primary"
+              icon="plus"
+              hint={shortcutLabel('N')}
+              onClick={handleGenerate}
+            >
               Generate bill
             </Button>
           </>
@@ -363,8 +367,8 @@ export function BillsPage() {
                 <span key="amount" className="mono">
                   {formatMoney(bill.totalAmount)}
                 </span>,
-                <span key="paid" className="mono">
-                  Paid {formatMoney(bill.amountPaid)}
+                <span key="paid">
+                  Paid <span className="mono">{formatMoney(bill.amountPaid)}</span>
                 </span>,
                 periodOf(bill),
               ];

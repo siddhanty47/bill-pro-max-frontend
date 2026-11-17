@@ -34,7 +34,7 @@ export function RowActions({ primary, items }: RowActionsProps) {
           {items.map((item, i) => (
             <MenuItem
               key={item.label}
-              disabled={item.disabled}
+              aria-disabled={item.disabled || undefined}
               className={item.tone === 'danger' ? styles.danger : undefined}
               onSelect={item.onClick}
               aria-describedby={item.hint ? `${baseId}-${i}` : undefined}

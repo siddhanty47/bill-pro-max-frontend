@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DataTable, type Column } from './DataTable';
+import { RowActions } from './RowActions';
 
 type Row = { id: string; party: string; amount?: number };
 const rows: Row[] = [
@@ -253,5 +254,54 @@ describe('DataTable mobile list', () => {
     render(<DataTable columns={cols} rows={[]} rowKey={b => b.id} mobile={mobile} />);
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
     expect(screen.getByText('Nothing here yet')).toBeInTheDocument();
+  });
+});
+
+describe('DataTable with RowActions in a clickable row', () => {
+  const onDelete = vi.fn();
+  const onRowClick = vi.fn();
+  const actionCols: Column<Row>[] = [
+    { key: 'party', header: 'Party' },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: () => <RowActions items={[{ label: 'Delete', onClick: onDelete }]} />,
+    },
+  ];
+
+  it('choosing a menu item in the table does not call onRowClick', async () => {
+    const user = userEvent.setup();
+    onDelete.mockClear();
+    onRowClick.mockClear();
+    render(
+      <DataTable columns={actionCols} rows={[rows[0]]} rowKey={r => r.id} onRowClick={onRowClick} />
+    );
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(onRowClick).not.toHaveBeenCalled();
+  });
+
+  it('choosing a menu item in the phone list does not call onRowClick', async () => {
+    const user = userEvent.setup();
+    onDelete.mockClear();
+    onRowClick.mockClear();
+    render(
+      <DataTable
+        columns={actionCols}
+        rows={[rows[0]]}
+        rowKey={r => r.id}
+        onRowClick={onRowClick}
+        mobile={{
+          title: r => r.party,
+          actions: () => <RowActions items={[{ label: 'Delete', onClick: onDelete }]} />,
+        }}
+      />
+    );
+    const list = screen.getByRole('list');
+    await user.click(within(list).getByRole('button', { name: 'More actions' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(onRowClick).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,9 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
+// Pin the timezone before any Date use so date/overdue tests are deterministic.
+process.env.TZ = 'UTC';
+
 // Separate from vite.config.ts so the app build config stays untouched.
 // Layers and rules: see TESTING.md.
 export default defineConfig({

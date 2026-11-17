@@ -5,7 +5,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
-import { usePlatform } from '../hooks/usePlatform';
+import { shortcutLabel } from '../hooks/usePlatform';
 import {
   useGetPartiesQuery,
   useCreatePartyMutation,
@@ -38,7 +38,6 @@ import styles from './PartiesPage.module.css';
 
 export function PartiesPage() {
   const { currentBusinessId } = useCurrentBusiness();
-  const { modLabel } = usePlatform();
   const navigate = useNavigate();
   const [isPartyModalOpen, setIsPartyModalOpen] = useState(false);
   const [isAgreementModalOpen, setIsAgreementModalOpen] = useState(false);
@@ -139,8 +138,6 @@ export function PartiesPage() {
   const siteCount = (party: Party) => party.sites?.length || 0;
   const activeAgreements = (party: Party) =>
     party.agreements?.filter(a => a.status === 'active').length || 0;
-  const sitesLabel = (party: Party) =>
-    `${siteCount(party)} site${siteCount(party) !== 1 ? 's' : ''}`;
 
   const rowActions = (party: Party) => (
     <RowActions
@@ -170,13 +167,14 @@ export function PartiesPage() {
     {
       key: 'sitesAgreements',
       header: 'Sites / Agreements',
-      mono: true,
       align: 'right',
       nowrap: true,
       hideOnMobile: true,
       render: party => (
         <span title={party.sites?.map(s => s.code).join(', ') || 'None'}>
-          {sitesLabel(party)} / {activeAgreements(party)} active
+          <span className="mono">{siteCount(party)}</span>{' '}
+          {siteCount(party) === 1 ? 'site' : 'sites'} /{' '}
+          <span className="mono">{activeAgreements(party)}</span> active
         </span>
       ),
     },
@@ -206,7 +204,7 @@ export function PartiesPage() {
       <PageHeader
         title="Parties"
         actions={
-          <Button variant="primary" icon="plus" hint={`${modLabel}+N`} onClick={handleAddParty}>
+          <Button variant="primary" icon="plus" hint={shortcutLabel('N')} onClick={handleAddParty}>
             Add party
           </Button>
         }

@@ -4,11 +4,11 @@
  *   - Manage employees: full employee CRUD with DataTable, search, and filters
  *   - Invite: members list, pending invitations, invite modal
  */
-import { useState, useRef } from 'react';
+import { useState, useRef, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
-import { usePlatform } from '../hooks/usePlatform';
+import { shortcutLabel } from '../hooks/usePlatform';
 import { useGetMembersQuery } from '../api/memberApi';
 import { useGetInvitationsQuery } from '../api/invitationApi';
 import {
@@ -70,19 +70,27 @@ function formatEmployeeType(type: EmployeeType): string {
   return type.charAt(0).toUpperCase() + type.slice(1);
 }
 
-function salaryLabel(e: Employee): string {
+/** Amount in mono, unit as plain text; null when the employee has no salary set. */
+function salaryCell(e: Employee): ReactNode {
   if (e.salaryType === 'monthly' && e.monthlySalary != null) {
-    return `${formatMoney(e.monthlySalary)} / month`;
+    return (
+      <>
+        <span className="mono">{formatMoney(e.monthlySalary)}</span> / month
+      </>
+    );
   }
   if (e.salaryType === 'daily' && e.dailyRate != null) {
-    return `${formatMoney(e.dailyRate)} / day`;
+    return (
+      <>
+        <span className="mono">{formatMoney(e.dailyRate)}</span> / day
+      </>
+    );
   }
-  return '';
+  return null;
 }
 
 export function TeamPage() {
   const { currentBusiness } = useCurrentBusiness();
-  const { modLabel } = usePlatform();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('employees');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -213,10 +221,9 @@ export function TeamPage() {
     {
       key: 'salary',
       header: 'Salary',
-      mono: true,
       align: 'right',
       nowrap: true,
-      render: e => salaryLabel(e) || '—',
+      render: e => salaryCell(e) ?? '—',
     },
     {
       key: 'status',
@@ -239,7 +246,7 @@ export function TeamPage() {
             <Button
               variant="primary"
               icon="plus"
-              hint={`${modLabel}+N`}
+              hint={shortcutLabel('N')}
               onClick={handleAddEmployee}
             >
               Add employee
@@ -328,9 +335,7 @@ export function TeamPage() {
                     meta: e => [
                       e.phone,
                       formatEmployeeType(e.type),
-                      <span key="salary" className="mono">
-                        {salaryLabel(e)}
-                      </span>,
+                      <span key="salary">{salaryCell(e)}</span>,
                     ],
                     actions: actionsCell,
                   }}

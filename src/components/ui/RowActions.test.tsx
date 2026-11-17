@@ -38,7 +38,7 @@ describe('RowActions', () => {
     );
     await user.click(screen.getByRole('button', { name: 'More actions' }));
     const item = screen.getByRole('menuitem', { name: 'Delete' });
-    expect(item).toBeDisabled();
+    expect(item).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByText('Items are rented')).toBeVisible();
     expect(item).toHaveAccessibleDescription('Items are rented');
   });
@@ -53,7 +53,7 @@ describe('RowActions', () => {
     );
     await user.click(screen.getByRole('button', { name: 'More actions' }));
     const item = screen.getByRole('menuitem', { name: 'Delete' });
-    expect(item).toBeDisabled();
+    expect(item).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByText('In use')).toBeVisible();
     await user.click(item);
     expect(onClick).not.toHaveBeenCalled();
@@ -65,7 +65,13 @@ describe('RowActions', () => {
     const onClick = vi.fn();
     render(<RowActions items={[{ label: 'Download', onClick, disabled: true }]} />);
     await user.click(screen.getByRole('button', { name: 'More actions' }));
-    await user.click(screen.getByRole('menuitem', { name: 'Download' }));
+    const item = screen.getByRole('menuitem', { name: 'Download' });
+    await user.click(item);
+    expect(onClick).not.toHaveBeenCalled();
+    item.focus();
+    expect(item).toHaveFocus();
+    await user.keyboard('{Enter}');
+    await user.keyboard(' ');
     expect(onClick).not.toHaveBeenCalled();
   });
 

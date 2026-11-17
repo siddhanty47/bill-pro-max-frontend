@@ -2,7 +2,6 @@
  * Dashboard page with summary stats
  */
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useGetInventoryStatsQuery } from '../api/inventoryApi';
 import { useGetPartiesQuery } from '../api/partyApi';
@@ -29,7 +28,6 @@ import type { Bill, CreateBusinessInput } from '../types';
 import styles from './DashboardPage.module.css';
 
 const MAX_OVERDUE_ROWS = 5;
-const DAY_MS = 86_400_000;
 
 /** `Monday, 16 November` */
 function todayLabel(): string {
@@ -39,8 +37,13 @@ function todayLabel(): string {
   return `${weekday}, ${now.getDate()} ${month}`;
 }
 
+/** Calendar days past due (local midnight to local midnight), at least 1 for an overdue bill. */
 function daysOverdue(bill: Bill): number {
-  return Math.max(0, Math.floor((Date.now() - new Date(bill.dueDate).getTime()) / DAY_MS));
+  const due = new Date(bill.dueDate);
+  const now = new Date();
+  const dueDay = Date.UTC(due.getFullYear(), due.getMonth(), due.getDate());
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.max(1, Math.round((today - dueDay) / 86_400_000));
 }
 
 function overdueLabel(bill: Bill): string {
@@ -145,7 +148,7 @@ export function DashboardPage() {
     {
       key: 'dueDate',
       header: 'Due',
-      mono: true,
+      nowrap: true,
       hideOnMobile: true,
       render: b => formatDate(b.dueDate),
     },
@@ -154,11 +157,13 @@ export function DashboardPage() {
       header: 'Amount',
       mono: true,
       align: 'right',
+      nowrap: true,
       render: b => formatMoney(b.totalAmount),
     },
     {
       key: 'status',
       header: 'Status',
+      nowrap: true,
       render: b => <StatusChip status="overdue">{overdueLabel(b)}</StatusChip>,
     },
   ];
@@ -209,7 +214,11 @@ export function DashboardPage() {
           title="Overdue bills"
           count={overdueBills?.length}
           countTone="danger"
-          actions={<Link to="/bills">All bills →</Link>}
+          actions={
+            <Button variant="ghost" size="sm" to="/bills">
+              All bills →
+            </Button>
+          }
         >
           <DataTable
             aria-label="Overdue bills"

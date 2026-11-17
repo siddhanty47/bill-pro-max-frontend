@@ -130,6 +130,13 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('link', { name: /All bills/ })).toHaveAttribute('href', '/bills');
   });
 
+  it('counts an overdue bill under 24h as 1 day', async () => {
+    useApi({ overdue: [bill({ dueDate: daysAgo(0.25) })] });
+    renderPage();
+    const table = await screen.findByRole('table');
+    expect(within(table).getByText('1 day')).toBeInTheDocument();
+  });
+
   it('shows at most 5 overdue rows and hides the party column when no party is found', async () => {
     const many = Array.from({ length: 7 }, (_, i) =>
       bill({ _id: `o${i}`, billNumber: `OV-${i}`, partyId: 'ghost' })

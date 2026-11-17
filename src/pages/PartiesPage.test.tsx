@@ -93,11 +93,15 @@ describe('PartiesPage', () => {
     expect(within(acme).getByText('Client')).toBeInTheDocument();
     expect(within(acme).getByText('Ravi Shah')).toBeInTheDocument();
     expect(within(acme).getByText('9876543210')).toBeInTheDocument();
-    expect(within(acme).getByText('2 sites / 1 active')).toHaveAttribute('title', 'S1, S2');
+    const counts = within(acme).getByTitle('S1, S2');
+    expect(counts).toHaveTextContent('2 sites / 1 active');
+    expect(within(counts).getByText('2')).toHaveClass('mono');
     expect(within(acme).getByText('Active')).toBeInTheDocument();
     const steel = within(table).getByRole('row', { name: /STEEL/ });
     expect(within(steel).getByText('Supplier, Client')).toBeInTheDocument();
-    expect(within(steel).getByText('1 site / 0 active')).toBeInTheDocument();
+    expect(within(steel).getByText('site', { exact: false })).toHaveTextContent(
+      '1 site / 0 active'
+    );
     expect(within(steel).getByText('Inactive')).toBeInTheDocument();
   });
 

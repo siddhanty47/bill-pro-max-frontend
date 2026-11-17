@@ -179,6 +179,8 @@ describe('PaymentsPage', () => {
     expect(within(item).getByText('Om Constructions')).toBeInTheDocument();
     expect(item).toHaveTextContent(/Paid.*4 May 2020.*Cash/);
     expect(within(item).getByText('Completed')).toBeInTheDocument();
+    const withRef = within(list).getAllByRole('listitem')[0];
+    expect(within(withRef).getByText('UTR123')).toHaveClass('mono');
   });
 
   it('shows an error and retries', async () => {

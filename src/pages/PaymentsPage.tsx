@@ -5,7 +5,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
-import { usePlatform } from '../hooks/usePlatform';
+import { shortcutLabel } from '../hooks/usePlatform';
 import { useGetPaymentsQuery, useCreatePaymentMutation } from '../api/paymentApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetBillsQuery } from '../api/billApi';
@@ -44,7 +44,6 @@ const typeLabel = (p: Payment) => (p.type === 'receivable' ? 'Received' : 'Paid'
 export function PaymentsPage() {
   const { currentBusinessId } = useCurrentBusiness();
   const navigate = useNavigate();
-  const { modLabel } = usePlatform();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -165,7 +164,7 @@ export function PaymentsPage() {
       <PageHeader
         title="Payments"
         actions={
-          <Button variant="primary" icon="plus" hint={`${modLabel}+N`} onClick={handleCreate}>
+          <Button variant="primary" icon="plus" hint={shortcutLabel('N')} onClick={handleCreate}>
             Record payment
           </Button>
         }
@@ -230,8 +229,18 @@ export function PaymentsPage() {
             title: p => <span className="mono">{formatMoney(p.amount)}</span>,
             badge: p => <StatusChip status={p.status} />,
             subtitle: p => getPartyName(p.partyId),
-            meta: p => [typeLabel(p), formatDate(p.date), METHOD_LABELS[p.method] ?? p.method],
-            actionsPlacement: 'trailing',
+            meta: p => [
+              typeLabel(p),
+              formatDate(p.date),
+              METHOD_LABELS[p.method] ?? p.method,
+              p.reference ? (
+                <span key="reference" className="mono">
+                  {p.reference}
+                </span>
+              ) : (
+                ''
+              ),
+            ],
           }}
         />
       </Card>

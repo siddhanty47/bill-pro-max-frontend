@@ -249,6 +249,45 @@ describe('Menu portal and placement', () => {
     await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
   });
 
+  it('returns focus to the trigger on scroll only when focus was inside the panel', async () => {
+    const { user, trigger } = setup();
+    await user.click(trigger);
+    expect(screen.getByRole('menuitem', { name: 'Profile' })).toHaveFocus();
+    fireEvent.scroll(window);
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+
+    await user.click(trigger);
+    screen.getByText('Outside').setAttribute('tabindex', '-1');
+    screen.getByText('Outside').focus();
+    fireEvent.scroll(window);
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+    expect(trigger).not.toHaveFocus();
+  });
+
+  it('keeps aria-disabled items focusable but inert', async () => {
+    const onSelect = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <Menu trigger={p => <button {...p}>Open</button>}>
+        <MenuItem aria-disabled="true" onSelect={onSelect}>
+          Locked
+        </MenuItem>
+        <MenuItem onSelect={onSelect}>Open item</MenuItem>
+      </Menu>
+    );
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    const locked = screen.getByRole('menuitem', { name: 'Locked' });
+    // Initial focus skips the disabled item, arrows can still reach it.
+    expect(screen.getByRole('menuitem', { name: 'Open item' })).toHaveFocus();
+    await user.keyboard('{ArrowUp}');
+    expect(locked).toHaveFocus();
+    await user.keyboard('{Enter}');
+    await user.click(locked);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+  });
+
   it('repositions on resize', async () => {
     const { user, trigger } = setup();
     await user.click(trigger);

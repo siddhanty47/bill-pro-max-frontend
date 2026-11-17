@@ -145,6 +145,7 @@
   --z-popover: 150;
   --z-panel: 200;
   --z-modal: 300;
+  --z-menu: 400;
 
   color-scheme: dark;
 }

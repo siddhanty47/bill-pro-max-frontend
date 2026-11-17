@@ -5,7 +5,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
-import { usePlatform } from '../hooks/usePlatform';
+import { shortcutLabel } from '../hooks/usePlatform';
 import { useAuth } from '../hooks/useAuth';
 import {
   useGetChallansQuery,
@@ -67,8 +67,6 @@ export function ChallansPage() {
   const { currentBusinessId } = useCurrentBusiness();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { modLabel, isMac } = usePlatform();
-  const hint = (key: string) => `${modLabel}${isMac ? '' : '+'}${key}`;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalVariant, setModalVariant] = useState<ModalVariant>('delivery');
   const [searchTerm, setSearchTerm] = useState('');
@@ -192,18 +190,38 @@ export function ChallansPage() {
     },
     { key: 'partyId', header: 'Party', render: c => getPartyName(c.partyId) },
     { key: 'siteCode', header: 'Site', hideOnMobile: true, render: c => getSiteCode(c) },
-    { key: 'date', header: 'Date', hideOnMobile: true, render: c => formatDate(c.date) },
+    {
+      key: 'date',
+      header: 'Date',
+      hideOnMobile: true,
+      nowrap: true,
+      render: c => formatDate(c.date),
+    },
     {
       key: 'items',
       header: 'Items',
       mono: true,
       align: 'right',
+      nowrap: true,
       hideOnMobile: true,
       render: c => c.items.length,
     },
-    { key: 'status', header: 'Status', render: c => <StatusChip status={c.status} /> },
+    {
+      key: 'status',
+      header: 'Status',
+      nowrap: true,
+      render: c => <StatusChip status={c.status} />,
+    },
     ...(hasDraftChallans
-      ? [{ key: 'actions', header: 'Actions', render: confirmButton } as Column<Challan>]
+      ? [
+          {
+            key: 'actions',
+            header: 'Actions',
+            align: 'right',
+            nowrap: true,
+            render: confirmButton,
+          } as Column<Challan>,
+        ]
       : []),
   ];
 
@@ -225,10 +243,10 @@ export function ChallansPage() {
         title="Challans"
         actions={
           <>
-            <Button dot="info" hint={hint('D')} onClick={handleCreateDelivery}>
+            <Button dot="info" hint={shortcutLabel('D')} onClick={handleCreateDelivery}>
               New delivery
             </Button>
-            <Button dot="warning" hint={hint('R')} onClick={handleCreateReturn}>
+            <Button dot="warning" hint={shortcutLabel('R')} onClick={handleCreateReturn}>
               New return
             </Button>
           </>

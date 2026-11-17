@@ -50,7 +50,7 @@ The landing page (billpromax.com), "calm workspace" variant: near-black surfaces
 
 **Layout:** `--header-height 56` · `--sidebar-width 232` · `--content-max 1200` · `--page-pad 40` (16 at ≤768).
 
-**Z-index:** `--z-sticky 10` · `--z-sidebar-overlay 99` · `--z-sidebar 100` · `--z-popover 150` · `--z-panel 200` · `--z-modal 300`. Use the token, never a raw number.
+**Z-index:** `--z-sticky 10` · `--z-sidebar-overlay 99` · `--z-sidebar 100` · `--z-popover 150` · `--z-panel 200` · `--z-modal 300` · `--z-menu 400` (portalled Menu panels, above Modal). Use the token, never a raw number.
 
 ## Component catalogue (`src/components/ui`)
 
@@ -119,7 +119,7 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
 
 ### Menus
 
-- **`Menu`** — `trigger: (props) => ReactNode` (spread `props` onto a `Button` or `IconButton`; it carries `onClick`, `aria-expanded`, `aria-haspopup`, `aria-controls` and the ref) · `align?: 'start' | 'end'` (default `end`) · `className?` (on the root wrapper around trigger + panel — placement only) · `menuClassName?` (on the `role="menu"` panel) · other native div props (go to the panel, e.g. `aria-label`) · `children`. The panel is portalled to `document.body` and fixed-positioned from the trigger (flips above when there is no room below; closes on scroll, repositions on resize), so table wrappers and cards never clip it; its z-index is `--z-popover` (below `--z-modal`). Closes on outside click, Escape and Tab; returns focus to the trigger; arrow keys, Home and End move between items (ArrowUp with nothing focused → last item). Escape is `preventDefault`ed, so a Menu inside a `Modal` closes only the Menu. At ≤480 the panel spans the viewport width (16px gutters) under the trigger.
+- **`Menu`** — `trigger: (props) => ReactNode` (spread `props` onto a `Button` or `IconButton`; it carries `onClick`, `aria-expanded`, `aria-haspopup`, `aria-controls` and the ref) · `align?: 'start' | 'end'` (default `end`) · `className?` (on the root wrapper around trigger + panel — placement only) · `menuClassName?` (on the `role="menu"` panel) · other native div props (go to the panel, e.g. `aria-label`) · `children`. The panel is portalled to `document.body` and fixed-positioned from the trigger (flips above when there is no room below; closes on scroll, repositions on resize), so table wrappers and cards never clip it; its z-index is `--z-menu` (above `--z-modal`, so a menu opened inside a Modal shows over it). Closes on outside click, Escape and Tab; returns focus to the trigger; arrow keys, Home and End move between items (ArrowUp with nothing focused → last item). Escape is `preventDefault`ed, so a Menu inside a `Modal` closes only the Menu. At ≤480 the panel spans the viewport width (16px gutters) under the trigger.
 - **`MenuItem`** — `onSelect?` (or `to?` for a router link) · native button props. Closes the menu after select. **`MenuLabel`** (small heading inside a menu), **`MenuDivider`**.
   ```tsx
   <Menu trigger={p => <IconButton label="More actions" icon="menu" {...p} />}>

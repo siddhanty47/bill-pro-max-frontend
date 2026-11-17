@@ -167,7 +167,6 @@ export function AgreementsPage() {
             badge: a => <StatusChip status={a.status} />,
             subtitle: a => a.partyName,
             meta: a => [a.siteCode || '', dateOf(a.startDate)],
-            actionsPlacement: 'trailing',
           }}
         />
       </Card>

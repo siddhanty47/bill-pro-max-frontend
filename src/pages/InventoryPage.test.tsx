@@ -290,7 +290,7 @@ describe('InventoryPage', () => {
     const table = await screen.findByRole('table');
     await user.click(within(table).getByRole('button', { name: 'More actions' }));
     const del = screen.getByRole('menuitem', { name: 'Delete' });
-    expect(del).toBeDisabled();
+    expect(del).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByText('Items are currently rented')).toBeVisible();
     expect(del).toHaveAccessibleDescription('Items are currently rented');
   });

@@ -5,7 +5,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
-import { usePlatform } from '../hooks/usePlatform';
+import { shortcutLabel } from '../hooks/usePlatform';
 import {
   useGetInventoryQuery,
   useCreateInventoryMutation,
@@ -37,7 +37,6 @@ import { computeRentedFromHistory, computeAvailable } from '../utils/inventoryUt
 
 export function InventoryPage() {
   const { currentBusinessId } = useCurrentBusiness();
-  const { modLabel } = usePlatform();
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportPresetOpen, setIsImportPresetOpen] = useState(false);
@@ -188,7 +187,7 @@ export function InventoryPage() {
           <>
             <Button onClick={() => setIsImportPresetOpen(true)}>Import preset</Button>
             <Button onClick={() => setIsCreatePresetOpen(true)}>Create preset</Button>
-            <Button variant="primary" icon="plus" hint={`${modLabel}+N`} onClick={handleAdd}>
+            <Button variant="primary" icon="plus" hint={shortcutLabel('N')} onClick={handleAdd}>
               Add item
             </Button>
           </>

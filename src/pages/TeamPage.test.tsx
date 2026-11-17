@@ -109,10 +109,11 @@ describe('TeamPage', () => {
     renderPage();
     await screen.findByRole('table');
     const rows = within(screen.getByRole('table')).getAllByRole('row');
-    expect(within(rows[1]).getByText('₹25,000 / month')).toBeInTheDocument();
+    expect(within(rows[1]).getByText('₹25,000')).toHaveClass('mono');
+    expect(within(rows[1]).getByText(/\/ month/)).not.toHaveClass('mono');
     expect(within(rows[1]).getByText('Worker')).toBeInTheDocument();
     expect(within(rows[1]).getByText('Active')).toBeInTheDocument();
-    expect(within(rows[2]).getByText('₹850 / day')).toBeInTheDocument();
+    expect(within(rows[2]).getByText('₹850')).toHaveClass('mono');
     expect(within(rows[2]).getByText('Inactive')).toBeInTheDocument();
     expect(within(rows[3]).getAllByText('—').length).toBeGreaterThan(0);
   });
