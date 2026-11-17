@@ -49,7 +49,7 @@ describe('ChangeHistoryTable', () => {
   it('shows an empty message when there is no history', async () => {
     server.use(http.get(apiUrl(HISTORY), () => page([])));
     renderTable();
-    expect(await screen.findByText('No change history available.')).toBeInTheDocument();
+    expect(await screen.findByText('No changes yet')).toBeInTheDocument();
   });
 
   it('renders created, updated and deleted entries with status badges', async () => {
@@ -78,21 +78,22 @@ describe('ChangeHistoryTable', () => {
     );
     renderTable();
 
-    expect(await screen.findByText('Document created')).toBeInTheDocument();
-    expect(screen.getByText('Document updated')).toBeInTheDocument();
-    expect(screen.getByText('Document deleted')).toBeInTheDocument();
-    expect(screen.getByText('Total Amount')).toBeInTheDocument();
-    expect(screen.getByText('Meta > site')).toBeInTheDocument();
-    expect(screen.getByText('Paid early')).toBeInTheDocument();
-    expect(screen.getByText('[2 items]')).toBeInTheDocument();
-    expect(screen.getByText('{"a":1}')).toBeInTheDocument();
-    expect(screen.getByText('2h ago')).toBeInTheDocument();
-    expect(screen.getAllByText('just now').length).toBeGreaterThan(0);
-
-    const updated = screen.getAllByText('updated');
-    expect(updated[0]).toHaveClass('status', 'status-pending');
-    expect(screen.getByText('created')).toHaveClass('status', 'status-active');
-    expect(screen.getByText('deleted')).toHaveClass('status', 'status-cancelled');
+    expect((await screen.findAllByText('Document created')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Document updated').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Document deleted').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Total amount').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Meta > site').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Paid early').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('2 items').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('{"a":1}').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Not set').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/^2 Jan/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Yes').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Created').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Updated').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Deleted').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/1 Jan 2020, /)[0]).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: 'Change history' })).toBeInTheDocument();
   });
 
   it('pages through history', async () => {

@@ -5,9 +5,10 @@
 import { useState } from 'react';
 import { useGetAuditHistoryQuery } from '../api/auditLogApi';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
-import { LoadingSpinner } from './LoadingSpinner';
-import { ErrorMessage } from './ErrorMessage';
-import type { AuditFieldChange } from '../types';
+import { Button, DataTable, EmptyState, ErrorMessage, Spinner, StatusChip } from './ui';
+import type { Column } from './ui';
+import { formatDate } from '../utils/format';
+import type { AuditFieldChange, AuditLogEntry } from '../types';
 import styles from './ChangeHistoryTable.module.css';
 
 interface ChangeHistoryTableProps {
@@ -17,30 +18,13 @@ interface ChangeHistoryTableProps {
 
 const PAGE_SIZE = 15;
 
-/**
- * Format a date string as relative time (e.g. "2 hours ago")
- */
-function timeAgo(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diffMs = now - then;
-  const seconds = Math.floor(diffMs / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (days > 30) return new Date(dateStr).toLocaleDateString();
-  if (days > 0) return `${days}d ago`;
-  if (hours > 0) return `${hours}h ago`;
-  if (minutes > 0) return `${minutes}m ago`;
-  return 'just now';
-}
-
-/**
- * Format a full date for tooltip
- */
-function formatFullDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleString();
+/** Date plus time, e.g. "17 Nov, 3:45 pm" — the time matters for audit entries. */
+function formatWhen(dateStr: string): string {
+  const date = new Date(dateStr);
+  const time = date
+    .toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })
+    .toLowerCase();
+  return `${formatDate(date)}, ${time}`;
 }
 
 /**
@@ -50,44 +34,75 @@ function humanizeField(field: string): string {
   return field
     .replace(/\./g, ' > ')
     .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, s => s.toUpperCase())
-    .trim();
+    .trim()
+    .toLowerCase()
+    .replace(/^./, c => c.toUpperCase());
 }
 
-/**
- * Format a value for display
- */
-function formatValue(val: unknown): string {
-  if (val === null || val === undefined) return 'empty';
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+type Shown = { text: string; empty: boolean; numeric: boolean };
+
+/** Format a value for display; empty values show as "Not set". */
+function formatValue(val: unknown): Shown {
+  const empty = { text: 'Not set', empty: true, numeric: false };
+  if (val === null || val === undefined || val === '') return empty;
+  if (typeof val === 'boolean') return { text: val ? 'Yes' : 'No', empty: false, numeric: false };
+  if (typeof val === 'number') return { text: String(val), empty: false, numeric: true };
   if (typeof val === 'string') {
-    // Try to detect ISO date strings
     if (/^\d{4}-\d{2}-\d{2}T/.test(val)) {
-      return new Date(val).toLocaleDateString();
+      return { text: formatDate(val), empty: false, numeric: false };
     }
-    return val || 'empty';
+    return { text: val, empty: false, numeric: false };
   }
-  if (typeof val === 'number') return String(val);
-  if (Array.isArray(val)) return `[${val.length} items]`;
-  if (typeof val === 'object') return JSON.stringify(val);
-  return String(val);
+  if (Array.isArray(val)) return { text: `${val.length} items`, empty: false, numeric: false };
+  return { text: JSON.stringify(val), empty: false, numeric: false };
 }
 
-/**
- * Get CSS class for action badge
- */
-function actionBadgeClass(action: string): string {
-  switch (action) {
-    case 'created':
-      return 'status status-active';
-    case 'updated':
-      return 'status status-pending';
-    case 'deleted':
-      return 'status status-cancelled';
-    default:
-      return 'status';
-  }
+function Value({ val, className }: { val: unknown; className: string }) {
+  const { text, empty, numeric } = formatValue(val);
+  const cls = [empty ? styles.notSet : className, numeric ? styles.num : ''].filter(Boolean);
+  return <span className={cls.join(' ')}>{text}</span>;
 }
+
+function summaryOf(entry: AuditLogEntry): string {
+  if (entry.action === 'created') return 'Document created';
+  if (entry.action === 'deleted') return 'Document deleted';
+  if (entry.changes.length === 0) return 'Document updated';
+  return entry.changes.map(c => humanizeField(c.field)).join(', ');
+}
+
+function Changes({ entry }: { entry: AuditLogEntry }) {
+  if (entry.action !== 'updated' || entry.changes.length === 0) {
+    return <span className={styles.summary}>{summaryOf(entry)}</span>;
+  }
+  return (
+    <span className={styles.changes}>
+      {entry.changes.map((change: AuditFieldChange, i: number) => (
+        <span key={i} className={styles.change}>
+          <span className={styles.field}>{humanizeField(change.field)}</span>
+          <Value val={change.oldValue} className={styles.old} />
+          <span className={styles.arrow} aria-hidden="true">
+            &rarr;
+          </span>
+          <Value val={change.newValue} className={styles.new} />
+        </span>
+      ))}
+    </span>
+  );
+}
+
+const COLUMNS: Column<AuditLogEntry>[] = [
+  {
+    key: 'when',
+    header: 'When',
+    nowrap: true,
+    render: e => (
+      <span title={new Date(e.createdAt).toLocaleString()}>{formatWhen(e.createdAt)}</span>
+    ),
+  },
+  { key: 'who', header: 'Who', nowrap: true, render: e => e.performedBy.name },
+  { key: 'action', header: 'Action', render: e => <StatusChip status={e.action} /> },
+  { key: 'changes', header: 'Changes', render: e => <Changes entry={e} /> },
+];
 
 export default function ChangeHistoryTable({ documentType, documentId }: ChangeHistoryTableProps) {
   const { currentBusinessId } = useCurrentBusiness();
@@ -104,82 +119,39 @@ export default function ChangeHistoryTable({ documentType, documentId }: ChangeH
     { skip: !currentBusinessId }
   );
 
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading) return <Spinner />;
   if (error) return <ErrorMessage error={error} onRetry={refetch} />;
-  if (!data || data.data.length === 0) {
-    return <p className="text-empty">No change history available.</p>;
-  }
+  if (!data || data.data.length === 0) return <EmptyState title="No changes yet" />;
 
   const { pagination } = data;
 
   return (
-    <div className={styles.wrap}>
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th>When</th>
-            <th>Who</th>
-            <th>Action</th>
-            <th>Changes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.data.map(entry => (
-            <tr key={entry._id}>
-              <td className="text-nowrap" title={formatFullDate(entry.createdAt)}>
-                {timeAgo(entry.createdAt)}
-              </td>
-              <td className="text-nowrap">{entry.performedBy.name}</td>
-              <td>
-                <span className={actionBadgeClass(entry.action)}>{entry.action}</span>
-              </td>
-              <td>
-                {entry.action === 'created' && (
-                  <span className={styles.summaryText}>Document created</span>
-                )}
-                {entry.action === 'deleted' && (
-                  <span className={styles.summaryText}>Document deleted</span>
-                )}
-                {entry.action === 'updated' && entry.changes.length > 0 && (
-                  <div className={styles.changesList}>
-                    {entry.changes.map((change: AuditFieldChange, i: number) => (
-                      <div key={i} className={styles.changeRow}>
-                        <span className={styles.fieldName}>{humanizeField(change.field)}</span>
-                        <span className={styles.oldValue}>{formatValue(change.oldValue)}</span>
-                        <span className={styles.arrow}>&rarr;</span>
-                        <span className={styles.newValue}>{formatValue(change.newValue)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {entry.action === 'updated' && entry.changes.length === 0 && (
-                  <span className={styles.summaryText}>Document updated</span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div>
+      <DataTable
+        aria-label="Change history"
+        columns={COLUMNS}
+        rows={data.data}
+        rowKey={e => e._id}
+        mobile={{
+          title: e => summaryOf(e),
+          badge: e => <StatusChip status={e.action} />,
+          subtitle: e =>
+            e.action === 'updated' && e.changes.length > 0 ? <Changes entry={e} /> : null,
+          meta: e => [e.performedBy.name, formatWhen(e.createdAt)],
+        }}
+      />
 
       {pagination.totalPages > 1 && (
-        <div className={styles.pagination}>
-          <button
-            className="btn btn-secondary"
-            disabled={!pagination.hasPrev}
-            onClick={() => setPage(p => p - 1)}
-          >
+        <div className={styles.pager}>
+          <Button disabled={!pagination.hasPrev} onClick={() => setPage(p => p - 1)}>
             Previous
-          </button>
+          </Button>
           <span className={styles.pageInfo}>
             Page {pagination.page} of {pagination.totalPages}
           </span>
-          <button
-            className="btn btn-secondary"
-            disabled={!pagination.hasNext}
-            onClick={() => setPage(p => p + 1)}
-          >
+          <Button disabled={!pagination.hasNext} onClick={() => setPage(p => p + 1)}>
             Next
-          </button>
+          </Button>
         </div>
       )}
     </div>
