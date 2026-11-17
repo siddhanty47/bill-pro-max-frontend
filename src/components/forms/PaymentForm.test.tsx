@@ -105,6 +105,15 @@ describe('PaymentForm', () => {
     const { user, onSubmit } = setup();
     await user.click(screen.getByRole('button', { name: /^record payment$/i }));
     expect(await screen.findByText('Select a party')).toBeInTheDocument();
+    expect(screen.getByText('Enter an amount')).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('rejects a zero amount with the positive-amount message', async () => {
+    const { user, onSubmit } = setup();
+    await user.type(screen.getByLabelText(/^amount/i), '0');
+    await user.click(screen.getByRole('button', { name: /^record payment$/i }));
+    expect(await screen.findByText('Amount must be positive')).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 

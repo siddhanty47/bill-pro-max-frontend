@@ -14,7 +14,7 @@ const paymentSchema = z.object({
   type: z.enum(['receivable', 'payable']),
   partyId: z.string().min(1, 'Select a party'),
   billId: z.string().optional(),
-  amount: z.number().min(0.01, 'Amount must be positive'),
+  amount: z.number({ error: 'Enter an amount' }).min(0.01, 'Amount must be positive'),
   method: z.enum(['cash', 'bank_transfer', 'upi', 'cheque', 'other']),
   reference: z.string().max(100).optional(),
   date: z.string().min(1, 'Date is required'),

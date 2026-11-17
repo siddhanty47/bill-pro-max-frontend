@@ -54,3 +54,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.gstInput::placeholder {
+  text-transform: none;
+}

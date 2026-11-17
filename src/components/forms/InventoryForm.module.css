@@ -57,3 +57,7 @@
     align-items: stretch;
   }
 }
+
+.uppercaseInput::placeholder {
+  text-transform: none;
+}
