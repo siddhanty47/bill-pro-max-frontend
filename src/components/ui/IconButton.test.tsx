@@ -36,6 +36,20 @@ describe('IconButton', () => {
     expect(button.querySelector('svg')).toHaveAttribute('width', '14');
   });
 
+  it('keeps sm at 24px with a 44px hit area on phones, and danger filled on every size', async () => {
+    const fs = (await import(/* @vite-ignore */ 'node:fs' as string)) as {
+      readFileSync(path: string, encoding: 'utf8'): string;
+    };
+    const css = fs.readFileSync('src/components/ui/IconButton.module.css', 'utf8');
+    const phone = css.slice(css.lastIndexOf('@media (max-width: 768px)'));
+    // The phone 44px rule must not beat sm: sm is re-asserted after it with higher specificity.
+    expect(phone).toMatch(/\.iconBtn\.sm\s*\{[^}]*width:\s*24px;[^}]*height:\s*24px/);
+    expect(css).toMatch(/\.iconBtn\.sm::before\s*\{[^}]*width:\s*44px/);
+    // danger is declared after sm and is as specific, so it keeps its fill.
+    expect(css.indexOf('.iconBtn.danger')).toBeGreaterThan(css.indexOf('.iconBtn.sm {'));
+    expect(css).not.toMatch(/^\.sm\b/m);
+  });
+
   it('uses the regular size by default', () => {
     render(<IconButton label="Remove" icon="close" />);
     const button = screen.getByRole('button', { name: 'Remove' });

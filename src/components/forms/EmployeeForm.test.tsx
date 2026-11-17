@@ -53,6 +53,16 @@ describe('EmployeeForm', () => {
     });
   });
 
+  it('rejects a negative salary with a message and does not submit', async () => {
+    const { user, onSubmit } = setup();
+    await user.type(screen.getByLabelText(/^name/i, { selector: '#emp-name' }), 'Anil');
+    await chooseSalary(user, 'Monthly');
+    await user.type(screen.getByLabelText(/monthly salary/i), '-5');
+    await user.click(screen.getByRole('button', { name: /^add employee$/i }));
+    expect(await screen.findByText('Enter 0 or more')).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it('submits a daily rate and drops the monthly one', async () => {
     const { user, onSubmit } = setup();
     await user.type(screen.getByLabelText(/^name/i, { selector: '#emp-name' }), 'Anil');

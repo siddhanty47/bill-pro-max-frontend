@@ -40,7 +40,9 @@ function setup(items: Inventory[] = inventory) {
     <CreatePresetModal isOpen onClose={onClose} businessId="biz-1" inventory={items} />,
     { preloadedState: signedIn() }
   );
-  return { ...utils, onClose, bodies };
+  /** The modal focuses its first field on the next frame; wait so it cannot steal focus mid-test. */
+  const ready = () => waitFor(() => expect(screen.getByLabelText(/preset name/i)).toHaveFocus());
+  return { ...utils, onClose, bodies, ready };
 }
 
 describe('CreatePresetModal', () => {
@@ -53,9 +55,12 @@ describe('CreatePresetModal', () => {
   });
 
   it('submits the exact payload and closes', async () => {
-    const { user, onClose, bodies } = setup();
-    await user.type(screen.getByLabelText(/preset name/i), '  Starter kit ');
-    await user.type(screen.getByLabelText(/description/i), '  For new sites ');
+    const { user, onClose, bodies, ready } = setup();
+    await ready();
+    await user.click(screen.getByLabelText(/preset name/i));
+    await user.paste('  Starter kit ');
+    await user.click(screen.getByLabelText(/description/i));
+    await user.paste('  For new sites ');
     await user.click(screen.getByRole('checkbox', { name: /CUP2/i }));
     await user.click(screen.getByRole('checkbox', { name: /LAD1/i }));
     expect(screen.getByText(/2 items selected/i)).toBeInTheDocument();
@@ -82,8 +87,10 @@ describe('CreatePresetModal', () => {
   });
 
   it('omits a blank description', async () => {
-    const { user, bodies, onClose } = setup();
-    await user.type(screen.getByLabelText(/preset name/i), 'Only name');
+    const { user, bodies, onClose, ready } = setup();
+    await ready();
+    await user.click(screen.getByLabelText(/preset name/i));
+    await user.paste('Only name');
     await user.click(screen.getByRole('checkbox', { name: /LAD1/i }));
     await user.click(screen.getByRole('button', { name: /^create preset$/i }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
@@ -91,8 +98,10 @@ describe('CreatePresetModal', () => {
   });
 
   it('filters by search, selects all filtered, and clears', async () => {
-    const { user } = setup();
-    await user.type(screen.getByPlaceholderText(/search items/i), 'ladder');
+    const { user, ready } = setup();
+    await ready();
+    await user.click(screen.getByPlaceholderText(/search items/i));
+    await user.paste('ladder');
     expect(screen.queryByText('Cuplock 2m')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /select all/i }));
     expect(screen.getByText(/1 items selected/i)).toBeInTheDocument();
@@ -101,8 +110,10 @@ describe('CreatePresetModal', () => {
   });
 
   it('shows a message when the search matches nothing', async () => {
-    const { user } = setup();
-    await user.type(screen.getByPlaceholderText(/search items/i), 'zzzz');
+    const { user, ready } = setup();
+    await ready();
+    await user.click(screen.getByPlaceholderText(/search items/i));
+    await user.paste('zzzz');
     expect(await screen.findByText(/no items match your search/i)).toBeInTheDocument();
   });
 
@@ -112,7 +123,8 @@ describe('CreatePresetModal', () => {
   });
 
   it('toggles an item by clicking its row', async () => {
-    const { user } = setup();
+    const { user, ready } = setup();
+    await ready();
     await user.click(screen.getByText('Cuplock 2m'));
     expect(screen.getByRole('checkbox', { name: /CUP2/i })).toBeChecked();
     await user.click(screen.getByText('Cuplock 2m'));
@@ -120,7 +132,8 @@ describe('CreatePresetModal', () => {
   });
 
   it('requires a name', async () => {
-    const { user, bodies } = setup();
+    const { user, bodies, ready } = setup();
+    await ready();
     await user.click(screen.getByRole('checkbox', { name: /CUP2/i }));
     await user.click(screen.getByRole('button', { name: /^create preset$/i }));
     expect(await screen.findByText(/preset name is required/i)).toBeInTheDocument();
@@ -128,13 +141,15 @@ describe('CreatePresetModal', () => {
   });
 
   it('shows the API error and stays open', async () => {
-    const { user, onClose } = setup();
+    const { user, onClose, ready } = setup();
+    await ready();
     server.use(
       http.post(apiUrl('/businesses/biz-1/presets'), () =>
         HttpResponse.json({ success: false, message: 'Name taken' }, { status: 400 })
       )
     );
-    await user.type(screen.getByLabelText(/preset name/i), 'Dup');
+    await user.click(screen.getByLabelText(/preset name/i));
+    await user.paste('Dup');
     await user.click(screen.getByRole('checkbox', { name: /CUP2/i }));
     await user.click(screen.getByRole('button', { name: /^create preset$/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/name taken/i);
@@ -142,7 +157,8 @@ describe('CreatePresetModal', () => {
   });
 
   it('cancel closes', async () => {
-    const { user, onClose } = setup();
+    const { user, onClose, ready } = setup();
+    await ready();
     await user.click(screen.getByRole('button', { name: /cancel/i }));
     expect(onClose).toHaveBeenCalled();
   });

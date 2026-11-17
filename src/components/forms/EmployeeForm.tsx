@@ -18,6 +18,12 @@ const EMPLOYEE_TYPES = [
   { value: 'supervisor', label: 'Supervisor' },
 ] as const;
 
+const nonNegative = z
+  .string()
+  .optional()
+  .or(z.literal(''))
+  .refine(v => !v || Number(v) >= 0, 'Enter 0 or more');
+
 const employeeSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   phone: z.string().max(20).optional().or(z.literal('')),
@@ -26,9 +32,9 @@ const employeeSchema = z.object({
   address: z.string().max(500).optional().or(z.literal('')),
   joiningDate: z.string().optional().or(z.literal('')),
   salaryType: z.enum(['monthly', 'daily']).optional().or(z.literal('')),
-  monthlySalary: z.string().optional().or(z.literal('')),
-  dailyRate: z.string().optional().or(z.literal('')),
-  overtimeRatePerHour: z.string().optional().or(z.literal('')),
+  monthlySalary: nonNegative,
+  dailyRate: nonNegative,
+  overtimeRatePerHour: nonNegative,
   vehicleNumber: z.string().max(20).optional().or(z.literal('')),
   emergencyContactName: z.string().max(100).optional().or(z.literal('')),
   emergencyContactPhone: z.string().max(20).optional().or(z.literal('')),
@@ -161,7 +167,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel, isLoading }: Emp
               id="emp-designation"
               {...register('designation')}
               disabled={isLoading}
-              placeholder="e.g. Crane Operator, Site Supervisor"
+              placeholder="e.g. Crane operator, site supervisor"
             />
           </Field>
 
@@ -193,7 +199,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel, isLoading }: Emp
           </Field>
 
           {salaryType === 'monthly' && (
-            <Field label="Monthly salary">
+            <Field label="Monthly salary" error={errors.monthlySalary?.message}>
               <Input
                 id="emp-monthly-salary"
                 mono
@@ -208,7 +214,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel, isLoading }: Emp
           )}
 
           {salaryType === 'daily' && (
-            <Field label="Daily rate">
+            <Field label="Daily rate" error={errors.dailyRate?.message}>
               <Input
                 id="emp-daily-rate"
                 mono
@@ -223,7 +229,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel, isLoading }: Emp
           )}
 
           {salaryType && (
-            <Field label="Overtime rate / hr (₹)">
+            <Field label="Overtime rate / hr (₹)" error={errors.overtimeRatePerHour?.message}>
               <Input
                 id="emp-ot-rate"
                 mono
