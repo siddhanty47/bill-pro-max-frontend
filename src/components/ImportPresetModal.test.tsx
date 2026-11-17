@@ -105,7 +105,7 @@ describe('ImportPresetModal', () => {
       )
     );
     await user.click((await screen.findAllByText('Scaffold basics'))[0]);
-    expect(await screen.findByText(/gone/i)).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(/gone/i);
   });
 
   it('shows the error when import fails and stays on preview', async () => {
@@ -126,5 +126,15 @@ describe('ImportPresetModal', () => {
     await user.click(screen.getByRole('button', { name: /import 1 items/i }));
     await user.click(await screen.findByRole('button', { name: /^done$/i }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it('marks the current step and shows a no-match state in the preview', async () => {
+    const { user } = setup();
+    await screen.findAllByText('Scaffold basics');
+    expect(screen.getByText(/1\. Browse/)).toHaveAttribute('aria-current', 'step');
+    await openPreview(user);
+    expect(screen.getByText(/2\. Preview/)).toHaveAttribute('aria-current', 'step');
+    await user.type(screen.getByPlaceholderText(/search items/i), 'zzzz');
+    expect(screen.getByText(/no items match your search/i)).toBeInTheDocument();
   });
 });

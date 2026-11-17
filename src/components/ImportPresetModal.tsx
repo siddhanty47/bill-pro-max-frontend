@@ -3,17 +3,29 @@
  */
 import { useState, useMemo } from 'react';
 import { Modal } from './Modal';
-import { LoadingSpinner } from './LoadingSpinner';
+import { Button, DataTable, EmptyState, Notice, SearchInput, Spinner, type Column } from './ui';
 import { getErrorMessage } from '../api/baseApi';
 import {
   useGetPresetsQuery,
   useLazyGetPresetByIdQuery,
   useImportPresetMutation,
 } from '../api/presetApi';
-import type { PresetSummary, InventoryPreset, ImportPresetResult, Inventory } from '../types';
+import type {
+  PresetSummary,
+  PresetItem,
+  InventoryPreset,
+  ImportPresetResult,
+  Inventory,
+} from '../types';
 import styles from './ImportPresetModal.module.css';
 
 type Step = 'browse' | 'preview' | 'result';
+
+const STEPS: { id: Step; label: string }[] = [
+  { id: 'browse', label: 'Browse' },
+  { id: 'preview', label: 'Preview' },
+  { id: 'result', label: 'Result' },
+];
 
 interface ImportPresetModalProps {
   isOpen: boolean;
@@ -116,143 +128,154 @@ export function ImportPresetModal({
   const willSkip =
     selectedPreset?.items.filter(item => existingCodes.has(item.code.toUpperCase())).length ?? 0;
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Import Preset" size="form">
-      <div className={styles.stepIndicator}>
-        <span className={`${styles.step} ${step === 'browse' ? styles.stepActive : ''}`}>
-          1. Browse
-        </span>
-        <span className={`${styles.step} ${step === 'preview' ? styles.stepActive : ''}`}>
-          2. Preview
-        </span>
-        <span className={`${styles.step} ${step === 'result' ? styles.stepActive : ''}`}>
-          3. Result
-        </span>
-      </div>
-
-      {error && <div className="error-message">{error}</div>}
-
-      {step === 'browse' && (
+  const presetColumns: Column<PresetSummary>[] = [
+    {
+      key: 'name',
+      header: 'Preset',
+      render: p => (
         <>
-          {presetsLoading ? (
-            <LoadingSpinner message="Loading presets..." />
+          <span className={styles.presetName}>{p.name}</span>
+          {p.description && <span className={styles.presetDescription}>{p.description}</span>}
+        </>
+      ),
+    },
+    { key: 'itemCount', header: 'Items', align: 'right', mono: true, nowrap: true },
+    {
+      key: 'isSystem',
+      header: 'Type',
+      nowrap: true,
+      render: p => (p.isSystem ? 'System' : 'Custom'),
+    },
+  ];
+
+  const previewColumns: Column<PresetItem>[] = [
+    { key: 'code', header: 'Code', mono: true, nowrap: true },
+    { key: 'name', header: 'Name' },
+    { key: 'category', header: 'Category' },
+    {
+      key: 'status',
+      header: 'Status',
+      nowrap: true,
+      render: item =>
+        existingCodes.has(item.code.toUpperCase()) ? (
+          <span className={styles.exists}>Already exists</span>
+        ) : null,
+    },
+  ];
+
+  const activeIndex = STEPS.findIndex(s => s.id === step);
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Import preset" size="form">
+      <div className={styles.body}>
+        <ol className={styles.steps} aria-label="Import steps">
+          {STEPS.map((s, i) => (
+            <li
+              key={s.id}
+              className={`${styles.step} ${i === activeIndex ? styles.stepActive : ''}`}
+              aria-current={i === activeIndex ? 'step' : undefined}
+            >
+              {i + 1}. {s.label}
+            </li>
+          ))}
+        </ol>
+
+        {error && <Notice tone="danger">{error}</Notice>}
+
+        {step === 'browse' &&
+          (presetsLoading ? (
+            <Spinner message="Loading presets…" />
           ) : !presets?.length ? (
-            <div className={styles.emptyState}>No presets available.</div>
+            <EmptyState title="No presets available" />
           ) : (
             <>
-              <input
-                type="text"
-                placeholder="Search presets..."
+              <SearchInput
+                label="Search presets"
+                placeholder="Search presets"
                 value={browseSearch}
                 onChange={e => setBrowseSearch(e.target.value)}
-                className={styles.searchInput}
               />
-              {!filteredPresets?.length ? (
-                <div className={styles.emptyState}>No presets match your search.</div>
-              ) : (
-                <div className={styles.presetList}>
-                  {filteredPresets.map(preset => (
-                    <div
-                      key={preset._id}
-                      className={styles.presetCard}
-                      onClick={() => handlePreview(preset)}
-                    >
-                      <div className={styles.presetInfo}>
-                        <div className={styles.presetName}>{preset.name}</div>
-                        {preset.description && (
-                          <div className={styles.presetDescription}>{preset.description}</div>
-                        )}
-                        <div className={styles.presetMeta}>
-                          <span>{preset.itemCount} items</span>
-                          {preset.isSystem && <span className={styles.systemBadge}>System</span>}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <DataTable
+                aria-label="Presets"
+                columns={presetColumns}
+                rows={filteredPresets ?? []}
+                rowKey={p => p._id}
+                onRowClick={handlePreview}
+                empty={<EmptyState title="No presets match your search" />}
+                mobile={{
+                  title: p => p.name,
+                  subtitle: p => p.description,
+                  meta: p => [`${p.itemCount} items`, p.isSystem ? 'System' : null],
+                }}
+              />
             </>
-          )}
-        </>
-      )}
+          ))}
 
-      {step === 'preview' && (
-        <>
-          {presetLoading ? (
-            <LoadingSpinner message="Loading preset items..." />
+        {step === 'preview' &&
+          (presetLoading ? (
+            <Spinner message="Loading preset items…" />
           ) : selectedPreset ? (
             <>
-              <div className={styles.summary}>
-                <span className={styles.summaryHighlight}>{willImport}</span> will be imported,{' '}
-                <span>{willSkip}</span> already exist and will be skipped
-              </div>
-              <input
-                type="text"
-                placeholder="Search items..."
+              <Notice tone="info">
+                <span className={styles.count}>{willImport}</span> will be imported,{' '}
+                <span className={styles.count}>{willSkip}</span> already exist and will be skipped
+              </Notice>
+              <SearchInput
+                label="Search items"
+                placeholder="Search items"
                 value={previewSearch}
                 onChange={e => setPreviewSearch(e.target.value)}
-                className={styles.searchInput}
               />
-              <table className={styles.previewTable}>
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Name</th>
-                    <th>Category</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(filteredPreviewItems || []).map(item => {
-                    const exists = existingCodes.has(item.code.toUpperCase());
-                    return (
-                      <tr key={item.code} className={exists ? styles.skippedRow : ''}>
-                        <td>{item.code}</td>
-                        <td>{item.name}</td>
-                        <td>{item.category}</td>
-                        <td>
-                          {exists && <span className={styles.existsBadge}>Already exists</span>}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <DataTable
+                aria-label="Preset items"
+                columns={previewColumns}
+                rows={filteredPreviewItems ?? []}
+                rowKey={item => item.code}
+                empty={<EmptyState title="No items match your search" />}
+                mobile={{
+                  title: item => item.name,
+                  subtitle: item => `${item.code} · ${item.category}`,
+                  badge: item =>
+                    existingCodes.has(item.code.toUpperCase()) ? (
+                      <span className={styles.exists}>Already exists</span>
+                    ) : null,
+                }}
+              />
               <div className={styles.actions}>
-                <button className="btn btn-secondary" onClick={handleBack} disabled={importing}>
+                <Button onClick={handleBack} disabled={importing}>
                   Back
-                </button>
-                <button
-                  className="btn btn-primary"
+                </Button>
+                <Button
+                  variant="primary"
                   onClick={handleImport}
-                  disabled={importing || willImport === 0}
+                  loading={importing}
+                  disabled={willImport === 0}
                 >
-                  {importing ? 'Importing...' : `Import ${willImport} Items`}
-                </button>
+                  {`Import ${willImport} items`}
+                </Button>
               </div>
             </>
-          ) : null}
-        </>
-      )}
+          ) : null)}
 
-      {step === 'result' && importResult && (
-        <>
-          <div className={styles.resultMessage}>
-            <div className={styles.resultImported}>{importResult.imported}</div>
-            <div className={styles.resultLabel}>items imported successfully</div>
-            {importResult.skipped > 0 && (
-              <div className={styles.resultDetails}>
-                {importResult.skipped} skipped (duplicate codes)
-              </div>
-            )}
-          </div>
-          <div className={styles.actions}>
-            <button className="btn btn-primary" onClick={onClose}>
-              Done
-            </button>
-          </div>
-        </>
-      )}
+        {step === 'result' && importResult && (
+          <>
+            <Notice tone="success">
+              <span className={styles.count}>{importResult.imported}</span> items imported
+              successfully
+              {importResult.skipped > 0 && (
+                <span className={styles.skipped}>
+                  {importResult.skipped} skipped (duplicate codes)
+                </span>
+              )}
+            </Notice>
+            <div className={styles.actions}>
+              <Button variant="primary" onClick={onClose}>
+                Done
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
     </Modal>
   );
 }
