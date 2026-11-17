@@ -1,6 +1,11 @@
 const GAP = 6;
 const EDGE = 8;
-const NARROW = 480;
+/**
+ * Narrow-phone width (px) at and below which panels span the viewport. CSS
+ * media queries can't read it: keep `@media (max-width: 480px)` in
+ * Menu.module.css and CodeAutocomplete.module.css in step.
+ */
+export const NARROW = 480;
 
 /**
  * Fixed-position the panel against the trigger: below it (aligned to its end

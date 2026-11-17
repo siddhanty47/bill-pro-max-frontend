@@ -18,11 +18,8 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Field, Input } from './ui';
-import { placePanel } from './ui/placePanel';
+import { NARROW, placePanel } from './ui/placePanel';
 import styles from './CodeAutocomplete.module.css';
-
-/** Matches the 480px breakpoint where the panel spans the viewport (CSS). */
-const NARROW = 480;
 
 /**
  * Interface for autocomplete items

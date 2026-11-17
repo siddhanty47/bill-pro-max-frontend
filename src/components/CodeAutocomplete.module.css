@@ -86,7 +86,8 @@
   color: var(--status-danger-text);
 }
 
-/* Narrow phones: span the viewport with 16px gutters (placePanel sets only top). */
+/* Narrow phones: span the viewport with 16px gutters (placePanel sets only top).
+   480 = NARROW in ui/placePanel.ts, which the component also reads; keep in step. */
 @media (max-width: 480px) {
   .panel {
     left: var(--space-4);

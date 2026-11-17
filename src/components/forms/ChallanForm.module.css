@@ -42,8 +42,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-/* Column widths; the min-widths keep the grids usable and make them scroll
-   inside the Table wrapper on phones instead of squashing. */
+/* Column widths (desktop). On phones the rows stack instead (see the media query). */
 .colItem {
   width: 45%;
   min-width: 200px;
@@ -80,6 +79,11 @@
   text-align: right;
 }
 
+/* Column name inside a cell; only shown on phones, where the header row is hidden. */
+.phoneLabel {
+  display: none;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;
@@ -92,5 +96,92 @@
   .pair,
   .trio {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Grids: no sideways scroll. Header row hidden; each row stacks on a grid:
+     item picker full width, then the row's numbers and its remove button. */
+  .headRow {
+    display: none;
+  }
+
+  .itemRow,
+  .lossRow {
+    display: grid;
+    align-items: center;
+  }
+
+  .itemRow {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'item item action'
+      'qty running running';
+  }
+
+  .lossRow {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-areas:
+      'item item action'
+      'type type type'
+      'qty rate rate'
+      'note note note';
+  }
+
+  .itemRow .colItem,
+  .lossRow .colItem {
+    grid-area: item;
+  }
+
+  .itemRow .colQty,
+  .lossRow .colQty {
+    grid-area: qty;
+  }
+
+  .itemRow .colRunning {
+    grid-area: running;
+  }
+
+  .lossRow .colType {
+    grid-area: type;
+  }
+
+  .lossRow .colRate {
+    grid-area: rate;
+  }
+
+  .lossRow .colNote {
+    grid-area: note;
+  }
+
+  .itemRow .colAction,
+  .lossRow .colAction {
+    grid-area: action;
+  }
+
+  .itemRow .colItem,
+  .lossRow .colItem {
+    display: block;
+    width: auto;
+    min-width: 0;
+  }
+
+  .itemRow .colQty,
+  .itemRow .colRunning,
+  .itemRow .colAction,
+  .lossRow .colType,
+  .lossRow .colQty,
+  .lossRow .colRate,
+  .lossRow .colNote,
+  .lossRow .colAction {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--space-2);
+    width: auto;
+    min-width: 0;
+  }
+
+  .phoneLabel {
+    display: inline;
+    white-space: nowrap;
   }
 }

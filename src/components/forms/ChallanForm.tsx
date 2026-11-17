@@ -43,6 +43,7 @@ import {
   Tr,
 } from '../ui';
 import { formatDate } from '../../utils/format';
+import { optionalNumber } from './optionalNumber';
 import styles from './ChallanForm.module.css';
 
 /**
@@ -144,6 +145,19 @@ const challanSchema = z.object({
 });
 
 type FormData = z.infer<typeof challanSchema>;
+
+/**
+ * Column name shown inside a grid cell on phones, where the header row is
+ * hidden and each row stacks. Hidden from assistive tech: the control in the
+ * cell carries its own label.
+ */
+function PhoneLabel({ children }: { children: string }) {
+  return (
+    <span className={styles.phoneLabel} aria-hidden="true">
+      {children}
+    </span>
+  );
+}
 
 /** "Row 2: Select an item" for each grid row the schema rejected (first message per row). */
 function rowMessages(rows: unknown): string[] {
@@ -617,7 +631,7 @@ export function ChallanForm({
           isLoading={isPredictedLoading}
           disabled={isLoading || isPredictedLoading}
           variant={challanType}
-          register={register('challanSequence', { valueAsNumber: true })}
+          register={register('challanSequence', { setValueAs: optionalNumber })}
           error={errors.challanSequence?.message}
         />
         <Field label="Date" required error={errors.date?.message}>
@@ -655,7 +669,7 @@ export function ChallanForm({
       <Fieldset legend="Items" className={styles.section}>
         <Table aria-label="Items">
           <THead>
-            <Tr>
+            <Tr className={styles.headRow}>
               <Th className={styles.colItem}>Item</Th>
               <Th align="right" className={styles.colQty}>
                 Qty
@@ -673,7 +687,7 @@ export function ChallanForm({
               const rowErrors = errors.items?.[index];
 
               return (
-                <Tr key={field.id}>
+                <Tr key={field.id} className={styles.itemRow}>
                   <Td className={styles.colItem}>
                     <CodeAutocomplete
                       label=""
@@ -689,6 +703,7 @@ export function ChallanForm({
                     <input type="hidden" {...register(`items.${index}.itemName`)} />
                   </Td>
                   <Td align="right" className={styles.colQty}>
+                    <PhoneLabel>Qty</PhoneLabel>
                     <Input
                       mono
                       type="number"
@@ -701,6 +716,7 @@ export function ChallanForm({
                     />
                   </Td>
                   <Td align="right" className={styles.colRunning}>
+                    <PhoneLabel>Running</PhoneLabel>
                     <StatusChip status="running" tone="neutral" title="With the party now">
                       <span className="mono">{runningQty}</span>
                     </StatusChip>
@@ -748,7 +764,7 @@ export function ChallanForm({
           {damagedFields.length > 0 && (
             <Table aria-label="Loss items">
               <THead>
-                <Tr>
+                <Tr className={styles.headRow}>
                   <Th className={styles.colItem}>Item</Th>
                   <Th className={styles.colType}>Type</Th>
                   <Th align="right" className={styles.colQty}>
@@ -765,7 +781,7 @@ export function ChallanForm({
                 {damagedFields.map((field, index) => {
                   const rowErrors = errors.damagedItems?.[index];
                   return (
-                    <Tr key={field.id}>
+                    <Tr key={field.id} className={styles.lossRow}>
                       <Td className={styles.colItem}>
                         <CodeAutocomplete
                           label=""
@@ -806,6 +822,7 @@ export function ChallanForm({
                         </Select>
                       </Td>
                       <Td align="right" className={styles.colQty}>
+                        <PhoneLabel>Qty</PhoneLabel>
                         <Input
                           mono
                           type="number"
@@ -818,6 +835,7 @@ export function ChallanForm({
                         />
                       </Td>
                       <Td align="right" className={styles.colRate}>
+                        <PhoneLabel>Rate (₹)</PhoneLabel>
                         <Input
                           mono
                           type="number"
@@ -831,6 +849,7 @@ export function ChallanForm({
                         />
                       </Td>
                       <Td className={styles.colNote}>
+                        <PhoneLabel>Note</PhoneLabel>
                         <Input
                           type="text"
                           aria-label={`Note for row ${index + 1}`}
@@ -926,7 +945,7 @@ export function ChallanForm({
               type="number"
               step="0.01"
               inputMode="decimal"
-              {...register('cartageCharge', { valueAsNumber: true })}
+              {...register('cartageCharge', { setValueAs: optionalNumber })}
               disabled={isLoading}
               placeholder="From agreement"
             />
@@ -937,7 +956,7 @@ export function ChallanForm({
               type="number"
               step="0.01"
               inputMode="decimal"
-              {...register('loadingCharge', { valueAsNumber: true })}
+              {...register('loadingCharge', { setValueAs: optionalNumber })}
               disabled={isLoading}
               placeholder="From agreement"
             />
@@ -948,7 +967,7 @@ export function ChallanForm({
               type="number"
               step="0.01"
               inputMode="decimal"
-              {...register('unloadingCharge', { valueAsNumber: true })}
+              {...register('unloadingCharge', { setValueAs: optionalNumber })}
               disabled={isLoading}
               placeholder="From agreement"
             />

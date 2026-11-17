@@ -13,14 +13,8 @@ import {
 import { useCurrentBusiness } from '../../hooks/useCurrentBusiness';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
 import { Button, Field, Input, Select, Textarea } from '../ui';
+import { optionalNumber } from './optionalNumber';
 import styles from './InventoryForm.module.css';
-
-/** Empty optional number input -> undefined (valueAsNumber would give NaN and fail zod). */
-const optionalNumber = (v: unknown): number | undefined => {
-  if (v === '' || v === null || v === undefined) return undefined;
-  const n = Number(v);
-  return Number.isNaN(n) ? undefined : n;
-};
 
 const inventorySchema = z.object({
   code: z.string().min(1, 'Code is required').max(20),

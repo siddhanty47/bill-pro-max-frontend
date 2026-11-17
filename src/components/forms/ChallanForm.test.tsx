@@ -203,6 +203,71 @@ describe('ChallanForm', () => {
     });
   });
 
+  it('submits with blank charges and a blank number as undefined (previously failed silently)', async () => {
+    const bare = party();
+    bare.agreements = [{ ...bare.agreements![0], terms: { billingCycle: 'monthly' } }] as never;
+    const { user, onSubmit } = setup({ parties: [bare] });
+    const sequence = await screen.findByDisplayValue('7');
+    fireEvent.change(screen.getByLabelText(/^date/i), { target: { value: '2026-11-01' } });
+    await pickParty(user);
+    await pickItem(user, itemInputs()[0], 'pi', /Steel Pipe/);
+    await user.clear(sequence);
+    expect(screen.getByLabelText(/^cartage/i)).toHaveValue(null);
+    await user.click(submit());
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0]).toEqual({
+      type: 'delivery',
+      partyId: 'p1',
+      agreementId: 'AG-1',
+      date: '2026-11-01',
+      challanSequence: undefined,
+      items: [{ itemId: 'i1', itemName: 'Steel Pipe', quantity: 1 }],
+      damagedItems: undefined,
+      notes: undefined,
+      transporterName: undefined,
+      vehicleNumber: undefined,
+      cartageCharge: undefined,
+      loadingCharge: undefined,
+      unloadingCharge: undefined,
+    });
+  });
+
+  it('submits typed charges and an edited number as numbers', async () => {
+    const bare = party();
+    bare.agreements = [{ ...bare.agreements![0], terms: { billingCycle: 'monthly' } }] as never;
+    const { user, onSubmit } = setup({ parties: [bare] });
+    const sequence = await screen.findByDisplayValue('7');
+    await pickParty(user);
+    await pickItem(user, itemInputs()[0], 'pi', /Steel Pipe/);
+    await user.clear(sequence);
+    await user.type(sequence, '42');
+    await user.type(screen.getByLabelText(/^cartage/i), '250.5');
+    await user.type(screen.getByLabelText(/^loading/i), '0');
+    await user.click(submit());
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({
+      challanSequence: 42,
+      cartageCharge: 250.5,
+      loadingCharge: 0,
+      unloadingCharge: undefined,
+    });
+  });
+
+  it('stacks grid rows on phones: header row and phone-only cell labels are marked for CSS', async () => {
+    const { user } = setup({ type: 'return' });
+    await user.click(screen.getByRole('button', { name: /add loss item/i }));
+    const items = screen.getByRole('table', { name: 'Items' });
+    const [head, row] = within(items).getAllByRole('row');
+    expect(head.className).toMatch(/headRow/);
+    expect(row.className).toMatch(/itemRow/);
+    const loss = screen.getByRole('table', { name: 'Loss items' });
+    expect(within(loss).getAllByRole('row')[1].className).toMatch(/lossRow/);
+    // Phone labels repeat the hidden header; the controls keep their own names.
+    const labels = row.querySelectorAll('span[aria-hidden="true"]');
+    expect([...labels].map(l => l.textContent)).toEqual(['Qty', 'Running']);
+    expect(labels[0].className).toMatch(/phoneLabel/);
+  });
+
   it('has no loss section on deliveries', () => {
     setup();
     expect(screen.queryByRole('button', { name: /add loss item/i })).not.toBeInTheDocument();
