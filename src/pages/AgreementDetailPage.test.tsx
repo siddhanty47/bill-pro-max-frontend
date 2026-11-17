@@ -169,6 +169,20 @@ describe('AgreementDetailPage', () => {
     );
     expect(within(details).getByText('S1')).toHaveClass('mono');
     expect(within(details).getByText('20 Mar 2025')).toBeInTheDocument();
+    expect(within(details).queryByText('Status')).not.toBeInTheDocument();
+  });
+
+  it('shows no tab counts while the lists are loading', async () => {
+    useApi();
+    server.use(
+      http.get(apiUrl('/businesses/biz-1/challans'), async () => {
+        await new Promise(r => setTimeout(r, 300));
+        return paged(challans);
+      })
+    );
+    renderPage();
+    expect(await screen.findByRole('tab', { name: 'Challans' })).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: 'Challans 2' })).toBeInTheDocument();
   });
 
   it('lists rates with mono right-aligned values', async () => {
@@ -244,10 +258,10 @@ describe('AgreementDetailPage', () => {
     const bodies = capturePatch(BASE);
     const { user } = renderPage();
 
-    const details = (await screen.findByRole('heading', { name: 'Details' })).closest('section')!;
-    await user.click(within(details).getByRole('button', { name: /Active/ }));
-    await user.selectOptions(within(details).getByRole('combobox'), 'expired');
-    await user.click(within(details).getByRole('button', { name: 'Save' }));
+    await user.click(await screen.findByRole('button', { name: 'More actions' }));
+    expect(screen.queryByRole('menuitem', { name: 'Active' })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Terminated' })).toBeInTheDocument();
+    await user.click(screen.getByRole('menuitem', { name: 'Expired' }));
     await waitFor(() => expect(bodies).toHaveLength(1));
 
     const terms = screen.getByRole('heading', { name: 'Terms' }).closest('section')!;

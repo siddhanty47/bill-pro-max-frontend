@@ -17,7 +17,18 @@ import {
 import { useGetItemsWithPartyQuery, useGetChallansByAgreementQuery } from '../api/challanApi';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import { EditableField } from '../components/EditableField';
-import { Card, DataTable, DocNumber, EmptyState, StatusChip, type Column } from '../components/ui';
+import {
+  Card,
+  DataTable,
+  DocNumber,
+  EmptyState,
+  IconButton,
+  Menu,
+  MenuItem,
+  MenuLabel,
+  StatusChip,
+  type Column,
+} from '../components/ui';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { formatDate, formatMoney } from '../utils/format';
 import type { AgreementRate, AgreementRateWithItem, Challan, ItemWithParty } from '../types';
@@ -166,8 +177,8 @@ export function AgreementDetailPage() {
   const tabs = agreement
     ? [
         { id: 'about', label: 'About' },
-        { id: 'site-items', label: 'Site items', count: itemsAtSite?.length ?? 0 },
-        { id: 'challans', label: 'Challans', count: challans?.length ?? 0 },
+        { id: 'site-items', label: 'Site items', count: itemsAtSite?.length },
+        { id: 'challans', label: 'Challans', count: challans?.length },
         { id: 'change-history', label: 'Change history' },
       ]
     : undefined;
@@ -187,17 +198,6 @@ export function AgreementDetailPage() {
         }
       />
       <DetailField label="Site code" value={agreement.siteCode} mono />
-      <DetailField
-        label="Status"
-        value={optionLabel(STATUS_OPTIONS, agreement.status)}
-        editable={{
-          rawValue: agreement.status,
-          inputType: 'select',
-          options: STATUS_OPTIONS,
-          onSave: v => handleSave('status', v),
-          isSaving,
-        }}
-      />
       <DetailField label="Created" value={displayDate(agreement.createdAt)} />
     </DetailSection>
   ) : null;
@@ -359,6 +359,18 @@ export function AgreementDetailPage() {
       onTabChange={setActiveTab}
       idPrefix="agreement"
       sidebar={sidebar}
+      headerActions={
+        agreement ? (
+          <Menu trigger={p => <IconButton label="More actions" icon="more" {...p} />}>
+            <MenuLabel>Set status</MenuLabel>
+            {STATUS_OPTIONS.filter(o => o.value !== agreement.status).map(o => (
+              <MenuItem key={o.value} onSelect={() => handleSave('status', o.value)}>
+                {o.label}
+              </MenuItem>
+            ))}
+          </Menu>
+        ) : undefined
+      }
     >
       {agreement && (
         <>
@@ -453,7 +465,7 @@ export function AgreementDetailPage() {
           )}
 
           {activeTab === 'site-items' && (
-            <Card title="Items at site" count={itemsAtSite?.length ?? 0} padded={false}>
+            <Card title="Items at site" count={itemsAtSite?.length} padded={false}>
               <DataTable
                 aria-label="Items at site"
                 columns={siteItemColumns}
@@ -473,7 +485,7 @@ export function AgreementDetailPage() {
           )}
 
           {activeTab === 'challans' && (
-            <Card title="Challans" count={challans?.length ?? 0} padded={false}>
+            <Card title="Challans" count={challans?.length} padded={false}>
               <DataTable
                 aria-label="Challans"
                 columns={challanColumns}
