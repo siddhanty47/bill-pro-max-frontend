@@ -4,7 +4,7 @@ import styles from './Brand.module.css';
 export type BrandProps = {
   /** `md` (default) matches the app header; `sm` suits tight bars. */
   size?: 'sm' | 'md';
-  /** At ≤768 show the mark only; the wordmark stays in the accessible name. */
+  /** At ≤480 show the mark only; the wordmark stays readable to assistive tech. */
   collapseName?: boolean;
   /** Placement only. */
   className?: string;

@@ -20,7 +20,8 @@ describe('Brand', () => {
       readFileSync(path: string, encoding: 'utf8'): string;
     };
     const css = fs.readFileSync('src/components/ui/Brand.module.css', 'utf8');
-    const block = css.slice(css.indexOf('@media (max-width: 768px)'));
+    expect(css).toContain('@media (max-width: 480px)');
+    const block = css.slice(css.indexOf('@media (max-width: 480px)'));
     expect(block).toMatch(/\.collapsible\s*\{[^}]*clip:\s*rect/);
   });
 

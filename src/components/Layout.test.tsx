@@ -82,9 +82,10 @@ describe('Layout', () => {
       readFileSync(path: string, encoding: 'utf8'): string;
     };
     const css = fs.readFileSync('src/components/Layout.module.css', 'utf8');
+    expect(css).toContain('@media (max-width: 360px)');
     const block = css.slice(css.indexOf('@media (max-width: 360px)'));
     expect(block).toMatch(/\.header\s*\{[^}]*padding:[^;]*var\(--space-2\)[^}]*gap:\s*0/);
-    expect(block).toMatch(/\.headerActions\s*\{[^}]*gap:\s*0/);
+    expect(block).toMatch(/\.headerActions\s*\{[^}]*gap:\s*2px/);
     expect(block).toMatch(/\.profileControl\s*\{[^}]*margin-left:\s*0/);
   });
 
