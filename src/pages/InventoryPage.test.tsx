@@ -236,11 +236,11 @@ describe('InventoryPage', () => {
     const { user } = renderPage();
     await screen.findByRole('table');
     await user.click(screen.getByRole('button', { name: 'Import preset' }));
-    expect(await screen.findByRole('dialog')).toHaveTextContent(/Import Preset/);
+    expect(await screen.findByRole('dialog')).toHaveTextContent(/Import preset/);
     fireEvent.keyDown(document, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: 'Create preset' }));
-    expect(await screen.findByRole('dialog')).toHaveTextContent(/Create Preset/);
+    expect(await screen.findByRole('dialog')).toHaveTextContent(/Create preset/);
   });
 
   it('deletes an item after confirming, without navigating', async () => {
