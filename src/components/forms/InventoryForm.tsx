@@ -12,7 +12,15 @@ import {
 } from '../../api/inventoryApi';
 import { useCurrentBusiness } from '../../hooks/useCurrentBusiness';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
+import { Button, Field, Input, Select, Textarea } from '../ui';
 import styles from './InventoryForm.module.css';
+
+/** Empty optional number input -> undefined (valueAsNumber would give NaN and fail zod). */
+const optionalNumber = (v: unknown): number | undefined => {
+  if (v === '' || v === null || v === undefined) return undefined;
+  const n = Number(v);
+  return Number.isNaN(n) ? undefined : n;
+};
 
 const inventorySchema = z.object({
   code: z.string().min(1, 'Code is required').max(20),
@@ -138,21 +146,23 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
   const onFormSubmit = handleSubmit(handleFormSubmit as any);
 
   return (
-    <form onSubmit={onFormSubmit}>
-      <div className="form-content">
-        <div className="form-columns">
-          <div>
-            <div className="form-row">
-              <div className={`form-group ${styles.nameGroup}`}>
-                <label htmlFor="name">Item Name *</label>
-                <input id="name" {...register('name')} disabled={isLoading} />
-                {errors.name && <span className="error-message">{errors.name.message}</span>}
-              </div>
-
-              <div className={`form-group ${styles.codeGroup}`}>
-                <label htmlFor="code">Item Code *</label>
-                <input
-                  id="code"
+    <form onSubmit={onFormSubmit} noValidate>
+      <div className={styles.columns}>
+        <div className={styles.column}>
+          <div className={styles.row}>
+            <div className={styles.nameGroup}>
+              <Field label="Item name" required error={errors.name?.message}>
+                <Input {...register('name')} disabled={isLoading} />
+              </Field>
+            </div>
+            <div className={styles.codeGroup}>
+              <Field
+                label="Item code"
+                required
+                error={errors.code?.message ?? codeError ?? undefined}
+              >
+                <Input
+                  mono
                   {...register('code')}
                   onBlur={e => {
                     register('code').onBlur(e);
@@ -162,108 +172,90 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
                   className={styles.uppercaseInput}
                   placeholder="Enter code"
                 />
-                {errors.code && <span className="error-message">{errors.code.message}</span>}
-                {codeError && <span className="error-message">{codeError}</span>}
-              </div>
+              </Field>
             </div>
+          </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <CodeAutocomplete
-                  label="Category"
-                  placeholder="Select or type a new category..."
-                  value={categoryValue}
-                  onChange={handleCategoryChange}
-                  items={categoryAutocompleteItems}
-                  onSelect={item => handleCategoryChange(item.label)}
-                  disabled={isLoading}
-                  error={errors.category?.message}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="unit">Unit *</label>
-                <select id="unit" {...register('unit')} disabled={isLoading}>
+          <div className={styles.row}>
+            <div className={styles.group}>
+              <CodeAutocomplete
+                label="Category"
+                placeholder="Select or type a new category..."
+                value={categoryValue}
+                onChange={handleCategoryChange}
+                items={categoryAutocompleteItems}
+                onSelect={item => handleCategoryChange(item.label)}
+                disabled={isLoading}
+                error={errors.category?.message}
+                required
+              />
+            </div>
+            <div className={styles.group}>
+              <Field label="Unit" required error={errors.unit?.message}>
+                <Select {...register('unit')} disabled={isLoading}>
                   <option value="pcs">Pieces</option>
                   <option value="meters">Meters</option>
                   <option value="kg">Kilograms</option>
                   <option value="tons">Tons</option>
                   <option value="sets">Sets</option>
-                </select>
-                {errors.unit && <span className="error-message">{errors.unit.message}</span>}
-              </div>
-            </div>
-          </div>
-          <div>
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="totalQuantity">Total Quantity *</label>
-                <input
-                  id="totalQuantity"
-                  type="number"
-                  {...register('totalQuantity', { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-                {errors.totalQuantity && (
-                  <span className="error-message">{errors.totalQuantity.message}</span>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="defaultRatePerDay">Daily Rate (₹)</label>
-                <input
-                  id="defaultRatePerDay"
-                  type="number"
-                  step="0.01"
-                  {...register('defaultRatePerDay', { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="damageRate">Damage Charge (₹)</label>
-                <input
-                  id="damageRate"
-                  type="number"
-                  step="0.01"
-                  {...register('damageRate', { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="costPrice">Cost Price (₹)</label>
-                <input
-                  id="costPrice"
-                  type="number"
-                  step="0.01"
-                  {...register('costPrice', { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="description">Description</label>
-              <textarea
-                id="description"
-                {...register('description')}
-                rows={3}
-                disabled={isLoading}
-              />
+                </Select>
+              </Field>
             </div>
           </div>
         </div>
+
+        <div className={styles.column}>
+          <div className={styles.numbers}>
+            <Field label="Total quantity" required error={errors.totalQuantity?.message}>
+              <Input
+                mono
+                type="number"
+                {...register('totalQuantity', { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+            </Field>
+            <Field label="Daily rate (₹)" error={errors.defaultRatePerDay?.message}>
+              <Input
+                mono
+                type="number"
+                step="0.01"
+                {...register('defaultRatePerDay', { setValueAs: optionalNumber })}
+                disabled={isLoading}
+              />
+            </Field>
+            <Field label="Damage charge (₹)" error={errors.damageRate?.message}>
+              <Input
+                mono
+                type="number"
+                step="0.01"
+                {...register('damageRate', { setValueAs: optionalNumber })}
+                disabled={isLoading}
+              />
+            </Field>
+            <Field label="Cost price (₹)" error={errors.costPrice?.message}>
+              <Input
+                mono
+                type="number"
+                step="0.01"
+                {...register('costPrice', { setValueAs: optionalNumber })}
+                disabled={isLoading}
+              />
+            </Field>
+          </div>
+
+          <Field label="Description" error={errors.description?.message}>
+            <Textarea {...register('description')} rows={3} disabled={isLoading} />
+          </Field>
+        </div>
       </div>
 
-      <div className="form-actions">
-        <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={isLoading}>
+      <div className={styles.actions}>
+        <Button onClick={onCancel} disabled={isLoading}>
           Cancel
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={isLoading}>
-          {isLoading ? 'Saving...' : initialData ? 'Update Item' : 'Add Item'}
-        </button>
+        </Button>
+        <Button variant="primary" type="submit" loading={isLoading}>
+          {initialData ? 'Update item' : 'Add item'}
+        </Button>
       </div>
     </form>
   );

@@ -1,0 +1,114 @@
+import { describe, expect, it, vi } from 'vitest';
+import { screen, waitFor } from '@testing-library/react';
+import { http } from 'msw';
+import { InventoryForm } from './InventoryForm';
+import { renderWithProviders, signedIn } from '../../test/render';
+import { server } from '../../test/msw/server';
+import { apiUrl, ok } from '../../test/msw/handlers';
+import type { Inventory } from '../../types';
+
+function setup(props: Partial<React.ComponentProps<typeof InventoryForm>> = {}, exists = false) {
+  server.use(
+    http.get(apiUrl('/businesses/biz-1/inventory/categories'), () => ok(['Scaffolding'])),
+    http.get(apiUrl('/businesses/biz-1/inventory/check-code'), () => ok(exists))
+  );
+  const onSubmit = vi.fn().mockResolvedValue(undefined);
+  const onCancel = vi.fn();
+  const utils = renderWithProviders(
+    <InventoryForm onSubmit={onSubmit} onCancel={onCancel} {...props} />,
+    { preloadedState: signedIn() }
+  );
+  return { ...utils, onSubmit, onCancel };
+}
+
+async function fillRequired(user: ReturnType<typeof setup>['user']) {
+  await user.type(screen.getByLabelText(/Item name/), 'Cuplock 2m');
+  await user.type(screen.getByLabelText(/Item code/), 'cup2');
+  await user.type(screen.getByLabelText(/Category/), 'Scaffolding');
+  const qty = screen.getByLabelText(/Total quantity/);
+  await user.clear(qty);
+  await user.type(qty, '40');
+}
+
+describe('InventoryForm', () => {
+  it('submits the exact payload for a full fill', async () => {
+    const { user, onSubmit } = setup();
+    await fillRequired(user);
+    await user.type(screen.getByLabelText(/Daily rate/), '12.5');
+    await user.type(screen.getByLabelText(/Damage charge/), '300');
+    await user.type(screen.getByLabelText(/Cost price/), '450');
+    await user.type(screen.getByLabelText(/Description/), 'Standard');
+    await user.selectOptions(screen.getByLabelText(/Unit/), 'meters');
+    await user.click(screen.getByRole('button', { name: /^Add item$/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0]).toEqual({
+      code: 'CUP2',
+      name: 'Cuplock 2m',
+      category: 'Scaffolding',
+      totalQuantity: 40,
+      unit: 'meters',
+      description: 'Standard',
+      defaultRatePerDay: 12.5,
+      damageRate: 300,
+      costPrice: 450,
+    });
+  });
+
+  it('submits with empty optional numbers omitted (previously failed silently)', async () => {
+    const { user, onSubmit } = setup();
+    await fillRequired(user);
+    await user.click(screen.getByRole('button', { name: /^Add item$/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const payload = onSubmit.mock.calls[0][0];
+    expect(payload.defaultRatePerDay).toBeUndefined();
+    expect(payload.damageRate).toBeUndefined();
+    expect(payload.costPrice).toBeUndefined();
+    expect(payload.totalQuantity).toBe(40);
+  });
+
+  it('shows required-field messages and does not submit', async () => {
+    const { user, onSubmit } = setup();
+    await user.click(screen.getByRole('button', { name: /^Add item$/i }));
+    expect(await screen.findByText('Name is required')).toBeInTheDocument();
+    expect(screen.getByText('Code is required')).toBeInTheDocument();
+    expect(screen.getByText('Category is required')).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('blocks submit when the code already exists', async () => {
+    const { user, onSubmit } = setup({}, true);
+    await fillRequired(user);
+    await user.tab();
+    expect(await screen.findByText('This code already exists')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^Add item$/i }));
+    await waitFor(() => expect(screen.getByText('This code already exists')).toBeInTheDocument());
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('edits an existing item, keeps its code without a uniqueness check, and cancels', async () => {
+    const item = {
+      _id: 'i1',
+      code: 'CUP2',
+      name: 'Cuplock',
+      category: 'Scaffolding',
+      totalQuantity: 10,
+      unit: 'pcs',
+      description: 'd',
+      defaultRatePerDay: 5,
+    } as Inventory;
+    const { user, onSubmit, onCancel } = setup({ initialData: item }, true);
+    await user.click(screen.getByLabelText(/Item code/));
+    await user.tab();
+    expect(screen.queryByText('This code already exists')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Update item' }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({
+      code: 'CUP2',
+      name: 'Cuplock',
+      totalQuantity: 10,
+      defaultRatePerDay: 5,
+    });
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onCancel).toHaveBeenCalled();
+  });
+});
