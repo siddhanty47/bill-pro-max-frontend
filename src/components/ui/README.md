@@ -11,7 +11,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `Icon` | Every line icon; add new glyphs here, never inline an SVG in a page |
 | `Brand` | The Bill Pro Max mark + wordmark for headers (`size`: `md` default, `sm`); placement-only `className` |
 | `GoogleIcon` | The Google logo on sign-in buttons (brand colours, token-check allowlisted) |
-| `Card` | Any surface panel or section, with optional title, count pill and actions |
+| `Card` | Any surface panel or section, with optional title, muted `subtitle` line, count pill and actions |
 | `StatCard` | A single headline number with a label; `tone="highlight"` for the one key stat |
 | `Meter` | A segmented bar with legend (e.g. available vs rented stock) |
 | `ProgressBar` | A determinate progress bar for a running job (takes the surrounding text colour, e.g. inside a `Notice`) |
@@ -20,7 +20,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `StatusChip` | Every status badge; tone comes from `status.ts` |
 | `DocNumber` | Bill, challan and other document numbers, optionally linked; `wrap` lets a long code wrap in a narrow sidebar |
 | `DataTable` | Read-only list data from an array of rows (column flags `align`, `mono`, `nowrap`, `hideOnMobile`); `mobile` spec turns it into a two-line list on phones (`actionsPlacement: 'trailing'` puts row actions top-right instead of below) |
-| `Table`, `THead`, `TBody`, `Tr`, `Th`, `Td` | Hand-built tables and editable grids (challan/bill item rows); `aria-label`/`caption` name the table; `Tr stackOnMobile` stacks an editable grid row on phones (one divider per row; the page places cells with grid areas) |
+| `Table`, `THead`, `TBody`, `Tr`, `Th`, `Td` | Hand-built tables and editable grids (challan/bill item rows); `aria-label`/`caption` name the table; `Table dense` tightens cell padding for wide statement tables; `Tr variant="total"` marks a totals/balance row (top rule, heavier weight); `Tr stackOnMobile` stacks an editable grid row on phones (one divider per row; the page places cells with grid areas) |
 | `Field` | Label + control + hint + error wrapper for one form control; `labelAction` for a link on the label row |
 | `Input`, `Select`, `Textarea` | Form controls (forwardRef, work with `register()`); `size="lg"` on Input/Select for auth forms; Select draws the kit chevron |
 | `Checkbox` | A checkbox with its own label |

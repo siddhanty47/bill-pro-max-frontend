@@ -46,12 +46,23 @@ export type TableProps = {
   'aria-label'?: string;
   /** Visually hidden `<caption>`; names the table for screen readers. */
   caption?: ReactNode;
+  /** Tighter cell padding for wide statement tables. */
+  dense?: boolean;
 };
 
-export function Table({ children, className, caption, 'aria-label': ariaLabel }: TableProps) {
+export function Table({
+  children,
+  className,
+  caption,
+  dense,
+  'aria-label': ariaLabel,
+}: TableProps) {
   return (
     <div className={[styles.wrap, className ?? ''].filter(Boolean).join(' ')}>
-      <table className={styles.table} aria-label={ariaLabel}>
+      <table
+        className={[styles.table, dense ? styles.dense : ''].filter(Boolean).join(' ')}
+        aria-label={ariaLabel}
+      >
         {caption && <caption className={styles.caption}>{caption}</caption>}
         {children}
       </table>
@@ -76,18 +87,27 @@ export type TrProps = Omit<HTMLAttributes<HTMLTableRowElement>, 'onClick'> & {
    * places the cells (`grid-template-areas` on the row, `grid-area` on cells).
    */
   stackOnMobile?: boolean;
+  /** `total`: a totals / balance row (top rule, heavier weight, raised background). */
+  variant?: 'total';
 };
 
 export function Tr({
   onClick,
   stackOnMobile,
+  variant,
   className: classNameProp,
   children,
   onKeyDown,
   ...rest
 }: TrProps) {
   const className =
-    [stackOnMobile ? styles.stack : '', classNameProp ?? ''].filter(Boolean).join(' ') || undefined;
+    [
+      stackOnMobile ? styles.stack : '',
+      variant === 'total' ? styles.total : '',
+      classNameProp ?? '',
+    ]
+      .filter(Boolean)
+      .join(' ') || undefined;
   if (!onClick) {
     return (
       <tr className={className} onKeyDown={onKeyDown} {...rest}>

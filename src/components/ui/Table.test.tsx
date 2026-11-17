@@ -182,4 +182,18 @@ describe('Table primitives', () => {
     expect(screen.getByRole('table', { name: 'Recent bills' })).toBeInTheDocument();
     expect(screen.getByText('Recent bills')).toHaveClass('caption');
   });
+
+  it('applies dense padding and the total row variant', () => {
+    render(
+      <Table dense aria-label="Statement">
+        <TBody>
+          <Tr variant="total">
+            <Td>Totals</Td>
+          </Tr>
+        </TBody>
+      </Table>
+    );
+    expect(screen.getByRole('table', { name: 'Statement' })).toHaveClass('dense');
+    expect(screen.getByText('Totals').closest('tr')).toHaveClass('total');
+  });
 });

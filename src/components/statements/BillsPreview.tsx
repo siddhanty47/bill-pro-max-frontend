@@ -1,7 +1,6 @@
-import { Link } from 'react-router-dom';
 import type { BillStatementData } from '../../types';
 import { formatDate, formatMoney } from '../../utils/format';
-import { Card, Notice, Table, THead, TBody, Tr, Th, Td } from '../ui';
+import { DocNumber, Table, THead, TBody, Tr, Th, Td } from '../ui';
 import { StatementShell } from './StatementShell';
 
 interface BillsPreviewProps {
@@ -10,85 +9,82 @@ interface BillsPreviewProps {
 
 const AMOUNT_HEADERS = ['Rent', 'Transport', 'Damage', 'Subtotal', 'Tax', 'Discount', 'Total'];
 
+function amountsOf(r: {
+  rentCharges: number;
+  transportationCharges: number;
+  damageCharges: number;
+  subtotal: number;
+  taxAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+}): number[] {
+  return [
+    r.rentCharges,
+    r.transportationCharges,
+    r.damageCharges,
+    r.subtotal,
+    r.taxAmount,
+    r.discountAmount,
+    r.totalAmount,
+  ];
+}
+
 export function BillsPreview({ data }: BillsPreviewProps) {
   const { totals } = data;
-  const totalAmounts = [
-    totals.rentCharges,
-    totals.transportationCharges,
-    totals.damageCharges,
-    totals.subtotal,
-    totals.taxAmount,
-    totals.discountAmount,
-    totals.totalAmount,
-  ];
   return (
     <StatementShell
       title="Bill statement"
       partyName={data.party.name}
       period={`${formatDate(data.period.from)} to ${formatDate(data.period.to)}${
-        data.siteCode ? ` | Site: ${data.siteCode}` : ''
+        data.siteCode ? ` · Site: ${data.siteCode}` : ''
       }`}
-    >
-      {data.bills.length === 0 ? (
-        <Notice tone="info">No bills found for this period.</Notice>
-      ) : (
-        <Card padded={false}>
-          <Table aria-label="Bill statement">
-            <THead>
-              <Tr>
-                <Th nowrap>Bill #</Th>
-                <Th nowrap>Date</Th>
-                <Th>Site</Th>
-                <Th>Period</Th>
-                {AMOUNT_HEADERS.map(h => (
-                  <Th key={h} align="right">
-                    {h}
-                  </Th>
-                ))}
-              </Tr>
-            </THead>
-            <TBody>
-              {data.bills.map(bill => (
-                <Tr key={bill.billId}>
-                  <Td nowrap>
-                    <Link to={`/bills/${bill.billId}`}>{bill.billNumber}</Link>
-                  </Td>
-                  <Td nowrap>{formatDate(bill.billDate)}</Td>
-                  <Td nowrap>{bill.siteCode || '-'}</Td>
-                  <Td nowrap>
-                    {bill.periodStart && bill.periodEnd
-                      ? `${formatDate(bill.periodStart)} - ${formatDate(bill.periodEnd)}`
-                      : '-'}
-                  </Td>
-                  {[
-                    bill.rentCharges,
-                    bill.transportationCharges,
-                    bill.damageCharges,
-                    bill.subtotal,
-                    bill.taxAmount,
-                    bill.discountAmount,
-                    bill.totalAmount,
-                  ].map((amount, i) => (
-                    <Td key={AMOUNT_HEADERS[i]} align="right" mono nowrap>
-                      {formatMoney(amount)}
-                    </Td>
-                  ))}
-                </Tr>
+      emptyMessage={data.bills.length === 0 ? 'No bills found for this period.' : undefined}
+      body={
+        <Table dense aria-label="Bill statement">
+          <THead>
+            <Tr>
+              <Th>Bill #</Th>
+              <Th nowrap>Date</Th>
+              <Th>Site</Th>
+              <Th>Period</Th>
+              {AMOUNT_HEADERS.map(h => (
+                <Th key={h} align="right">
+                  {h}
+                </Th>
               ))}
-              <Tr>
-                <Td colSpan={4}>
-                  <strong>Totals ({totals.billCount} bills)</strong>
+            </Tr>
+          </THead>
+          <TBody>
+            {data.bills.map(bill => (
+              <Tr key={bill.billId}>
+                <Td>
+                  <DocNumber value={bill.billNumber} to={`/bills/${bill.billId}`} wrap />
                 </Td>
-                {totalAmounts.map((amount, i) => (
+                <Td nowrap>{formatDate(bill.billDate)}</Td>
+                <Td>{bill.siteCode || '-'}</Td>
+                <Td>
+                  {bill.periodStart && bill.periodEnd
+                    ? `${formatDate(bill.periodStart)} - ${formatDate(bill.periodEnd)}`
+                    : '-'}
+                </Td>
+                {amountsOf(bill).map((amount, i) => (
                   <Td key={AMOUNT_HEADERS[i]} align="right" mono nowrap>
                     {formatMoney(amount)}
                   </Td>
                 ))}
               </Tr>
-            </TBody>
-          </Table>
-        </Card>
-      )}
-    </StatementShell>
+            ))}
+            <Tr variant="total">
+              <Td colSpan={4}>Totals ({totals.billCount} bills)</Td>
+              {amountsOf(totals).map((amount, i) => (
+                <Td key={AMOUNT_HEADERS[i]} align="right" mono nowrap>
+                  {formatMoney(amount)}
+                </Td>
+              ))}
+            </Tr>
+          </TBody>
+        </Table>
+      }
+    />
   );
 }

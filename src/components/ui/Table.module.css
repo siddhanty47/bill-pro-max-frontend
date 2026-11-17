@@ -60,6 +60,17 @@
   outline-offset: -2px;
 }
 
+.table.dense th,
+.table.dense td {
+  padding: 8px 12px;
+}
+
+.table tbody .total td {
+  font-weight: 600;
+  background: var(--bg-elevated);
+  border-top: 2px solid var(--border-medium);
+}
+
 .table .right {
   text-align: right;
 }

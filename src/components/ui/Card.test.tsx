@@ -14,6 +14,15 @@ describe('Card', () => {
     expect(screen.getByText('5')).toHaveClass('danger');
   });
 
+  it('renders a muted subtitle under the title', () => {
+    render(
+      <Card title="Ledger" subtitle="1 Jan to 5 Feb">
+        body
+      </Card>
+    );
+    expect(screen.getByText('1 Jan to 5 Feb')).toHaveClass('subtitle');
+  });
+
   it('renders no heading without a title', () => {
     render(<Card>body</Card>);
     expect(screen.queryByRole('heading')).not.toBeInTheDocument();

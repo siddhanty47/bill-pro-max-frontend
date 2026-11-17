@@ -8,8 +8,12 @@
   min-width: 0;
 }
 
-.period {
-  margin: 0;
+.notice {
+  padding: var(--space-4) var(--space-5);
+}
+
+.description {
+  min-width: 14rem;
 }
 
 .summaryGrid {
