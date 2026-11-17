@@ -123,10 +123,25 @@ describe('AgreementsPage', () => {
     expect(screen.getByTestId('where')).toHaveTextContent('/agreements/AGR-002');
   });
 
-  it('shows empty and filtered-empty states', async () => {
+  it('shows an empty state pointing to parties', async () => {
     useApi([]);
-    renderPage();
+    const { user } = renderPage();
     expect(await screen.findByText('No agreements yet')).toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: 'Go to parties' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('/parties');
+  });
+
+  it('renders the phone list with party, site and start date', async () => {
+    useApi();
+    renderPage();
+    await screen.findByRole('table');
+    const list = screen.getByRole('list', { name: 'Agreements' });
+    const item = within(list).getAllByRole('listitem')[0];
+    expect(within(item).getByText('AGR-001')).toBeInTheDocument();
+    expect(within(item).getByText('Mehta Builders')).toBeInTheDocument();
+    expect(item).toHaveTextContent('S1');
+    expect(item).toHaveTextContent('1 Apr 2020');
+    expect(within(item).getByText('Active')).toBeInTheDocument();
   });
 
   it('shows a filtered-empty state', async () => {

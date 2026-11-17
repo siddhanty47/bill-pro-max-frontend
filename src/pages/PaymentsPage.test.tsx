@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fireEvent, screen, within } from '@testing-library/react';
-import { http } from 'msw';
+import { http, HttpResponse } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { PaymentsPage } from './PaymentsPage';
 import { renderWithProviders, signedIn } from '../test/render';
@@ -161,10 +161,41 @@ describe('PaymentsPage', () => {
     expect(await screen.findByRole('dialog', { name: 'Record payment' })).toBeInTheDocument();
   });
 
-  it('shows empty and filtered-empty states', async () => {
+  it('shows an empty state whose action opens the record payment modal', async () => {
     useApi([]);
-    renderPage();
+    const { user } = renderPage();
     expect(await screen.findByText('No payments yet')).toBeInTheDocument();
+    await user.click(screen.getAllByRole('button', { name: /Record payment/ })[1]);
+    expect(await screen.findByRole('dialog', { name: 'Record payment' })).toBeInTheDocument();
+  });
+
+  it('renders the phone list with amount, party, type, date and method', async () => {
+    useApi();
+    renderPage();
+    await screen.findByRole('table');
+    const list = screen.getByRole('list', { name: 'Payments' });
+    const item = within(list).getAllByRole('listitem')[1];
+    expect(within(item).getByText('₹99.50')).toBeInTheDocument();
+    expect(within(item).getByText('Om Constructions')).toBeInTheDocument();
+    expect(item).toHaveTextContent(/Paid.*4 May 2020.*Cash/);
+    expect(within(item).getByText('Completed')).toBeInTheDocument();
+  });
+
+  it('shows an error and retries', async () => {
+    useApi();
+    let calls = 0;
+    server.use(
+      http.get(apiUrl('/businesses/biz-1/payments'), () => {
+        calls += 1;
+        return calls === 1
+          ? HttpResponse.json({ success: false, message: 'Boom' }, { status: 500 })
+          : ok(defaults);
+      })
+    );
+    const { user } = renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('table')).toBeInTheDocument();
+    expect(calls).toBe(2);
   });
 
   it('shows a filtered-empty state', async () => {

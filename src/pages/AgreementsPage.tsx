@@ -8,6 +8,7 @@ import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
 import { useGetAgreementsQuery } from '../api/agreementApi';
 import {
+  Button,
   Card,
   DataTable,
   DocNumber,
@@ -149,7 +150,14 @@ export function AgreementsPage() {
           onRowClick={a => navigate(`/agreements/${a.agreementId}`)}
           empty={
             (agreements || []).length === 0 ? (
-              <EmptyState title="No agreements yet" />
+              <EmptyState
+                title="No agreements yet"
+                action={
+                  <Button size="sm" to="/parties">
+                    Go to parties
+                  </Button>
+                }
+              />
             ) : (
               <EmptyState title="No agreements match these filters" />
             )
