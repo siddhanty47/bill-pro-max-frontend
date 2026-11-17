@@ -1,8 +1,10 @@
 /**
- * Shared document number badge with read-only prefix and editable sequence input.
+ * Shared document number field: read-only prefix chip plus an editable sequence input.
  * Used by both ChallanForm and BillForm.
  */
+import { useId } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
+import { Field, Input } from './ui';
 import styles from './DocumentNumberBadge.module.css';
 
 interface DocumentNumberBadgeProps {
@@ -24,21 +26,25 @@ export function DocumentNumberBadge({
   variant,
   register,
 }: DocumentNumberBadgeProps) {
+  const inputId = useId();
   return (
-    <div className={styles.badge}>
-      <span className={styles.label}>{label}</span>
-      <span className={`${styles.value} ${variant ? styles[variant] : ''}`}>
-        {isLoading ? '...' : prefix}
-      </span>
-      <input
-        type="number"
-        min={1}
-        max={9999}
-        className={styles.sequenceInput}
-        {...register}
-        disabled={disabled}
-      />
-      {error && <span className="error-message">{error}</span>}
-    </div>
+    <Field label={label} htmlFor={inputId} error={error} className={styles.field}>
+      <div className={styles.row}>
+        <span className={`${styles.prefix} ${variant ? styles[variant] : ''}`}>
+          {isLoading ? '...' : prefix}
+        </span>
+        <Input
+          id={inputId}
+          mono
+          invalid={!!error}
+          type="number"
+          min={1}
+          max={9999}
+          className={styles.sequence}
+          {...register}
+          disabled={disabled}
+        />
+      </div>
+    </Field>
   );
 }

@@ -1,65 +1,41 @@
-/* ---- Document number badge (shared by Challan & Bill forms) ---- */
+/* Document number field: layout plus the read-only prefix chip (document-type tint tokens). */
 
-.badge {
+.field {
+  margin-bottom: var(--space-4);
+}
+
+.row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 18px;
-  padding: 10px 14px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  gap: var(--space-2);
 }
 
-.label {
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-.value {
+.prefix {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: var(--text-md);
   font-weight: 500;
-  padding: 2px 10px;
+  white-space: nowrap;
+  padding: 2px var(--space-3);
   border-radius: var(--radius-md);
 }
 
-.value.delivery {
+.delivery {
   color: var(--delivery-accent);
   background: var(--delivery-bg);
 }
 
-.value.return {
+.return {
   color: var(--return-accent);
   background: var(--return-bg);
 }
 
-.value.bill {
+.bill {
   color: var(--accent);
   background: var(--accent-muted);
 }
 
-/* ---- Sequence input ---- */
-
-.sequenceInput {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  width: 80px;
-  height: 32px;
-  padding: 0 8px;
-  font-size: var(--text-md);
-  font-weight: 500;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--bg-input);
-  color: var(--text-heading);
+.sequence {
+  width: 96px;
   text-align: center;
-}
-
-.sequenceInput:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: var(--ring-focus);
 }
