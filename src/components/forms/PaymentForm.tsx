@@ -6,6 +6,8 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
+import { Button, Field, Input, Select, Textarea } from '../ui';
+import styles from './PaymentForm.module.css';
 import type { Party, Bill, CreatePaymentInput } from '../../types';
 
 const paymentSchema = z.object({
@@ -125,104 +127,91 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
   const onFormSubmit = handleSubmit(handleFormSubmit as any);
 
   return (
-    <form onSubmit={onFormSubmit}>
-      <div className="form-content">
-        <div className="form-columns">
+    <form onSubmit={onFormSubmit} noValidate>
+      <div className={styles.columns}>
+        <div className={styles.column}>
+          <div className={styles.pair}>
+            <Field label="Payment type" required>
+              <Select {...register('type')} disabled={isLoading}>
+                <option value="receivable">Receivable (from client)</option>
+                <option value="payable">Payable (to supplier)</option>
+              </Select>
+            </Field>
+            <Field label="Date" required error={errors.date?.message}>
+              <Input type="date" {...register('date')} disabled={isLoading} />
+            </Field>
+          </div>
+
           <div>
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="type">Payment Type *</label>
-                <select id="type" {...register('type')} disabled={isLoading}>
-                  <option value="receivable">Receivable (from client)</option>
-                  <option value="payable">Payable (to supplier)</option>
-                </select>
-              </div>
+            <CodeAutocomplete
+              label="Party"
+              placeholder="Type party code or name..."
+              value={partySearchValue}
+              onChange={setPartySearchValue}
+              items={partyAutocompleteItems}
+              onSelect={handlePartySelect}
+              disabled={isLoading}
+              error={errors.partyId?.message}
+              required
+            />
+            <input type="hidden" {...register('partyId')} />
+          </div>
 
-              <div className="form-group">
-                <label htmlFor="date">Date *</label>
-                <input id="date" type="date" {...register('date')} disabled={isLoading} />
-                {errors.date && <span className="error-message">{errors.date.message}</span>}
-              </div>
-            </div>
-
-            <div className="form-group">
-              <CodeAutocomplete
-                label="Party *"
-                placeholder="Type party code or name..."
-                value={partySearchValue}
-                onChange={setPartySearchValue}
-                items={partyAutocompleteItems}
-                onSelect={handlePartySelect}
-                disabled={isLoading}
-                error={errors.partyId?.message}
-                required
-              />
-              <input type="hidden" {...register('partyId')} />
-            </div>
-
-            {paymentType === 'receivable' && selectedPartyId && (
-              <div className="form-group">
-                <label htmlFor="billId">Link to Bill (optional)</label>
-                <select id="billId" {...register('billId')} disabled={isLoading}>
-                  <option value="">
-                    {partyBills.length > 0 ? 'No bill linked' : 'No bills available'}
+          {paymentType === 'receivable' && selectedPartyId && (
+            <Field label="Link to bill (optional)">
+              <Select {...register('billId')} disabled={isLoading}>
+                <option value="">
+                  {partyBills.length > 0 ? 'No bill linked' : 'No bills available'}
+                </option>
+                {partyBills.map(bill => (
+                  <option key={bill._id} value={bill._id}>
+                    {bill.billNumber} - ₹{(bill.totalAmount - bill.amountPaid).toLocaleString()} due
                   </option>
-                  {partyBills.map(bill => (
-                    <option key={bill._id} value={bill._id}>
-                      {bill.billNumber} - ₹{(bill.totalAmount - bill.amountPaid).toLocaleString()}{' '}
-                      due
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+                ))}
+              </Select>
+            </Field>
+          )}
+        </div>
+
+        <div className={styles.column}>
+          <div className={styles.pair}>
+            <Field label="Amount (₹)" required error={errors.amount?.message}>
+              <Input
+                mono
+                type="number"
+                step="0.01"
+                {...register('amount', { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+            </Field>
+            <Field label="Payment method" required>
+              <Select {...register('method')} disabled={isLoading}>
+                <option value="cash">Cash</option>
+                <option value="bank_transfer">Bank transfer</option>
+                <option value="upi">UPI</option>
+                <option value="cheque">Cheque</option>
+                <option value="other">Other</option>
+              </Select>
+            </Field>
           </div>
-          <div>
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="amount">Amount (₹) *</label>
-                <input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  {...register('amount', { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-                {errors.amount && <span className="error-message">{errors.amount.message}</span>}
-              </div>
 
-              <div className="form-group">
-                <label htmlFor="method">Payment Method *</label>
-                <select id="method" {...register('method')} disabled={isLoading}>
-                  <option value="cash">Cash</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="upi">UPI</option>
-                  <option value="cheque">Cheque</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-            </div>
+          <Field label="Reference / transaction ID" error={errors.reference?.message}>
+            <Input mono {...register('reference')} disabled={isLoading} />
+          </Field>
 
-            <div className="form-group">
-              <label htmlFor="reference">Reference / Transaction ID</label>
-              <input id="reference" {...register('reference')} disabled={isLoading} />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="notes">Notes</label>
-              <textarea id="notes" {...register('notes')} rows={2} disabled={isLoading} />
-            </div>
-          </div>
+          <Field label="Notes" error={errors.notes?.message}>
+            <Textarea {...register('notes')} rows={2} disabled={isLoading} />
+          </Field>
         </div>
       </div>
 
-      <div className="form-actions">
-        <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={isLoading}>
+      <div className={styles.actions}>
+        <Button onClick={onCancel} disabled={isLoading}>
           Cancel
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={isLoading}>
-          {isLoading ? 'Recording...' : 'Record Payment'}
-        </button>
+        </Button>
+        <Button variant="primary" type="submit" loading={isLoading}>
+          Record payment
+        </Button>
       </div>
     </form>
   );
