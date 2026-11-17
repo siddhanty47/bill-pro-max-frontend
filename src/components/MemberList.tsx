@@ -30,8 +30,12 @@ export function MemberList({ members, businessId, onInvite }: MemberListProps) {
   const [updateRole] = useUpdateMemberRoleMutation();
   const [removeMember] = useRemoveMemberMutation();
 
-  const handleRoleChange = async (memberId: string, newRole: string) => {
-    await updateRole({ businessId, memberId, role: newRole });
+  const handleRoleChange = async (member: BusinessMember, newRole: string) => {
+    if (newRole === member.role) {
+      setEditingId(null);
+      return;
+    }
+    await updateRole({ businessId, memberId: member._id, role: newRole });
     setEditingId(null);
   };
 
@@ -44,15 +48,15 @@ export function MemberList({ members, businessId, onInvite }: MemberListProps) {
   const isManageable = (member: BusinessMember) =>
     member.role !== 'owner' && member.userId !== user?.id;
 
-  // Only the table's select takes focus: the phone list renders the same cell, hidden by CSS.
   const roleCell = (member: BusinessMember, focus = false) =>
     editingId === member._id ? (
       <Select
         aria-label="Role"
         value={member.role}
-        onChange={e => handleRoleChange(member._id, e.target.value)}
+        onChange={e => handleRoleChange(member, e.target.value)}
         onBlur={() => setEditingId(null)}
         autoFocus={focus}
+        onKeyDown={e => e.key === 'Escape' && setEditingId(null)}
       >
         {ROLES.map(r => (
           <option key={r.value} value={r.value}>
@@ -70,8 +74,7 @@ export function MemberList({ members, businessId, onInvite }: MemberListProps) {
         items={[
           {
             label: 'Change role',
-            // Defer so the menu's focus-return to its trigger doesn't blur the new select.
-            onClick: () => setTimeout(() => setEditingId(member._id), 0),
+            onClick: () => setEditingId(member._id),
           },
           { label: 'Remove', onClick: () => handleRemove(member._id), tone: 'danger' },
         ]}
@@ -107,7 +110,7 @@ export function MemberList({ members, businessId, onInvite }: MemberListProps) {
       mobile={{
         title: m => m.name || m.email,
         subtitle: m => (m.name ? m.email : undefined),
-        badge: m => roleCell(m),
+        badge: roleCell,
         meta: m => [`Joined ${formatDate(m.joinedAt)}`],
         actions: actionsCell,
         actionsPlacement: 'trailing',

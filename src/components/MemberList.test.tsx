@@ -76,6 +76,27 @@ describe('MemberList', () => {
     await waitFor(() => expect(body).toEqual({ role: 'accountant' }));
   });
 
+  it('cancels role editing with Escape and when the same role is picked', async () => {
+    let patched = false;
+    server.use(
+      http.patch(apiUrl('/businesses/biz-1/members/m3'), () => {
+        patched = true;
+        return ok(null);
+      })
+    );
+    const { user } = renderList();
+    const row = () => within(screen.getByRole('table')).getAllByRole('row')[3];
+    await user.click(within(row()).getByRole('button', { name: 'More actions' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Change role' }));
+    await user.keyboard('{Escape}');
+    expect(within(row()).queryByRole('combobox')).toBeNull();
+    await user.click(within(row()).getByRole('button', { name: 'More actions' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Change role' }));
+    await user.selectOptions(await within(row()).findByRole('combobox'), 'staff');
+    expect(within(row()).queryByRole('combobox')).toBeNull();
+    expect(patched).toBe(false);
+  });
+
   it('removes a member after confirming', async () => {
     let removed = false;
     server.use(

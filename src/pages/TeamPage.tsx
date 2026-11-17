@@ -259,7 +259,7 @@ export function TeamPage() {
         onChange={id => setActiveTab(id as Tab)}
       />
 
-      <TabPanel idPrefix="team" tabId={activeTab} className={styles.panel}>
+      <TabPanel idPrefix="team" tabId={activeTab}>
         {activeTab === 'employees' && (
           <>
             <FilterBar>
@@ -341,7 +341,7 @@ export function TeamPage() {
         )}
 
         {activeTab === 'invite' && (
-          <>
+          <div className={styles.stack}>
             <Card title="Members" count={members.length} padded={false}>
               {membersLoading ? (
                 <Spinner message="Loading members…" />
@@ -365,7 +365,7 @@ export function TeamPage() {
                 <InvitationList invitations={invitations} businessId={businessId} />
               )}
             </Card>
-          </>
+          </div>
         )}
       </TabPanel>
 

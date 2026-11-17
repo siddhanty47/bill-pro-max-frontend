@@ -1,8 +1,7 @@
 /* Layout only — controls come from the ui kit. */
 
-.panel {
+.stack {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
-  margin-top: var(--space-5);
 }
