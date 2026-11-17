@@ -13,7 +13,7 @@ import {
 import { useGetSalaryBreakdownQuery } from '../api/attendanceApi';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import { MonthNav } from '../components/MonthNav';
-import { Button, Card, EmptyState, Spinner, Table, TBody, Td, Tr } from '../components/ui';
+import { Card, RowActions, EmptyState, Spinner, Table, TBody, Td, Tr } from '../components/ui';
 import { formatDate, formatMoney } from '../utils/format';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { AttendanceCalendar } from '../components/AttendanceCalendar';
@@ -151,13 +151,6 @@ export function EmployeeDetailPage() {
       <DetailField label="Type" value={formatEmployeeType(employee.type)} />
       <DetailField label="Created" value={formatDate(employee.createdAt)} />
       <DetailField label="Updated" value={formatDate(employee.updatedAt)} />
-      {employee.isActive && (
-        <div>
-          <Button variant="danger" size="sm" onClick={handleDelete}>
-            Delete employee
-          </Button>
-        </div>
-      )}
     </DetailSection>
   ) : null;
 
@@ -209,6 +202,13 @@ export function EmployeeDetailPage() {
       onTabChange={setActiveTab}
       idPrefix="employee"
       sidebar={sidebar}
+      headerActions={
+        employee?.isActive ? (
+          <RowActions
+            items={[{ label: 'Delete employee', tone: 'danger', onClick: handleDelete }]}
+          />
+        ) : undefined
+      }
     >
       {employee && (
         <>

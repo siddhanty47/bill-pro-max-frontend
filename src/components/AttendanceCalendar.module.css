@@ -203,8 +203,6 @@
 .dropdown {
   position: absolute;
   top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
   z-index: var(--z-popover);
   min-width: 200px;
   display: flex;
@@ -216,6 +214,19 @@
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-pop);
+}
+
+.dropdownStart {
+  left: 0;
+}
+
+.dropdownEnd {
+  right: 0;
+}
+
+.dropdownMid {
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .overtimeRow {

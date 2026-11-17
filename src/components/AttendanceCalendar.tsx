@@ -17,7 +17,7 @@ import {
 import { getErrorMessage } from '../api/baseApi';
 import { MonthNav } from './MonthNav';
 import { Button, Input, Spinner, StatusChip } from './ui';
-import type { Tone } from './ui/status';
+import { statusTone, type Tone } from './ui/status';
 import type { AttendanceStatus } from '../types';
 import styles from './AttendanceCalendar.module.css';
 
@@ -41,13 +41,10 @@ const STATUS_FULL_LABELS: Record<AttendanceStatus, string> = {
   leave: 'Leave',
 };
 
-/** Tone per status; shared by the day badges, the legend and the editor dots. */
-const STATUS_TONE: Record<AttendanceStatus, Exclude<Tone, 'neutral'>> = {
-  present: 'success',
-  absent: 'danger',
-  'half-day': 'warning',
-  leave: 'info',
-};
+/** Tone per status (from the shared map); used by the legend, badges and editor dots. */
+const STATUS_TONE = Object.fromEntries(
+  (['present', 'absent', 'half-day', 'leave'] as AttendanceStatus[]).map(s => [s, statusTone(s)])
+) as Record<AttendanceStatus, Exclude<Tone, 'neutral'>>;
 
 const BADGE_CLASS: Record<AttendanceStatus, string> = {
   present: styles.badgePresent,
@@ -155,9 +152,10 @@ export function AttendanceCalendar({ employeeId }: AttendanceCalendarProps) {
         ? todayKey
         : markableKeys[0];
 
-  const resetEditor = () => {
+  const resetEditor = (focusDay?: string) => {
     setActiveDropdown(null);
     setOtHoursInput('');
+    if (focusDay) dayRefs.current.get(focusDay)?.focus();
   };
 
   const handlePrevMonth = () => {
@@ -192,7 +190,7 @@ export function AttendanceCalendar({ employeeId }: AttendanceCalendarProps) {
       } catch (err) {
         alert(getErrorMessage(err));
       }
-      resetEditor();
+      resetEditor(dateKey);
     },
     [currentBusinessId, employeeId, markAttendance]
   );
@@ -213,7 +211,7 @@ export function AttendanceCalendar({ employeeId }: AttendanceCalendarProps) {
       } catch (err) {
         alert(getErrorMessage(err));
       }
-      resetEditor();
+      resetEditor(dateKey);
     },
     [currentBusinessId, employeeId, markAttendance, attendanceMap, otHoursInput]
   );
@@ -230,7 +228,7 @@ export function AttendanceCalendar({ employeeId }: AttendanceCalendarProps) {
       } catch (err) {
         alert(getErrorMessage(err));
       }
-      resetEditor();
+      resetEditor(dateKey);
     },
     [currentBusinessId, employeeId, deleteAttendance]
   );
@@ -254,7 +252,7 @@ export function AttendanceCalendar({ employeeId }: AttendanceCalendarProps) {
   const handleDayKeyDown = (e: KeyboardEvent<HTMLButtonElement>, date: Date, key: string) => {
     if (e.key === 'Escape' && activeDropdown === key) {
       e.preventDefault();
-      resetEditor();
+      resetEditor(key);
       return;
     }
     const step: Record<string, number> = {
@@ -302,9 +300,7 @@ export function AttendanceCalendar({ employeeId }: AttendanceCalendarProps) {
       <div className={styles.summary}>
         {STATUS_CYCLE.map(s => (
           <span key={s} className={styles.summaryItem}>
-            <StatusChip status={s} tone={STATUS_TONE[s]}>
-              {STATUS_FULL_LABELS[s]}
-            </StatusChip>
+            <StatusChip status={s}>{STATUS_FULL_LABELS[s]}</StatusChip>
             {summaryCount[s] !== undefined && <span className="mono">{summaryCount[s]}</span>}
           </span>
         ))}
@@ -340,7 +336,7 @@ export function AttendanceCalendar({ employeeId }: AttendanceCalendarProps) {
             {wd}
           </div>
         ))}
-        {days.map(({ date, inMonth }) => {
+        {days.map(({ date, inMonth }, index) => {
           const key = toDateKey(date);
           if (!inMonth) {
             return (
@@ -378,6 +374,13 @@ export function AttendanceCalendar({ employeeId }: AttendanceCalendarProps) {
           const statusText = displayStatus
             ? `${STATUS_FULL_LABELS[displayStatus]}${isImplicit ? ' (not marked)' : ''}`
             : 'Upcoming';
+          const column = index % 7;
+          const placement =
+            column <= 2
+              ? styles.dropdownStart
+              : column >= 4
+                ? styles.dropdownEnd
+                : styles.dropdownMid;
           const otText = otHours != null && otHours > 0 ? `, ${otHours} hours overtime` : '';
 
           return (
@@ -415,7 +418,18 @@ export function AttendanceCalendar({ employeeId }: AttendanceCalendarProps) {
                 )}
               </button>
               {activeDropdown === key && (
-                <div className={styles.dropdown} role="group" aria-label={`Mark ${dateLabel}`}>
+                <div
+                  className={`${styles.dropdown} ${placement}`}
+                  role="group"
+                  aria-label={`Mark ${dateLabel}`}
+                  onKeyDown={e => {
+                    if (e.key === 'Escape') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      resetEditor(key);
+                    }
+                  }}
+                >
                   {STATUS_CYCLE.map(s => (
                     <Button
                       key={s}

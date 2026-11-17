@@ -17,7 +17,7 @@ const TONES: Record<string, Tone> = {
   pending: 'warning',
   return: 'warning',
   'half-day': 'warning',
-  leave: 'warning',
+  leave: 'info',
   overdue: 'danger',
   failed: 'danger',
   cancelled: 'danger',

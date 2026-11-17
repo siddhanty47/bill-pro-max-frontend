@@ -22,7 +22,7 @@ describe('statusTone', () => {
     ['deleted', 'danger'],
     ['present', 'success'],
     ['half-day', 'warning'],
-    ['leave', 'warning'],
+    ['leave', 'info'],
     ['declined', 'danger'],
     ['absent', 'danger'],
     ['revoked', 'danger'],

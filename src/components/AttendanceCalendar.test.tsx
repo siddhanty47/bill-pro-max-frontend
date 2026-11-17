@@ -227,6 +227,56 @@ describe('AttendanceCalendar', () => {
     expect(day(17)).toHaveFocus();
   });
 
+  it('closes the editor with Escape from inside it and returns focus to the day', async () => {
+    useApi();
+    const { user } = renderCalendar();
+    await waitFor(() => expect(day(10)).toBeEnabled());
+    await user.click(day(10));
+    screen.getByRole('button', { name: 'Absent' }).focus();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('group')).not.toBeInTheDocument();
+    expect(day(10)).toHaveFocus();
+  });
+
+  it('returns focus to the day after marking, saving overtime and clearing', async () => {
+    useApi();
+    capturePost();
+    server.use(http.delete(apiUrl(`${ATT}/2026-11-08`), () => ok({})));
+    const { user } = renderCalendar();
+    await waitFor(() => expect(day(10)).toBeEnabled());
+    await user.click(day(10));
+    await user.click(screen.getByRole('button', { name: 'Absent' }));
+    await waitFor(() => expect(day(10)).toHaveFocus());
+    await user.click(day(10));
+    await user.type(screen.getByRole('spinbutton', { name: 'Overtime hours' }), '1');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(screen.queryByRole('group')).not.toBeInTheDocument());
+    expect(day(10)).toHaveFocus();
+    await waitFor(() => expect(day(8)).toHaveAccessibleName(/Present$/));
+    await user.click(day(8));
+    await user.click(screen.getByRole('button', { name: 'Clear' }));
+    await waitFor(() => expect(day(8)).toHaveFocus());
+  });
+
+  it('anchors the editor by column so it stays inside the grid', async () => {
+    useApi();
+    const { user } = renderCalendar();
+    await waitFor(() => expect(day(10)).toBeEnabled());
+    // Nov 2026 starts on a Sunday: Mon is column 0, Sun column 6
+    const cases: [number, RegExp][] = [
+      [2, /dropdownStart/], // Monday
+      [4, /dropdownStart/], // Wednesday
+      [5, /dropdownMid/], // Thursday
+      [6, /dropdownEnd/], // Friday
+      [8, /dropdownEnd/], // Sunday
+    ];
+    for (const [n, cls] of cases) {
+      await user.click(day(n));
+      expect(screen.getByRole('group').className).toMatch(cls);
+      await user.click(day(n));
+    }
+  });
+
   it('opens the focused day with Enter', async () => {
     useApi();
     const { user } = renderCalendar();

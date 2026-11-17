@@ -174,7 +174,7 @@ describe('EmployeeDetailPage', () => {
     useApi(makeEmployee({ isActive: false }));
     renderPage();
     expect(await screen.findByText('Inactive')).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'Delete employee' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'More actions' })).not.toBeInTheDocument();
   });
 
   it('saves a field with only that field in the PATCH body', async () => {
@@ -227,9 +227,8 @@ describe('EmployeeDetailPage', () => {
     const bodies = capture('delete');
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const { user } = renderPage();
-    const del = await screen.findByRole('button', { name: 'Delete employee' });
-    expect(del).toHaveClass('danger');
-    await user.click(del);
+    await user.click(await screen.findByRole('button', { name: 'More actions' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Delete employee' }));
     expect(confirmSpy).toHaveBeenCalledWith(
       'Delete employee "Kiran Patel"? This will deactivate them.'
     );
@@ -242,7 +241,8 @@ describe('EmployeeDetailPage', () => {
     const bodies = capture('delete');
     vi.spyOn(window, 'confirm').mockReturnValue(false);
     const { user } = renderPage();
-    await user.click(await screen.findByRole('button', { name: 'Delete employee' }));
+    await user.click(await screen.findByRole('button', { name: 'More actions' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Delete employee' }));
     expect(bodies).toEqual([]);
   });
 
@@ -256,7 +256,8 @@ describe('EmployeeDetailPage', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const { user } = renderPage();
-    await user.click(await screen.findByRole('button', { name: 'Delete employee' }));
+    await user.click(await screen.findByRole('button', { name: 'More actions' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Delete employee' }));
     await waitFor(() =>
       expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('Has open work'))
     );
@@ -273,7 +274,10 @@ describe('EmployeeDetailPage', () => {
   it('loads the salary breakdown only on the Salary tab and pages months', async () => {
     const months = useApi();
     const { user } = renderPage();
-    await user.click(await screen.findByRole('tab', { name: 'Salary' }));
+    const tab = await screen.findByRole('tab', { name: 'Salary' });
+    await screen.findByRole('heading', { name: 'Basic information' });
+    expect(months).toHaveLength(0);
+    await user.click(tab);
     const table = await screen.findByRole('table', { name: 'Salary breakdown' });
     expect(months).toHaveLength(1);
     const row = (label: RegExp) => within(table).getByText(label).closest('tr')!;
