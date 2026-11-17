@@ -230,10 +230,14 @@ describe('BillDetailPage', () => {
     expect(within(row('Transportation')).getByText('₹500')).toBeVisible();
     expect(within(row('Damage charges')).getByText('₹750')).toBeVisible();
     expect(within(row('Subtotal')).getByText('₹8,000')).toBeVisible();
-    expect(within(row('SGST')).getByText('₹720 (9%)')).toBeVisible();
-    expect(within(row('CGST')).getByText('₹720 (9%)')).toBeVisible();
+    expect(within(row('SGST')).getByText('₹720')).toBeVisible();
+    expect(within(row('CGST')).getByText('₹720')).toBeVisible();
     expect(within(row('Total tax')).getByText('₹1,440')).toBeVisible();
-    expect(within(row('Discount')).getByText('₹400 (5%)')).toBeVisible();
+    expect(within(row('Discount')).getByText('₹400')).toHaveClass('mono');
+    const rateSpan = within(row('SGST')).getByText('(9%)');
+    expect(rateSpan).not.toHaveClass('mono');
+    expect(rateSpan.closest('td')).not.toHaveClass('mono');
+    expect(within(row('Discount')).getByText('(5%)')).toBeVisible();
     expect(within(row('Total')).getByText('₹1,00,000')).toBeVisible();
     expect(within(row('Paid')).getByText('₹40,000')).toBeVisible();
     expect(within(row('Balance due')).getByText('₹60,000')).toBeVisible();
@@ -243,7 +247,7 @@ describe('BillDetailPage', () => {
     useApi(makeBill({ taxMode: 'inter', igstRate: 18, igstAmount: 1440 }));
     const first = renderPage();
     const table = await screen.findByRole('table', { name: 'Summary' });
-    expect(within(table).getByText('₹1,440 (18%)')).toBeVisible();
+    expect(within(table).getByText('(18%)')).toBeVisible();
     expect(within(table).getByText('Total tax')).toBeVisible();
     first.unmount();
 
@@ -251,7 +255,7 @@ describe('BillDetailPage', () => {
     renderPage();
     const plain = await screen.findByRole('table', { name: 'Summary' });
     await waitFor(() => expect(within(plain).getByText('Tax')).toBeVisible());
-    expect(within(plain).getByText('₹1,440 (12%)')).toBeVisible();
+    expect(within(plain).getByText('(12%)')).toBeVisible();
     expect(within(plain).queryByText('Total tax')).not.toBeInTheDocument();
   });
 

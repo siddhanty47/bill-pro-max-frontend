@@ -349,15 +349,18 @@ export function BillDetailPage() {
     </DetailSection>
   ) : null;
 
-  const rate = (amount: number, pct: number | undefined) => `${formatMoney(amount)} (${pct || 0}%)`;
-  const summaryRow = (label: string, value: string, strong = false) => (
-    <Tr key={label}>
-      <Td>{strong ? <strong>{label}</strong> : label}</Td>
-      <Td align="right" mono nowrap>
-        {strong ? <strong>{value}</strong> : value}
-      </Td>
-    </Tr>
-  );
+  const summaryRow = (label: string, amount: string, strong = false, pct?: number) => {
+    const value = <span className="mono">{amount}</span>;
+    return (
+      <Tr key={label}>
+        <Td>{strong ? <strong>{label}</strong> : label}</Td>
+        <Td align="right" nowrap>
+          {strong ? <strong>{value}</strong> : value}
+          {pct !== undefined && <span> ({pct}%)</span>}
+        </Td>
+      </Tr>
+    );
+  };
 
   const status = bill?.status;
   const canEmail = status !== undefined && status !== 'cancelled' && status !== 'paid';
@@ -452,17 +455,37 @@ export function BillDetailPage() {
                     {summaryRow('Subtotal', formatMoney(bill.subtotal))}
                     {bill.taxMode === 'intra' ? (
                       <>
-                        {summaryRow('SGST', rate(bill.sgstAmount || 0, bill.sgstRate))}
-                        {summaryRow('CGST', rate(bill.cgstAmount || 0, bill.cgstRate))}
+                        {summaryRow(
+                          'SGST',
+                          formatMoney(bill.sgstAmount || 0),
+                          false,
+                          bill.sgstRate || 0
+                        )}
+                        {summaryRow(
+                          'CGST',
+                          formatMoney(bill.cgstAmount || 0),
+                          false,
+                          bill.cgstRate || 0
+                        )}
                       </>
                     ) : bill.taxMode === 'inter' ? (
-                      summaryRow('IGST', rate(bill.igstAmount || 0, bill.igstRate))
+                      summaryRow(
+                        'IGST',
+                        formatMoney(bill.igstAmount || 0),
+                        false,
+                        bill.igstRate || 0
+                      )
                     ) : (
-                      summaryRow('Tax', rate(bill.taxAmount, bill.taxRate))
+                      summaryRow('Tax', formatMoney(bill.taxAmount), false, bill.taxRate || 0)
                     )}
                     {(bill.taxMode === 'intra' || bill.taxMode === 'inter') &&
                       summaryRow('Total tax', formatMoney(bill.taxAmount))}
-                    {summaryRow('Discount', rate(bill.discountAmount, bill.discountRate))}
+                    {summaryRow(
+                      'Discount',
+                      formatMoney(bill.discountAmount),
+                      false,
+                      bill.discountRate
+                    )}
                     {summaryRow('Total', formatMoney(bill.totalAmount), true)}
                     {summaryRow('Paid', formatMoney(bill.amountPaid))}
                     {summaryRow('Balance due', formatMoney(outstanding), true)}
