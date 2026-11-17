@@ -43,7 +43,8 @@ describe('ui barrel', () => {
     'Tabs',
     'TabPanel',
     'Spinner',
-    'LoadingSpinner',
+    'NotAdded',
+    'TextLink',
     'ErrorMessage',
   ])('exports %s', name => {
     expect(ui).toHaveProperty(name);

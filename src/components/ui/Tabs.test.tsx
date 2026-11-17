@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Tabs, TabPanel } from './Tabs';
-import { Tabs as TabsShim } from '../Tabs';
 
 const TABS = [
   { id: 'bills', label: 'Bills' },
@@ -52,10 +51,6 @@ describe('Tabs', () => {
     render(<Tabs tabs={TABS} activeTab="nope" onChange={vi.fn()} />);
     expect(screen.getByRole('tab', { name: 'Bills' })).toHaveAttribute('tabindex', '0');
     expect(screen.getByRole('tab', { name: 'Challans' })).toHaveAttribute('tabindex', '-1');
-  });
-
-  it('is re-exported from the legacy path', () => {
-    expect(TabsShim).toBe(Tabs);
   });
 
   it('wires tabs to panels when given an idPrefix', () => {

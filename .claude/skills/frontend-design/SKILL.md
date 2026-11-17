@@ -36,7 +36,7 @@ The landing page (billpromax.com), "calm workspace" variant: near-black surfaces
 
 **Status:** `--status-{success,warning,danger,info,neutral}-{bg,text,border}`; delivery/return: `--delivery-{accent,bg,border}`, `--return-{accent,bg,border}`. There is no `--danger` token. Status meaning only via these, and normally only through `StatusChip`.
 
-**Fonts:** `--font-display` (Archivo, titles) · `--font-sans` (Inter, everything else) · `--font-mono` (JetBrains Mono, numbers). `--font-body` / `--font-heading` are migration aliases, removed in the last stage — don't use them in new code.
+**Fonts:** `--font-display` (Archivo, titles) · `--font-sans` (Inter, everything else) · `--font-mono` (JetBrains Mono, numbers).
 
 **Type scale:** `--text-xs 12` · `--text-sm 13` (labels) · `--text-base 14` (body) · `--text-md 16` (card titles) · `--text-lg 20` · `--text-xl 28` · `--text-2xl 36` (page title) · `--text-ui-lg 15` (large controls only: `size="lg"` buttons and inputs).
 
@@ -90,7 +90,7 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
   <TabPanel idPrefix="party" tabId={tab}>{tab === 'bills' ? <BillsTab /> : <ChallansTab />}</TabPanel>
   ```
 - **`Modal`** — `isOpen` · `onClose` · `title` · `children` · `size?: 'default' | 'form'` (wider, for forms) · `variant?: 'delivery' | 'return'` (challan flows only; coloured top edge). Autofocuses the first field once per open, a frame after mount (skips `tabindex="-1"` fields such as a hidden file input; never steals focus the user already moved into the dialog); Escape and overlay click close (an Escape a nested widget already handled with `preventDefault`, e.g. an open `Menu`, is ignored); full-screen with safe-area padding at ≤768. Never build an ad-hoc overlay.
-- **`Spinner`** (alias `LoadingSpinner`) — `message?` (default "Loading…"; `""` hides the line when an adjacent title already says what is loading). Accent ring + message in a `role="status"` region; static under reduced motion. Page/panel loading.
+- **`Spinner`** — `message?` (default "Loading…"; `""` hides the line when an adjacent title already says what is loading). Accent ring + message in a `role="status"` region; static under reduced motion. Page/panel loading.
 - **`ErrorMessage`** — `error: unknown` (run through `getErrorMessage`) · `onRetry?`. Load/API errors.
 - **`Notice`** — inline message inside a form or panel. `tone: 'success' | 'info' | 'warning' | 'danger'` · `title?` · `children` · `className?` (placement). `danger` renders `role="alert"`, the others `role="status"`. Use it for a failed submit ("Invalid login credentials") or a confirmation ("Reset link sent"); never the legacy `.error-message` class or a bare `<p role="status">`. Page load failures with retry stay `ErrorMessage`.
 
@@ -282,7 +282,7 @@ The design is meant to be changed in one place.
 
 ## Token check
 
-`npm run lint` runs `scripts/check-design-tokens.mjs` after ESLint. It flags, outside `src/globals.css`, `src/components/ui/**` and tests: hex colours, `rgb/rgba/hsl` colours, any `font-family` that isn't exactly one token (`var(--font-sans|display|mono)`; `--font-body|heading` pass during migration only), `box-shadow` that isn't `none` or a `var(--…)`, and `style={` in `.tsx`. It is warn-only now and becomes strict (fails lint) at the end of Stage 5. Code you touch must produce zero new findings — read the finding list, don't just check the exit code.
+`npm run lint` runs `scripts/check-design-tokens.mjs` after ESLint. It flags, outside `src/globals.css`, `src/components/ui/**` and tests: hex colours, `rgb/rgba/hsl` colours, any `font-family` that isn't exactly one token (`var(--font-sans|display|mono)`), `box-shadow` that isn't `none` or a `var(--…)`, and `style={` in `.tsx`. It is warn-only now and becomes strict (fails lint) at the end of Stage 5. Code you touch must produce zero new findings — read the finding list, don't just check the exit code.
 
 ## Checklist for any UI change
 

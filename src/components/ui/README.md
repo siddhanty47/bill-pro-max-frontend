@@ -35,7 +35,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `Menu`, `MenuItem`, `MenuLabel`, `MenuDivider` | Dropdown menus (business switcher, profile, row actions, notifications; `Menu width="wide"` for notifications; `MenuItem unread` tints new items, `MenuItem tone="danger"` for Delete) |
 | `Modal` | Dialogs; full-screen on phones |
 | `Tabs`, `TabPanel` | Tab navigation within a page; optional `count` per tab; `idPrefix` + `TabPanel` wire tab ↔ panel |
-| `Spinner` (`LoadingSpinner`) | Loading state for a page or panel |
+| `Spinner` | Loading state for a page or panel |
 | `ErrorMessage` | API/load errors with optional retry |
 
 Detail pages are composed from `components/DetailPageShell` (`DetailPageShell`, `DetailSection`, `DetailField`) and `components/EditableField`, which are built on this kit — see "Detail page" in the skill.

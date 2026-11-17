@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ErrorMessage } from './ErrorMessage';
-import { ErrorMessage as ErrorMessageShim } from '../ErrorMessage';
 
 describe('ErrorMessage', () => {
   it('shows the error message as an alert', () => {
@@ -21,9 +20,5 @@ describe('ErrorMessage', () => {
     render(<ErrorMessage error={new Error('x')} onRetry={onRetry} />);
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
-  });
-
-  it('is re-exported from the legacy path', () => {
-    expect(ErrorMessageShim).toBe(ErrorMessage);
   });
 });

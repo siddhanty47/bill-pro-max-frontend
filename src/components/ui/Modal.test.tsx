@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Modal } from './Modal';
-import { Modal as ModalShim } from '../Modal';
 
 describe('Modal', () => {
   it('renders nothing when closed', () => {
@@ -169,9 +168,5 @@ describe('Modal', () => {
       </Modal>
     );
     expect(screen.getByRole('dialog')).toHaveClass('delivery', 'formSize');
-  });
-
-  it('is re-exported from the legacy path', () => {
-    expect(ModalShim).toBe(Modal);
   });
 });

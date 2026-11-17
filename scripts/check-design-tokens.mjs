@@ -39,7 +39,7 @@ const cssRules = [
     test: line => {
       const m = line.match(/font-family\s*:\s*([^;]*)/);
       if (!m) return false;
-      return !/^var\(--font-(?:sans|display|mono|body|heading)\)$/.test(m[1].trim());
+      return !/^var\(--font-(?:sans|display|mono)\)$/.test(m[1].trim());
     },
   },
   {
