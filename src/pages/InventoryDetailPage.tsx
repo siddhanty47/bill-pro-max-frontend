@@ -285,6 +285,7 @@ export function InventoryDetailPage() {
           renderEditInput: ({ value: editVal, onChange, onSave }) => (
             <CodeAutocomplete
               label=""
+              aria-label="Category"
               placeholder="Select or type a category…"
               value={String(editVal)}
               onChange={val => onChange(val)}

@@ -75,7 +75,7 @@ interface CodeAutocompleteProps {
 export function CodeAutocomplete({
   label,
   'aria-label': ariaLabel,
-  placeholder = 'Type to search...',
+  placeholder = 'Type to search…',
   value,
   onChange,
   items,

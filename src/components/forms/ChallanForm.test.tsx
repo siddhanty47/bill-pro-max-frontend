@@ -134,8 +134,10 @@ describe('ChallanForm', () => {
     await pickItem(user, itemInputs()[0], 'pi', /Steel Pipe/);
     const qty = qtyInputs()[0];
     await user.clear(qty);
-    await user.type(qty, '25');
-    await user.type(screen.getByLabelText(/^notes/i), 'Handle with care');
+    await user.click(qty);
+    await user.paste('25');
+    await user.click(screen.getByLabelText(/^notes/i));
+    await user.paste('Handle with care');
     await user.selectOptions(screen.getByLabelText(/^transporter$/i), 't1');
     expect(screen.getByLabelText(/^vehicle number/i)).toHaveValue('MH12AB1234');
     await user.click(submit());
@@ -172,8 +174,10 @@ describe('ChallanForm', () => {
     expect(screen.getByDisplayValue('40')).toBeInTheDocument(); // cost price for short
     const lossQty = screen.getByLabelText('Loss quantity for row 1');
     await user.clear(lossQty);
-    await user.type(lossQty, '2');
-    await user.type(screen.getByLabelText('Note for row 1'), 'Bent');
+    await user.click(lossQty);
+    await user.paste('2');
+    await user.click(screen.getByLabelText('Note for row 1'));
+    await user.paste('Bent');
 
     await user.click(submit());
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
@@ -240,9 +244,12 @@ describe('ChallanForm', () => {
     await pickParty(user);
     await pickItem(user, itemInputs()[0], 'pi', /Steel Pipe/);
     await user.clear(sequence);
-    await user.type(sequence, '42');
-    await user.type(screen.getByLabelText(/^cartage/i), '250.5');
-    await user.type(screen.getByLabelText(/^loading/i), '0');
+    await user.click(sequence);
+    await user.paste('42');
+    await user.click(screen.getByLabelText(/^cartage/i));
+    await user.paste('250.5');
+    await user.click(screen.getByLabelText(/^loading/i));
+    await user.paste('0');
     await user.click(submit());
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
     expect(onSubmit.mock.calls[0][0]).toMatchObject({
@@ -516,7 +523,7 @@ describe('ChallanForm', () => {
       });
       await user.upload(fileInput(container), big);
       expect(
-        await screen.findByText('Image must be under 5MB. Please use a smaller photo.')
+        await screen.findByText('Image must be under 5MB. Use a smaller photo.')
       ).toBeInTheDocument();
     });
   });

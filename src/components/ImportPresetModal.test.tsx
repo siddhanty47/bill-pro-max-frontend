@@ -83,7 +83,7 @@ describe('ImportPresetModal', () => {
     expect(screen.getAllByText(/already exists/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/will be imported/i)).toHaveTextContent(/1\s*will be imported/i);
     await user.click(screen.getByRole('button', { name: /import 1 items/i }));
-    expect(await screen.findByText(/items imported successfully/i)).toBeInTheDocument();
+    expect(await screen.findByText(/items imported/i)).toBeInTheDocument();
     expect(screen.getByText(/1 skipped/i)).toBeInTheDocument();
     expect(bodies).toEqual([{ presetId: 'p1' }]);
   });

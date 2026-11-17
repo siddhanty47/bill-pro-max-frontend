@@ -523,7 +523,7 @@ export function ChallanForm({
       if (!file) return;
 
       if (file.size > 5 * 1024 * 1024) {
-        setExtractionWarnings(['Image must be under 5MB. Please use a smaller photo.']);
+        setExtractionWarnings(['Image must be under 5MB. Use a smaller photo.']);
         return;
       }
 

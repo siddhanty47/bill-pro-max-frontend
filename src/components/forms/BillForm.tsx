@@ -231,7 +231,7 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
             <div>
               <CodeAutocomplete
                 label="Party"
-                placeholder="Type party code or name..."
+                placeholder="Party code or name"
                 value={partySearchValue}
                 onChange={setPartySearchValue}
                 items={partyAutocompleteItems}
@@ -244,7 +244,7 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
             </div>
             <Field label="Agreement" required error={errors.agreementId?.message}>
               <Select {...register('agreementId')} disabled={isLoading || !selectedPartyId}>
-                <option value="">Select agreement...</option>
+                <option value="">Select agreement…</option>
                 {activeAgreements.map(agreement => (
                   <option key={agreement.agreementId} value={agreement.agreementId}>
                     {agreement.agreementId} ({agreement.terms.billingCycle})

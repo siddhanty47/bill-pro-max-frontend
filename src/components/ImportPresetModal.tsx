@@ -261,7 +261,6 @@ export function ImportPresetModal({
           <>
             <Notice tone="success">
               <span className={styles.count}>{importResult.imported}</span> items imported
-              successfully
               {importResult.skipped > 0 && (
                 <span className={styles.skipped}>
                   {importResult.skipped} skipped (duplicate codes)

@@ -11,6 +11,7 @@ import {
   useMarkAllAsReadMutation,
 } from '../api/notificationApi';
 import { IconButton, Menu, MenuItem, MenuLabel } from './ui';
+import { formatDateTime } from '../utils/format';
 import styles from './NotificationBell.module.css';
 
 export function NotificationBell() {
@@ -78,7 +79,7 @@ function NotificationList({ unreadCount }: { unreadCount: number }) {
           >
             <span className={styles.itemTitle}>{n.title}</span>
             <span className={styles.itemMessage}>{n.message}</span>
-            <span className={styles.itemTime}>{new Date(n.createdAt).toLocaleString()}</span>
+            <span className={styles.itemTime}>{formatDateTime(n.createdAt)}</span>
           </MenuItem>
         ))
       )}

@@ -258,7 +258,7 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
           <div className={styles.searchRow}>
             <SearchInput
               label="Search agreements"
-              placeholder="Search by party name, site, agreement ID..."
+              placeholder="Search by party name, site, agreement ID…"
               value={search}
               onChange={e => setSearch(e.target.value)}
               className={styles.search}

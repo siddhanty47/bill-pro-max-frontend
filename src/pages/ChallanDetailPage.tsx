@@ -365,7 +365,8 @@ export function ChallanDetailPage() {
         <div key={idx} className={styles.lossRow}>
           <CodeAutocomplete
             label=""
-            placeholder="Item…"
+            aria-label="Loss item"
+            placeholder="Item code or name"
             value={damageItemSearch[idx] || d.itemName || ''}
             onChange={v => setDamageItemSearch(prev => ({ ...prev, [idx]: v }))}
             items={inventoryAutocompleteItems}
@@ -625,7 +626,8 @@ export function ChallanDetailPage() {
                     <div className={styles.grow}>
                       <CodeAutocomplete
                         label=""
-                        placeholder="Type item code or name…"
+                        aria-label="Item to add"
+                        placeholder="Item code or name"
                         value={addItemSearch}
                         onChange={setAddItemSearch}
                         items={inventoryAutocompleteItems}

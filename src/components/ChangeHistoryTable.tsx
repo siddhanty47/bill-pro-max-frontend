@@ -8,7 +8,7 @@ import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { Button, Card, DataTable, EmptyState, ErrorMessage, Spinner, StatusChip } from './ui';
 import type { Column } from './ui';
 import { statusLabel } from './ui/status';
-import { formatDate } from '../utils/format';
+import { formatDate, formatDateTime } from '../utils/format';
 import type { AuditFieldChange, AuditLogEntry } from '../types';
 import styles from './ChangeHistoryTable.module.css';
 
@@ -20,13 +20,6 @@ interface ChangeHistoryTableProps {
 const PAGE_SIZE = 15;
 
 /** Date plus time, e.g. "17 Nov, 3:45 pm" — the time matters for audit entries. */
-function formatWhen(dateStr: string): string {
-  const date = new Date(dateStr);
-  const h = date.getHours();
-  const time = `${h % 12 || 12}:${String(date.getMinutes()).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
-  return `${formatDate(date)}, ${time}`;
-}
-
 /**
  * Convert a camelCase or dot-notation field name to a human-readable label
  */
@@ -102,7 +95,7 @@ const COLUMNS: Column<AuditLogEntry>[] = [
     header: 'When',
     nowrap: true,
     render: e => (
-      <span title={new Date(e.createdAt).toLocaleString()}>{formatWhen(e.createdAt)}</span>
+      <span title={new Date(e.createdAt).toLocaleString()}>{formatDateTime(e.createdAt)}</span>
     ),
   },
   { key: 'who', header: 'Who', nowrap: true, render: e => e.performedBy.name },
@@ -158,7 +151,7 @@ export default function ChangeHistoryTable({ documentType, documentId }: ChangeH
           badge: e => <StatusChip status={e.action} />,
           subtitle: e =>
             e.action === 'updated' && e.changes.length > 0 ? <Changes entry={e} /> : null,
-          meta: e => [e.performedBy.name, formatWhen(e.createdAt)],
+          meta: e => [e.performedBy.name, formatDateTime(e.createdAt)],
         }}
       />
 
