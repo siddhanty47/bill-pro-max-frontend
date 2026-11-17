@@ -1,0 +1,8 @@
+/* Agreement detail: layout only. Cards, tables, fields are kit components. */
+
+/* Phone rows: a label + its inline editor */
+.inline {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
