@@ -1,5 +1,5 @@
 import type { ItemStatementData } from '../../types';
-import { formatDate } from '../../utils/format';
+import { FULL_DATE, formatDate } from '../../utils/format';
 import { Card, DocNumber, StatCard, Table, THead, TBody, Tr, Th, Td } from '../ui';
 import { StatementShell, StatementSummary } from './StatementShell';
 
@@ -12,7 +12,7 @@ export function ItemsPreview({ data }: ItemsPreviewProps) {
     <StatementShell
       title="Item statement"
       partyName={data.party.name}
-      period={`${formatDate(data.period.from)} to ${formatDate(data.period.to)}`}
+      period={`${formatDate(data.period.from, FULL_DATE)} to ${formatDate(data.period.to, FULL_DATE)}`}
       emptyMessage={data.items.length === 0 ? 'No item activity found for this period.' : undefined}
     >
       {data.items.map(item => (
@@ -36,7 +36,7 @@ export function ItemsPreview({ data }: ItemsPreviewProps) {
               </Tr>
               {item.events.map((event, idx) => (
                 <Tr key={idx}>
-                  <Td nowrap>{formatDate(event.date)}</Td>
+                  <Td nowrap>{formatDate(event.date, FULL_DATE)}</Td>
                   <Td>
                     <DocNumber
                       value={event.challanNumber}
@@ -70,7 +70,8 @@ export function ItemsPreview({ data }: ItemsPreviewProps) {
                   {item.totalReturned}
                 </Td>
                 <Td align="right" nowrap>
-                  Dmg: {item.damages.damaged} | Short: {item.damages.short}
+                  Damaged <span className="mono">{item.damages.damaged}</span> · Short{' '}
+                  <span className="mono">{item.damages.short}</span>
                 </Td>
               </Tr>
             </TBody>

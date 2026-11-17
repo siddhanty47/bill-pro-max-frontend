@@ -70,9 +70,9 @@ describe('ItemsPreview', () => {
       ['7 Jan 2024', 'CH-1', '40', '-', '50'],
       ['20 Jan 2024', 'CH-2', '-', '15', '35'],
       ['Closing qty', '35'],
-      ['Summary', '40', '15', 'Dmg: 2 | Short: 3'],
+      ['Summary', '40', '15', 'Damaged 2 · Short 3'],
     ]);
-    expect(tableRows(1)[3]).toEqual(['Summary', '0', '0', 'Dmg: 0 | Short: 0']);
+    expect(tableRows(1)[3]).toEqual(['Summary', '0', '0', 'Damaged 0 · Short 0']);
     expect(screen.getByRole('link', { name: 'CH-2' })).toHaveAttribute('href', '/challans/c2');
     for (const [label, value] of [
       ['Total delivered', '40'],

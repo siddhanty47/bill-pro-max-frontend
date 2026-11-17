@@ -1,5 +1,5 @@
 import type { LedgerStatementData } from '../../types';
-import { formatDate, formatMoney } from '../../utils/format';
+import { FULL_DATE, formatDate, formatMoney } from '../../utils/format';
 import { DocNumber, Table, THead, TBody, Tr, Th, Td } from '../ui';
 import { StatementShell } from './StatementShell';
 import styles from './StatementPreview.module.css';
@@ -13,7 +13,7 @@ export function LedgerPreview({ data }: LedgerPreviewProps) {
     <StatementShell
       title="Ledger statement"
       partyName={data.party.name}
-      period={`${formatDate(data.period.from)} to ${formatDate(data.period.to)}`}
+      period={`${formatDate(data.period.from, FULL_DATE)} to ${formatDate(data.period.to, FULL_DATE)}`}
       emptyMessage={
         data.entries.length === 0 ? 'No transactions found for this period.' : undefined
       }
@@ -38,7 +38,7 @@ export function LedgerPreview({ data }: LedgerPreviewProps) {
             </Tr>
             {data.entries.map((entry, idx) => (
               <Tr key={idx}>
-                <Td nowrap>{formatDate(entry.date)}</Td>
+                <Td nowrap>{formatDate(entry.date, FULL_DATE)}</Td>
                 <Td className={styles.description}>{entry.description}</Td>
                 <Td>
                   <DocNumber

@@ -28,16 +28,30 @@ function toDate(d: string | Date): Date {
   return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(d);
 }
 
+export interface FormatDateOptions {
+  /** `'always'` keeps the year even in the current year (financial documents). */
+  year?: 'auto' | 'always';
+}
+
+/** Option for financial documents: always print the year. */
+export const FULL_DATE: FormatDateOptions = { year: 'always' };
+
 /**
- * `16 Nov` in the current year, `16 Nov 2025` otherwise (local time).
+ * `16 Nov` in the current year, `16 Nov 2025` otherwise (local time);
+ * `{ year: 'always' }` always includes the year.
  * Missing or invalid input → `''` (so a DetailField shows "Not added").
  */
-export function formatDate(d: string | Date | null | undefined): string {
+export function formatDate(
+  d: string | Date | null | undefined,
+  { year = 'auto' }: FormatDateOptions = {}
+): string {
   if (d === null || d === undefined || d === '') return '';
   const date = toDate(d);
   if (Number.isNaN(date.getTime())) return '';
   const base = `${date.getDate()} ${MONTHS[date.getMonth()]}`;
-  return date.getFullYear() === new Date().getFullYear() ? base : `${base} ${date.getFullYear()}`;
+  return year === 'auto' && date.getFullYear() === new Date().getFullYear()
+    ? base
+    : `${base} ${date.getFullYear()}`;
 }
 
 /** `16 Nov, 3:05 pm` (am/pm, local time); the year follows `formatDate`. */

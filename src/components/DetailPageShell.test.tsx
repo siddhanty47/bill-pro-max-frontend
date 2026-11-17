@@ -175,15 +175,6 @@ describe('DetailSection', () => {
     expect(screen.getByRole('button', { name: 'Add site' })).toBeInTheDocument();
     expect(screen.getByText('rows')).toBeInTheDocument();
   });
-
-  it('accepts the legacy headerActions prop', () => {
-    render(
-      <DetailSection title="Sites" headerActions={<button type="button">Add</button>}>
-        rows
-      </DetailSection>
-    );
-    expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument();
-  });
 });
 
 describe('DetailField', () => {

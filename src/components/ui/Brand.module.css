@@ -12,12 +12,12 @@
 }
 
 .md {
-  font-size: 15px;
+  font-size: var(--text-ui-lg);
 }
 
 .sm {
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .mark {

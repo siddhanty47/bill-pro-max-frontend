@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { formatDateTime, formatDate, formatMoney, formatMonth } from './format';
+import { FULL_DATE, formatDateTime, formatDate, formatMoney, formatMonth } from './format';
 
 describe('formatMoney', () => {
   it('uses Indian grouping with a rupee sign and no decimals for integers', () => {
@@ -44,6 +44,13 @@ describe('formatDate', () => {
   it('omits the year for dates in the current year', () => {
     expect(formatDate(new Date(2026, 10, 16))).toBe('16 Nov');
     expect(formatDate(new Date(2026, 8, 3))).toBe('3 Sep');
+  });
+
+  it("keeps the year in the current year with { year: 'always' }", () => {
+    expect(formatDate(new Date(2026, 10, 16), { year: 'always' })).toBe('16 Nov 2026');
+    expect(formatDate('2026-04-01', FULL_DATE)).toBe('1 Apr 2026');
+    expect(formatDate('2025-04-01', FULL_DATE)).toBe('1 Apr 2025');
+    expect(formatDate(null, FULL_DATE)).toBe('');
   });
 
   it('adds the year for other years', () => {

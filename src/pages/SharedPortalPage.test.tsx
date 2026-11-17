@@ -282,11 +282,11 @@ describe('SharedPortalPage', () => {
     const { user } = renderPage();
     await screen.findByRole('heading', { name: 'Mehta Builders' });
     await openTab(user, 'Bills');
-    expect(await screen.findByText('No bills found.')).toBeInTheDocument();
+    expect(await screen.findByText('No bills yet')).toBeInTheDocument();
     await openTab(user, 'Payments');
-    expect(await screen.findByText('No payments found.')).toBeInTheDocument();
+    expect(await screen.findByText('No payments yet')).toBeInTheDocument();
     await openTab(user, 'Challans');
-    expect(await screen.findByText('No challans found.')).toBeInTheDocument();
+    expect(await screen.findByText('No challans yet')).toBeInTheDocument();
   });
 
   it('pages bills with the same page query', async () => {

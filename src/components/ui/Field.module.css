@@ -171,7 +171,6 @@
   resize: vertical;
 }
 
-/* Matches legacy .form-fieldset / .form-fieldset-legend (globals.css) */
 .fieldset {
   display: flex;
   flex-direction: column;

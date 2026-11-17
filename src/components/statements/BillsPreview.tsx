@@ -1,5 +1,5 @@
 import type { BillStatementData } from '../../types';
-import { formatDate, formatMoney } from '../../utils/format';
+import { FULL_DATE, formatDate, formatMoney } from '../../utils/format';
 import { DocNumber, Table, THead, TBody, Tr, Th, Td } from '../ui';
 import { StatementShell } from './StatementShell';
 
@@ -41,7 +41,7 @@ export function BillsPreview({ data }: BillsPreviewProps) {
     <StatementShell
       title="Bill statement"
       partyName={data.party.name}
-      period={`${formatDate(data.period.from)} to ${formatDate(data.period.to)}${
+      period={`${formatDate(data.period.from, FULL_DATE)} to ${formatDate(data.period.to, FULL_DATE)}${
         data.siteCode ? ` · Site: ${data.siteCode}` : ''
       }`}
       emptyMessage={data.bills.length === 0 ? 'No bills found for this period.' : undefined}
@@ -66,11 +66,11 @@ export function BillsPreview({ data }: BillsPreviewProps) {
                 <Td>
                   <DocNumber value={bill.billNumber} to={`/bills/${bill.billId}`} />
                 </Td>
-                <Td nowrap>{formatDate(bill.billDate)}</Td>
+                <Td nowrap>{formatDate(bill.billDate, FULL_DATE)}</Td>
                 <Td>{bill.siteCode || '-'}</Td>
                 <Td>
                   {bill.periodStart && bill.periodEnd
-                    ? `${formatDate(bill.periodStart)} - ${formatDate(bill.periodEnd)}`
+                    ? `${formatDate(bill.periodStart, FULL_DATE)} - ${formatDate(bill.periodEnd, FULL_DATE)}`
                     : '-'}
                 </Td>
                 {amountsOf(bill).map((amount, i) => (

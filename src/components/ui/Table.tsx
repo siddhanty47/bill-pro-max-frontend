@@ -133,7 +133,10 @@ export function Tr({
   };
   const handleKeyDown = (e: KeyboardEvent<HTMLTableRowElement>) => {
     onKeyDown?.(e);
-    if (e.key === 'Enter' && e.target === e.currentTarget) onClick(e);
+    if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
+      if (e.key === ' ') e.preventDefault();
+      onClick(e);
+    }
   };
   return (
     <tr

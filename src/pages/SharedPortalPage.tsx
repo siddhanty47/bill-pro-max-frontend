@@ -379,7 +379,7 @@ export function SharedPortalPage() {
               columns={challanColumns}
               rows={challans}
               rowKey={c => c._id}
-              empty={<EmptyState title="No challans found." />}
+              empty={<EmptyState title="No challans yet" />}
               mobile={{
                 title: c => <DocNumber value={c.challanNumber} />,
                 badge: c => <StatusChip status={c.type} />,
@@ -420,7 +420,7 @@ export function SharedPortalPage() {
               columns={billColumns}
               rows={bills}
               rowKey={b => b._id}
-              empty={<EmptyState title="No bills found." />}
+              empty={<EmptyState title="No bills yet" />}
               mobile={{
                 title: b => <DocNumber value={b.billNumber} />,
                 badge: b => <StatusChip status={b.status} />,
@@ -458,7 +458,7 @@ export function SharedPortalPage() {
               columns={paymentColumns}
               rows={payments}
               rowKey={p => p._id}
-              empty={<EmptyState title="No payments found." />}
+              empty={<EmptyState title="No payments yet" />}
               mobile={{
                 title: p => <span className="mono">{formatMoney(p.amount)}</span>,
                 badge: p => <StatusChip status={p.status} />,

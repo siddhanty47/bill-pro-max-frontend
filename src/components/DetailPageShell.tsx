@@ -169,8 +169,6 @@ export interface DetailSectionProps {
   count?: number;
   /** Right of the title, e.g. an "Add site" Button */
   actions?: ReactNode;
-  /** @deprecated Use `actions`. */
-  headerActions?: ReactNode;
   /** Default true. Pass false when the body is a table. */
   padded?: boolean;
   children: ReactNode;
@@ -209,12 +207,11 @@ export function DetailSection({
   title,
   count,
   actions,
-  headerActions,
   padded = true,
   children,
 }: DetailSectionProps) {
   return (
-    <Card title={title} count={count} actions={actions ?? headerActions} padded={false}>
+    <Card title={title} count={count} actions={actions} padded={false}>
       {!padded ? (
         <InFieldList.Provider value={false}>{children}</InFieldList.Provider>
       ) : isFieldList(children) ? (

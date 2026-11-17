@@ -6,9 +6,10 @@ export type Tone = 'success' | 'info' | 'warning' | 'danger' | 'neutral';
  */
 export type ValueTone = 'positive' | 'negative' | 'warning';
 
-/** `positive` above zero, `negative` below, none at zero. */
+/** `positive` above zero, `negative` below, none at zero (rounded to paise, like `formatMoney`). */
 export function signTone(n: number): ValueTone | undefined {
-  return n > 0 ? 'positive' : n < 0 ? 'negative' : undefined;
+  const paise = Math.round(n * 100);
+  return paise > 0 ? 'positive' : paise < 0 ? 'negative' : undefined;
 }
 
 /** Unlisted statuses (draft, expired, inactive, …) are neutral. */

@@ -1,5 +1,5 @@
 import type { AgingStatementData } from '../../types';
-import { formatDate, formatMoney } from '../../utils/format';
+import { FULL_DATE, formatDate, formatMoney } from '../../utils/format';
 import { DocNumber, StatCard, Table, THead, TBody, Tr, Th, Td } from '../ui';
 import { StatementShell, StatementSummary } from './StatementShell';
 
@@ -12,7 +12,7 @@ export function AgingPreview({ data }: AgingPreviewProps) {
     <StatementShell
       title="Aging statement"
       partyName={data.party.name}
-      period={`As of ${formatDate(data.asOfDate)}`}
+      period={`As of ${formatDate(data.asOfDate, FULL_DATE)}`}
       emptyMessage={data.bills.length === 0 ? 'No outstanding bills found.' : undefined}
       body={
         <Table dense aria-label="Aging statement">
@@ -34,8 +34,8 @@ export function AgingPreview({ data }: AgingPreviewProps) {
                 <Td>
                   <DocNumber value={bill.billNumber} to={`/bills/${bill.billId}`} wrap />
                 </Td>
-                <Td nowrap>{formatDate(bill.billDate)}</Td>
-                <Td nowrap>{formatDate(bill.dueDate)}</Td>
+                <Td nowrap>{formatDate(bill.billDate, FULL_DATE)}</Td>
+                <Td nowrap>{formatDate(bill.dueDate, FULL_DATE)}</Td>
                 <Td align="right" mono nowrap>
                   {bill.daysOverdue}
                 </Td>

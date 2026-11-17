@@ -100,8 +100,10 @@ describe('Table primitives', () => {
     row.focus();
     await user.keyboard('{Enter}');
     expect(onClick).toHaveBeenCalledTimes(2);
+    await user.keyboard(' ');
+    expect(onClick).toHaveBeenCalledTimes(3);
     await user.keyboard('a');
-    expect(onClick).toHaveBeenCalledTimes(2);
+    expect(onClick).toHaveBeenCalledTimes(3);
   });
 
   it('ignores clicks on interactive children but still runs their handler', async () => {
@@ -230,5 +232,7 @@ describe('signTone', () => {
     expect(signTone(5)).toBe('positive');
     expect(signTone(-5)).toBe('negative');
     expect(signTone(0)).toBeUndefined();
+    expect(signTone(0.1 + 0.2 - 0.3)).toBeUndefined();
+    expect(signTone(-0.001)).toBeUndefined();
   });
 });

@@ -57,4 +57,18 @@ describe('LedgerPreview', () => {
     expect(screen.getByText('No transactions found for this period.')).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
+
+  it('keeps the year on period and row dates for the current year', () => {
+    const y = new Date().getFullYear();
+    const data = {
+      ...base,
+      period: { from: `${y}-04-01`, to: `${y}-11-05` },
+      entries: [{ ...base.entries[0], date: `${y}-04-07` }],
+    };
+    renderWithProviders(<LedgerPreview data={data} />);
+    expect(screen.getByText(/ledger statement/i).closest('div')).toHaveTextContent(
+      `1 Apr ${y} to 5 Nov ${y}`
+    );
+    expect(tableRows()[2][0]).toBe(`7 Apr ${y}`);
+  });
 });
