@@ -70,6 +70,24 @@ function setup({
 }
 
 describe('Layout', () => {
+  it('uses the kit Brand with a collapsible wordmark', () => {
+    setup();
+    const word = screen.getByText('Bill Pro Max');
+    expect(word).toHaveClass('collapsible');
+    expect(word.parentElement).toHaveClass('brand', 'md');
+  });
+
+  it('fits the header at 320px (CSS present at <=360)', async () => {
+    const fs = (await import(/* @vite-ignore */ 'node:fs' as string)) as {
+      readFileSync(path: string, encoding: 'utf8'): string;
+    };
+    const css = fs.readFileSync('src/components/Layout.module.css', 'utf8');
+    const block = css.slice(css.indexOf('@media (max-width: 360px)'));
+    expect(block).toMatch(/\.header\s*\{[^}]*padding:[^;]*var\(--space-2\)[^}]*gap:\s*0/);
+    expect(block).toMatch(/\.headerActions\s*\{[^}]*gap:\s*0/);
+    expect(block).toMatch(/\.profileControl\s*\{[^}]*margin-left:\s*0/);
+  });
+
   it('groups navigation under Yard, Paperwork and Business', () => {
     setup();
     const nav = screen.getByRole('navigation', { name: 'Main' });

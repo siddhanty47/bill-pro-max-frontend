@@ -37,24 +37,6 @@
   flex-shrink: 0;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text-heading);
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 700;
-  font-stretch: 108%;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-
-.brandMark {
-  color: var(--accent);
-  flex-shrink: 0;
-}
-
 /* --- Global search slot (between brand and actions) --- */
 
 .headerSearch {
@@ -270,9 +252,24 @@
   }
 }
 
-/* Narrow phones: the brand keeps its mark only so the action icons fit. */
-@media (max-width: 480px) {
-  .brandName {
-    display: none;
+/* 320-360px phones: seven controls (nav, brand, search, business, Ask, bell,
+   account) need ~290px. Tighter side padding and no gaps between them leaves
+   slack at 320 while every action stays visible; search remains the 44px icon. */
+@media (max-width: 360px) {
+  .header {
+    padding: env(safe-area-inset-top, 0px) var(--space-2) 0;
+    gap: 0;
+  }
+
+  .hamburger {
+    margin-left: 0;
+  }
+
+  .headerActions {
+    gap: 0;
+  }
+
+  .profileControl {
+    margin-left: 0;
   }
 }
