@@ -168,11 +168,12 @@ describe('InventoryDetailPage', () => {
     expect(within(details).getByText('2 Nov 2025')).toBeInTheDocument();
   });
 
-  it('shows empty rates as not added', async () => {
+  it('shows a zero rate as a real value and unset rates as not added', async () => {
     useApi(makeItem({ defaultRatePerDay: undefined, damageRate: 0, costPrice: undefined }));
     renderPage();
     const details = await waitFor(() => section('Details'));
-    expect(within(details).getAllByRole('button', { name: /Not added/ })).toHaveLength(3);
+    expect(within(details).getAllByRole('button', { name: /Not added/ })).toHaveLength(2);
+    expect(within(details).getByRole('button', { name: /₹0/ })).toHaveClass('mono');
   });
 
   it('shows purchase information when present', async () => {
@@ -234,6 +235,18 @@ describe('InventoryDetailPage', () => {
     await user.clear(input);
     await user.type(input, 'Planks');
     await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(bodies).toEqual([{ category: 'Planks' }]));
+  });
+
+  it('saves the full suggestion picked after typing partial text', async () => {
+    useApi();
+    const bodies = capture('patch', BASE);
+    const { user } = renderPage();
+    await user.click(await screen.findByRole('button', { name: /Scaffolding/ }));
+    const input = screen.getByPlaceholderText('Select or type a category…');
+    await user.clear(input);
+    await user.type(input, 'Plan');
+    await user.click(await screen.findByRole('option', { name: /Planks/ }));
     await waitFor(() => expect(bodies).toEqual([{ category: 'Planks' }]));
   });
 

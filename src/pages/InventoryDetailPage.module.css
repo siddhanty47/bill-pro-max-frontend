@@ -26,3 +26,7 @@
     flex: 1 1 100%;
   }
 }
+
+.meter {
+  margin-block: var(--space-3);
+}

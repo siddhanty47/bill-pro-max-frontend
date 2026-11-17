@@ -250,20 +250,16 @@ export function InventoryDetailPage() {
     : 0;
 
   /** Editable money rate; empty (or zero when `hideZero`) shows "Not added". */
-  const rateField = (
-    label: string,
-    field: 'defaultRatePerDay' | 'damageRate' | 'costPrice',
-    hideZero: boolean
-  ) => {
+  const rateField = (label: string, field: 'defaultRatePerDay' | 'damageRate' | 'costPrice') => {
     const amount = item?.[field];
-    const shown = amount != null && !(hideZero && amount <= 0);
+    const shown = amount != null;
     return (
       <DetailField
         label={label}
         value={shown ? formatMoney(amount) : undefined}
         mono
         editable={{
-          rawValue: shown ? amount : undefined,
+          rawValue: amount,
           inputType: 'number',
           prefix: '₹',
           onSave: v => handleSave(field, v),
@@ -295,7 +291,7 @@ export function InventoryDetailPage() {
               items={categoryAutocompleteItems}
               onSelect={selectedItem => {
                 onChange(selectedItem.label);
-                setTimeout(onSave, 0);
+                onSave(selectedItem.label);
               }}
             />
           ),
@@ -315,11 +311,11 @@ export function InventoryDetailPage() {
         }}
       />
 
-      {rateField('Daily rate', 'defaultRatePerDay', false)}
+      {rateField('Daily rate', 'defaultRatePerDay')}
       {/* Fixed price per unit when returned damaged */}
-      {rateField('Damage charge', 'damageRate', true)}
+      {rateField('Damage charge', 'damageRate')}
       {/* Used when an item is lost (short) */}
-      {rateField('Cost price', 'costPrice', true)}
+      {rateField('Cost price', 'costPrice')}
 
       <DetailField label="Created" value={displayDate(item.createdAt)} />
       <DetailField label="Updated" value={displayDate(item.updatedAt)} />
@@ -379,12 +375,14 @@ export function InventoryDetailPage() {
           {activeTab === 'about' && (
             <>
               <DetailSection title="Stock">
-                <Meter
-                  segments={[
-                    { value: available, tone: 'accent', label: 'Available' },
-                    { value: rented, tone: 'info', label: 'Rented out' },
-                  ]}
-                />
+                <div className={styles.meter}>
+                  <Meter
+                    segments={[
+                      { value: available, tone: 'accent', label: 'Available' },
+                      { value: rented, tone: 'info', label: 'Rented out' },
+                    ]}
+                  />
+                </div>
                 <DetailField
                   label="Total quantity"
                   value={withUnit(item.totalQuantity, item.unit)}

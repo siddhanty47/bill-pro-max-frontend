@@ -187,7 +187,7 @@ describe('EditableField', () => {
   it('uses a custom edit renderer', async () => {
     const { user, onSave, startEditing } = setup({
       renderEditInput: ({ onChange, onSave: save }) => (
-        <button type="button" onClick={() => onChange('Custom')} onDoubleClick={save}>
+        <button type="button" onClick={() => onChange('Custom')} onDoubleClick={() => save()}>
           Pick
         </button>
       ),
@@ -197,6 +197,27 @@ describe('EditableField', () => {
     await user.click(screen.getByRole('button', { name: 'Pick' }));
     await user.click(screen.getByRole('button', { name: 'Save' }));
     expect(onSave).toHaveBeenCalledWith('Custom');
+  });
+
+  it('saves an override passed by a custom renderer, not the stale edit value', async () => {
+    const { user, onSave, startEditing } = setup({
+      renderEditInput: ({ onChange, onSave: save }) => (
+        <button
+          type="button"
+          onClick={() => {
+            onChange('Picked');
+            save('Picked');
+          }}
+        >
+          Pick
+        </button>
+      ),
+    });
+
+    await startEditing();
+    await user.click(screen.getByRole('button', { name: 'Pick' }));
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave).toHaveBeenCalledWith('Picked');
   });
 
   it('shows a busy state while saving', () => {

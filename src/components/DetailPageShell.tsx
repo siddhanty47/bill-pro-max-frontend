@@ -248,7 +248,7 @@ interface EditableConfig {
   renderEditInput?: (props: {
     value: string | number;
     onChange: (val: string | number) => void;
-    onSave: () => void;
+    onSave: (override?: string | number) => void;
     onCancel: () => void;
   }) => ReactNode;
 }

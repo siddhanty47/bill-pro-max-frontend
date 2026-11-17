@@ -28,7 +28,8 @@ import styles from './EditableField.module.css';
 interface RenderEditInputProps {
   value: string | number;
   onChange: (val: string | number) => void;
-  onSave: () => void;
+  /** Save now; pass a value to save it instead of the current edit value (e.g. a just-picked suggestion). */
+  onSave: (override?: string | number) => void;
   onCancel: () => void;
 }
 
@@ -125,28 +126,32 @@ export function EditableField({
     setError(null);
   }, [value]);
 
-  const commitEdit = useCallback(async () => {
-    if (committingRef.current) return;
-    const finalValue = inputType === 'number' ? Number(editValue) : editValue;
+  const commitEdit = useCallback(
+    async (override?: string | number) => {
+      if (committingRef.current) return;
+      const current = override ?? editValue;
+      const finalValue = inputType === 'number' ? Number(current) : current;
 
-    if (finalValue === value) {
-      closingRef.current = true;
-      setIsEditing(false);
-      return;
-    }
+      if (finalValue === value) {
+        closingRef.current = true;
+        setIsEditing(false);
+        return;
+      }
 
-    committingRef.current = true;
-    try {
-      setError(null);
-      await onSave(finalValue);
-      closingRef.current = true;
-      setIsEditing(false);
-    } catch (err: unknown) {
-      setError(errorMessage(err));
-    } finally {
-      committingRef.current = false;
-    }
-  }, [editValue, inputType, onSave, value]);
+      committingRef.current = true;
+      try {
+        setError(null);
+        await onSave(finalValue);
+        closingRef.current = true;
+        setIsEditing(false);
+      } catch (err: unknown) {
+        setError(errorMessage(err));
+      } finally {
+        committingRef.current = false;
+      }
+    },
+    [editValue, inputType, onSave, value]
+  );
 
   /** Keyboard handler for inputs (Enter saves, Escape cancels) */
   const handleKeyDown = useCallback(
@@ -295,7 +300,7 @@ export function EditableField({
           size="sm"
           variant="primary"
           onMouseDown={keepFocus}
-          onClick={commitEdit}
+          onClick={() => commitEdit()}
           loading={isSaving}
         >
           Save
