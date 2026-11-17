@@ -70,9 +70,24 @@ export function TBody({ children }: { children: ReactNode }) {
 export type TrProps = Omit<HTMLAttributes<HTMLTableRowElement>, 'onClick'> & {
   /** Fires on row click and on Enter when the row itself is focused. */
   onClick?: (e: MouseEvent<HTMLTableRowElement> | KeyboardEvent<HTMLTableRowElement>) => void;
+  /**
+   * Editable grids on phones (≤768): the row becomes a CSS grid with one divider
+   * under the whole row and compact cells without their own dividers. The page
+   * places the cells (`grid-template-areas` on the row, `grid-area` on cells).
+   */
+  stackOnMobile?: boolean;
 };
 
-export function Tr({ onClick, className, children, onKeyDown, ...rest }: TrProps) {
+export function Tr({
+  onClick,
+  stackOnMobile,
+  className: classNameProp,
+  children,
+  onKeyDown,
+  ...rest
+}: TrProps) {
+  const className =
+    [stackOnMobile ? styles.stack : '', classNameProp ?? ''].filter(Boolean).join(' ') || undefined;
   if (!onClick) {
     return (
       <tr className={className} onKeyDown={onKeyDown} {...rest}>

@@ -59,6 +59,28 @@ describe('Table primitives', () => {
     expect(screen.getByRole('cell')).toHaveClass('nowrap');
   });
 
+  it('marks stackOnMobile rows (clickable or not) and keeps their className', () => {
+    render(
+      <Table>
+        <TBody>
+          <Tr stackOnMobile className="row">
+            <Td>A</Td>
+          </Tr>
+          <Tr stackOnMobile onClick={() => {}}>
+            <Td>B</Td>
+          </Tr>
+          <Tr>
+            <Td>C</Td>
+          </Tr>
+        </TBody>
+      </Table>
+    );
+    const [a, b, c] = screen.getAllByRole('row');
+    expect(a).toHaveClass('stack', 'row');
+    expect(b).toHaveClass('stack', 'clickable');
+    expect(c).not.toHaveAttribute('class');
+  });
+
   it('keeps non-clickable rows out of the tab order', () => {
     renderTable();
     const row = screen.getAllByRole('row')[1];

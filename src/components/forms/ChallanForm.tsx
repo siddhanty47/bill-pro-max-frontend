@@ -687,7 +687,7 @@ export function ChallanForm({
               const rowErrors = errors.items?.[index];
 
               return (
-                <Tr key={field.id} className={styles.itemRow}>
+                <Tr key={field.id} stackOnMobile className={styles.itemRow}>
                   <Td className={styles.colItem}>
                     <CodeAutocomplete
                       label=""
@@ -781,7 +781,7 @@ export function ChallanForm({
                 {damagedFields.map((field, index) => {
                   const rowErrors = errors.damagedItems?.[index];
                   return (
-                    <Tr key={field.id} className={styles.lossRow}>
+                    <Tr key={field.id} stackOnMobile className={styles.lossRow}>
                       <Td className={styles.colItem}>
                         <CodeAutocomplete
                           label=""

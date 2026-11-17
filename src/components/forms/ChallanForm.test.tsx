@@ -260,6 +260,7 @@ describe('ChallanForm', () => {
     const [head, row] = within(items).getAllByRole('row');
     expect(head.className).toMatch(/headRow/);
     expect(row.className).toMatch(/itemRow/);
+    expect(row).toHaveClass('stack'); // kit Tr stackOnMobile: one divider per stacked row
     const loss = screen.getByRole('table', { name: 'Loss items' });
     expect(within(loss).getAllByRole('row')[1].className).toMatch(/lossRow/);
     // Phone labels repeat the hidden header; the controls keep their own names.

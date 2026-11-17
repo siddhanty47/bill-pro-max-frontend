@@ -98,27 +98,30 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* Grids: no sideways scroll. Header row hidden; each row stacks on a grid:
-     item picker full width, then the row's numbers and its remove button. */
+  /* Grids: no sideways scroll. Header row hidden; rows are kit `Tr stackOnMobile`
+     (grid + one divider per row); here we only place the cells:
+     item picker + remove on top, then the row's numbers. */
   .headRow {
     display: none;
   }
 
+  /* The remove column is exactly the button (44px phone IconButton + the stacked
+     cell's padding), so a wide cell below it (Running) can't widen it and leave
+     a gap between the item picker and the button. */
   .itemRow,
   .lossRow {
-    display: grid;
-    align-items: center;
+    --remove-col: calc(44px + 2 * var(--space-2));
   }
 
   .itemRow {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto var(--remove-col);
     grid-template-areas:
       'item item action'
       'qty running running';
   }
 
   .lossRow {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--remove-col);
     grid-template-areas:
       'item item action'
       'type type type'
