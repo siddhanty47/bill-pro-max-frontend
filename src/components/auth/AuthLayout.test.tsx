@@ -12,6 +12,7 @@ describe('AuthLayout', () => {
     );
     expect(screen.getByRole('heading', { name: 'Sign in', level: 1 })).toBeInTheDocument();
     expect(screen.getByText('Bill Pro Max')).toBeInTheDocument();
+    expect(screen.getByText('Bill Pro Max').parentElement).toHaveClass('brand', 'md');
   });
 
   it('renders children and footer', () => {

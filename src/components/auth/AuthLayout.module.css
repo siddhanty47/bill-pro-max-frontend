@@ -14,21 +14,6 @@
   overflow-y: auto;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text-heading);
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-stretch: 108%;
-  font-size: 15px;
-}
-
-.brandMark {
-  color: var(--accent);
-}
-
 .formWrap {
   flex: 1;
   display: flex;

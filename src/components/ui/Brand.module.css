@@ -23,3 +23,22 @@
   color: var(--accent);
   flex-shrink: 0;
 }
+
+/* collapseName: the wordmark is visually hidden on phones but stays readable to assistive tech. */
+@media (max-width: 768px) {
+  .brand:has(.collapsible) {
+    gap: 0;
+  }
+
+  .collapsible {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}

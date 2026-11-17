@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Icon } from '../ui';
+import { Brand } from '../ui';
 import { ScaffoldArt } from './ScaffoldArt';
 import styles from './AuthLayout.module.css';
 
@@ -13,10 +13,7 @@ export function AuthLayout({ title, children, footer }: AuthLayoutProps) {
   return (
     <div className={styles.auth}>
       <div className={styles.formSide}>
-        <div className={styles.brand}>
-          <Icon name="brand" size={20} className={styles.brandMark} />
-          Bill Pro Max
-        </div>
+        <Brand />
         <div className={styles.formWrap}>
           <div className={styles.form}>
             <h1 className={styles.title}>{title}</h1>
