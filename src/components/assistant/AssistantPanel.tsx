@@ -399,6 +399,7 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
               <IconButton
                 icon="close"
                 label="Remove attachment"
+                size="sm"
                 className={styles.thumbRemove}
                 onClick={() => removeImage(i)}
               />

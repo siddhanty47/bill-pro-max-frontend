@@ -29,6 +29,20 @@ describe('IconButton', () => {
     expect(screen.getByRole('button', { name: 'Mic' })).not.toHaveAttribute('data-tone');
   });
 
+  it('renders a small size with a smaller icon', () => {
+    render(<IconButton label="Remove" icon="close" size="sm" />);
+    const button = screen.getByRole('button', { name: 'Remove' });
+    expect(button).toHaveAttribute('data-size', 'sm');
+    expect(button.querySelector('svg')).toHaveAttribute('width', '14');
+  });
+
+  it('uses the regular size by default', () => {
+    render(<IconButton label="Remove" icon="close" />);
+    const button = screen.getByRole('button', { name: 'Remove' });
+    expect(button).not.toHaveAttribute('data-size');
+    expect(button.querySelector('svg')).toHaveAttribute('width', '18');
+  });
+
   it('calls onClick', async () => {
     const onClick = vi.fn();
     render(<IconButton label="Menu" icon="menu" onClick={onClick} />);

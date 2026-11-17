@@ -31,6 +31,29 @@
   color: var(--status-danger-text);
 }
 
+.sm {
+  width: 24px;
+  height: 24px;
+}
+
+/* Invisible hit area: 44px on touch while the visual stays 24px. */
+@media (max-width: 768px) {
+  .sm {
+    width: 24px;
+    height: 24px;
+  }
+
+  .sm::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+}
+
 .badge {
   position: absolute;
   top: 8px;
