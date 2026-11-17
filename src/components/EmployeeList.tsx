@@ -1,11 +1,10 @@
 /**
  * @file Employee list component.
- * Renders a table of employees with columns based on employee type.
- * Supports edit and delete actions.
+ * Renders a table of transporter employees. Supports edit and remove actions.
  */
 import type { Employee } from '../types';
 import { useDeleteEmployeeMutation } from '../api/employeeApi';
-import styles from './EmployeeList.module.css';
+import { Button, DataTable, EmptyState, RowActions, StatusChip, type Column } from './ui';
 
 interface EmployeeListProps {
   employees: Employee[];
@@ -16,10 +15,6 @@ interface EmployeeListProps {
 export function EmployeeList({ employees, businessId, onEdit }: EmployeeListProps) {
   const [deleteEmployee] = useDeleteEmployeeMutation();
 
-  if (employees.length === 0) {
-    return <p className="text-secondary-sm">No employees yet. Add one to get started.</p>;
-  }
-
   const handleDelete = async (employee: Employee) => {
     if (window.confirm(`Remove "${employee.name}" from employees?`)) {
       await deleteEmployee({ businessId, employeeId: employee._id });
@@ -28,53 +23,53 @@ export function EmployeeList({ employees, businessId, onEdit }: EmployeeListProp
 
   const transporters = employees.filter(e => e.type === 'transporter');
 
-  if (transporters.length === 0) {
-    return <p className="text-secondary-sm">No transporters found.</p>;
-  }
+  const actionsCell = (emp: Employee) => (
+    <RowActions
+      primary={
+        <Button size="sm" onClick={() => onEdit(emp)}>
+          Edit
+        </Button>
+      }
+      items={
+        emp.isActive ? [{ label: 'Remove', onClick: () => handleDelete(emp), tone: 'danger' }] : []
+      }
+    />
+  );
+
+  const columns: Column<Employee>[] = [
+    { key: 'name', header: 'Name' },
+    { key: 'phone', header: 'Phone', nowrap: true, mono: true, render: e => e.phone || '—' },
+    {
+      key: 'vehicle',
+      header: 'Vehicle number',
+      nowrap: true,
+      mono: true,
+      render: e => e.details?.vehicleNumber || '—',
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      nowrap: true,
+      render: e => <StatusChip status={e.isActive ? 'active' : 'inactive'} />,
+    },
+    { key: 'actions', header: '', align: 'right', nowrap: true, render: actionsCell },
+  ];
 
   return (
-    <table className="data-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Vehicle Number</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {transporters.map(emp => (
-          <tr key={emp._id}>
-            <td>{emp.name}</td>
-            <td>{emp.phone || '—'}</td>
-            <td>{emp.details?.vehicleNumber || '—'}</td>
-            <td>
-              <span className={`status status-${emp.isActive ? 'active' : 'cancelled'}`}>
-                {emp.isActive ? 'Active' : 'Inactive'}
-              </span>
-            </td>
-            <td>
-              <div className={styles.actionRow}>
-                <button
-                  className="btn btn-secondary btn-sm btn-action-sm"
-                  onClick={() => onEdit(emp)}
-                >
-                  Edit
-                </button>
-                {emp.isActive && (
-                  <button
-                    className="btn btn-danger btn-sm btn-action-sm"
-                    onClick={() => handleDelete(emp)}
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <DataTable
+      aria-label="Transporters"
+      columns={columns}
+      rows={transporters}
+      rowKey={e => e._id}
+      empty={
+        <EmptyState title={employees.length === 0 ? 'No employees yet' : 'No transporters yet'} />
+      }
+      mobile={{
+        title: e => e.name,
+        badge: e => <StatusChip status={e.isActive ? 'active' : 'inactive'} />,
+        meta: e => [e.details?.vehicleNumber, e.phone],
+        actions: actionsCell,
+      }}
+    />
   );
 }
