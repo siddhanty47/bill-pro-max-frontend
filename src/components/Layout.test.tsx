@@ -4,6 +4,7 @@ import { http } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
+import { readCss } from '../test/readCss';
 import { apiUrl, ok } from '../test/msw/handlers';
 import type { RootState } from '../store';
 import type { Business, User } from '../types';
@@ -78,10 +79,7 @@ describe('Layout', () => {
   });
 
   it('fits the header at 320px (CSS present at <=360)', async () => {
-    const fs = (await import(/* @vite-ignore */ 'node:fs' as string)) as {
-      readFileSync(path: string, encoding: 'utf8'): string;
-    };
-    const css = fs.readFileSync('src/components/Layout.module.css', 'utf8');
+    const css = await readCss('src/components/Layout.module.css');
     expect(css).toContain('@media (max-width: 360px)');
     const block = css.slice(css.indexOf('@media (max-width: 360px)'));
     expect(block).toMatch(/\.header\s*\{[^}]*padding:[^;]*var\(--space-2\)[^}]*gap:\s*0/);

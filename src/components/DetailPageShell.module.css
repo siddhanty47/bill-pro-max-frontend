@@ -84,13 +84,6 @@
   font-size: var(--text-sm);
 }
 
-.empty {
-  /* "Not added" is a word, never mono, even on a mono field */
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-  color: var(--text-muted);
-}
-
 @media (max-width: 768px) {
   .body {
     grid-template-columns: minmax(0, 1fr);

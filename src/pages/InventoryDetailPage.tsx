@@ -16,12 +16,7 @@ import {
   useAdjustQuantityMutation,
   useGetOpeningBalancesQuery,
 } from '../api/inventoryApi';
-import {
-  DetailPageShell,
-  DetailSection,
-  DetailField,
-  NotAdded,
-} from '../components/DetailPageShell';
+import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import { CodeAutocomplete, type AutocompleteItem } from '../components/CodeAutocomplete';
 import {
   Button,
@@ -31,6 +26,7 @@ import {
   Field,
   Input,
   Meter,
+  NotAdded,
   Notice,
   Select,
   StatusChip,

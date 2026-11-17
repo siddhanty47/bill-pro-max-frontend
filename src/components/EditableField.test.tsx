@@ -1,15 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { readCss } from '../test/readCss';
 import { EditableField } from './EditableField';
-
-/** Reads a CSS module's source (vitest runs from the repo root). */
-async function cssSource(path: string) {
-  const fs = (await import(/* @vite-ignore */ 'node:fs' as string)) as {
-    readFileSync(path: string, encoding: 'utf8'): string;
-  };
-  return fs.readFileSync(path, 'utf8');
-}
 
 const setup = (props: Partial<Parameters<typeof EditableField>[0]> = {}) => {
   const onSave = vi.fn(async () => {});
@@ -122,7 +115,7 @@ describe('EditableField', () => {
     render(<EditableField label="GST" value="" inputType="text" mono onSave={vi.fn()} />);
     expect(screen.getByRole('button', { name: /Not added/ })).toHaveClass('mono');
     expect(screen.getByText('Not added')).toHaveClass('empty');
-    expect(await cssSource('src/components/EditableField.module.css')).toMatch(
+    expect(await readCss('src/components/EditableField.module.css')).toMatch(
       /\.empty\s*{[^}]*font-family:\s*var\(--font-sans\)/
     );
   });
@@ -133,7 +126,7 @@ describe('EditableField', () => {
     );
     expect(screen.getByRole('button', { name: /Plot 12/ })).toHaveClass('trigger', 'compact');
     // No compact override that zeroes the trigger's negative inline margin.
-    expect(await cssSource('src/components/EditableField.module.css')).not.toMatch(
+    expect(await readCss('src/components/EditableField.module.css')).not.toMatch(
       /\.compact\.trigger\s*{[^}]*margin:\s*0/
     );
   });

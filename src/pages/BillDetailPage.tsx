@@ -6,7 +6,7 @@
  * regeneration. Built on the kit's detail recipe.
  */
 import { useCallback, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import styles from './BillDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
@@ -19,12 +19,7 @@ import {
 } from '../api/billApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetPaymentsByBillQuery } from '../api/paymentApi';
-import {
-  DetailPageShell,
-  DetailSection,
-  DetailField,
-  NotAdded,
-} from '../components/DetailPageShell';
+import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import {
   Button,
   Card,
@@ -35,11 +30,13 @@ import {
   Menu,
   MenuItem,
   MenuLabel,
+  NotAdded,
   Notice,
   StatusChip,
   Table,
   TBody,
   Td,
+  TextLink,
   Tr,
   type Column,
 } from '../components/ui';
@@ -302,9 +299,7 @@ export function BillDetailPage() {
   // ─── Payments ─────────────────────────────────────────────────────
 
   const paymentDate = (p: Payment) => (
-    <Link to={`/payments/${p._id}`} className="link-accent">
-      {formatDate(p.date)}
-    </Link>
+    <TextLink to={`/payments/${p._id}`}>{formatDate(p.date)}</TextLink>
   );
   const paymentColumns: Column<Payment>[] = [
     { key: 'date', header: 'Date', nowrap: true, render: paymentDate },
@@ -338,11 +333,7 @@ export function BillDetailPage() {
       <DetailField label="Bill number" value={bill.billNumber} mono />
       <DetailField
         label="Party"
-        value={
-          <Link to={`/parties/${bill.partyId}`} className="link-accent">
-            {partyName}
-          </Link>
-        }
+        value={<TextLink to={`/parties/${bill.partyId}`}>{partyName}</TextLink>}
       />
       <DetailField
         label="Agreement"

@@ -49,8 +49,6 @@ type StatementType = 'ledger' | 'bills' | 'items' | 'aging';
 /** Says why Preview / Download PDF are disabled. */
 const STATEMENT_REASON_ID = 'party-statement-reason';
 
-/** formatDate for optional dates; missing → empty cell. */
-
 /** "client" → "Client"; "bank_transfer" → "Bank transfer". */
 const sentence = (s: string) => {
   const words = s.replace(/_/g, ' ');

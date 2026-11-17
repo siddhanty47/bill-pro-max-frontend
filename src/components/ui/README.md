@@ -9,6 +9,8 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `Avatar` | Initials badge: `person` (account) or `business` (letter badge); non-interactive, put it in a trigger |
 | `Notice` | Inline form/page message (sign-in error, "link sent"); `danger` is an alert, others a status |
 | `Icon` | Every line icon; add new glyphs here, never inline an SVG in a page |
+| `NotAdded` | The muted "Not added" placeholder for an empty value in a table cell or custom row (`DetailField` uses it for empty values); always the text font, even in a mono cell |
+| `TextLink` | An in-content router link (party name in a detail field, payment date in a table): accent, medium weight, explicit hover colour; not for buttons (`Button to`) or document numbers (`DocNumber to`) |
 | `Dot` | An 8px decorative status-tone dot (challan type in a cell or phone-list `leading`; used by `Button dot` and `SegmentedControl`) |
 | `Brand` | The Bill Pro Max mark + wordmark for headers (`size`: `md` default, `sm`; `collapseName` shows the mark only at ≤480, wordmark stays readable to assistive tech); placement-only `className` |
 | `GoogleIcon` | The Google logo on sign-in buttons (brand colours, token-check allowlisted) |
@@ -46,4 +48,4 @@ Detail pages are composed from `components/DetailPageShell` (`DetailPageShell`, 
 </DetailPageShell>
 ```
 
-Formatters for amounts and dates live in `src/utils/format.ts` (`formatMoney`, `formatDate`, `formatDateTime`, `formatMonth`), not in the kit. The muted "Not added" placeholder for a table cell is `NotAdded` from `components/DetailPageShell`.
+Formatters for amounts and dates live in `src/utils/format.ts` (`formatMoney`, `formatDate`, `formatDateTime`, `formatMonth`), not in the kit. The muted "Not added" placeholder for a table cell is the kit `NotAdded`.

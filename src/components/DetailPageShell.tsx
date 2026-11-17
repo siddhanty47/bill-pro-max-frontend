@@ -16,7 +16,17 @@ import {
   type ReactNode,
 } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, ErrorMessage, Icon, PageHeader, Spinner, StatusChip, TabPanel, Tabs } from './ui';
+import {
+  Card,
+  ErrorMessage,
+  Icon,
+  NotAdded,
+  PageHeader,
+  Spinner,
+  StatusChip,
+  TabPanel,
+  Tabs,
+} from './ui';
 import type { Tone } from './ui/status';
 import { EditableField } from './EditableField';
 import styles from './DetailPageShell.module.css';
@@ -67,14 +77,10 @@ export interface DetailPageShellProps {
   idPrefix?: string;
   /** Main column content */
   children?: ReactNode;
-  /** @deprecated Use `eyebrow` + `code`. Shown as the eyebrow when neither is set. */
-  subtitle?: string;
-  /** @deprecated Ignored; the status renders as a StatusChip. */
-  statusClassName?: string;
 }
 
 /** "Party · MEHT": the entity word in the text font, only the code in mono. */
-function eyebrowNode(eyebrow?: string, code?: string, subtitle?: string): ReactNode {
+function eyebrowNode(eyebrow?: string, code?: string): ReactNode {
   const codeNode = code ? <span className="mono">{code}</span> : null;
   if (eyebrow && codeNode) {
     return (
@@ -83,7 +89,7 @@ function eyebrowNode(eyebrow?: string, code?: string, subtitle?: string): ReactN
       </>
     );
   }
-  return eyebrow ?? codeNode ?? subtitle;
+  return eyebrow ?? codeNode;
 }
 
 export function DetailPageShell({
@@ -105,7 +111,6 @@ export function DetailPageShell({
   onTabChange,
   idPrefix = 'detail',
   children,
-  subtitle,
 }: DetailPageShellProps) {
   const [ownTab, setOwnTab] = useState(tabs?.[0]?.id);
 
@@ -132,7 +137,7 @@ export function DetailPageShell({
 
       <PageHeader
         title={title}
-        eyebrow={eyebrowNode(eyebrow, code, subtitle)}
+        eyebrow={eyebrowNode(eyebrow, code)}
         badge={status ? <StatusChip status={status} tone={statusTone} /> : undefined}
         actions={headerActions}
       />
@@ -271,14 +276,6 @@ export interface DetailFieldProps {
 const isEmptyValue = (value: ReactNode) => value === undefined || value === null || value === '';
 
 /**
- * The muted "Not added" placeholder for an empty value outside a DetailField
- * (table cells, custom rows). Always the text font, even in a mono cell.
- */
-export function NotAdded({ children = 'Not added' }: { children?: string }) {
-  return <span className={styles.empty}>{children}</span>;
-}
-
-/**
  * A label/value row: a `<div>` group inside a DetailSection's `<dl>`, or its own
  * `<dl>` elsewhere. With `editable`, the value is an EditableField.
  */
@@ -308,7 +305,7 @@ export function DetailField({
       renderEditInput={editable.renderEditInput}
     />
   ) : isEmpty ? (
-    <span className={styles.empty}>{emptyText}</span>
+    <NotAdded>{emptyText}</NotAdded>
   ) : (
     value
   );

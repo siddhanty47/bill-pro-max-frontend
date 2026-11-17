@@ -14,6 +14,7 @@ import {
   DataTable,
   DocNumber,
   EmptyState,
+  NotAdded,
   Notice,
   PageHeader,
   StatCard,
@@ -23,7 +24,6 @@ import {
   Spinner,
   type Column,
 } from '../components/ui';
-import { NotAdded } from '../components/DetailPageShell';
 import { formatDate, formatMoney } from '../utils/format';
 import {
   useGetPortalInfoQuery,
@@ -424,9 +424,11 @@ export function SharedPortalPage() {
               mobile={{
                 title: b => <DocNumber value={b.billNumber} />,
                 badge: b => <StatusChip status={b.status} />,
-                subtitle: b => <span className="mono">{formatMoney(b.totalAmount)}</span>,
+                subtitle: b => periodText(b),
                 meta: b => [
-                  periodText(b),
+                  <span key="total" className="mono">
+                    Total {formatMoney(b.totalAmount)}
+                  </span>,
                   <span key="paid" className="mono">
                     Paid {formatMoney(b.amountPaid)}
                   </span>,

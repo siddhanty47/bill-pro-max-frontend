@@ -6,7 +6,7 @@
  * DetailPageShell + DetailSection/DetailField + Cards holding DataTables.
  */
 import { useState, useCallback, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import styles from './ChallanDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useAuth } from '../hooks/useAuth';
@@ -23,12 +23,7 @@ import {
 } from '../api/challanApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetInventoryQuery } from '../api/inventoryApi';
-import {
-  DetailPageShell,
-  DetailSection,
-  DetailField,
-  NotAdded,
-} from '../components/DetailPageShell';
+import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import { CodeAutocomplete, type AutocompleteItem } from '../components/CodeAutocomplete';
 import {
   Button,
@@ -37,9 +32,11 @@ import {
   DocNumber,
   EmptyState,
   Input,
+  NotAdded,
   RowActions,
   Select,
   StatusChip,
+  TextLink,
   type Column,
 } from '../components/ui';
 import { EditableField } from '../components/EditableField';
@@ -471,11 +468,7 @@ export function ChallanDetailPage() {
       <DetailField label="Type" value={<StatusChip status={challan.type} />} />
       <DetailField
         label="Party"
-        value={
-          <Link to={`/parties/${challan.partyId}`} className="link-accent">
-            {partyName}
-          </Link>
-        }
+        value={<TextLink to={`/parties/${challan.partyId}`}>{partyName}</TextLink>}
       />
       <DetailField
         label="Agreement"

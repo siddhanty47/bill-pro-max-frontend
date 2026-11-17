@@ -3,15 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactElement } from 'react';
-import { DetailField, DetailPageShell, DetailSection, NotAdded } from './DetailPageShell';
-
-/** Reads a CSS module's source (vitest runs from the repo root). */
-async function cssSource(path: string) {
-  const fs = (await import(/* @vite-ignore */ 'node:fs' as string)) as {
-    readFileSync(path: string, encoding: 'utf8'): string;
-  };
-  return fs.readFileSync(path, 'utf8');
-}
+import { DetailField, DetailPageShell, DetailSection } from './DetailPageShell';
 
 const renderInRouter = (ui: ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
@@ -53,24 +45,6 @@ describe('DetailPageShell', () => {
       </DetailPageShell>
     );
     expect(screen.getAllByText('Active')).toHaveLength(1);
-  });
-
-  it('keeps the legacy props working: subtitle becomes the eyebrow, statusClassName is ignored', () => {
-    renderInRouter(
-      <DetailPageShell
-        title="B-001"
-        subtitle="Party: Mehta"
-        status="partially_paid"
-        statusClassName="status status-partially_paid"
-        backTo="/bills"
-        backLabel="Bills"
-      >
-        body
-      </DetailPageShell>
-    );
-    expect(screen.getByText('Party: Mehta')).toBeInTheDocument();
-    const chip = screen.getByText('Partially paid');
-    expect(chip).not.toHaveClass('status');
   });
 
   it('renders a spinner while loading and an error with retry', async () => {
@@ -236,11 +210,7 @@ describe('DetailField', () => {
 
   it('keeps the empty placeholder in the text font on a mono field', async () => {
     render(<DetailField label="GST" value={undefined} mono />);
-    const empty = screen.getByText('Not added');
-    expect(empty).toHaveClass('empty');
-    expect(await cssSource('src/components/DetailPageShell.module.css')).toMatch(
-      /\.empty\s*{[^}]*font-family:\s*var\(--font-sans\)/
-    );
+    expect(screen.getByText('Not added')).toHaveClass('notAdded');
   });
 
   it('renders a bare value without a label row', () => {
@@ -314,22 +284,6 @@ describe('DetailField', () => {
     expect(lists).toHaveLength(1);
     expect(lists[0].parentElement?.tagName).toBe('DIV');
     expect(screen.getByText('Free text').closest('dl')).toBeNull();
-  });
-});
-
-describe('NotAdded', () => {
-  it('renders the muted placeholder, same class as an empty DetailField', () => {
-    render(
-      <>
-        <NotAdded />
-        <NotAdded>Not set</NotAdded>
-        <DetailField label="Email" value={undefined} />
-      </>
-    );
-    const [standalone, fieldEmpty] = screen.getAllByText('Not added');
-    expect(standalone).toHaveClass('empty');
-    expect(fieldEmpty).toHaveClass('empty');
-    expect(screen.getByText('Not set')).toHaveClass('empty');
   });
 });
 

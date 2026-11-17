@@ -5,12 +5,12 @@
  * detail recipe.
  */
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useGetPaymentQuery } from '../api/paymentApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
-import { DocNumber } from '../components/ui';
+import { DocNumber, TextLink } from '../components/ui';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { formatDate, formatMoney } from '../utils/format';
 import type { Payment } from '../types';
@@ -63,11 +63,7 @@ export function PaymentDetailPage() {
       <DetailField label="Reference" value={payment.reference} mono />
       <DetailField
         label="Party"
-        value={
-          <Link to={`/parties/${payment.partyId}`} className="link-accent">
-            {partyName}
-          </Link>
-        }
+        value={<TextLink to={`/parties/${payment.partyId}`}>{partyName}</TextLink>}
       />
       {payment.billId && (
         <DetailField

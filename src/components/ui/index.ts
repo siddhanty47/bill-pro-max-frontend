@@ -9,6 +9,8 @@ export { Brand, type BrandProps } from './Brand';
 export { GoogleIcon, type GoogleIconProps } from './GoogleIcon';
 export { Avatar, type AvatarProps } from './Avatar';
 export { Dot, type DotTone } from './Dot';
+export { NotAdded } from './NotAdded';
+export { TextLink, type TextLinkProps } from './TextLink';
 export { Notice, type NoticeProps, type NoticeTone } from './Notice';
 export { Card, type CardProps } from './Card';
 export { StatCard, type StatCardProps } from './StatCard';

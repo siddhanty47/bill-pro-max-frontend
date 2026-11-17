@@ -5,7 +5,7 @@
  * editing for status, dates, terms, and per-item rate values.
  */
 import { useState, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import styles from './AgreementDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
@@ -27,6 +27,7 @@ import {
   MenuItem,
   MenuLabel,
   StatusChip,
+  TextLink,
   type Column,
 } from '../components/ui';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
@@ -186,11 +187,7 @@ export function AgreementDetailPage() {
       <DetailField label="Agreement ID" value={agreement.agreementId} mono />
       <DetailField
         label="Party"
-        value={
-          <Link to={`/parties/${agreement.partyId}`} className="link-accent">
-            {agreement.partyName}
-          </Link>
-        }
+        value={<TextLink to={`/parties/${agreement.partyId}`}>{agreement.partyName}</TextLink>}
       />
       <DetailField label="Site code" value={agreement.siteCode} mono />
       <DetailField label="Created" value={formatDate(agreement.createdAt)} />

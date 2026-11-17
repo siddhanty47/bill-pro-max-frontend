@@ -208,7 +208,7 @@ describe('SharedPortalPage', () => {
     await openTab(user, 'Bills');
     const list = await screen.findByRole('list', { name: 'Bills' });
     expect(within(list).getByText('BILL-001')).toBeInTheDocument();
-    expect(within(list).getByText('₹1,84,200')).toBeInTheDocument();
+    expect(within(list).getByText(/Total ₹1,84,200/)).toBeInTheDocument();
     expect(within(list).getByText(/Paid ₹50,000\.50/)).toBeInTheDocument();
   });
 
