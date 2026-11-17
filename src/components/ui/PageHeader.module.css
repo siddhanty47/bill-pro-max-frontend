@@ -41,6 +41,19 @@
   margin-top: 0;
 }
 
+.titleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: 14px;
+}
+
+.titleRow:first-child,
+.titleRow .title {
+  margin-top: 0;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

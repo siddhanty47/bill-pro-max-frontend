@@ -31,6 +31,14 @@
   color: var(--text-heading);
 }
 
+.count {
+  margin-left: 2px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
 .tabActive::after {
   content: '';
   position: absolute;

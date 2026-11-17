@@ -1,27 +1,37 @@
 /**
- * @fileoverview Shared detail page layout components
- * @description Provides a Jira-style detail view shell with breadcrumb navigation,
- * header with status badge, two-column layout (main + sidebar), and reusable
- * section/field sub-components for consistent entity detail pages. DetailField
- * supports an optional `editable` prop to enable Jira-style inline editing.
+ * @fileoverview Detail page building blocks
+ * @description `DetailPageShell` (back link, eyebrow, title + status chip, header
+ * actions, optional tabs, main column + sidebar), `DetailSection` (a kit Card) and
+ * `DetailField` (a label/value row, optionally inline-editable via EditableField).
+ * Built on the ui kit; see the "Detail page" recipe in the frontend-design skill.
  */
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { LoadingSpinner } from './LoadingSpinner';
-import { ErrorMessage } from './ErrorMessage';
+import { Card, ErrorMessage, Icon, PageHeader, Spinner, StatusChip, TabPanel, Tabs } from './ui';
+import type { Tone } from './ui/status';
 import { EditableField } from './EditableField';
 import styles from './DetailPageShell.module.css';
 
 // ─── DetailPageShell ────────────────────────────────────────────────
 
-interface DetailPageShellProps {
+export interface DetailTab {
+  id: string;
+  label: string;
+  /** Shown after the label (e.g. number of bills) */
+  count?: number;
+}
+
+export interface DetailPageShellProps {
   /** Page title (entity name / number) */
   title: string;
-  /** Optional subtitle shown below the title (e.g. entity code) */
-  subtitle?: string;
-  /** Status text shown as a badge next to the title */
+  /** Entity type for the eyebrow line, e.g. "Party" → "Party · MEHT" */
+  eyebrow?: string;
+  /** Entity code appended to the eyebrow */
+  code?: string;
+  /** Lifecycle status, rendered once as a StatusChip beside the title */
   status?: string;
-  /** CSS class name applied to the status badge (e.g. "status status-active") */
-  statusClassName?: string;
+  /** Only for non-lifecycle statuses; lifecycle tones come from ui/status.ts */
+  statusTone?: Tone;
   /** Path to navigate back to (e.g. "/inventory") */
   backTo: string;
   /** Label for the back link (e.g. "Inventory") */
@@ -32,26 +42,36 @@ interface DetailPageShellProps {
   error?: unknown;
   /** Retry callback for error state */
   onRetry?: () => void;
-  /** Action buttons rendered in the header (edit/delete for V2) */
-  headerActions?: React.ReactNode;
-  /** Sidebar content (right column) */
-  sidebar?: React.ReactNode;
-  /** Main content area (left column) */
-  children?: React.ReactNode;
+  /** Header actions: at most one primary Button, ≤2 visible, the rest in a Menu */
+  headerActions?: ReactNode;
+  /** Sidebar content (right column; below the main column on phones) */
+  sidebar?: ReactNode;
+  /** Tabs under the header; `children` is the active tab's content */
+  tabs?: DetailTab[];
+  /** Active tab id (defaults to the first tab) */
+  activeTab?: string;
+  onTabChange?: (id: string) => void;
+  /** Unique per page; wires tabs to the panel (default "detail") */
+  idPrefix?: string;
+  /** Main column content */
+  children?: ReactNode;
+  /** @deprecated Use `eyebrow` + `code`. Shown as the eyebrow when neither is set. */
+  subtitle?: string;
+  /** @deprecated Ignored; the status renders as a StatusChip. */
+  statusClassName?: string;
 }
 
-/**
- * Detail page wrapper providing breadcrumb, header, and two-column layout.
- *
- * Handles loading / error states automatically. When data is ready,
- * renders a header row with title + status badge, then a two-column
- * grid with `children` on the left and `sidebar` on the right.
- */
+function eyebrowText(eyebrow?: string, code?: string, subtitle?: string) {
+  if (eyebrow && code) return `${eyebrow} · ${code}`;
+  return eyebrow ?? code ?? subtitle;
+}
+
 export function DetailPageShell({
   title,
-  subtitle,
+  eyebrow,
+  code,
   status,
-  statusClassName,
+  statusTone,
   backTo,
   backLabel,
   isLoading,
@@ -59,42 +79,55 @@ export function DetailPageShell({
   onRetry,
   headerActions,
   sidebar,
+  tabs,
+  activeTab,
+  onTabChange,
+  idPrefix = 'detail',
   children,
+  subtitle,
 }: DetailPageShellProps) {
   if (isLoading) {
-    return <LoadingSpinner message={`Loading ${backLabel.toLowerCase()}...`} />;
+    return <Spinner />;
   }
 
   if (error) {
     return <ErrorMessage error={error} onRetry={onRetry} />;
   }
 
+  const currentTab = activeTab ?? tabs?.[0]?.id;
+
   return (
     <div>
-      {/* Back navigation */}
-      <div className={styles.backBar}>
-        <Link to={backTo} className={styles.backLink}>
-          <span className={styles.backArrow}>&larr;</span>
-          Back to {backLabel}
-        </Link>
-      </div>
+      <Link to={backTo} className={styles.back} aria-label={`Back to ${backLabel}`}>
+        <Icon name="arrow-left" size={14} />
+        {backLabel}
+      </Link>
 
-      {/* Header */}
-      <div className={styles.header}>
-        <div className={styles.headerLeft}>
-          <div className={styles.titleRow}>
-            <h1 className={styles.title}>{title}</h1>
-            {status && <span className={statusClassName || 'status'}>{status}</span>}
-          </div>
-          {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
-        </div>
-        {headerActions && <div className={styles.headerActions}>{headerActions}</div>}
-      </div>
+      <PageHeader
+        title={title}
+        eyebrow={eyebrowText(eyebrow, code, subtitle)}
+        badge={status ? <StatusChip status={status} tone={statusTone} /> : undefined}
+        actions={headerActions}
+      />
 
-      {/* Body: main + sidebar */}
-      <div className={styles.body}>
-        <div className={styles.main}>{children}</div>
-        {sidebar && <div className={styles.sidebar}>{sidebar}</div>}
+      {tabs && currentTab && (
+        <Tabs
+          idPrefix={idPrefix}
+          tabs={tabs}
+          activeTab={currentTab}
+          onChange={id => onTabChange?.(id)}
+        />
+      )}
+
+      <div className={sidebar ? styles.body : undefined}>
+        {tabs && currentTab ? (
+          <TabPanel idPrefix={idPrefix} tabId={currentTab} className={styles.main}>
+            {children}
+          </TabPanel>
+        ) : (
+          <div className={styles.main}>{children}</div>
+        )}
+        {sidebar && <aside className={styles.sidebar}>{sidebar}</aside>}
       </div>
     </div>
   );
@@ -102,29 +135,33 @@ export function DetailPageShell({
 
 // ─── DetailSection ──────────────────────────────────────────────────
 
-interface DetailSectionProps {
-  /** Section heading text */
+export interface DetailSectionProps {
+  /** Card title (sentence case) */
   title: string;
-  /** Optional action buttons rendered inline with the section title */
-  headerActions?: React.ReactNode;
-  /** Section content */
-  children: React.ReactNode;
+  /** Count pill after the title */
+  count?: number;
+  /** Right of the title, e.g. an "Add site" Button */
+  actions?: ReactNode;
+  /** @deprecated Use `actions`. */
+  headerActions?: ReactNode;
+  /** Default true. Pass false when the body is a table. */
+  padded?: boolean;
+  children: ReactNode;
 }
 
-/**
- * Card-like section block with a title header and content body.
- * Used inside DetailPageShell to group related fields.
- * Supports optional `headerActions` for buttons like "+ Add Site".
- */
-export function DetailSection({ title, headerActions, children }: DetailSectionProps) {
+/** A detail-page section: a kit Card whose body fits DetailField rows. */
+export function DetailSection({
+  title,
+  count,
+  actions,
+  headerActions,
+  padded = true,
+  children,
+}: DetailSectionProps) {
   return (
-    <div className={styles.section}>
-      <div className={styles.sectionHeader}>
-        <span>{title}</span>
-        {headerActions && <div className={styles.sectionActions}>{headerActions}</div>}
-      </div>
-      <div className={styles.sectionBody}>{children}</div>
-    </div>
+    <Card title={title} count={count} actions={actions ?? headerActions} padded={false}>
+      {padded ? <div className={styles.sectionBody}>{children}</div> : children}
+    </Card>
   );
 }
 
@@ -155,54 +192,67 @@ interface EditableConfig {
     onChange: (val: string | number) => void;
     onSave: () => void;
     onCancel: () => void;
-  }) => React.ReactNode;
+  }) => ReactNode;
 }
 
-interface DetailFieldProps {
-  /** Field label */
+export interface DetailFieldProps {
+  /** Field label (sentence case). Empty → the value spans the full row. */
   label: string;
   /** Field value — any renderable content */
-  value?: React.ReactNode;
-  /** Text shown when value is nullish or empty string (default: "-") */
+  value?: ReactNode;
+  /** Text shown when value is nullish or empty string (default: "Not added") */
   emptyText?: string;
-  /** If provided, makes this field inline-editable (Jira-style) */
+  /** Monospace value: codes, phone, GST, amounts, quantities */
+  mono?: boolean;
+  /** If provided, makes this field inline-editable */
   editable?: EditableConfig;
 }
 
-/**
- * Horizontal label-value pair for displaying a single entity field.
- * When `editable` is provided, delegates rendering to EditableField for
- * inline-edit support. Otherwise renders a static read-only display.
- */
-export function DetailField({ label, value, emptyText = '-', editable }: DetailFieldProps) {
-  if (editable) {
-    return (
-      <EditableField
-        label={label}
-        value={editable.rawValue}
-        displayValue={value}
-        inputType={editable.inputType}
-        options={editable.options}
-        onSave={editable.onSave}
-        isSaving={editable.isSaving}
-        emptyText={emptyText}
-        suffix={editable.suffix}
-        prefix={editable.prefix}
-        renderEditInput={editable.renderEditInput}
-      />
-    );
+const isEmptyValue = (value: ReactNode) => value === undefined || value === null || value === '';
+
+/** A label/value row (`<dl>`). With `editable`, the value is an EditableField. */
+export function DetailField({
+  label,
+  value,
+  emptyText = 'Not added',
+  mono = false,
+  editable,
+}: DetailFieldProps) {
+  const isEmpty = isEmptyValue(value);
+
+  const content = editable ? (
+    <EditableField
+      label={label}
+      value={editable.rawValue}
+      displayValue={isEmpty ? undefined : value}
+      inputType={editable.inputType}
+      options={editable.options}
+      onSave={editable.onSave}
+      isSaving={editable.isSaving}
+      emptyText={emptyText}
+      suffix={editable.suffix}
+      prefix={editable.prefix}
+      mono={mono}
+      renderEditInput={editable.renderEditInput}
+    />
+  ) : isEmpty ? (
+    <span className={styles.empty}>{emptyText}</span>
+  ) : (
+    value
+  );
+
+  const valueClass = [styles.value, mono && !editable ? `mono ${styles.monoValue}` : '']
+    .filter(Boolean)
+    .join(' ');
+
+  if (!label) {
+    return <div className={`${styles.field} ${styles.bare} ${valueClass}`}>{content}</div>;
   }
 
-  const isEmpty = value === undefined || value === null || value === '';
-
   return (
-    <div className={styles.field}>
-      <span className={styles.fieldLabel}>{label}</span>
-      {isEmpty ? (
-        <span className={`${styles.fieldValue} ${styles.fieldEmpty}`}>{emptyText}</span>
-      ) : (
-        <span className={styles.fieldValue}>{value}</span>
-      )}
-    </div>
+    <dl className={styles.field}>
+      <dt className={styles.label}>{label}</dt>
+      <dd className={valueClass}>{content}</dd>
+    </dl>
   );
 }

@@ -13,7 +13,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `Card` | Any surface panel or section, with optional title, count pill and actions |
 | `StatCard` | A single headline number with a label; `tone="highlight"` for the one key stat |
 | `Meter` | A segmented bar with legend (e.g. available vs rented stock) |
-| `PageHeader` | The title row at the top of every page, with optional eyebrow and actions |
+| `PageHeader` | The title row at the top of every page, with optional eyebrow, actions and a `badge` beside the title |
 | `EmptyState` | "Nothing here" states: one short title and at most one action |
 | `StatusChip` | Every status badge; tone comes from `status.ts` |
 | `DocNumber` | Bill, challan and other document numbers, optionally linked |
@@ -29,8 +29,18 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `RowActions` | A table/phone row's actions: one primary `Button` + a "More actions" menu for the rest (danger items supported; an item's `hint` shows a muted line under its label, e.g. why it's disabled); clicks never open the row |
 | `Menu`, `MenuItem`, `MenuLabel`, `MenuDivider` | Dropdown menus (business switcher, profile, row actions) |
 | `Modal` | Dialogs; full-screen on phones |
-| `Tabs`, `TabPanel` | Tab navigation within a page; `idPrefix` + `TabPanel` wire tab ↔ panel |
+| `Tabs`, `TabPanel` | Tab navigation within a page; optional `count` per tab; `idPrefix` + `TabPanel` wire tab ↔ panel |
 | `Spinner` (`LoadingSpinner`) | Loading state for a page or panel |
 | `ErrorMessage` | API/load errors with optional retry |
+
+Detail pages are composed from `components/DetailPageShell` (`DetailPageShell`, `DetailSection`, `DetailField`) and `components/EditableField`, which are built on this kit — see "Detail page" in the skill.
+
+```tsx
+<DetailPageShell title="Mehta Builders" eyebrow="Party" code="MEHT" status="active"
+  backTo="/parties" backLabel="Parties" tabs={TABS} activeTab={tab} onTabChange={setTab} idPrefix="party"
+  sidebar={<DetailSection title="Details"><DetailField label="Code" value="MEHT" mono /></DetailSection>}>
+  <DetailSection title="Contact"><DetailField label="Email" value={undefined} /></DetailSection>
+</DetailPageShell>
+```
 
 Formatters for amounts and dates live in `src/utils/format.ts` (`formatMoney`, `formatDate`), not in the kit.

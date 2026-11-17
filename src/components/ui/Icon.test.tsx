@@ -19,6 +19,7 @@ const names: IconName[] = [
   'close',
   'menu',
   'more',
+  'arrow-left',
   'arrow-right',
   'rupee',
   'settings',

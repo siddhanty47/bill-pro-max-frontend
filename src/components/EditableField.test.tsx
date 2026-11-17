@@ -77,4 +77,91 @@ describe('EditableField', () => {
 
     expect(screen.getByRole('textbox')).toHaveValue('Gupta');
   });
+
+  it('cancels from the Cancel button without saving', async () => {
+    const { user, onSave, startEditing } = setup();
+
+    await startEditing();
+    await user.type(screen.getByRole('textbox'), 'xyz');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /Sharma/ })).toBeInTheDocument();
+  });
+
+  it('saves once from the Save button', async () => {
+    const { user, onSave, startEditing } = setup();
+
+    await startEditing();
+    await user.type(screen.getByRole('textbox'), 'ji');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave).toHaveBeenCalledWith('Sharmaji');
+  });
+
+  it('shows an Edit hint and labels the input with the field label', async () => {
+    const { startEditing } = setup({ mono: true });
+
+    const trigger = screen.getByRole('button', { name: /Sharma/ });
+    expect(trigger).toHaveTextContent('Edit');
+    expect(trigger).toHaveClass('mono');
+    await startEditing();
+    expect(screen.getByRole('textbox', { name: 'Name' })).toBeInTheDocument();
+  });
+
+  it('shows "Not added" for an empty value and edits selects and textareas', async () => {
+    const onSave = vi.fn(async () => {});
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <EditableField
+        label="Type"
+        value=""
+        inputType="select"
+        options={[
+          { value: '', label: 'None' },
+          { value: 'client', label: 'Client' },
+        ]}
+        onSave={onSave}
+      />
+    );
+    await user.click(screen.getByRole('button', { name: /Not added/ }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Type' }), 'client');
+    await user.keyboard('{Enter}');
+    expect(onSave).toHaveBeenCalledWith('client');
+
+    rerender(<EditableField label="Notes" value="hi" inputType="textarea" onSave={onSave} />);
+    await user.click(screen.getByRole('button', { name: /hi/ }));
+    await user.type(screen.getByRole('textbox', { name: 'Notes' }), '{Enter}there');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSave).toHaveBeenLastCalledWith('hi\nthere');
+  });
+
+  it('uses a custom edit renderer', async () => {
+    const { user, onSave, startEditing } = setup({
+      renderEditInput: ({ onChange, onSave: save }) => (
+        <button type="button" onClick={() => onChange('Custom')} onDoubleClick={save}>
+          Pick
+        </button>
+      ),
+    });
+
+    await startEditing();
+    await user.click(screen.getByRole('button', { name: 'Pick' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSave).toHaveBeenCalledWith('Custom');
+  });
+
+  it('shows a busy state while saving', () => {
+    setup({ isSaving: true });
+    const trigger = screen.getByRole('button', { name: /Edit/ });
+    expect(trigger).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('opens with the keyboard', async () => {
+    const { user } = setup();
+    screen.getByRole('button', { name: /Sharma/ }).focus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByRole('textbox')).toHaveValue('Sharma');
+  });
 });

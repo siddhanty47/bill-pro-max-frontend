@@ -69,17 +69,17 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
   ```tsx
   <Menu trigger={p => <IconButton label="Account" {...p}><Avatar initials="SY" /></IconButton>}>…</Menu>
   ```
-- **`Icon`** — `name: IconName` · `size?` (default 16) · `className?`. Always `aria-hidden`; put the accessible name on the control. Names: `dashboard inventory parties agreements challans bills payments team search bell chat chevron-down plus close menu arrow-right rupee settings logout brand`.
+- **`Icon`** — `name: IconName` · `size?` (default 16) · `className?`. Always `aria-hidden`; put the accessible name on the control. Names: `dashboard inventory parties agreements challans bills payments team search bell chat chevron-down plus close menu more arrow-left arrow-right rupee settings logout brand`.
 - **`GoogleIcon`** — Google's multi-colour logo for sign-in buttons only. `size?` (default 18) · `className?`. The only file allowed literal colours (token-check allowlist).
 
 ### Surfaces and page structure
 
-- **`PageHeader`** — top of every page. `title` · `eyebrow?` (small mono accent line above the title: real context only, e.g. today's date on the dashboard or the entity type on a detail page, never a slogan) · `actions?: ReactNode`. No subtitle prop, by design.
+- **`PageHeader`** — top of every page. `title` · `eyebrow?` (small mono accent line above the title: real context only, e.g. today's date on the dashboard or the entity type on a detail page, never a slogan) · `actions?: ReactNode` · `badge?: ReactNode` (beside the title, e.g. the detail page's `StatusChip`). No subtitle prop, by design.
 - **`Card`** — any panel or section. `title?` · `count?: number` (pill after the title) · `countTone?: 'neutral' | 'danger'` · `actions?: ReactNode` (right of the title, e.g. an "All bills" link) · `padded?` (default `true`; pass `padded={false}` when the body is a table) · `to?` (whole card becomes a link with hover lift; then don't put links or buttons inside it) · `className?`.
 - **`StatCard`** — one headline number. `label` · `value: ReactNode` (rendered mono) · `icon?` · `tone?: 'default' | 'highlight'` (accent tint; at most one per screen) · `to?` · `children?` (e.g. a `Meter`).
 - **`Meter`** — segmented bar + legend. `segments: { value: number; tone: 'accent' | 'info' | 'warning' | 'danger'; label: string }[]`. Values formatted `en-IN`; bar has an `aria-label` summary. Widths are rounded once and laid end to end (the last takes the remainder), so there are no hairline gaps.
 - **`EmptyState`** — `title` (one short line saying what's missing) · `action?: ReactNode` (at most one, usually a `Button`). No prose paragraph.
-- **`Tabs`** — `tabs: { id; label }[]` · `activeTab` · `onChange(id)` · `idPrefix?: string` (unique per page; tabs get `id="{prefix}-tab-{id}"` + `aria-controls="{prefix}-panel-{id}"`). Underline-accent style. With `idPrefix`, wrap the active tab's content in **`TabPanel`** — `idPrefix` · `tabId` · `className?` (placement) · `children`; renders `role="tabpanel"`, labelled by its tab, focusable.
+- **`Tabs`** — `tabs: { id; label; count?: number }[]` (`count` renders muted mono after the label; the tab's accessible name becomes e.g. "Bills 12") · `activeTab` · `onChange(id)` · `idPrefix?: string` (unique per page; tabs get `id="{prefix}-tab-{id}"` + `aria-controls="{prefix}-panel-{id}"`). Underline-accent style. With `idPrefix`, wrap the active tab's content in **`TabPanel`** — `idPrefix` · `tabId` · `className?` (placement) · `children`; renders `role="tabpanel"`, labelled by its tab, focusable.
   ```tsx
   <Tabs idPrefix="party" tabs={TABS} activeTab={tab} onChange={setTab} />
   <TabPanel idPrefix="party" tabId={tab}>{tab === 'bills' ? <BillsTab /> : <ChallansTab />}</TabPanel>
@@ -168,7 +168,31 @@ import { formatDate, formatMoney } from '../utils/format';
 ```
 Loading → `Spinner`; error → `ErrorMessage onRetry={refetch}`.
 
-**Dashboard / detail page** = `PageHeader` (eyebrow for real context) + a layout grid (page CSS) of `StatCard`s and `Card`s. Sections are `Card title=… count=… actions=…`; lists inside are `DataTable` in `Card padded={false}`.
+**Dashboard** = `PageHeader` (eyebrow for real context) + a layout grid (page CSS) of `StatCard`s and `Card`s. Sections are `Card title=… count=… actions=…`; lists inside are `DataTable` in `Card padded={false}`.
+
+**Detail page** = `DetailPageShell` + `DetailSection` + `DetailField` from `components/DetailPageShell` (built on `PageHeader`, `StatusChip`, `Tabs`/`TabPanel`, `Card` and `EditableField`).
+- `DetailPageShell` — `title` · `eyebrow?` (entity type) + `code?` → eyebrow "Party · MEHT" · `status?` (one `StatusChip` beside the title; never repeat status in the sidebar) · `statusTone?` (non-lifecycle chips only) · `backTo` + `backLabel` (back link "← Parties", accessible name "Back to Parties") · `isLoading?` (Spinner) · `error?` + `onRetry?` (ErrorMessage) · `headerActions?: ReactNode` · `tabs?: { id; label; count? }[]` + `activeTab?` (default first) + `onTabChange?` + `idPrefix?` (default `"detail"`) — `children` is wrapped in the active `TabPanel` · `sidebar?` (right column, 300px; below the main column at ≤768). Legacy `subtitle` shows as the eyebrow and `statusClassName` is ignored, so unmigrated pages keep working; don't use them in migrated pages.
+- **Header actions:** at most one `variant="primary"` Button; at most two visible actions in total; everything else goes in a kit `Menu` (`IconButton label="More actions" icon="more"`). Destructive actions live in the menu.
+- `DetailSection` — a `Card`: `title` · `count?` · `actions?` (e.g. `Button size="sm"` "Add site") · `padded?` (default `true`, sized for `DetailField` rows; `false` when the body is a `DataTable`). Legacy `headerActions` = `actions`.
+- `DetailField` — one `<dl>` label/value row: `label` (sentence case; `""` = full-width value, e.g. notes) · `value?: ReactNode` · `mono?` (codes, phone, GST, amounts, quantities) · `emptyText?` (default "Not added", muted) · `editable?: { rawValue; inputType: 'text'|'number'|'select'|'textarea'|'date'; options?; onSave(v) => Promise (call `.unwrap()`); isSaving?; prefix?; suffix?; renderEditInput? }` → the value becomes an `EditableField` (muted "Edit" revealed on hover/focus; Enter saves, Escape cancels, kit Save/Cancel buttons; API error shown under the input). Sidebar rows use a narrower label column automatically.
+- `EditableField` on its own (table cells): `compact`, `label` = the input's accessible name.
+```tsx
+<DetailPageShell
+  title={party.name} eyebrow="Party" code={party.code} status={party.isActive ? 'active' : 'inactive'}
+  backTo="/parties" backLabel="Parties" isLoading={isLoading} error={error} onRetry={refetch}
+  headerActions={<Button variant="primary" icon="plus" onClick={openBill}>New bill</Button>}
+  tabs={[{ id: 'about', label: 'About' }, { id: 'bills', label: 'Bills', count: bills.length }]}
+  activeTab={tab} onTabChange={setTab} idPrefix="party"
+  sidebar={<DetailSection title="Details"><DetailField label="Code" value={party.code} mono /></DetailSection>}
+>
+  {tab === 'about' && (
+    <DetailSection title="Contact">
+      <DetailField label="Phone" value={party.contact.phone} mono
+        editable={{ rawValue: party.contact.phone, inputType: 'text', onSave: v => save('phone', v), isSaving }} />
+    </DetailSection>
+  )}
+</DetailPageShell>
+```
 
 **Form** = `Field` + control + `Button`, inside a `Modal size="form"` or a `Card`.
 ```tsx

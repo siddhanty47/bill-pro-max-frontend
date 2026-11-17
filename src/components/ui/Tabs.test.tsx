@@ -58,4 +58,19 @@ describe('Tabs', () => {
     expect(tab).not.toHaveAttribute('id');
     expect(tab).not.toHaveAttribute('aria-controls');
   });
+
+  it('shows a count after the label', () => {
+    render(
+      <Tabs
+        tabs={[
+          { id: 'bills', label: 'Bills', count: 12 },
+          { id: 'about', label: 'About' },
+        ]}
+        activeTab="about"
+        onChange={vi.fn()}
+      />
+    );
+    expect(screen.getByRole('tab', { name: 'Bills 12' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'About' })).toBeInTheDocument();
+  });
 });

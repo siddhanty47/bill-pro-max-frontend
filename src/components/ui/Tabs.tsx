@@ -4,6 +4,8 @@ import styles from './Tabs.module.css';
 interface Tab {
   id: string;
   label: string;
+  /** Optional count shown after the label (e.g. number of bills). */
+  count?: number;
 }
 
 interface TabsProps {
@@ -35,6 +37,12 @@ export function Tabs({ tabs, activeTab, onChange, idPrefix }: TabsProps) {
           onClick={() => onChange(tab.id)}
         >
           {tab.label}
+          {tab.count !== undefined && (
+            <>
+              {' '}
+              <span className={styles.count}>{tab.count}</span>
+            </>
+          )}
         </button>
       ))}
     </nav>

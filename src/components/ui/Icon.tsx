@@ -17,6 +17,7 @@ export type IconName =
   | 'close'
   | 'menu'
   | 'more'
+  | 'arrow-left'
   | 'arrow-right'
   | 'rupee'
   | 'settings'
@@ -103,6 +104,7 @@ const GLYPHS: Record<Exclude<IconName, 'brand'>, ReactNode> = {
       <circle cx="14" cy="9" r="1" />
     </>
   ),
+  'arrow-left': <path d="M14.5 9h-11M8 4.5 3.5 9 8 13.5" />,
   'arrow-right': <path d="M3.5 9h11M10 4.5 14.5 9 10 13.5" />,
   rupee: <path d="M5 3.5h8M5 6.5h8M7 3.5c3 0 4 1.7 4 3.2S10 9.9 7 9.9H5l5.5 5.1" />,
   settings: (
