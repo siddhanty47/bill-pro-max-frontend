@@ -31,9 +31,11 @@
   color: var(--status-danger-text);
 }
 
+/* Small buttons sit on top of content (e.g. a thumbnail), so they carry a surface. */
 .sm {
   width: 24px;
   height: 24px;
+  background: var(--bg-elevated);
 }
 
 /* Invisible hit area: 44px on touch while the visual stays 24px. */
