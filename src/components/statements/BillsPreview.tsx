@@ -29,6 +29,12 @@ function amountsOf(r: {
   ];
 }
 
+/*
+ * Documented exception: with 7 amount columns plus bill, date, site and period, this
+ * table can be wider than its column next to the sidebar (about 638px at 1280). It
+ * scrolls horizontally inside its own Card (the kit Table wrapper) rather than drop
+ * columns or break bill numbers; Period may wrap between its two dates.
+ */
 export function BillsPreview({ data }: BillsPreviewProps) {
   const { totals } = data;
   return (
@@ -58,7 +64,7 @@ export function BillsPreview({ data }: BillsPreviewProps) {
             {data.bills.map(bill => (
               <Tr key={bill.billId}>
                 <Td>
-                  <DocNumber value={bill.billNumber} to={`/bills/${bill.billId}`} wrap />
+                  <DocNumber value={bill.billNumber} to={`/bills/${bill.billId}`} />
                 </Td>
                 <Td nowrap>{formatDate(bill.billDate)}</Td>
                 <Td>{bill.siteCode || '-'}</Td>
