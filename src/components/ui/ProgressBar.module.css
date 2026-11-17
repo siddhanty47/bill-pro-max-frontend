@@ -12,5 +12,4 @@
 
 .fill {
   fill: currentColor;
-  transition: width 0.3s var(--ease-out);
 }

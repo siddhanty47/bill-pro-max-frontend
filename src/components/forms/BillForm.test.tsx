@@ -138,6 +138,11 @@ describe('BillForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('marks the party label with exactly one star', () => {
+    setup();
+    expect(screen.getByText(/^Party/, { selector: 'label' }).textContent).toBe('Party *');
+  });
+
   it('cancels', async () => {
     const { user, onCancel } = setup();
     await user.click(screen.getByRole('button', { name: /cancel/i }));

@@ -264,45 +264,47 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
         </div>
 
         <div className={styles.column}>
-          <div className={styles.pair}>
-            <Field label="Tax mode" required>
-              <Select {...register('taxMode')} disabled={isLoading}>
-                <option value="intra">Intra-state (SGST + CGST)</option>
-                <option value="inter">Inter-state (IGST)</option>
-              </Select>
-            </Field>
-            <Field label="Discount rate (%)">
-              <Input
-                mono
-                type="number"
-                step="0.01"
-                {...register('discountRate', { valueAsNumber: true })}
-                disabled={isLoading}
-              />
-            </Field>
-          </div>
+          <Field label="Tax mode" required>
+            <Select {...register('taxMode')} disabled={isLoading}>
+              <option value="intra">Intra-state (SGST + CGST)</option>
+              <option value="inter">Inter-state (IGST)</option>
+            </Select>
+          </Field>
 
           {taxMode === 'intra' ? (
-            <div className={styles.pair}>
-              <Field label="SGST rate (%)">
-                <Input
-                  mono
-                  type="number"
-                  step="0.01"
-                  {...register('sgstRate', { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-              </Field>
-              <Field label="CGST rate (%)">
-                <Input
-                  mono
-                  type="number"
-                  step="0.01"
-                  {...register('cgstRate', { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-              </Field>
-            </div>
+            <>
+              <div className={styles.pair}>
+                <Field label="SGST rate (%)">
+                  <Input
+                    mono
+                    type="number"
+                    step="0.01"
+                    {...register('sgstRate', { valueAsNumber: true })}
+                    disabled={isLoading}
+                  />
+                </Field>
+                <Field label="CGST rate (%)">
+                  <Input
+                    mono
+                    type="number"
+                    step="0.01"
+                    {...register('cgstRate', { valueAsNumber: true })}
+                    disabled={isLoading}
+                  />
+                </Field>
+              </div>
+              <div className={styles.pair}>
+                <Field label="Discount rate (%)">
+                  <Input
+                    mono
+                    type="number"
+                    step="0.01"
+                    {...register('discountRate', { valueAsNumber: true })}
+                    disabled={isLoading}
+                  />
+                </Field>
+              </div>
+            </>
           ) : (
             <div className={styles.pair}>
               <Field label="IGST rate (%)">
@@ -311,6 +313,15 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
                   type="number"
                   step="0.01"
                   {...register('igstRate', { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+              </Field>
+              <Field label="Discount rate (%)">
+                <Input
+                  mono
+                  type="number"
+                  step="0.01"
+                  {...register('discountRate', { valueAsNumber: true })}
                   disabled={isLoading}
                 />
               </Field>

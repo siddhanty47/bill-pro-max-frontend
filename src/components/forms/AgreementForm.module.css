@@ -20,12 +20,6 @@
   gap: var(--space-4);
 }
 
-.triple {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-4);
-}
-
 .section {
   display: flex;
   flex-direction: column;
@@ -64,8 +58,7 @@
 
 @media (max-width: 768px) {
   .columns,
-  .pair,
-  .triple {
+  .pair {
     grid-template-columns: minmax(0, 1fr);
   }
 }

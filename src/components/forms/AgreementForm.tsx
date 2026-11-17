@@ -264,7 +264,7 @@ export function AgreementForm({
             </Field>
           </div>
 
-          <div className={styles.triple}>
+          <div className={styles.pair}>
             <Field label="Billing cycle" required>
               <Select {...register('billingCycle')} disabled={isLoading}>
                 <option value="monthly">Monthly</option>
@@ -280,6 +280,9 @@ export function AgreementForm({
                 disabled={isLoading}
               />
             </Field>
+          </div>
+
+          <div className={styles.pair}>
             <Field label="Security deposit (₹)">
               <Input
                 mono
