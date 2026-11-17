@@ -92,6 +92,7 @@ describe('scanTs', () => {
     expect(rules(scanTs('<div style={{ a: 1 }} />'))).toEqual(['inline style={}']);
     expect(scanTs('<div style={{ a: 1 }} />', { tsx: false })).toEqual([]);
     expect(scanTs('// style={x}')).toEqual([]);
+    expect(rules(scanTs('<div style = {x} />'))).toEqual(['inline style={}']);
   });
 });
 
@@ -100,6 +101,9 @@ describe('scanSource / allowlist', () => {
     expect(isExcluded('src/components/ui/GoogleIcon.tsx')).toBe(true);
     expect(scanSource('src/components/ui/GoogleIcon.tsx', "const c = '#4285F4';")).toEqual([]);
     expect(scanSource('src/globals.css', ':root { --a: #fff; }')).toEqual([]);
+    expect(scanSource('src/components/ui/Foo.module.css', '.a { color: #fff; }')).toHaveLength(1);
+    expect(scanSource('src/components/ui/Foo.tsx', "const c = '#fff';")).toHaveLength(1);
+    expect(isExcluded('src/components/ui/Foo.tsx')).toBe(false);
     expect(scanSource('src/pages/X.css', '.a { color: #fff; }')).toHaveLength(1);
     expect(scanSource('src/pages/X.tsx', "const c = '#fff';")).toHaveLength(1);
     expect(scanSource('src/pages/X.test.tsx', "const c = '#fff';")).toEqual([]);

@@ -99,7 +99,7 @@ Defined in `src/App.tsx`.
 - Page styles: CSS modules (`.module.css`), layout only (grid/flex/gap/margins/widths using `--space-*`). `import styles from './Component.module.css'`; `className={styles.myClass}`.
 - Design tokens live in `:root` of `src/globals.css`. **Never hardcode colors/fonts/radii/shadows**; always use `var(--…)` tokens.
 - There are no legacy global classes (`.btn`, `.card`, `.data-table`, `.status-*`, `.form-group`, `.link-accent`, `.text-empty` are gone); everything comes from the kit.
-- **Strict token check:** `npm run lint` runs ESLint and then `node scripts/check-design-tokens.mjs --strict`; any finding (literal colour, non-token font or shadow, literal border-radius, inline `style={`) fails lint. Only `GoogleIcon.tsx` is allowlisted; `src/components/ui/**` and `globals.css` are excluded from the scan.
+- **Strict token check:** `npm run lint` runs ESLint and then `node scripts/check-design-tokens.mjs --strict`; any finding (literal colour, non-token font or shadow, literal border-radius, inline `style={`) fails lint. Only `GoogleIcon.tsx` is allowlisted, and `globals.css` (it defines the tokens) is excluded; the kit (`src/components/ui/**`) is scanned like all other source.
 - If you encounter existing inline styles, refactor them into CSS module classes
 
 ## WebSocket Integration

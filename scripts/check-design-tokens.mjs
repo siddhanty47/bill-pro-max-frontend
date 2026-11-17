@@ -22,7 +22,6 @@ export const ALLOWLIST = new Set(['src/components/ui/GoogleIcon.tsx']);
 
 export const isExcluded = file =>
   file === 'src/globals.css' ||
-  file.startsWith('src/components/ui/') ||
   file.startsWith('src/test/') ||
   /\.test\.tsx?$/.test(file) ||
   ALLOWLIST.has(file);
@@ -226,7 +225,7 @@ export const scanTs = (text, { tsx = true } = {}) => {
     }
   }
   if (tsx) {
-    const re = /style=\{/g;
+    const re = /\bstyle\s*=\s*\{/g;
     let m;
     while ((m = re.exec(code)))
       findings.push({ line: lineOf(starts, m.index), rule: 'inline style={}' });

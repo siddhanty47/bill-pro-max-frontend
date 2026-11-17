@@ -100,6 +100,8 @@ afterEach(() => vi.restoreAllMocks());
 describe('TeamPage', () => {
   it('shows a spinner while loading employees', async () => {
     useApi();
+    // Hold the response open so the spinner cannot disappear before it is asserted.
+    server.use(http.get(apiUrl('/businesses/biz-1/employees'), () => new Promise(() => {})));
     renderPage();
     expect(await screen.findByText('Loading employees…')).toBeInTheDocument();
   });
