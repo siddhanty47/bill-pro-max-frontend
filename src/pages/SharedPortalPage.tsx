@@ -2,12 +2,27 @@
  * @file SharedPortalPage
  * @description Public read-only portal for parties to view their challans,
  * running items, bills, and payment status via a shareable token-based URL.
+ * Works signed-out: every call is keyed by the share token.
  */
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import styles from './SharedPortalPage.module.css';
-import { LoadingSpinner } from '../components/LoadingSpinner';
-import { DataTable } from '../components/DataTable';
+import {
+  Brand,
+  Button,
+  Card,
+  DataTable,
+  EmptyState,
+  Notice,
+  PageHeader,
+  StatCard,
+  StatusChip,
+  TabPanel,
+  Tabs,
+  Spinner,
+  type Column,
+} from '../components/ui';
+import { formatDate, formatMoney } from '../utils/format';
 import {
   useGetPortalInfoQuery,
   useGetPortalSummaryQuery,
@@ -18,24 +33,60 @@ import {
   useLazyGetPortalChallanPdfQuery,
   useLazyGetPortalBillPdfQuery,
 } from '../api/shareLinkApi';
+import type { PortalBill, PortalChallan, PortalPayment, PortalRunningItem } from '../types';
 
 type TabId = 'summary' | 'challans' | 'running-items' | 'bills' | 'payments';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'summary', label: 'Summary' },
   { id: 'challans', label: 'Challans' },
-  { id: 'running-items', label: 'Running Items' },
+  { id: 'running-items', label: 'Running items' },
   { id: 'bills', label: 'Bills' },
   { id: 'payments', label: 'Payments' },
 ];
 
-function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString();
-}
+const METHOD_LABELS: Record<string, string> = {
+  cash: 'Cash',
+  bank_transfer: 'Bank transfer',
+  upi: 'UPI',
+  cheque: 'Cheque',
+  other: 'Other',
+};
 
-function formatCurrency(amount: number): string {
-  return `\u20B9${amount.toLocaleString('en-IN')}`;
+const notAdded = <span className="text-empty">Not added</span>;
+
+const itemsText = (c: PortalChallan) => c.items.map(i => `${i.itemName} x${i.quantity}`).join(', ');
+const periodText = (b: PortalBill) =>
+  b.billingPeriod
+    ? `${formatDate(b.billingPeriod.start)} - ${formatDate(b.billingPeriod.end)}`
+    : '';
+
+type PagerProps = {
+  page: number;
+  totalPages: number;
+  hasNext: boolean;
+  onPage: (page: number) => void;
+};
+
+function Pager({ page, totalPages, hasNext, onPage }: PagerProps) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className={styles.pagination}>
+      {page > 1 && (
+        <Button size="sm" onClick={() => onPage(page - 1)}>
+          Prev
+        </Button>
+      )}
+      <span>
+        Page {page} of {totalPages}
+      </span>
+      {hasNext && (
+        <Button size="sm" onClick={() => onPage(page + 1)}>
+          Next
+        </Button>
+      )}
+    </div>
+  );
 }
 
 export function SharedPortalPage() {
@@ -110,7 +161,7 @@ export function SharedPortalPage() {
   const payments = paymentsResult?.data || [];
 
   if (infoLoading) {
-    return <LoadingSpinner message="Loading portal..." />;
+    return <Spinner message="Loading portal…" />;
   }
 
   if (infoError || !info) {
@@ -121,331 +172,296 @@ export function SharedPortalPage() {
     const isExpired = errData?.error?.code === 'SHARE_LINK_EXPIRED';
     return (
       <div className={styles.portal}>
-        <div className={`card ${styles.error}`}>
-          <h2 className={styles.errorTitle}>{isExpired ? 'Link Expired' : 'Invalid Link'}</h2>
-          <p className="text-empty">
+        <div className={styles.brandBar}>
+          <Brand />
+        </div>
+        <div className={styles.error}>
+          <Notice
+            tone={isExpired ? 'warning' : 'danger'}
+            title={isExpired ? 'Link expired' : 'Invalid link'}
+          >
             {isExpired
               ? 'This share link has expired. Please contact the business for a new link.'
               : 'This share link is invalid or has been revoked.'}
-          </p>
+          </Notice>
         </div>
       </div>
     );
   }
 
-  const challanColumns = [
-    { key: 'challanNumber', header: 'Challan #' },
+  const pdfAction = (label: string, onClick: () => void) => (
+    <Button size="sm" variant="primary" aria-label={label} onClick={onClick}>
+      PDF
+    </Button>
+  );
+
+  const challanColumns: Column<PortalChallan>[] = [
+    { key: 'challanNumber', header: 'Challan #', mono: true, nowrap: true },
     {
       key: 'type',
       header: 'Type',
-      render: (item: Record<string, unknown>) => (
-        <span className={`status status-${item.type as string}`}>{item.type as string}</span>
-      ),
+      nowrap: true,
+      render: c => <StatusChip status={c.type} />,
     },
-    {
-      key: 'date',
-      header: 'Date',
-      render: (item: Record<string, unknown>) => formatDate(item.date as string),
-    },
+    { key: 'date', header: 'Date', nowrap: true, render: c => formatDate(c.date) },
     {
       key: 'items',
       header: 'Items',
-      render: (item: Record<string, unknown>) => {
-        const items = item.items as { itemName: string; quantity: number }[];
-        return (
-          <span className={styles.itemList}>
-            {items.map(i => `${i.itemName} x${i.quantity}`).join(', ')}
-          </span>
-        );
-      },
+      render: c => <span className={styles.itemList}>{itemsText(c)}</span>,
     },
     {
       key: 'download',
       header: 'Download',
-      render: (item: Record<string, unknown>) => (
-        <button
-          className="btn btn-sm btn-primary"
-          onClick={() => handleDownloadChallanPdf(item._id as string, item.challanNumber as string)}
-        >
-          PDF
-        </button>
-      ),
+      nowrap: true,
+      render: c =>
+        pdfAction(`Download challan ${c.challanNumber} PDF`, () =>
+          handleDownloadChallanPdf(c._id, c.challanNumber)
+        ),
     },
   ];
 
-  const billColumns = [
-    { key: 'billNumber', header: 'Bill #' },
-    {
-      key: 'billingPeriod',
-      header: 'Period',
-      render: (item: Record<string, unknown>) => {
-        const period = item.billingPeriod as { start: string; end: string } | null;
-        return period ? `${formatDate(period.start)} - ${formatDate(period.end)}` : '-';
-      },
-    },
+  const billColumns: Column<PortalBill>[] = [
+    { key: 'billNumber', header: 'Bill #', mono: true, nowrap: true },
+    { key: 'billingPeriod', header: 'Period', nowrap: true, render: b => periodText(b) || '-' },
     {
       key: 'totalAmount',
       header: 'Amount',
-      render: (item: Record<string, unknown>) => formatCurrency(item.totalAmount as number),
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: b => formatMoney(b.totalAmount),
     },
     {
       key: 'amountPaid',
       header: 'Paid',
-      render: (item: Record<string, unknown>) => formatCurrency(item.amountPaid as number),
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: b => formatMoney(b.amountPaid),
     },
-    {
-      key: 'dueDate',
-      header: 'Due Date',
-      render: (item: Record<string, unknown>) => formatDate(item.dueDate as string),
-    },
+    { key: 'dueDate', header: 'Due date', nowrap: true, render: b => formatDate(b.dueDate) },
     {
       key: 'status',
       header: 'Status',
-      render: (item: Record<string, unknown>) => (
-        <span className={`status status-${item.status as string}`}>{item.status as string}</span>
-      ),
+      nowrap: true,
+      render: b => <StatusChip status={b.status} />,
     },
     {
       key: 'download',
       header: 'Download',
-      render: (item: Record<string, unknown>) => (
-        <button
-          className="btn btn-sm btn-primary"
-          onClick={() => handleDownloadBillPdf(item._id as string, item.billNumber as string)}
-        >
-          PDF
-        </button>
-      ),
+      nowrap: true,
+      render: b =>
+        pdfAction(`Download bill ${b.billNumber} PDF`, () =>
+          handleDownloadBillPdf(b._id, b.billNumber)
+        ),
     },
   ];
 
-  const runningItemColumns = [
+  const itemColumns: Column<PortalRunningItem>[] = [
     { key: 'itemName', header: 'Item' },
-    { key: 'quantity', header: 'Quantity' },
+    { key: 'quantity', header: 'Quantity', mono: true, align: 'right', nowrap: true },
   ];
 
-  const itemsBreakdownColumns = [
-    { key: 'itemName', header: 'Item' },
-    { key: 'quantity', header: 'Quantity' },
-  ];
-
-  const METHOD_LABELS: Record<string, string> = {
-    cash: 'Cash',
-    bank_transfer: 'Bank Transfer',
-    upi: 'UPI',
-    cheque: 'Cheque',
-    other: 'Other',
-  };
-
-  const paymentColumns = [
-    {
-      key: 'date',
-      header: 'Date',
-      render: (item: Record<string, unknown>) => formatDate(item.date as string),
-    },
+  const paymentColumns: Column<PortalPayment>[] = [
+    { key: 'date', header: 'Date', nowrap: true, render: p => formatDate(p.date) },
     {
       key: 'amount',
       header: 'Amount',
-      render: (item: Record<string, unknown>) => formatCurrency(item.amount as number),
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: p => formatMoney(p.amount),
     },
     {
       key: 'method',
       header: 'Method',
-      render: (item: Record<string, unknown>) =>
-        METHOD_LABELS[item.method as string] || (item.method as string),
+      nowrap: true,
+      render: p => METHOD_LABELS[p.method] ?? p.method,
     },
     {
       key: 'status',
       header: 'Status',
-      render: (item: Record<string, unknown>) => (
-        <span className={`status status-${item.status as string}`}>{item.status as string}</span>
-      ),
+      nowrap: true,
+      render: p => <StatusChip status={p.status} />,
     },
     {
       key: 'reference',
       header: 'Reference',
-      render: (item: Record<string, unknown>) => (item.reference as string) || '-',
+      mono: true,
+      render: p => p.reference || notAdded,
     },
-    {
-      key: 'notes',
-      header: 'Notes',
-      render: (item: Record<string, unknown>) => (item.notes as string) || '-',
-    },
+    { key: 'notes', header: 'Notes', render: p => p.notes || notAdded },
   ];
+
+  const itemsMobile = {
+    title: (i: PortalRunningItem) => i.itemName,
+    badge: (i: PortalRunningItem) => <span className="mono">{i.quantity}</span>,
+  };
 
   return (
     <div className={styles.portal}>
-      <header className={styles.header}>
-        <p className={styles.businessName}>{info.businessName}</p>
-        <h1 className={styles.partyName}>{info.partyName}</h1>
-        {info.siteCode && <p className={styles.scope}>Site: {info.siteName || info.siteCode}</p>}
-      </header>
+      <div className={styles.brandBar}>
+        <Brand />
+      </div>
+      <PageHeader
+        title={info.partyName}
+        eyebrow={
+          <>
+            <span>{info.businessName}</span>
+            {info.siteCode && <span> · Site: {info.siteName || info.siteCode}</span>}
+          </>
+        }
+      />
 
-      <nav className={styles.tabs}>
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
+      <Tabs
+        tabs={TABS}
+        activeTab={activeTab}
+        onChange={id => setActiveTab(id as TabId)}
+        idPrefix="portal"
+      />
 
-      {activeTab === 'summary' && summary && (
-        <>
-          <div className="stats-grid">
-            <div className="stat-card">
-              <h3>Outstanding</h3>
-              <div className="value">{formatCurrency(summary.totalOutstanding)}</div>
-            </div>
-            <div className="stat-card">
-              <h3>Items in use</h3>
-              <div className="value">{summary.totalItemsInUse}</div>
-            </div>
-            <div className="stat-card">
-              <h3>Total billed</h3>
-              <div className="value">{formatCurrency(summary.totalBilled)}</div>
-            </div>
-            <div className="stat-card">
-              <h3>Total paid</h3>
-              <div className="value">{formatCurrency(summary.totalPaid)}</div>
-            </div>
-            <div className="stat-card">
-              <h3>Bills</h3>
-              <div className="value">{summary.billCount}</div>
-            </div>
-            <div className="stat-card">
-              <h3>Overdue</h3>
-              <div className="value">{summary.overdueBills}</div>
-            </div>
-          </div>
-
-          {summary.itemsBreakdown.length > 0 && (
-            <>
-              <h3 className={styles.sectionTitle}>Items currently in use</h3>
-              <DataTable
-                data={summary.itemsBreakdown as unknown as Record<string, unknown>[]}
-                columns={itemsBreakdownColumns}
-                keyField="itemName"
-                emptyMessage="No items in use"
+      <TabPanel idPrefix="portal" tabId={activeTab} className={styles.panel}>
+        {activeTab === 'summary' && summary && (
+          <>
+            <div className={styles.stats}>
+              <StatCard
+                label="Outstanding"
+                value={formatMoney(summary.totalOutstanding)}
+                tone="highlight"
               />
-            </>
-          )}
-        </>
-      )}
-
-      {activeTab === 'challans' && (
-        <>
-          <DataTable
-            data={challans as unknown as Record<string, unknown>[]}
-            columns={challanColumns}
-            keyField="challanNumber"
-            emptyMessage="No challans found."
-          />
-          {challansResult?.pagination && challansResult.pagination.totalPages > 1 && (
-            <div className={styles.pagination}>
-              {challanPage > 1 && (
-                <button
-                  className="btn btn-sm btn-secondary"
-                  onClick={() => setChallanPage(p => p - 1)}
-                >
-                  Prev
-                </button>
-              )}
-              <span>
-                Page {challanPage} of {challansResult.pagination.totalPages}
-              </span>
-              {challansResult.pagination.hasNext && (
-                <button
-                  className="btn btn-sm btn-secondary"
-                  onClick={() => setChallanPage(p => p + 1)}
-                >
-                  Next
-                </button>
-              )}
+              <StatCard label="Items in use" value={summary.totalItemsInUse} />
+              <StatCard label="Total billed" value={formatMoney(summary.totalBilled)} />
+              <StatCard label="Total paid" value={formatMoney(summary.totalPaid)} />
+              <StatCard label="Bills" value={summary.billCount} />
+              <StatCard label="Overdue" value={summary.overdueBills} />
             </div>
-          )}
-        </>
-      )}
+            {summary.itemsBreakdown.length > 0 && (
+              <Card title="Items currently in use" padded={false}>
+                <DataTable
+                  aria-label="Items currently in use"
+                  columns={itemColumns}
+                  rows={summary.itemsBreakdown}
+                  rowKey={i => i.itemName}
+                  mobile={itemsMobile}
+                />
+              </Card>
+            )}
+          </>
+        )}
 
-      {activeTab === 'running-items' && (
-        <DataTable
-          data={runningItems as unknown as Record<string, unknown>[]}
-          columns={runningItemColumns}
-          keyField="itemName"
-          emptyMessage="No items currently in use."
-        />
-      )}
+        {activeTab === 'challans' && (
+          <>
+            <DataTable
+              aria-label="Challans"
+              columns={challanColumns}
+              rows={challans}
+              rowKey={c => c._id}
+              empty={<EmptyState title="No challans found." />}
+              mobile={{
+                title: c => <span className="mono">{c.challanNumber}</span>,
+                badge: c => <StatusChip status={c.type} />,
+                subtitle: c => itemsText(c),
+                meta: c => [formatDate(c.date)],
+                actions: c =>
+                  pdfAction(`Download challan ${c.challanNumber} PDF`, () =>
+                    handleDownloadChallanPdf(c._id, c.challanNumber)
+                  ),
+              }}
+            />
+            {challansResult?.pagination && (
+              <Pager
+                page={challanPage}
+                totalPages={challansResult.pagination.totalPages}
+                hasNext={challansResult.pagination.hasNext}
+                onPage={setChallanPage}
+              />
+            )}
+          </>
+        )}
 
-      {activeTab === 'bills' && (
-        <>
+        {activeTab === 'running-items' && (
           <DataTable
-            data={bills as unknown as Record<string, unknown>[]}
-            columns={billColumns}
-            keyField="billNumber"
-            emptyMessage="No bills found."
+            aria-label="Running items"
+            columns={itemColumns}
+            rows={runningItems}
+            rowKey={i => i.itemName}
+            empty={<EmptyState title="No items currently in use." />}
+            mobile={itemsMobile}
           />
-          {billsResult?.pagination && billsResult.pagination.totalPages > 1 && (
-            <div className={styles.pagination}>
-              {billPage > 1 && (
-                <button
-                  className="btn btn-sm btn-secondary"
-                  onClick={() => setBillPage(p => p - 1)}
-                >
-                  Prev
-                </button>
-              )}
-              <span>
-                Page {billPage} of {billsResult.pagination.totalPages}
-              </span>
-              {billsResult.pagination.hasNext && (
-                <button
-                  className="btn btn-sm btn-secondary"
-                  onClick={() => setBillPage(p => p + 1)}
-                >
-                  Next
-                </button>
-              )}
-            </div>
-          )}
-        </>
-      )}
+        )}
 
-      {activeTab === 'payments' && (
-        <>
-          <DataTable
-            data={payments as unknown as Record<string, unknown>[]}
-            columns={paymentColumns}
-            keyField="_id"
-            emptyMessage="No payments found."
-          />
-          {paymentsResult?.pagination && paymentsResult.pagination.totalPages > 1 && (
-            <div className={styles.pagination}>
-              {paymentPage > 1 && (
-                <button
-                  className="btn btn-sm btn-secondary"
-                  onClick={() => setPaymentPage(p => p - 1)}
-                >
-                  Prev
-                </button>
-              )}
-              <span>
-                Page {paymentPage} of {paymentsResult.pagination.totalPages}
-              </span>
-              {paymentsResult.pagination.hasNext && (
-                <button
-                  className="btn btn-sm btn-secondary"
-                  onClick={() => setPaymentPage(p => p + 1)}
-                >
-                  Next
-                </button>
-              )}
-            </div>
-          )}
-        </>
-      )}
+        {activeTab === 'bills' && (
+          <>
+            <DataTable
+              aria-label="Bills"
+              columns={billColumns}
+              rows={bills}
+              rowKey={b => b._id}
+              empty={<EmptyState title="No bills found." />}
+              mobile={{
+                title: b => <span className="mono">{b.billNumber}</span>,
+                badge: b => <StatusChip status={b.status} />,
+                subtitle: b => <span className="mono">{formatMoney(b.totalAmount)}</span>,
+                meta: b => [
+                  periodText(b),
+                  <span key="paid" className="mono">
+                    Paid {formatMoney(b.amountPaid)}
+                  </span>,
+                  `Due ${formatDate(b.dueDate)}`,
+                ],
+                actions: b =>
+                  pdfAction(`Download bill ${b.billNumber} PDF`, () =>
+                    handleDownloadBillPdf(b._id, b.billNumber)
+                  ),
+              }}
+            />
+            {billsResult?.pagination && (
+              <Pager
+                page={billPage}
+                totalPages={billsResult.pagination.totalPages}
+                hasNext={billsResult.pagination.hasNext}
+                onPage={setBillPage}
+              />
+            )}
+          </>
+        )}
+
+        {activeTab === 'payments' && (
+          <>
+            <DataTable
+              aria-label="Payments"
+              columns={paymentColumns}
+              rows={payments}
+              rowKey={p => p._id}
+              empty={<EmptyState title="No payments found." />}
+              mobile={{
+                title: p => <span className="mono">{formatMoney(p.amount)}</span>,
+                badge: p => <StatusChip status={p.status} />,
+                subtitle: p => METHOD_LABELS[p.method] ?? p.method,
+                meta: p => [
+                  formatDate(p.date),
+                  p.reference ? (
+                    <span key="ref" className="mono">
+                      {p.reference}
+                    </span>
+                  ) : (
+                    ''
+                  ),
+                  p.notes ?? '',
+                ],
+              }}
+            />
+            {paymentsResult?.pagination && (
+              <Pager
+                page={paymentPage}
+                totalPages={paymentsResult.pagination.totalPages}
+                hasNext={paymentsResult.pagination.hasNext}
+                onPage={setPaymentPage}
+              />
+            )}
+          </>
+        )}
+      </TabPanel>
     </div>
   );
 }
