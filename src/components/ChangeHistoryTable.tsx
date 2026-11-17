@@ -5,8 +5,9 @@
 import { useState } from 'react';
 import { useGetAuditHistoryQuery } from '../api/auditLogApi';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
-import { Button, DataTable, EmptyState, ErrorMessage, Spinner, StatusChip } from './ui';
+import { Button, Card, DataTable, EmptyState, ErrorMessage, Spinner, StatusChip } from './ui';
 import type { Column } from './ui';
+import { statusLabel } from './ui/status';
 import { formatDate } from '../utils/format';
 import type { AuditFieldChange, AuditLogEntry } from '../types';
 import styles from './ChangeHistoryTable.module.css';
@@ -21,9 +22,8 @@ const PAGE_SIZE = 15;
 /** Date plus time, e.g. "17 Nov, 3:45 pm" — the time matters for audit entries. */
 function formatWhen(dateStr: string): string {
   const date = new Date(dateStr);
-  const time = date
-    .toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })
-    .toLowerCase();
+  const h = date.getHours();
+  const time = `${h % 12 || 12}:${String(date.getMinutes()).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
   return `${formatDate(date)}, ${time}`;
 }
 
@@ -57,8 +57,14 @@ function formatValue(val: unknown): Shown {
   return { text: JSON.stringify(val), empty: false, numeric: false };
 }
 
-function Value({ val, className }: { val: unknown; className: string }) {
-  const { text, empty, numeric } = formatValue(val);
+const WORD_FIELDS = new Set(['status', 'type']);
+
+function Value({ val, field, className }: { val: unknown; field: string; className: string }) {
+  const shown = formatValue(val);
+  const { empty, numeric } = shown;
+  const plainWord = typeof val === 'string' && /^[a-z_-]+$/i.test(val);
+  const text =
+    WORD_FIELDS.has(field.toLowerCase()) && plainWord ? statusLabel(val as string) : shown.text;
   const cls = [empty ? styles.notSet : className, numeric ? styles.num : ''].filter(Boolean);
   return <span className={cls.join(' ')}>{text}</span>;
 }
@@ -79,11 +85,11 @@ function Changes({ entry }: { entry: AuditLogEntry }) {
       {entry.changes.map((change: AuditFieldChange, i: number) => (
         <span key={i} className={styles.change}>
           <span className={styles.field}>{humanizeField(change.field)}</span>
-          <Value val={change.oldValue} className={styles.old} />
+          <Value val={change.oldValue} field={change.field} className={styles.old} />
           <span className={styles.arrow} aria-hidden="true">
             &rarr;
           </span>
-          <Value val={change.newValue} className={styles.new} />
+          <Value val={change.newValue} field={change.field} className={styles.new} />
         </span>
       ))}
     </span>
@@ -119,14 +125,29 @@ export default function ChangeHistoryTable({ documentType, documentId }: ChangeH
     { skip: !currentBusinessId }
   );
 
-  if (isLoading) return <Spinner />;
-  if (error) return <ErrorMessage error={error} onRetry={refetch} />;
-  if (!data || data.data.length === 0) return <EmptyState title="No changes yet" />;
+  if (isLoading)
+    return (
+      <Card padded={false}>
+        <Spinner />
+      </Card>
+    );
+  if (error)
+    return (
+      <Card padded={false}>
+        <ErrorMessage error={error} onRetry={refetch} />
+      </Card>
+    );
+  if (!data || data.data.length === 0)
+    return (
+      <Card padded={false}>
+        <EmptyState title="No changes yet" />
+      </Card>
+    );
 
   const { pagination } = data;
 
   return (
-    <div>
+    <Card padded={false}>
       <DataTable
         aria-label="Change history"
         columns={COLUMNS}
@@ -154,6 +175,6 @@ export default function ChangeHistoryTable({ documentType, documentId }: ChangeH
           </Button>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
