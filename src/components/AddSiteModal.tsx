@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Modal } from './Modal';
+import { Button, Field, Input, Modal, Notice, Textarea } from './ui';
 import { useAddSiteMutation } from '../api/partyApi';
 import type { Party } from '../types';
 import styles from './AddSiteModal.module.css';
@@ -16,7 +16,7 @@ const addSiteSchema = z.object({
   address: z.string().min(1, 'Site address is required').max(500),
   stateCode: z
     .string()
-    .regex(/^[0-9]{2}$/)
+    .regex(/^[0-9]{2}$/, 'State code must be 2 digits')
     .max(2)
     .optional()
     .or(z.literal('')),
@@ -98,76 +98,59 @@ export function AddSiteModal({ isOpen, onClose, businessId, party }: AddSiteModa
   };
 
   // Get existing site codes for display
-  const existingSiteCodes = party.sites.map(s => s.code).join(', ') || 'None';
+  const existingSiteCodes = party.sites.map(s => s.code).join(', ');
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={`Add site to ${party.name}`} size="form">
-      <form onSubmit={handleSubmit(handleFormSubmit)}>
-        {error && <div className={`error-message ${styles.errorAlert}`}>{error}</div>}
+      <form onSubmit={handleSubmit(handleFormSubmit)} className={styles.form} noValidate>
+        {error && <Notice tone="danger">{error}</Notice>}
 
-        <div className="form-content">
-          <div className={`form-group ${styles.existingSitesInfo}`}>
-            <p className={styles.existingSitesText}>
-              <strong>Existing Sites:</strong> {existingSiteCodes}
-            </p>
-          </div>
+        <p className={styles.existing}>
+          Existing sites:{' '}
+          {existingSiteCodes ? <span className="mono">{existingSiteCodes}</span> : 'None'}
+        </p>
 
-          <div className="form-columns">
-            <div>
-              <div className="form-group">
-                <label htmlFor="siteAddress">Site Address *</label>
-                <textarea
-                  id="siteAddress"
-                  {...register('address')}
-                  rows={3}
-                  disabled={isLoading}
-                  placeholder="Enter the site address"
-                />
-                {errors.address && <span className="error-message">{errors.address.message}</span>}
-              </div>
-            </div>
-            <div>
-              <div className="form-group">
-                <label htmlFor="siteCode">Site Code</label>
-                <input
-                  id="siteCode"
-                  {...register('code')}
-                  disabled={isLoading}
-                  className={styles.uppercaseInput}
-                  placeholder="Auto-generated if empty"
-                />
-                {errors.code && <span className="error-message">{errors.code.message}</span>}
-                <small className={styles.helpText}>Leave empty to auto-generate from address</small>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="siteStateCode">State Code</label>
-                <input
-                  id="siteStateCode"
-                  {...register('stateCode')}
-                  disabled={isLoading}
-                  placeholder="e.g. 27"
-                  maxLength={2}
-                  className={`${styles.uppercaseInput} input-state-code`}
-                />
-                <small className={styles.helpText}>Defaults from party state code</small>
-              </div>
-            </div>
+        <div className={styles.columns}>
+          <Field label="Site address" required error={errors.address?.message}>
+            <Textarea
+              {...register('address')}
+              rows={3}
+              disabled={isLoading}
+              placeholder="Enter the site address"
+            />
+          </Field>
+          <div className={styles.column}>
+            <Field
+              label="Site code"
+              hint="Leave empty to auto-generate from address"
+              error={errors.code?.message}
+            >
+              <Input mono {...register('code')} disabled={isLoading} />
+            </Field>
+            <Field
+              label="State code"
+              hint="Defaults from party state code"
+              error={errors.stateCode?.message}
+            >
+              <Input
+                mono
+                inputMode="numeric"
+                {...register('stateCode')}
+                disabled={isLoading}
+                placeholder="e.g. 27"
+                maxLength={2}
+              />
+            </Field>
           </div>
         </div>
 
-        <div className={`form-actions ${styles.actions}`}>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={handleClose}
-            disabled={isLoading}
-          >
+        <div className={styles.actions}>
+          <Button onClick={handleClose} disabled={isLoading}>
             Cancel
-          </button>
-          <button type="submit" className="btn btn-primary" disabled={isLoading}>
-            {isLoading ? 'Adding...' : 'Add Site'}
-          </button>
+          </Button>
+          <Button variant="primary" type="submit" loading={isLoading}>
+            Add site
+          </Button>
         </div>
       </form>
     </Modal>

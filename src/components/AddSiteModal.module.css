@@ -1,30 +1,38 @@
-.errorAlert {
-  margin-bottom: 15px;
-  padding: 10px;
-  background-color: var(--status-danger-bg);
-  border: 1px solid var(--status-danger-border);
-  border-radius: var(--radius-md);
-  color: var(--status-danger-text);
+/* Add site form: layout only; controls, notice and buttons are kit components. */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
-.existingSitesInfo {
-  margin-bottom: 15px;
-}
-
-.existingSitesText {
-  font-size: 14px;
+.existing {
+  margin: 0;
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
-.uppercaseInput {
-  text-transform: uppercase;
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
 }
 
-.helpText {
-  color: var(--text-secondary);
-  font-size: 12px;
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .actions {
-  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+@media (max-width: 768px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
