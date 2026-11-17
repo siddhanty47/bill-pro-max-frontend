@@ -1,146 +1,29 @@
-.container {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
+/* Share links: layout only; cards, fields, table and buttons are kit components. */
 
 .createRow {
   display: flex;
-  gap: 10px;
+  flex-wrap: wrap;
   align-items: flex-end;
-  flex-wrap: wrap;
-}
-
-.fieldGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.fieldLabel {
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.input,
-.select {
-  height: 38px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  background: var(--bg-input);
-  color: var(--text-heading);
-  transition:
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast);
-}
-
-.input:focus,
-.select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: var(--ring-focus);
-}
-
-.linkRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--bg-card);
 }
 
-.linkInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
+.scope {
+  width: 160px;
 }
 
-.linkLabel {
-  font-size: var(--text-base);
-  font-weight: 500;
-  color: var(--text-heading);
+.label {
+  flex: 1 1 200px;
 }
 
-.linkMeta {
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  display: flex;
-  gap: var(--space-3);
-  flex-wrap: wrap;
+.expires {
+  width: 170px;
 }
 
-.linkActions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.copyBtn,
-.revokeBtn {
-  height: 30px;
-  padding: 0 var(--space-3);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  cursor: pointer;
-  border-radius: var(--radius-md);
-  background: transparent;
-  transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast);
-}
-
-.copyBtn {
-  border: 1px solid var(--border-default);
-  color: var(--text-heading);
-}
-
-.copyBtn:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-medium);
-}
-
-.revokeBtn {
-  border: 1px solid var(--status-danger-border);
-  color: var(--status-danger-text);
-}
-
-.revokeBtn:hover {
-  background: var(--status-danger-bg);
-}
-
-.revokedBadge,
-.expiredBadge {
-  display: inline-flex;
-  align-items: center;
-  height: 20px;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-full);
-}
-
-.revokedBadge {
-  background: var(--status-neutral-bg);
-  color: var(--status-neutral-text);
-}
-
-.expiredBadge {
-  background: var(--status-warning-bg);
-  color: var(--status-warning-text);
-}
-
-.copied {
-  color: var(--status-success-text);
-}
-
-.createRow :global(.btn) {
-  height: 38px;
+@media (max-width: 768px) {
+  .scope,
+  .label,
+  .expires {
+    flex: 1 1 100%;
+    width: auto;
+  }
 }
