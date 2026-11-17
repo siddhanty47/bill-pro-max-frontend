@@ -1,7 +1,8 @@
 /**
- * Employee detail page with tabs for About, Attendance (Phase 2), Salary (Phase 3), and Change History.
+ * Employee detail page with tabs for About, Attendance, Salary and Change history.
+ * Built on the kit's detail recipe.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
@@ -11,7 +12,9 @@ import {
 } from '../api/employeeApi';
 import { useGetSalaryBreakdownQuery } from '../api/attendanceApi';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
-import { Tabs } from '../components/Tabs';
+import { MonthNav } from '../components/MonthNav';
+import { Button, Card, EmptyState, Spinner, Table, TBody, Td, Tr } from '../components/ui';
+import { formatDate, formatMoney } from '../utils/format';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { AttendanceCalendar } from '../components/AttendanceCalendar';
 import { getErrorMessage } from '../api/baseApi';
@@ -22,20 +25,22 @@ const SALARY_TYPE_OPTIONS = [
   { value: 'daily', label: 'Daily' },
 ];
 
-function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString();
-}
-
 function formatEmployeeType(type: string): string {
   return type.charAt(0).toUpperCase() + type.slice(1);
 }
+
+/** An amount in mono with its unit in the text font. */
+const perUnit = (amount: number, unit: string): ReactNode => (
+  <>
+    <span className="mono">{formatMoney(amount)}</span> {unit}
+  </>
+);
 
 const TABS = [
   { id: 'about', label: 'About' },
   { id: 'attendance', label: 'Attendance' },
   { id: 'salary', label: 'Salary' },
-  { id: 'change-history', label: 'Change History' },
+  { id: 'change-history', label: 'Change history' },
 ];
 
 export function EmployeeDetailPage() {
@@ -143,86 +148,92 @@ export function EmployeeDetailPage() {
 
   const sidebar = employee ? (
     <DetailSection title="Details">
-      <DetailField
-        label="Type"
-        value={<span className="status status-active">{formatEmployeeType(employee.type)}</span>}
-      />
-      <DetailField
-        label="Status"
-        value={
-          <span className={`status status-${employee.isActive ? 'active' : 'inactive'}`}>
-            {employee.isActive ? 'Active' : 'Inactive'}
-          </span>
-        }
-      />
+      <DetailField label="Type" value={formatEmployeeType(employee.type)} />
       <DetailField label="Created" value={formatDate(employee.createdAt)} />
       <DetailField label="Updated" value={formatDate(employee.updatedAt)} />
       {employee.isActive && (
         <div>
-          <button className="btn btn-sm btn-danger" onClick={handleDelete}>
-            Delete Employee
-          </button>
+          <Button variant="danger" size="sm" onClick={handleDelete}>
+            Delete employee
+          </Button>
         </div>
       )}
     </DetailSection>
   ) : null;
 
+  const edit = (
+    field: string,
+    rawValue: string | number | undefined,
+    inputType: 'text' | 'textarea' | 'number' | 'select',
+    extra: { options?: { value: string; label: string }[]; prefix?: string } = {}
+  ) => ({
+    rawValue: rawValue ?? (inputType === 'number' ? 0 : ''),
+    inputType,
+    ...extra,
+    onSave: (v: string | number) => handleSave(field, v),
+    isSaving,
+  });
+
+  const nestedEdit = (field: 'name' | 'phone') => ({
+    rawValue: employee?.emergencyContact?.[field] ?? '',
+    inputType: 'text' as const,
+    onSave: (v: string | number) => handleNestedSave('emergencyContact', field, v),
+    isSaving,
+  });
+
+  const breakdownRow = (label: string, amount: number, strong = false) => {
+    const value = <span className="mono">{formatMoney(amount)}</span>;
+    return (
+      <Tr>
+        <Td>{strong ? <strong>{label}</strong> : label}</Td>
+        <Td align="right" nowrap>
+          {strong ? <strong>{value}</strong> : value}
+        </Td>
+      </Tr>
+    );
+  };
+
   return (
     <DetailPageShell
       title={employee?.name || 'Employee'}
-      subtitle={employee?.designation || (employee ? formatEmployeeType(employee.type) : undefined)}
-      status={employee ? (employee.isActive ? 'Active' : 'Inactive') : undefined}
-      statusClassName={`status status-${employee?.isActive ? 'active' : 'inactive'}`}
+      eyebrow="Employee"
+      status={employee ? (employee.isActive ? 'active' : 'inactive') : undefined}
       backTo="/team"
       backLabel="Employees"
       isLoading={isLoading}
+      loadingLabel="Loading employee…"
       error={error}
       onRetry={refetch}
+      tabs={employee ? TABS : undefined}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      idPrefix="employee"
       sidebar={sidebar}
     >
       {employee && (
         <>
-          <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
-
           {activeTab === 'about' && (
             <>
-              <DetailSection title="Basic Information">
+              <DetailSection title="Basic information">
                 <DetailField
                   label="Name"
                   value={employee.name}
-                  editable={{
-                    rawValue: employee.name,
-                    inputType: 'text',
-                    onSave: v => handleSave('name', v),
-                    isSaving,
-                  }}
+                  editable={edit('name', employee.name, 'text')}
                 />
                 <DetailField
                   label="Phone"
+                  mono
                   value={employee.phone || undefined}
-                  emptyText="No phone number"
-                  editable={{
-                    rawValue: employee.phone ?? '',
-                    inputType: 'text',
-                    onSave: v => handleSave('phone', v),
-                    isSaving,
-                  }}
+                  editable={edit('phone', employee.phone, 'text')}
                 />
                 <DetailField
                   label="Designation"
                   value={employee.designation || undefined}
-                  emptyText="No designation"
-                  editable={{
-                    rawValue: employee.designation ?? '',
-                    inputType: 'text',
-                    onSave: v => handleSave('designation', v),
-                    isSaving,
-                  }}
+                  editable={edit('designation', employee.designation, 'text')}
                 />
                 <DetailField
-                  label="Joining Date"
+                  label="Joining date"
                   value={employee.joiningDate ? formatDate(employee.joiningDate) : undefined}
-                  emptyText="Not set"
                 />
               </DetailSection>
 
@@ -230,117 +241,76 @@ export function EmployeeDetailPage() {
                 <DetailField
                   label=""
                   value={employee.address || undefined}
-                  emptyText="No address provided."
-                  editable={{
-                    rawValue: employee.address ?? '',
-                    inputType: 'textarea',
-                    onSave: v => handleSave('address', v),
-                    isSaving,
-                  }}
+                  editable={edit('address', employee.address, 'textarea')}
                 />
               </DetailSection>
 
-              <DetailSection title="Salary Details">
+              <DetailSection title="Salary details">
                 <DetailField
-                  label="Salary Type"
+                  label="Salary type"
                   value={employee.salaryType ? formatEmployeeType(employee.salaryType) : undefined}
-                  emptyText="Not set"
-                  editable={{
-                    rawValue: employee.salaryType ?? '',
-                    inputType: 'select',
+                  editable={edit('salaryType', employee.salaryType, 'select', {
                     options: SALARY_TYPE_OPTIONS,
-                    onSave: v => handleSave('salaryType', v),
-                    isSaving,
-                  }}
+                  })}
                 />
                 {employee.salaryType === 'monthly' && (
                   <DetailField
-                    label="Monthly Salary"
+                    label="Monthly salary"
                     value={
                       employee.monthlySalary != null
-                        ? `₹${employee.monthlySalary.toLocaleString()}`
+                        ? perUnit(employee.monthlySalary, '/ month')
                         : undefined
                     }
-                    emptyText="Not set"
-                    editable={{
-                      rawValue: employee.monthlySalary ?? 0,
-                      inputType: 'number',
+                    editable={edit('monthlySalary', employee.monthlySalary, 'number', {
                       prefix: '₹',
-                      onSave: v => handleSave('monthlySalary', v),
-                      isSaving,
-                    }}
+                    })}
                   />
                 )}
                 {employee.salaryType === 'daily' && (
                   <DetailField
-                    label="Daily Rate"
+                    label="Daily rate"
                     value={
-                      employee.dailyRate != null
-                        ? `₹${employee.dailyRate.toLocaleString()}`
-                        : undefined
+                      employee.dailyRate != null ? perUnit(employee.dailyRate, '/ day') : undefined
                     }
-                    emptyText="Not set"
-                    editable={{
-                      rawValue: employee.dailyRate ?? 0,
-                      inputType: 'number',
-                      prefix: '₹',
-                      onSave: v => handleSave('dailyRate', v),
-                      isSaving,
-                    }}
+                    editable={edit('dailyRate', employee.dailyRate, 'number', { prefix: '₹' })}
                   />
                 )}
                 {employee.salaryType && (
                   <DetailField
-                    label="Overtime Rate / Hr"
+                    label="Overtime rate per hour"
                     value={
                       employee.overtimeRatePerHour != null
-                        ? `₹${employee.overtimeRatePerHour.toLocaleString()}`
+                        ? perUnit(employee.overtimeRatePerHour, '/ hour')
                         : undefined
                     }
-                    emptyText="Not set"
-                    editable={{
-                      rawValue: employee.overtimeRatePerHour ?? 0,
-                      inputType: 'number',
+                    editable={edit('overtimeRatePerHour', employee.overtimeRatePerHour, 'number', {
                       prefix: '₹',
-                      onSave: v => handleSave('overtimeRatePerHour', v),
-                      isSaving,
-                    }}
+                    })}
                   />
                 )}
               </DetailSection>
 
               {employee.type === 'transporter' && (
-                <DetailSection title="Vehicle Details">
+                <DetailSection title="Vehicle details">
                   <DetailField
-                    label="Vehicle Number"
+                    label="Vehicle number"
+                    mono
                     value={employee.details?.vehicleNumber || undefined}
-                    emptyText="No vehicle number"
                   />
                 </DetailSection>
               )}
 
-              <DetailSection title="Emergency Contact">
+              <DetailSection title="Emergency contact">
                 <DetailField
                   label="Name"
                   value={employee.emergencyContact?.name || undefined}
-                  emptyText="Not set"
-                  editable={{
-                    rawValue: employee.emergencyContact?.name ?? '',
-                    inputType: 'text',
-                    onSave: v => handleNestedSave('emergencyContact', 'name', v),
-                    isSaving,
-                  }}
+                  editable={nestedEdit('name')}
                 />
                 <DetailField
                   label="Phone"
+                  mono
                   value={employee.emergencyContact?.phone || undefined}
-                  emptyText="Not set"
-                  editable={{
-                    rawValue: employee.emergencyContact?.phone ?? '',
-                    inputType: 'text',
-                    onSave: v => handleNestedSave('emergencyContact', 'phone', v),
-                    isSaving,
-                  }}
+                  editable={nestedEdit('phone')}
                 />
               </DetailSection>
 
@@ -348,13 +318,7 @@ export function EmployeeDetailPage() {
                 <DetailField
                   label=""
                   value={employee.notes || undefined}
-                  emptyText="No notes."
-                  editable={{
-                    rawValue: employee.notes ?? '',
-                    inputType: 'textarea',
-                    onSave: v => handleSave('notes', v),
-                    isSaving,
-                  }}
+                  editable={edit('notes', employee.notes, 'textarea')}
                 />
               </DetailSection>
             </>
@@ -364,96 +328,53 @@ export function EmployeeDetailPage() {
 
           {activeTab === 'salary' && (
             <div className={styles.salaryTab}>
-              {/* Month navigation */}
-              <div className={styles.monthNav}>
-                <button
-                  className={styles.monthNavBtn}
-                  onClick={handleSalaryPrevMonth}
-                  type="button"
-                >
-                  &larr;
-                </button>
-                <span className={styles.monthNavLabel}>{salaryMonthLabel}</span>
-                <button
-                  className={styles.monthNavBtn}
-                  onClick={handleSalaryNextMonth}
-                  disabled={isSalaryFutureMonth}
-                  type="button"
-                >
-                  &rarr;
-                </button>
-              </div>
+              <MonthNav
+                label={salaryMonthLabel}
+                onPrev={handleSalaryPrevMonth}
+                onNext={handleSalaryNextMonth}
+                nextDisabled={isSalaryFutureMonth}
+              />
 
-              {isSalaryLoading && (
-                <div className={styles.salaryLoading}>Loading salary breakdown...</div>
-              )}
+              {isSalaryLoading && <Spinner message="Loading salary breakdown…" />}
 
               {!isSalaryLoading && !employee.salaryType && (
-                <div className={styles.salaryEmptyState}>
-                  No salary type configured. Set the salary type in the About tab to see the
-                  breakdown.
-                </div>
+                <EmptyState title="Set a salary type in the About tab to see the breakdown" />
               )}
 
               {!isSalaryLoading && salary && employee.salaryType && (
-                <div className={styles.salaryCard}>
-                  {/* Attendance summary row */}
-                  <div className={styles.salarySection}>
-                    <div className={styles.salarySectionTitle}>Attendance</div>
-                    <div className={styles.salaryGrid}>
-                      <div className={styles.salaryGridItem}>
-                        <span className={styles.salaryGridLabel}>Working Days</span>
-                        <span className={styles.salaryGridValue}>{salary.workingDays}</span>
-                      </div>
-                      <div className={styles.salaryGridItem}>
-                        <span className={styles.salaryGridLabel}>Effective Days</span>
-                        <span className={styles.salaryGridValue}>{salary.effectiveDays}</span>
-                      </div>
-                      <div className={styles.salaryGridItem}>
-                        <span className={styles.salaryGridLabel}>OT Hours</span>
-                        <span className={styles.salaryGridValue}>{salary.overtimeHours}h</span>
-                      </div>
-                      <div className={styles.salaryGridItem}>
-                        <span className={styles.salaryGridLabel}>Sundays Worked</span>
-                        <span className={styles.salaryGridValue}>{salary.sundaysWorked}</span>
-                      </div>
-                    </div>
-                  </div>
+                <>
+                  <DetailSection title="Attendance">
+                    <DetailField label="Working days" value={salary.workingDays} mono />
+                    <DetailField label="Effective days" value={salary.effectiveDays} mono />
+                    <DetailField
+                      label="Overtime hours"
+                      value={
+                        <>
+                          <span className="mono">{salary.overtimeHours}</span> h
+                        </>
+                      }
+                    />
+                    <DetailField label="Sundays worked" value={salary.sundaysWorked} mono />
+                  </DetailSection>
 
-                  <div className={styles.salaryDivider} />
-
-                  {/* Salary breakdown */}
-                  <div className={styles.salarySection}>
-                    <div className={styles.salarySectionTitle}>Breakdown</div>
-                    <div className={styles.salaryRow}>
-                      <span className={styles.salaryLabel}>
-                        {salary.salaryType === 'monthly'
-                          ? `Base Salary (${salary.effectiveDays}/${salary.workingDays} × ₹${salary.monthlySalary?.toLocaleString()})`
-                          : `Base Salary (${salary.effectiveDays} × ₹${salary.dailyRate?.toLocaleString()})`}
-                      </span>
-                      <span className={styles.salaryValue}>
-                        ₹{salary.baseSalary.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className={styles.salaryRow}>
-                      <span className={styles.salaryLabel}>
-                        Overtime ({salary.overtimeHours}h × ₹
-                        {salary.overtimeRatePerHour?.toLocaleString()})
-                      </span>
-                      <span className={styles.salaryValue}>
-                        ₹{salary.overtimePay.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className={styles.salaryDivider} />
-
-                  {/* Total */}
-                  <div className={styles.salaryRow}>
-                    <span className={styles.salaryTotal}>Total Pay</span>
-                    <span className={styles.salaryTotal}>₹{salary.totalPay.toLocaleString()}</span>
-                  </div>
-                </div>
+                  <Card title="Breakdown" padded={false}>
+                    <Table aria-label="Salary breakdown">
+                      <TBody>
+                        {breakdownRow(
+                          salary.salaryType === 'monthly'
+                            ? `Base salary (${salary.effectiveDays}/${salary.workingDays} × ${formatMoney(salary.monthlySalary ?? 0)})`
+                            : `Base salary (${salary.effectiveDays} × ${formatMoney(salary.dailyRate ?? 0)})`,
+                          salary.baseSalary
+                        )}
+                        {breakdownRow(
+                          `Overtime (${salary.overtimeHours}h × ${formatMoney(salary.overtimeRatePerHour ?? 0)})`,
+                          salary.overtimePay
+                        )}
+                        {breakdownRow('Total pay', salary.totalPay, true)}
+                      </TBody>
+                    </Table>
+                  </Card>
+                </>
               )}
             </div>
           )}
