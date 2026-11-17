@@ -6,7 +6,7 @@
 
 .bar {
   display: block;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--bg-hover);
   overflow: hidden;
 }
@@ -45,7 +45,7 @@
   display: inline-block;
   width: 8px;
   height: 8px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .sw-accent {

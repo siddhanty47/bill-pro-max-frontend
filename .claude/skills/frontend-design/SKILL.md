@@ -290,6 +290,8 @@ The design is meant to be changed in one place.
 - `border-radius` with a literal px/rem/em value (use `--radius-*`; `0` and `%` are fine);
 - `style={` in `.tsx`.
 
+`src/components/ui/**` is excluded from the scan on purpose: the kit is where tokens are consumed and true geometry (e.g. a 2px indicator height) legitimately lives. Kit CSS should still use `--radius-*`, `--shadow-*` and `--ring-*` tokens for radii and shadows; only add a literal when it is geometry, with a short comment.
+
 Comments, `#id` selectors, URL fragments and JSX text like `Bill #123` are not findings. The scanner is exported and tested in `scripts/check-design-tokens.test.mjs`. Read the finding list, don't just check the exit code.
 
 ## Checklist for any UI change

@@ -47,6 +47,30 @@ describe('scanCss', () => {
   });
 });
 
+describe('edge cases', () => {
+  it('allows calc() derived from a radius token', () => {
+    expect(scanCss('.a { border-radius: calc(var(--radius-md) - 2px); }')).toEqual([]);
+    expect(rules(scanCss('.a { border-radius: calc(6px - 2px); }'))).toEqual([
+      'border-radius without token',
+    ]);
+  });
+  it('does not treat 5/7-digit strings as hex', () => {
+    expect(scanTs("const a = '#12345'; const b = '#1234567';")).toEqual([]);
+    expect(scanCss('.a { content: "x"; margin: 0; --n: #12345; }')).toEqual([]);
+  });
+  it('checks text-shadow and drop-shadow', () => {
+    expect(rules(scanCss('.a { text-shadow: 0 1px 2px black; }'))).toContain(
+      'box-shadow without token'
+    );
+    expect(rules(scanCss('.a { filter: drop-shadow(0 2px 4px #000); }'))).toContain(
+      'box-shadow without token'
+    );
+    expect(
+      scanCss('.a { filter: blur(4px) drop-shadow(var(--shadow-pop)); text-shadow: none; }')
+    ).toEqual([]);
+  });
+});
+
 describe('scanTs', () => {
   it('flags hex and rgb strings', () => {
     expect(rules(scanTs("const c = '#ff0000';\nconst d = `rgba(0,0,0,.5)`;"))).toEqual([

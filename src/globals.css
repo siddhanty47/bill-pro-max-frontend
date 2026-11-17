@@ -110,6 +110,7 @@
   --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--border-default);
   --shadow-accent: 0 8px 24px rgba(0, 204, 136, 0.25);
   --ring-focus: 0 0 0 3px var(--accent-muted);
+  --ring-dot: 0 0 0 2px var(--bg-deepest);
   /* Opaque stop for CSS masks (only the alpha matters), e.g. the Tabs overflow fade */
   --mask-solid: #000;
 

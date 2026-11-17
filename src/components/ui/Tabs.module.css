@@ -60,7 +60,7 @@
   right: 12px;
   bottom: -1px;
   height: 2px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   background: var(--accent);
 }
 

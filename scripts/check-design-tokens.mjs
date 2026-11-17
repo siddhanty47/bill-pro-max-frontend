@@ -150,9 +150,16 @@ const checkDeclaration = (prop, rawValue) => {
       out.push('font shorthand');
     }
   }
-  if (p === 'box-shadow') {
+  if (p === 'box-shadow' || p === 'text-shadow' || p === 'filter' || p === 'backdrop-filter') {
+    // filter/backdrop-filter only matter for their drop-shadow(...) arguments.
+    let shadow = value;
+    if (p.endsWith('filter')) {
+      const args = [...value.matchAll(/drop-shadow\(((?:[^()]|\([^()]*\))*)\)/gi)].map(m => m[1]);
+      if (args.length === 0) return out;
+      shadow = args.join(',');
+    }
     // Everything must be a var(--…) or `inset`; any literal length/colour is a finding.
-    const residue = value
+    const residue = shadow
       .replace(/var\((?:[^()]|\([^()]*\))*\)/g, '')
       .replace(/\binset\b/gi, '')
       .replace(/(?<![\w.])0(?![\w.])/g, '')
@@ -160,9 +167,15 @@ const checkDeclaration = (prop, rawValue) => {
     if (residue !== '' && !GLOBAL_KEYWORDS.test(residue)) out.push('box-shadow without token');
   }
   if (/^(?:border(?:-(?:top|bottom|start|end)-(?:left|right|start|end))?-radius)$/.test(p)) {
+    // calc() containing a token (e.g. calc(var(--radius-md) - 2px)) derives from a token.
+    const derived = /calc\(.*var\(/.test(value);
     const residue = value.replace(/var\((?:[^()]|\([^()]*\))*\)/g, '').trim();
     // 0, percentages (50% circles), keywords are fine; raw px/rem/em radii are not.
-    if (/\d(?:px|r?em)\b/.test(residue) && !/^0(?:px|r?em)?(?:\s+0(?:px|r?em)?)*$/.test(residue)) {
+    if (
+      !derived &&
+      /\d(?:px|r?em)\b/.test(residue) &&
+      !/^0(?:px|r?em)?(?:\s+0(?:px|r?em)?)*$/.test(residue)
+    ) {
       out.push('border-radius without token');
     }
   }
@@ -204,7 +217,7 @@ export const scanTs = (text, { tsx = true } = {}) => {
   const findings = [];
   for (const { start, end } of strings) {
     const body = text.slice(start, end);
-    if (HEX_RE.test(body) || /^#[0-9a-fA-F]{3,8}$/.test(body)) {
+    if (HEX_RE.test(body)) {
       const idx = start + body.search(/#/);
       findings.push({ line: lineOf(starts, idx), rule: 'hex colour' });
     }
