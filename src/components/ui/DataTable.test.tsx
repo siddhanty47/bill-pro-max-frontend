@@ -305,3 +305,26 @@ describe('DataTable with RowActions in a clickable row', () => {
     expect(onRowClick).not.toHaveBeenCalled();
   });
 });
+
+// vitest hands CSS modules back as class maps, so read the stylesheet source.
+async function readCss(file: string) {
+  const fs = (await import(/* @vite-ignore */ 'node:fs' as string)) as {
+    readFileSync(path: URL, encoding: 'utf8'): string;
+  };
+  return fs.readFileSync(new URL(file, import.meta.url), 'utf8');
+}
+
+const rule = (css: string, selector: string) =>
+  css.match(new RegExp(`\\${selector}\\s*\\{([^}]*)\\}`))?.[1] ?? '';
+
+describe('DataTable phone list hierarchy', () => {
+  it('makes the title the most prominent line and the subtitle secondary', async () => {
+    const css = await readCss('./DataTable.module.css');
+    const weight = (block: string) => Number(block.match(/font-weight:\s*(\d+)/)?.[1] ?? 400);
+    const title = rule(css, '.title');
+    const subtitle = rule(css, '.subtitle');
+    expect(weight(title)).toBeGreaterThan(weight(subtitle));
+    expect(title).toMatch(/color:\s*var\(--text-heading\)/);
+    expect(subtitle).not.toMatch(/--text-heading/);
+  });
+});

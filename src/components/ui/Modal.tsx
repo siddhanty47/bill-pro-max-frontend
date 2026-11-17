@@ -21,8 +21,8 @@ interface ModalProps {
   size?: ModalSize;
 }
 
-const FOCUSABLE =
-  'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])';
+const FIELD_NOT = ':not([disabled]):not([tabindex="-1"])';
+const FOCUSABLE = `input${FIELD_NOT}:not([type="hidden"]), select${FIELD_NOT}, textarea${FIELD_NOT}`;
 
 /**
  * Reusable modal dialog with optional color-coded variant
@@ -30,7 +30,22 @@ const FOCUSABLE =
  */
 export function Modal({ isOpen, onClose, title, children, variant, size = 'default' }: ModalProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+
+  // Autofocus once per open, a frame later (after children mount). Skip it when the
+  // user already moved focus into the dialog (e.g. an early click on a field), so
+  // the frame never steals focus back.
+  useEffect(() => {
+    if (!isOpen) return;
+    const frame = requestAnimationFrame(() => {
+      const dialog = dialogRef.current;
+      const active = document.activeElement;
+      if (dialog && active && active !== dialog && dialog.contains(active)) return;
+      bodyRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isOpen]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -42,11 +57,6 @@ export function Modal({ isOpen, onClose, title, children, variant, size = 'defau
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
       document.body.style.overflow = 'hidden';
-
-      requestAnimationFrame(() => {
-        const first = bodyRef.current?.querySelector<HTMLElement>(FOCUSABLE);
-        first?.focus();
-      });
     }
 
     return () => {
@@ -61,6 +71,7 @@ export function Modal({ isOpen, onClose, title, children, variant, size = 'defau
     <div className={styles.overlay} onClick={onClose}>
       <div
         className={`${styles.modal} ${variant ? styles[variant] : ''} ${size === 'form' ? styles.formSize : ''}`}
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

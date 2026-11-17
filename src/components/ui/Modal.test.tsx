@@ -35,6 +35,80 @@ describe('Modal', () => {
     await waitFor(() => expect(screen.getByLabelText('Name')).toHaveFocus());
   });
 
+  it('does not steal focus from a field the user focused before the frame', () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+      frames.push(cb);
+      return frames.length;
+    });
+    try {
+      render(
+        <Modal isOpen onClose={vi.fn()} title="Edit party">
+          <input aria-label="Name" />
+          <input aria-label="Phone" />
+        </Modal>
+      );
+      screen.getByLabelText('Phone').focus();
+      frames.forEach(cb => cb(0));
+      expect(screen.getByLabelText('Phone')).toHaveFocus();
+    } finally {
+      vi.mocked(window.requestAnimationFrame).mockRestore();
+    }
+  });
+
+  it('autofocuses when focus is on the dialog container', () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+      frames.push(cb);
+      return frames.length;
+    });
+    try {
+      render(
+        <Modal isOpen onClose={vi.fn()} title="Edit party">
+          <input aria-label="Name" />
+        </Modal>
+      );
+      const dialog = screen.getByRole('dialog');
+      dialog.tabIndex = -1;
+      dialog.focus();
+      frames.forEach(cb => cb(0));
+      expect(screen.getByLabelText('Name')).toHaveFocus();
+    } finally {
+      vi.mocked(window.requestAnimationFrame).mockRestore();
+    }
+  });
+
+  it('autofocuses only once per open, not on every re-render', async () => {
+    const { rerender } = render(
+      <Modal isOpen onClose={() => {}} title="Edit party">
+        <input aria-label="Name" />
+        <button type="button">Other</button>
+      </Modal>
+    );
+    await waitFor(() => expect(screen.getByLabelText('Name')).toHaveFocus());
+    // Focus back on the body: the guard would allow autofocus, so only "once per open" stops it.
+    screen.getByLabelText('Name').blur();
+    expect(document.body).toHaveFocus();
+    rerender(
+      <Modal isOpen onClose={() => {}} title="Edit party">
+        <input aria-label="Name" />
+        <button type="button">Other</button>
+      </Modal>
+    );
+    await new Promise(r => requestAnimationFrame(() => r(null)));
+    expect(screen.getByLabelText('Name')).not.toHaveFocus();
+  });
+
+  it('skips fields taken out of the tab order (e.g. a hidden file input)', async () => {
+    render(
+      <Modal isOpen onClose={vi.fn()} title="New challan">
+        <input type="file" tabIndex={-1} aria-label="Photo" />
+        <input aria-label="Challan number" />
+      </Modal>
+    );
+    await waitFor(() => expect(screen.getByLabelText('Challan number')).toHaveFocus());
+  });
+
   it('closes on Escape', async () => {
     const onClose = vi.fn();
     render(

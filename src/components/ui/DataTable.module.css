@@ -48,6 +48,8 @@
   white-space: nowrap;
   color: var(--text-heading);
   font-size: var(--text-base);
+  /* The row's identity: the heaviest line in the item. */
+  font-weight: 500;
 }
 
 .badge {
@@ -63,9 +65,10 @@
   font-size: var(--text-sm);
 }
 
+/* Second identity (e.g. party under a doc number): secondary to the title. */
 .subtitle {
-  color: var(--text-heading);
-  font-weight: 500;
+  color: var(--text-primary);
+  font-weight: 400;
   overflow-wrap: anywhere;
 }
 
