@@ -28,7 +28,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `FilterBar` | The wrapping row of search and filter controls above a list |
 | `SegmentedControl` | A 2–4 option single-choice filter shown inline (All / Delivery / Return); radio group |
 | `RowActions` | A table/phone row's actions: one primary `Button` + a "More actions" menu for the rest (danger items supported; an item's `hint` shows a muted line under its label, e.g. why it's disabled); clicks never open the row |
-| `Menu`, `MenuItem`, `MenuLabel`, `MenuDivider` | Dropdown menus (business switcher, profile, row actions) |
+| `Menu`, `MenuItem`, `MenuLabel`, `MenuDivider` | Dropdown menus (business switcher, profile, row actions, notifications; `MenuItem unread` tints new items) |
 | `Modal` | Dialogs; full-screen on phones |
 | `Tabs`, `TabPanel` | Tab navigation within a page; optional `count` per tab; `idPrefix` + `TabPanel` wire tab ↔ panel |
 | `Spinner` (`LoadingSpinner`) | Loading state for a page or panel |

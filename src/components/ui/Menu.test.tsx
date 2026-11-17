@@ -326,7 +326,10 @@ describe('Menu portal and placement', () => {
       </Menu>
     );
     await user.click(screen.getByRole('button', { name: 'Open' }));
-    expect(screen.getByRole('menuitem', { name: 'New one' })).toHaveAttribute('data-unread', 'true');
+    expect(screen.getByRole('menuitem', { name: 'New one' })).toHaveAttribute(
+      'data-unread',
+      'true'
+    );
     expect(screen.getByRole('menuitem', { name: 'Old one' })).not.toHaveAttribute('data-unread');
   });
 
