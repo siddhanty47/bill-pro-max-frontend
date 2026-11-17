@@ -2,13 +2,13 @@
  * Modal for creating a new preset from a business's existing inventory.
  */
 import { useState, useMemo, useId } from 'react';
-import { Modal } from './Modal';
 import {
   Button,
   Checkbox,
   EmptyState,
   Field,
   Input,
+  Modal,
   Notice,
   SearchInput,
   Table,
