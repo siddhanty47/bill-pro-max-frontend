@@ -1,28 +1,56 @@
+/* Business form: layout only; controls, notices and buttons are kit components. */
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.gstGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 .gstRow {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: flex-start;
 }
 
 .gstInput {
   flex: 1;
+  min-width: 0;
   text-transform: uppercase;
 }
 
-.gstFetchButton {
-  white-space: nowrap;
-  padding: 8px 12px;
-  font-size: 13px;
-}
-
-.gstSuccess {
-  color: var(--status-success-text);
-  font-size: 12px;
-  margin-top: 4px;
-  display: block;
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
 }
 
 .sectionHeading {
-  margin-top: 20px;
-  margin-bottom: 15px;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+@media (max-width: 768px) {
+  .columns,
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

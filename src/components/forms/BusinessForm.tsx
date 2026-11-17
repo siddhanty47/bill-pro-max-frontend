@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { CreateBusinessInput } from '../../types';
 import { useLazyLookupGstinStandaloneQuery } from '../../api/gstinApi';
+import { Button, Field, Input, Notice, Select, Textarea } from '../ui';
 import styles from './BusinessForm.module.css';
 
 const businessSchema = z.object({
@@ -40,8 +41,10 @@ interface BusinessFormProps {
 }
 
 export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProps) {
-  const [gstFetchError, setGstFetchError] = useState<string | null>(null);
-  const [gstFetchSuccess, setGstFetchSuccess] = useState<string | null>(null);
+  const [gstNotice, setGstNotice] = useState<{
+    tone: 'success' | 'warning' | 'danger';
+    text: string;
+  } | null>(null);
   const [lookupGstin, { isFetching: isGstLoading }] = useLazyLookupGstinStandaloneQuery();
 
   const {
@@ -82,8 +85,7 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
     const gstin = getValues('gst')?.trim();
     if (!gstin || gstin.length !== 15) return;
 
-    setGstFetchError(null);
-    setGstFetchSuccess(null);
+    setGstNotice(null);
 
     try {
       const details = await lookupGstin(gstin).unwrap();
@@ -106,9 +108,12 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
 
       // Show status feedback
       if (!details.isActive) {
-        setGstFetchError(`Warning: This GSTIN is ${details.status}`);
+        setGstNotice({ tone: 'warning', text: `Warning: This GSTIN is ${details.status}` });
       } else {
-        setGstFetchSuccess(`Fetched: ${details.legalName} (${details.status})`);
+        setGstNotice({
+          tone: 'success',
+          text: `Fetched: ${details.legalName} (${details.status})`,
+        });
       }
     } catch (err) {
       const errorMessage =
@@ -116,7 +121,7 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
           ? (err as { data?: { error?: { message?: string } } }).data?.error?.message ||
             'Failed to fetch GST details'
           : 'Failed to fetch GST details';
-      setGstFetchError(errorMessage);
+      setGstNotice({ tone: 'danger', text: errorMessage });
     }
   }, [getValues, lookupGstin, setValue]);
 
@@ -149,148 +154,132 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
   const onFormSubmit = handleSubmit(handleFormSubmit as any);
 
   return (
-    <form onSubmit={onFormSubmit}>
-      <div className="form-content">
-        <div className="form-columns">
-          <div>
-            {/* GST lookup at the top — enter GSTIN first to auto-fill other fields */}
-            <div className="form-group">
-              <label htmlFor="gst">GST Number</label>
+    <form onSubmit={onFormSubmit} noValidate>
+      <div className={styles.columns}>
+        <div className={styles.column}>
+          {/* GST lookup at the top: enter GSTIN first to auto-fill other fields */}
+          <div className={styles.gstGroup}>
+            <Field label="GST number" htmlFor="gst">
               <div className={styles.gstRow}>
-                <input
+                <Input
                   id="gst"
+                  mono
                   {...register('gst')}
                   disabled={isLoading}
                   placeholder="e.g. 22AAAAA0000A1Z5"
                   className={styles.gstInput}
                   maxLength={15}
                 />
-                <button
-                  type="button"
-                  className={`btn btn-secondary ${styles.gstFetchButton}`}
+                <Button
                   onClick={handleFetchGstDetails}
-                  disabled={isLoading || isGstLoading || gstValue.trim().length !== 15}
+                  loading={isGstLoading}
+                  disabled={isLoading || gstValue.trim().length !== 15}
                 >
-                  {isGstLoading ? 'Fetching...' : 'Fetch Details'}
-                </button>
+                  Fetch details
+                </Button>
               </div>
-              {gstFetchError && <span className="error-message">{gstFetchError}</span>}
-              {gstFetchSuccess && <span className={styles.gstSuccess}>{gstFetchSuccess}</span>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="stateCode">State Code</label>
-              <input
-                id="stateCode"
-                {...register('stateCode')}
-                disabled={isLoading}
-                placeholder="e.g. 27"
-                maxLength={2}
-                className="input-state-code"
-              />
-              <small className="text-help">2-digit GST state code (auto-filled from GSTIN)</small>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="name">Business Name *</label>
-              <input id="name" {...register('name')} disabled={isLoading} />
-              {errors.name && <span className="error-message">{errors.name.message}</span>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="address">Address</label>
-              <textarea id="address" {...register('address')} rows={2} disabled={isLoading} />
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="phone">Phone</label>
-                <input id="phone" {...register('phone')} disabled={isLoading} />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="email">Email</label>
-                <input id="email" type="email" {...register('email')} disabled={isLoading} />
-                {errors.email && <span className="error-message">{errors.email.message}</span>}
-              </div>
-            </div>
+            </Field>
+            {gstNotice && <Notice tone={gstNotice.tone}>{gstNotice.text}</Notice>}
           </div>
-          <div>
-            <h3 className={styles.sectionHeading}>Business Settings</h3>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="billingCycle">Billing Cycle</label>
-                <select id="billingCycle" {...register('billingCycle')} disabled={isLoading}>
-                  <option value="monthly">Monthly</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="yearly">Yearly</option>
-                </select>
-              </div>
+          <Field
+            label="State code"
+            hint="2-digit GST state code (auto-filled from GSTIN)"
+            error={errors.stateCode?.message}
+          >
+            <Input
+              mono
+              {...register('stateCode')}
+              disabled={isLoading}
+              placeholder="e.g. 27"
+              maxLength={2}
+            />
+          </Field>
 
-              <div className="form-group">
-                <label htmlFor="currency">Currency</label>
-                <input id="currency" {...register('currency')} disabled={isLoading} />
-              </div>
-            </div>
+          <Field label="Business name" required error={errors.name?.message}>
+            <Input {...register('name')} disabled={isLoading} />
+          </Field>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="defaultSgstRate">Default SGST (%)</label>
-                <input
-                  id="defaultSgstRate"
-                  type="number"
-                  step="0.01"
-                  {...register('defaultSgstRate', { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-              </div>
+          <Field label="Address" error={errors.address?.message}>
+            <Textarea {...register('address')} rows={2} disabled={isLoading} />
+          </Field>
 
-              <div className="form-group">
-                <label htmlFor="defaultCgstRate">Default CGST (%)</label>
-                <input
-                  id="defaultCgstRate"
-                  type="number"
-                  step="0.01"
-                  {...register('defaultCgstRate', { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
+          <div className={styles.pair}>
+            <Field label="Phone" error={errors.phone?.message}>
+              <Input mono {...register('phone')} disabled={isLoading} />
+            </Field>
+            <Field label="Email" error={errors.email?.message}>
+              <Input type="email" {...register('email')} disabled={isLoading} />
+            </Field>
+          </div>
+        </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="defaultIgstRate">Default IGST (%)</label>
-                <input
-                  id="defaultIgstRate"
-                  type="number"
-                  step="0.01"
-                  {...register('defaultIgstRate', { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-              </div>
+        <div className={styles.column}>
+          <h3 className={styles.sectionHeading}>Business settings</h3>
 
-              <div className="form-group">
-                <label htmlFor="defaultPaymentDueDays">Payment Due Days</label>
-                <input
-                  id="defaultPaymentDueDays"
-                  type="number"
-                  {...register('defaultPaymentDueDays', { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
+          <div className={styles.pair}>
+            <Field label="Billing cycle">
+              <Select {...register('billingCycle')} disabled={isLoading}>
+                <option value="monthly">Monthly</option>
+                <option value="weekly">Weekly</option>
+                <option value="yearly">Yearly</option>
+              </Select>
+            </Field>
+            <Field label="Currency" error={errors.currency?.message}>
+              <Input mono {...register('currency')} disabled={isLoading} />
+            </Field>
+          </div>
+
+          <div className={styles.pair}>
+            <Field label="Default SGST (%)" error={errors.defaultSgstRate?.message}>
+              <Input
+                mono
+                type="number"
+                step="0.01"
+                {...register('defaultSgstRate', { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+            </Field>
+            <Field label="Default CGST (%)" error={errors.defaultCgstRate?.message}>
+              <Input
+                mono
+                type="number"
+                step="0.01"
+                {...register('defaultCgstRate', { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+            </Field>
+          </div>
+
+          <div className={styles.pair}>
+            <Field label="Default IGST (%)" error={errors.defaultIgstRate?.message}>
+              <Input
+                mono
+                type="number"
+                step="0.01"
+                {...register('defaultIgstRate', { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+            </Field>
+            <Field label="Payment due days" error={errors.defaultPaymentDueDays?.message}>
+              <Input
+                mono
+                type="number"
+                {...register('defaultPaymentDueDays', { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+            </Field>
           </div>
         </div>
       </div>
 
-      <div className="form-actions">
-        <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={isLoading}>
+      <div className={styles.actions}>
+        <Button onClick={onCancel} disabled={isLoading}>
           Cancel
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={isLoading}>
-          {isLoading ? 'Creating...' : 'Create Business'}
-        </button>
+        </Button>
+        <Button variant="primary" type="submit" loading={isLoading}>
+          Create business
+        </Button>
       </div>
     </form>
   );
