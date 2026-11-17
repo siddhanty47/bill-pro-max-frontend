@@ -5,9 +5,9 @@
  * category, unit, rate, and description fields. Total quantity is adjusted via
  * a transaction-based form (purchase / scraped / sold) with a history log.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
-import pageStyles from './InventoryDetailPage.module.css';
+import styles from './InventoryDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
   useGetInventoryItemQuery,
@@ -17,11 +17,25 @@ import {
   useGetOpeningBalancesQuery,
 } from '../api/inventoryApi';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
-import { Tabs } from '../components/Tabs';
 import { CodeAutocomplete, type AutocompleteItem } from '../components/CodeAutocomplete';
+import {
+  Button,
+  Card,
+  DataTable,
+  EmptyState,
+  Field,
+  Input,
+  Meter,
+  Notice,
+  Select,
+  StatusChip,
+  type Column,
+} from '../components/ui';
+import type { Tone } from '../components/ui/status';
 import type { AdjustQuantityInput, QuantityTransaction } from '../types';
 import { getErrorMessage } from '../api/baseApi';
 import { computeRentedFromHistory, computeAvailable } from '../utils/inventoryUtils';
+import { formatDate, formatMoney } from '../utils/format';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 
 /** Unit options — must stay in sync with InventoryForm */
@@ -36,7 +50,7 @@ const UNIT_OPTIONS = [
 /** Transaction type options for the adjustment form */
 const TRANSACTION_TYPE_OPTIONS: { value: AdjustQuantityInput['type']; label: string }[] = [
   { value: 'purchase', label: 'Purchase' },
-  { value: 'scraped', label: 'Scraped / Broken' },
+  { value: 'scraped', label: 'Scraped / broken' },
   { value: 'sold', label: 'Sold' },
 ];
 
@@ -45,74 +59,57 @@ function getTodayISO(): string {
   return new Date().toISOString().split('T')[0];
 }
 
-/**
- * Formats an ISO date string for display.
- */
-function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString();
+/** Display date, or undefined so the field shows "Not added". */
+function displayDate(dateStr: string | undefined): string | undefined {
+  return dateStr ? formatDate(dateStr) : undefined;
 }
 
-/**
- * Badge class for transaction types.
- */
-function transactionTypeBadge(type: QuantityTransaction['type']): string {
+/** Chip tone for transaction types. */
+function transactionTypeTone(type: QuantityTransaction['type']): Tone {
   switch (type) {
     case 'purchase':
-      return 'status status-active';
-    case 'scraped':
-      return 'status status-cancelled';
-    case 'sold':
-      return 'status status-sent';
-    case 'damaged':
-    case 'short':
-      return 'status status-cancelled';
-    case 'challan_loss_edit':
-    case 'challan_item_edit':
-      return 'status status-pending';
-    case 'challan_delivery':
-    case 'challan_return_reversed':
-      return 'status status-sent';
     case 'challan_return':
     case 'challan_delivery_reversed':
-      return 'status status-active';
+      return 'success';
+    case 'sold':
+    case 'challan_delivery':
+    case 'challan_return_reversed':
+      return 'info';
+    case 'scraped':
+    case 'damaged':
+    case 'short':
+      return 'danger';
     default:
-      return 'status status-pending';
+      return 'warning';
   }
 }
 
-/**
- * Display label for transaction types.
- */
+/** Display label for transaction types (sentence case). */
 function transactionTypeLabel(type: QuantityTransaction['type']): string {
   switch (type) {
     case 'challan_delivery':
-      return 'Delivery (Reserved)';
+      return 'Delivery (reserved)';
     case 'challan_return':
       return 'Return';
     case 'challan_delivery_reversed':
-      return 'Delivery Reversed';
+      return 'Delivery reversed';
     case 'challan_return_reversed':
-      return 'Return Reversed';
+      return 'Return reversed';
     case 'challan_loss_edit':
-      return 'Challan Loss Edit';
+      return 'Challan loss edit';
     case 'challan_item_edit':
-      return 'Challan Item Edit';
-    case 'damaged':
-      return 'Damaged';
-    case 'short':
-      return 'Short';
+      return 'Challan item edit';
     default:
       return type.charAt(0).toUpperCase() + type.slice(1);
   }
 }
 
 /**
- * Quantity display for transaction: + for add/return, - for reduce/reserve.
- * challan_delivery, challan_return_reversed: Rented + (items went to rented)
- * challan_return, challan_delivery_reversed: Returned + (items came back)
+ * Signed quantity for a transaction: + for add/return, - for reduce/reserve.
+ * challan_delivery, challan_return_reversed: Rented (items went to rented)
+ * challan_return, challan_delivery_reversed: Returned (items came back)
  */
-function transactionQuantityDisplay(tx: QuantityTransaction): string {
+function transactionQuantity(tx: QuantityTransaction): { text: string; suffix?: string } {
   const prefix =
     tx.type === 'purchase' ||
     (tx.type === 'challan_loss_edit' && tx.note?.includes('reversed')) ||
@@ -122,12 +119,21 @@ function transactionQuantityDisplay(tx: QuantityTransaction): string {
       : '-';
   const suffix =
     tx.type === 'challan_delivery' || tx.type === 'challan_return_reversed'
-      ? ' (rented)'
+      ? '(rented)'
       : tx.type === 'challan_return' || tx.type === 'challan_delivery_reversed'
-        ? ' (returned)'
-        : '';
-  return `${prefix}${tx.quantity}${suffix}`;
+        ? '(returned)'
+        : undefined;
+  return { text: `${prefix}${tx.quantity}`, suffix };
 }
+
+/** A count in mono with its unit in the text font. */
+const withUnit = (n: number, unit: string): ReactNode => (
+  <>
+    <span className="mono">{n}</span> {unit}
+  </>
+);
+
+const notAdded = <span className="text-empty">Not added</span>;
 
 /**
  * InventoryDetailPage displays the full details of a single inventory item.
@@ -165,6 +171,7 @@ export function InventoryDetailPage() {
   const [adjDate, setAdjDate] = useState(getTodayISO);
   const [adjNote, setAdjNote] = useState('');
   const [adjError, setAdjError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('about');
 
   /** Map category strings to AutocompleteItem format for CodeAutocomplete */
   const categoryAutocompleteItems: AutocompleteItem[] = useMemo(() => {
@@ -176,9 +183,7 @@ export function InventoryDetailPage() {
     }));
   }, [existingCategories]);
 
-  /**
-   * Generic save handler for simple (flat) inventory fields.
-   */
+  /** Generic save handler for simple (flat) inventory fields. */
   const handleSave = useCallback(
     async (field: string, newValue: string | number) => {
       await updateInventory({
@@ -192,7 +197,7 @@ export function InventoryDetailPage() {
 
   /** Submit a stock adjustment transaction */
   const handleAdjustQuantity = useCallback(
-    async (e: React.FormEvent) => {
+    async (e: FormEvent) => {
       e.preventDefault();
       setAdjError(null);
 
@@ -223,14 +228,6 @@ export function InventoryDetailPage() {
     [adjType, adjQuantity, adjDate, adjNote, adjustQuantity, currentBusinessId, itemId]
   );
 
-  const [activeTab, setActiveTab] = useState('about');
-
-  const TABS = [
-    { id: 'about', label: 'About' },
-    { id: 'quantity-timeline', label: 'Quantity Timeline' },
-    { id: 'change-history', label: 'Change History' },
-  ];
-
   /** History: latest entry at top (reverse of insertion order) */
   const quantityHistory = item?.quantityHistory;
   const sortedHistory = useMemo(() => {
@@ -238,9 +235,47 @@ export function InventoryDetailPage() {
     return [...quantityHistory].reverse();
   }, [quantityHistory]);
 
+  const tabs = item
+    ? [
+        { id: 'about', label: 'About' },
+        { id: 'quantity-timeline', label: 'Quantity timeline', count: sortedHistory.length },
+        { id: 'change-history', label: 'Change history' },
+      ]
+    : undefined;
+
+  // Same numbers as the Inventory list: available ignores the opening balance, rented includes it.
+  const rented = computeRentedFromHistory(item?.quantityHistory) + itemOpeningBalance;
+  const available = item
+    ? computeAvailable(item.totalQuantity, computeRentedFromHistory(item.quantityHistory))
+    : 0;
+
+  /** Editable money rate; empty (or zero when `hideZero`) shows "Not added". */
+  const rateField = (
+    label: string,
+    field: 'defaultRatePerDay' | 'damageRate' | 'costPrice',
+    hideZero: boolean
+  ) => {
+    const amount = item?.[field];
+    const shown = amount != null && !(hideZero && amount <= 0);
+    return (
+      <DetailField
+        label={label}
+        value={shown ? formatMoney(amount) : undefined}
+        mono
+        editable={{
+          rawValue: shown ? amount : undefined,
+          inputType: 'number',
+          prefix: '₹',
+          onSave: v => handleSave(field, v),
+          isSaving,
+        }}
+      />
+    );
+  };
+
   const sidebar = item ? (
     <DetailSection title="Details">
-      <DetailField label="Code" value={item.code} />
+      <DetailField label="Code" value={item.code} mono />
 
       {/* Category — uses CodeAutocomplete in edit mode */}
       <DetailField
@@ -254,7 +289,7 @@ export function InventoryDetailPage() {
           renderEditInput: ({ value: editVal, onChange, onSave }) => (
             <CodeAutocomplete
               label=""
-              placeholder="Select or type a category..."
+              placeholder="Select or type a category…"
               value={String(editVal)}
               onChange={val => onChange(val)}
               items={categoryAutocompleteItems}
@@ -280,183 +315,160 @@ export function InventoryDetailPage() {
         }}
       />
 
-      {/* Default Rate/Day */}
-      <DetailField
-        label="Default Rate/Day"
-        value={item.defaultRatePerDay != null ? `₹${item.defaultRatePerDay}` : undefined}
-        editable={{
-          rawValue: item.defaultRatePerDay,
-          inputType: 'number',
-          prefix: '₹',
-          onSave: v => handleSave('defaultRatePerDay', v),
-          isSaving,
-        }}
-      />
+      {rateField('Daily rate', 'defaultRatePerDay', false)}
+      {/* Fixed price per unit when returned damaged */}
+      {rateField('Damage charge', 'damageRate', true)}
+      {/* Used when an item is lost (short) */}
+      {rateField('Cost price', 'costPrice', true)}
 
-      {/* Damage Charge — fixed price per unit when returned damaged */}
-      <DetailField
-        label="Damage Charge (₹)"
-        value={item.damageRate != null && item.damageRate > 0 ? `₹${item.damageRate}` : undefined}
-        editable={{
-          rawValue: item.damageRate ?? 0,
-          inputType: 'number',
-          prefix: '₹',
-          onSave: v => handleSave('damageRate', v),
-          isSaving,
-        }}
-      />
-
-      {/* Cost Price — used when item is lost (short) */}
-      <DetailField
-        label="Cost Price (₹)"
-        value={item.costPrice != null && item.costPrice > 0 ? `₹${item.costPrice}` : undefined}
-        editable={{
-          rawValue: item.costPrice ?? 0,
-          inputType: 'number',
-          prefix: '₹',
-          onSave: v => handleSave('costPrice', v),
-          isSaving,
-        }}
-      />
-
-      <DetailField
-        label="Status"
-        value={
-          <span className={`status status-${item.isActive ? 'active' : 'inactive'}`}>
-            {item.isActive ? 'Active' : 'Inactive'}
-          </span>
-        }
-      />
-      <DetailField label="Created" value={formatDate(item.createdAt)} />
-      <DetailField label="Updated" value={formatDate(item.updatedAt)} />
+      <DetailField label="Created" value={displayDate(item.createdAt)} />
+      <DetailField label="Updated" value={displayDate(item.updatedAt)} />
     </DetailSection>
   ) : null;
 
+  const transactionColumns: Column<QuantityTransaction>[] = [
+    { key: 'date', header: 'Date', nowrap: true, render: tx => formatDate(tx.date) },
+    {
+      key: 'type',
+      header: 'Type',
+      nowrap: true,
+      render: tx => (
+        <StatusChip status={tx.type} tone={transactionTypeTone(tx.type)}>
+          {transactionTypeLabel(tx.type)}
+        </StatusChip>
+      ),
+    },
+    {
+      key: 'quantity',
+      header: 'Quantity',
+      align: 'right',
+      nowrap: true,
+      render: tx => {
+        const q = transactionQuantity(tx);
+        return (
+          <>
+            <span className="mono">{q.text}</span>
+            {q.suffix && ` ${q.suffix}`}
+          </>
+        );
+      },
+    },
+    { key: 'note', header: 'Note', render: tx => tx.note || notAdded },
+  ];
+
   return (
     <DetailPageShell
-      title={item?.name || 'Inventory Item'}
-      subtitle={item?.code ? `Code: ${item.code}` : undefined}
-      status={item ? (item.isActive ? 'Active' : 'Inactive') : undefined}
-      statusClassName={`status status-${item?.isActive ? 'active' : 'inactive'}`}
+      title={item?.name || 'Item'}
+      eyebrow="Item"
+      code={item?.code}
+      status={item ? (item.isActive ? 'active' : 'inactive') : undefined}
       backTo="/inventory"
       backLabel="Inventory"
       isLoading={isLoading}
+      loadingLabel="Loading item…"
       error={error}
       onRetry={refetch}
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      idPrefix="inventory"
       sidebar={sidebar}
     >
       {item && (
         <>
-          <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
-
           {activeTab === 'about' && (
             <>
-              {/* Stock Info */}
-              <DetailSection title="Stock Information">
-                <DetailField label="Total Quantity" value={`${item.totalQuantity} ${item.unit}`} />
-
-                {/* Inline stock adjustment form — anchored to total quantity */}
-                <div className={pageStyles.adjustFormWrap}>
-                  <form
-                    onSubmit={handleAdjustQuantity}
-                    className={`form-row ${pageStyles.adjustForm}`}
-                  >
-                    <div className={`form-group ${pageStyles.adjustFormGroup}`}>
-                      <label className="form-label">Type</label>
-                      <select
-                        className="form-select"
-                        value={adjType}
-                        onChange={e => setAdjType(e.target.value as AdjustQuantityInput['type'])}
-                      >
-                        {TRANSACTION_TYPE_OPTIONS.map(opt => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className={`form-group ${pageStyles.adjustFormGroup}`}>
-                      <label className="form-label">Qty</label>
-                      <input
-                        type="number"
-                        className="form-input"
-                        min={1}
-                        value={adjQuantity}
-                        onChange={e => setAdjQuantity(e.target.value)}
-                        placeholder="0"
-                        required
-                      />
-                    </div>
-
-                    <div className={`form-group ${pageStyles.adjustFormGroup}`}>
-                      <label className="form-label">Date</label>
-                      <input
-                        type="date"
-                        className="form-input"
-                        value={adjDate}
-                        max={getTodayISO()}
-                        onChange={e => setAdjDate(e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    <div className={`form-group ${pageStyles.adjustFormGroupWide}`}>
-                      <label className="form-label">Note (optional)</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={adjNote}
-                        onChange={e => setAdjNote(e.target.value)}
-                        placeholder="e.g. batch #12"
-                        maxLength={500}
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      className={`btn btn-primary btn-sm ${pageStyles.adjustButton}`}
-                      disabled={isAdjusting}
-                    >
-                      {isAdjusting ? 'Saving...' : 'Update Stock'}
-                    </button>
-                  </form>
-                  {adjError && <p className="text-error-inline">{adjError}</p>}
-                </div>
-
-                <DetailField
-                  label="Available"
-                  value={`${computeAvailable(item.totalQuantity, computeRentedFromHistory(item.quantityHistory))} ${item.unit}`}
+              <DetailSection title="Stock">
+                <Meter
+                  segments={[
+                    { value: available, tone: 'accent', label: 'Available' },
+                    { value: rented, tone: 'info', label: 'Rented out' },
+                  ]}
                 />
                 <DetailField
-                  label="Rented Out"
-                  value={`${computeRentedFromHistory(item.quantityHistory) + itemOpeningBalance} ${item.unit}`}
+                  label="Total quantity"
+                  value={withUnit(item.totalQuantity, item.unit)}
                 />
+                <DetailField label="Available" value={withUnit(available, item.unit)} />
+                <DetailField label="Rented out" value={withUnit(rented, item.unit)} />
               </DetailSection>
 
-              {/* Purchase Info */}
+              <Card title="Adjust stock">
+                <form
+                  aria-label="Adjust stock"
+                  onSubmit={handleAdjustQuantity}
+                  className={styles.adjustForm}
+                >
+                  <Field label="Type">
+                    <Select
+                      value={adjType}
+                      onChange={e => setAdjType(e.target.value as AdjustQuantityInput['type'])}
+                    >
+                      {TRANSACTION_TYPE_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Field label="Quantity" required>
+                    <Input
+                      type="number"
+                      mono
+                      min={1}
+                      value={adjQuantity}
+                      onChange={e => setAdjQuantity(e.target.value)}
+                      placeholder="0"
+                    />
+                  </Field>
+                  <Field label="Date" required>
+                    <Input
+                      type="date"
+                      value={adjDate}
+                      max={getTodayISO()}
+                      onChange={e => setAdjDate(e.target.value)}
+                    />
+                  </Field>
+                  <Field label="Note" className={styles.note}>
+                    <Input
+                      type="text"
+                      value={adjNote}
+                      onChange={e => setAdjNote(e.target.value)}
+                      placeholder="e.g. batch #12"
+                      maxLength={500}
+                    />
+                  </Field>
+                  <Button type="submit" variant="primary" loading={isAdjusting}>
+                    Update stock
+                  </Button>
+                </form>
+                {adjError && (
+                  <Notice tone="danger" className={styles.formError}>
+                    {adjError}
+                  </Notice>
+                )}
+              </Card>
+
               {item.purchaseInfo && (
-                <DetailSection title="Purchase Information">
+                <DetailSection title="Purchase information">
                   <DetailField label="Supplier" value={item.purchaseInfo.supplierName} />
-                  <DetailField label="Cost Per Unit" value={`₹${item.purchaseInfo.costPerUnit}`} />
-                  <DetailField label="Purchase Date" value={formatDate(item.purchaseInfo.date)} />
                   <DetailField
-                    label="Payment Status"
-                    value={
-                      <span className={`status status-${item.purchaseInfo.paymentStatus}`}>
-                        {item.purchaseInfo.paymentStatus}
-                      </span>
-                    }
+                    label="Cost per unit"
+                    value={formatMoney(item.purchaseInfo.costPerUnit)}
+                    mono
+                  />
+                  <DetailField label="Purchase date" value={displayDate(item.purchaseInfo.date)} />
+                  <DetailField
+                    label="Payment status"
+                    value={<StatusChip status={item.purchaseInfo.paymentStatus} />}
                   />
                 </DetailSection>
               )}
 
-              {/* Description */}
               <DetailSection title="Description">
                 <DetailField
                   label=""
                   value={item.description || undefined}
-                  emptyText="No description provided."
                   editable={{
                     rawValue: item.description ?? '',
                     inputType: 'textarea',
@@ -469,38 +481,33 @@ export function InventoryDetailPage() {
           )}
 
           {activeTab === 'quantity-timeline' && (
-            <DetailSection title="Quantity History">
-              {sortedHistory.length === 0 ? (
-                <p className="text-empty">No quantity adjustments recorded.</p>
-              ) : (
-                <div className={pageStyles.historyTableWrap}>
-                  <table className={`data-table ${pageStyles.historyTable}`}>
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Type</th>
-                        <th>Quantity</th>
-                        <th>Note</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedHistory.map(tx => (
-                        <tr key={tx._id}>
-                          <td>{formatDate(tx.date)}</td>
-                          <td>
-                            <span className={transactionTypeBadge(tx.type)}>
-                              {transactionTypeLabel(tx.type)}
-                            </span>
-                          </td>
-                          <td>{transactionQuantityDisplay(tx)}</td>
-                          <td>{tx.note || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </DetailSection>
+            <Card title="Quantity timeline" count={sortedHistory.length} padded={false}>
+              <DataTable
+                aria-label="Quantity timeline"
+                columns={transactionColumns}
+                rows={sortedHistory}
+                rowKey={tx => tx._id}
+                empty={<EmptyState title="No quantity adjustments yet" />}
+                mobile={{
+                  title: tx => {
+                    const q = transactionQuantity(tx);
+                    return (
+                      <>
+                        <span className="mono">{q.text}</span>
+                        {q.suffix && ` ${q.suffix}`}
+                      </>
+                    );
+                  },
+                  badge: tx => (
+                    <StatusChip status={tx.type} tone={transactionTypeTone(tx.type)}>
+                      {transactionTypeLabel(tx.type)}
+                    </StatusChip>
+                  ),
+                  subtitle: tx => formatDate(tx.date),
+                  meta: tx => [tx.note],
+                }}
+              />
+            </Card>
           )}
 
           {activeTab === 'change-history' && (
