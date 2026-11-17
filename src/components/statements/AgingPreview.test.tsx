@@ -43,19 +43,19 @@ describe('AgingPreview', () => {
   it('renders the exact amounts, grand total and buckets', () => {
     renderWithProviders(<AgingPreview data={base} />);
     expect(screen.getByText(/aging statement/i)).toHaveTextContent('Mehta Builders');
-    expect(screen.getByText(/As of/)).toHaveTextContent('1/3/2024');
+    expect(screen.getByText(/As of/)).toHaveTextContent('1 Mar 2024');
     expect(tableRows()).toEqual([
-      ['Bill #', 'Bill Date', 'Due Date', 'Days Overdue', 'Total', 'Paid', 'Balance Due', 'Bucket'],
-      ['B-001', '7/1/2024', '6/2/2024', '24', '12,585.59', '5,000.00', '7,585.59', '0-30'],
-      ['B-002', '2/10/2023', '1/11/2023', '121', '2,000.00', '0.00', '2,000.00', '90+'],
-      ['Grand Total', '9,585.59', ''],
+      ['Bill #', 'Bill date', 'Due date', 'Days overdue', 'Total', 'Paid', 'Balance due', 'Bucket'],
+      ['B-001', '7 Jan 2024', '6 Feb 2024', '24', '₹12,585.59', '₹5,000', '₹7,585.59', '0-30'],
+      ['B-002', '2 Oct 2023', '1 Nov 2023', '121', '₹2,000', '₹0', '₹2,000', '90+'],
+      ['Grand total', '₹9,585.59', ''],
     ]);
     expect(screen.getByRole('link', { name: 'B-001' })).toHaveAttribute('href', '/bills/b1');
     for (const [label, value] of [
-      ['Current (0-30)', '7,585.59'],
-      ['31-60 Days', '0.00'],
-      ['61-90 Days', '0.00'],
-      ['90+ Days', '2,000.00'],
+      ['Current (0-30)', '₹7,585.59'],
+      ['31-60 days', '₹0'],
+      ['61-90 days', '₹0'],
+      ['90+ days', '₹2,000'],
     ]) {
       expect(screen.getByText(label).nextSibling).toHaveTextContent(value);
     }

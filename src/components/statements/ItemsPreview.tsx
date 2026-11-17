@@ -1,10 +1,8 @@
 import { Link } from 'react-router-dom';
 import type { ItemStatementData } from '../../types';
-import styles from './StatementPreview.module.css';
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString();
-}
+import { formatDate } from '../../utils/format';
+import { Card, Notice, StatCard, Table, THead, TBody, Tr, Th, Td } from '../ui';
+import { StatementShell, StatementSummary } from './StatementShell';
 
 interface ItemsPreviewProps {
   data: ItemStatementData;
@@ -12,94 +10,89 @@ interface ItemsPreviewProps {
 
 export function ItemsPreview({ data }: ItemsPreviewProps) {
   return (
-    <div className={styles.previewContainer}>
-      <div className={styles.previewHeader}>
-        <p className={styles.previewTitle}>Item Statement - {data.party.name}</p>
-        <p className={styles.previewSubtitle}>
-          {formatDate(data.period.from)} to {formatDate(data.period.to)}
-        </p>
-      </div>
-
+    <StatementShell
+      title="Item statement"
+      partyName={data.party.name}
+      period={`${formatDate(data.period.from)} to ${formatDate(data.period.to)}`}
+    >
       {data.items.length === 0 ? (
-        <p className={styles.emptyMessage}>No item activity found for this period.</p>
+        <Notice tone="info">No item activity found for this period.</Notice>
       ) : (
         <>
           {data.items.map(item => (
-            <div key={item.itemId}>
-              <h4 className={styles.sectionHeader}>{item.itemName}</h4>
-              <table className={styles.previewTable}>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Challan #</th>
-                    <th className={styles.numericCell}>Delivery Qty</th>
-                    <th className={styles.numericCell}>Return Qty</th>
-                    <th className={styles.numericCell}>Running Qty</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className={styles.balanceRow}>
-                    <td colSpan={4}>Opening Qty</td>
-                    <td className={styles.numericCell}>{item.openingQty}</td>
-                  </tr>
+            <Card key={item.itemId} title={item.itemName} padded={false}>
+              <Table aria-label={item.itemName}>
+                <THead>
+                  <Tr>
+                    <Th nowrap>Date</Th>
+                    <Th nowrap>Challan #</Th>
+                    <Th align="right">Delivery qty</Th>
+                    <Th align="right">Return qty</Th>
+                    <Th align="right">Running qty</Th>
+                  </Tr>
+                </THead>
+                <TBody>
+                  <Tr>
+                    <Td colSpan={4}>
+                      <strong>Opening qty</strong>
+                    </Td>
+                    <Td align="right" mono>
+                      {item.openingQty}
+                    </Td>
+                  </Tr>
                   {item.events.map((event, idx) => (
-                    <tr key={idx}>
-                      <td>{formatDate(event.date)}</td>
-                      <td>
-                        <Link to={`/challans/${event.challanId}`} className={styles.entityLink}>
-                          {event.challanNumber}
-                        </Link>
-                      </td>
-                      <td className={styles.numericCell}>
+                    <Tr key={idx}>
+                      <Td nowrap>{formatDate(event.date)}</Td>
+                      <Td nowrap>
+                        <Link to={`/challans/${event.challanId}`}>{event.challanNumber}</Link>
+                      </Td>
+                      <Td align="right" mono>
                         {event.type === 'delivery' ? event.quantity : '-'}
-                      </td>
-                      <td className={styles.numericCell}>
+                      </Td>
+                      <Td align="right" mono>
                         {event.type === 'return' ? event.quantity : '-'}
-                      </td>
-                      <td className={styles.numericCell}>{event.runningQty}</td>
-                    </tr>
+                      </Td>
+                      <Td align="right" mono>
+                        {event.runningQty}
+                      </Td>
+                    </Tr>
                   ))}
-                  <tr className={styles.balanceRow}>
-                    <td colSpan={4}>Closing Qty</td>
-                    <td className={styles.numericCell}>{item.closingQty}</td>
-                  </tr>
-                  <tr className={styles.totalsRow}>
-                    <td colSpan={2}>Summary</td>
-                    <td className={styles.numericCell}>{item.totalDelivered}</td>
-                    <td className={styles.numericCell}>{item.totalReturned}</td>
-                    <td className={styles.numericCell}>
+                  <Tr>
+                    <Td colSpan={4}>
+                      <strong>Closing qty</strong>
+                    </Td>
+                    <Td align="right" mono>
+                      {item.closingQty}
+                    </Td>
+                  </Tr>
+                  <Tr>
+                    <Td colSpan={2}>
+                      <strong>Summary</strong>
+                    </Td>
+                    <Td align="right" mono>
+                      {item.totalDelivered}
+                    </Td>
+                    <Td align="right" mono>
+                      {item.totalReturned}
+                    </Td>
+                    <Td align="right" mono nowrap>
                       Dmg: {item.damages.damaged} | Short: {item.damages.short}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+                    </Td>
+                  </Tr>
+                </TBody>
+              </Table>
+            </Card>
           ))}
 
-          <div className={styles.summaryGrid}>
-            <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>Total Delivered</span>
-              <span className={styles.summaryValue}>{data.grandTotals.totalDelivered}</span>
-            </div>
-            <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>Total Returned</span>
-              <span className={styles.summaryValue}>{data.grandTotals.totalReturned}</span>
-            </div>
-            <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>Net Held</span>
-              <span className={styles.summaryValue}>{data.grandTotals.netHeld}</span>
-            </div>
-            <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>Total Damaged</span>
-              <span className={styles.summaryValue}>{data.grandTotals.totalDamaged}</span>
-            </div>
-            <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>Total Short</span>
-              <span className={styles.summaryValue}>{data.grandTotals.totalShort}</span>
-            </div>
-          </div>
+          <StatementSummary>
+            <StatCard label="Total delivered" value={data.grandTotals.totalDelivered} />
+            <StatCard label="Total returned" value={data.grandTotals.totalReturned} />
+            <StatCard label="Net held" value={data.grandTotals.netHeld} />
+            <StatCard label="Total damaged" value={data.grandTotals.totalDamaged} />
+            <StatCard label="Total short" value={data.grandTotals.totalShort} />
+          </StatementSummary>
         </>
       )}
-    </div>
+    </StatementShell>
   );
 }

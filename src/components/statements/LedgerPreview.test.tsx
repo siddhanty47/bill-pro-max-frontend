@@ -42,11 +42,11 @@ describe('LedgerPreview', () => {
     expect(screen.getByText(/ledger statement/i)).toHaveTextContent('Mehta Builders');
     expect(tableRows()).toEqual([
       ['Date', 'Description', 'Reference', 'Debit', 'Credit', 'Balance'],
-      ['Opening Balance', '1,500.00'],
-      ['7/1/2024', 'Bill', 'B-001', '12,345.50', '-', '13,845.50'],
-      ['20/1/2024', 'Payment', 'PAY-9', '-', '5,000.00', '8,845.50'],
-      ['Totals', '12,345.50', '5,000.00', ''],
-      ['Closing Balance', '8,845.50'],
+      ['Opening balance', '₹1,500'],
+      ['7 Jan 2024', 'Bill', 'B-001', '₹12,345.50', '-', '₹13,845.50'],
+      ['20 Jan 2024', 'Payment', 'PAY-9', '-', '₹5,000', '₹8,845.50'],
+      ['Totals', '₹12,345.50', '₹5,000', ''],
+      ['Closing balance', '₹8,845.50'],
     ]);
     expect(screen.getByRole('link', { name: 'B-001' })).toHaveAttribute('href', '/bills/bill1');
     expect(screen.queryByRole('link', { name: 'PAY-9' })).not.toBeInTheDocument();

@@ -24,8 +24,16 @@ describe('StatementPreview', () => {
       },
       /ledger statement/i,
     ],
-    ['bills', { type: 'bills', ...common, period, bills: [], totals: {} as never }, /bill statement/i],
-    ['items', { type: 'items', ...common, period, items: [], grandTotals: {} as never }, /item statement/i],
+    [
+      'bills',
+      { type: 'bills', ...common, period, bills: [], totals: {} as never },
+      /bill statement/i,
+    ],
+    [
+      'items',
+      { type: 'items', ...common, period, items: [], grandTotals: {} as never },
+      /item statement/i,
+    ],
     [
       'aging',
       {

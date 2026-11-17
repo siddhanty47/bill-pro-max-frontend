@@ -49,7 +49,13 @@ const base: ItemStatementData = {
       damages: { damaged: 0, short: 0, needRepair: 0 },
     },
   ],
-  grandTotals: { totalDelivered: 40, totalReturned: 15, netHeld: 25, totalDamaged: 2, totalShort: 3 },
+  grandTotals: {
+    totalDelivered: 40,
+    totalReturned: 15,
+    netHeld: 25,
+    totalDamaged: 2,
+    totalShort: 3,
+  },
 };
 
 describe('ItemsPreview', () => {
@@ -59,21 +65,21 @@ describe('ItemsPreview', () => {
     expect(screen.getByText('Cuplock 2m')).toBeInTheDocument();
     expect(screen.getByText('Plank')).toBeInTheDocument();
     expect(tableRows(0)).toEqual([
-      ['Date', 'Challan #', 'Delivery Qty', 'Return Qty', 'Running Qty'],
-      ['Opening Qty', '10'],
-      ['7/1/2024', 'CH-1', '40', '-', '50'],
-      ['20/1/2024', 'CH-2', '-', '15', '35'],
-      ['Closing Qty', '35'],
+      ['Date', 'Challan #', 'Delivery qty', 'Return qty', 'Running qty'],
+      ['Opening qty', '10'],
+      ['7 Jan 2024', 'CH-1', '40', '-', '50'],
+      ['20 Jan 2024', 'CH-2', '-', '15', '35'],
+      ['Closing qty', '35'],
       ['Summary', '40', '15', 'Dmg: 2 | Short: 3'],
     ]);
     expect(tableRows(1)[3]).toEqual(['Summary', '0', '0', 'Dmg: 0 | Short: 0']);
     expect(screen.getByRole('link', { name: 'CH-2' })).toHaveAttribute('href', '/challans/c2');
     for (const [label, value] of [
-      ['Total Delivered', '40'],
-      ['Total Returned', '15'],
-      ['Net Held', '25'],
-      ['Total Damaged', '2'],
-      ['Total Short', '3'],
+      ['Total delivered', '40'],
+      ['Total returned', '15'],
+      ['Net held', '25'],
+      ['Total damaged', '2'],
+      ['Total short', '3'],
     ]) {
       expect(screen.getByText(label).nextSibling).toHaveTextContent(value);
     }
