@@ -24,6 +24,10 @@ const names: IconName[] = [
   'rupee',
   'settings',
   'logout',
+  'paperclip',
+  'mic',
+  'stop',
+  'send',
   'brand',
 ];
 

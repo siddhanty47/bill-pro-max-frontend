@@ -15,6 +15,7 @@
  *    extract→create-challan tools (the agent decides, user confirms the write).
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Button, IconButton } from '../ui';
 import { useSocket } from '../../context/socketContext';
 import { useCurrentBusiness } from '../../hooks/useCurrentBusiness';
 import {
@@ -51,49 +52,6 @@ const SUGGESTIONS = [
 ];
 
 const MAX_IMAGES = 4;
-
-/* Inline line-icons — monochrome, currentColor, square caps (no emoji). Sized 16px to sit in the 34px icon buttons. */
-const svgProps = {
-  width: 16,
-  height: 16,
-  viewBox: '0 0 16 16',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 1.3,
-  strokeLinecap: 'square' as const,
-  strokeLinejoin: 'miter' as const,
-  'aria-hidden': true,
-};
-
-/** Paperclip — attach photo. */
-function AttachIcon() {
-  return (
-    <svg {...svgProps}>
-      <path d="M12.5 7 7 12.5a2.6 2.6 0 0 1-3.7-3.7l6-6a1.7 1.7 0 0 1 2.4 2.4l-6 6a0.8 0.8 0 0 1-1.1-1.1L10 7" />
-    </svg>
-  );
-}
-
-/** Microphone — record voice. */
-function MicIcon() {
-  return (
-    <svg {...svgProps}>
-      <rect x="5.5" y="1.5" width="5" height="8" rx="2" />
-      <path d="M3.5 7.5a4.5 4.5 0 0 0 9 0" />
-      <line x1="8" y1="12" x2="8" y2="14.3" />
-      <line x1="5.5" y1="14.4" x2="10.5" y2="14.4" />
-    </svg>
-  );
-}
-
-/** Filled square — stop recording. */
-function StopIcon() {
-  return (
-    <svg {...svgProps} fill="currentColor" stroke="none">
-      <rect x="4" y="4" width="8" height="8" />
-    </svg>
-  );
-}
 
 export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
   const { currentBusinessId } = useCurrentBusiness();
@@ -470,7 +428,7 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
             pending
               ? 'Confirm or cancel above…'
               : recording
-                ? 'Recording… tap ■ to stop'
+                ? 'Recording. Tap stop to end recording'
                 : transcribing
                   ? 'Transcribing…'
                   : 'Ask anything…'
@@ -480,31 +438,26 @@ export default function AssistantPanel({ open, onClose }: AssistantPanelProps) {
         />
         <div className={styles.composerBar}>
           <div className={styles.composerTools}>
-            <button
-              type="button"
-              className={styles.iconBtn}
+            <IconButton
+              icon="paperclip"
+              label="Attach photo"
+              title="Attach photo"
               onClick={() => fileInputRef.current?.click()}
               disabled={inputLocked || attachments.length >= MAX_IMAGES}
-              title="Attach photo"
-              aria-label="Attach photo"
-            >
-              <AttachIcon />
-            </button>
-            <button
-              type="button"
-              className={`${styles.iconBtn} ${recording ? styles.recording : ''}`}
+            />
+            <IconButton
+              icon={recording ? 'stop' : 'mic'}
+              label={recording ? 'Stop recording' : 'Record voice'}
+              title={recording ? 'Stop recording' : 'Record voice'}
+              className={recording ? styles.recording : undefined}
               onClick={toggleRecording}
               disabled={inputLocked || transcribing}
-              title={recording ? 'Stop recording' : 'Record voice'}
-              aria-label={recording ? 'Stop recording' : 'Record voice'}
-            >
-              {recording ? <StopIcon /> : <MicIcon />}
-            </button>
+            />
           </div>
           <span className={styles.composerHint}>Shift+Enter for new line</span>
-          <button type="submit" className={styles.sendBtn} disabled={!canSend}>
+          <Button type="submit" variant="primary" size="sm" disabled={!canSend}>
             Send
-          </button>
+          </Button>
         </div>
       </form>
     </aside>
