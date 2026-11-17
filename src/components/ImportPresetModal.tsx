@@ -204,8 +204,8 @@ export function ImportPresetModal({
                 empty={<EmptyState title="No presets match your search" />}
                 mobile={{
                   title: p => p.name,
-                  subtitle: p => p.description,
-                  meta: p => [`${p.itemCount} items`, p.isSystem ? 'System' : null],
+                  subtitle: p => `${p.itemCount} items`,
+                  meta: p => [p.isSystem ? 'System' : 'Custom', p.description],
                 }}
               />
             </>

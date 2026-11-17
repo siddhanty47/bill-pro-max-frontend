@@ -1,7 +1,7 @@
 /**
  * Modal for creating a new preset from a business's existing inventory.
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useId } from 'react';
 import { Modal } from './Modal';
 import {
   Button,
@@ -36,6 +36,7 @@ export function CreatePresetModal({
   businessId,
   inventory,
 }: CreatePresetModalProps) {
+  const pickerTitleId = useId();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -147,8 +148,10 @@ export function CreatePresetModal({
           </Field>
         </div>
 
-        <section className={styles.picker} aria-label="Select items">
-          <h3 className={styles.pickerTitle}>Select items</h3>
+        <section className={styles.picker} aria-labelledby={pickerTitleId}>
+          <h3 id={pickerTitleId} className={styles.pickerTitle}>
+            Select items
+          </h3>
           <SearchInput
             label="Search items"
             placeholder="Search items"

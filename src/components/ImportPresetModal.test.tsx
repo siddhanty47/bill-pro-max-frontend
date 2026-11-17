@@ -137,4 +137,12 @@ describe('ImportPresetModal', () => {
     await user.type(screen.getByPlaceholderText(/search items/i), 'zzzz');
     expect(screen.getByText(/no items match your search/i)).toBeInTheDocument();
   });
+
+  it('shows item count, type and description on the phone list', async () => {
+    setup();
+    const list = await screen.findByRole('list', { name: 'Presets' });
+    expect(within(list).getByText('2 items')).toBeInTheDocument();
+    expect(within(list).getByText(/System · Starter/)).toBeInTheDocument();
+    expect(within(list).getByText(/^Custom$/)).toBeInTheDocument();
+  });
 });

@@ -103,7 +103,7 @@ describe('CreatePresetModal', () => {
   it('shows a message when the search matches nothing', async () => {
     const { user } = setup();
     await user.type(screen.getByPlaceholderText(/search items/i), 'zzzz');
-    expect(screen.getByText(/no items match your search/i)).toBeInTheDocument();
+    expect(await screen.findByText(/no items match your search/i)).toBeInTheDocument();
   });
 
   it('shows an empty state when the business has no inventory', () => {

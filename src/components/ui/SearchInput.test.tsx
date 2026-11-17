@@ -15,6 +15,14 @@ describe('SearchInput', () => {
     expect(onChange).toHaveBeenCalledTimes(2);
   });
 
+  it('has no fixed flex basis of its own, so a column parent cannot stretch it', async () => {
+    const fs = (await import(/* @vite-ignore */ 'node:fs' as string)) as {
+      readFileSync(path: string, encoding: 'utf8'): string;
+    };
+    const css = fs.readFileSync('src/components/ui/SearchInput.module.css', 'utf8');
+    expect(css).not.toMatch(/flex:\s*1 1 \d+px/);
+  });
+
   it('shows an aria-hidden shortcut hint only when given', () => {
     const { rerender } = render(<SearchInput label="Search" hint="/" />);
     expect(screen.getByText('/')).toHaveAttribute('aria-hidden', 'true');
