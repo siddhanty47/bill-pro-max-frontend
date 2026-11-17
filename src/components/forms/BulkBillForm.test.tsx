@@ -22,7 +22,7 @@ const agr = (over: Partial<AgreementWithParty>) =>
 const agreements = [
   agr({}),
   agr({ agreementId: 'AG-2', partyId: 'p2', partyName: 'Om Constructions', siteCode: 'S9' }),
-  agr({ agreementId: 'AG-3', partyId: 'p3', partyName: 'Closed Co', status: 'closed' }),
+  agr({ agreementId: 'AG-3', partyId: 'p3', partyName: 'Closed Co', status: 'terminated' }),
 ];
 
 function setup(list = agreements, stateCode = '27') {
