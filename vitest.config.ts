@@ -15,7 +15,7 @@ export default defineConfig({
     environment: 'jsdom',
     // Heavy form tests slow down under full-suite CPU load.
     testTimeout: 15000,
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs'],
     setupFiles: ['./src/test/setup.ts'],
     env: {
       VITE_API_URL: 'http://api.test/api/v1',

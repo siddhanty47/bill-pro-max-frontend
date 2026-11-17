@@ -282,7 +282,15 @@ The design is meant to be changed in one place.
 
 ## Token check
 
-`npm run lint` runs `scripts/check-design-tokens.mjs` after ESLint. It flags, outside `src/globals.css`, `src/components/ui/**` and tests: hex colours, `rgb/rgba/hsl` colours, any `font-family` that isn't exactly one token (`var(--font-sans|display|mono)`), `box-shadow` that isn't `none` or a `var(--…)`, and `style={` in `.tsx`. It is warn-only now and becomes strict (fails lint) at the end of Stage 5. Code you touch must produce zero new findings — read the finding list, don't just check the exit code.
+`npm run lint` runs `node scripts/check-design-tokens.mjs --strict` after ESLint: **any finding fails lint** (exit 1). Run it without `--strict` to just print findings (exit 0). It flags, outside `src/globals.css`, `src/components/ui/**`, tests and the one allowlisted file (`GoogleIcon.tsx`, brand colours):
+
+- hex colours, `rgb/rgba/hsl/hwb/lab/lch/oklab/oklch` colours and named colours (`white`, `red`, ...) in CSS values, and hex/rgb colours in `.ts/.tsx` string literals;
+- `font-family` that isn't exactly one font token, and `font:` shorthand without a font token;
+- `box-shadow` containing anything but `none` or `var(--…)` tokens (checked across multiple lines);
+- `border-radius` with a literal px/rem/em value (use `--radius-*`; `0` and `%` are fine);
+- `style={` in `.tsx`.
+
+Comments, `#id` selectors, URL fragments and JSX text like `Bill #123` are not findings. The scanner is exported and tested in `scripts/check-design-tokens.test.mjs`. Read the finding list, don't just check the exit code.
 
 ## Checklist for any UI change
 
