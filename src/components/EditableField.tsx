@@ -3,7 +3,8 @@
  * @description Click-to-edit value for detail pages and table cells. View mode shows
  * the value with an "Edit" hint revealed on hover/focus; edit mode swaps in a kit
  * Input/Select/Textarea (or a custom renderer) with Save and Cancel buttons.
- * Enter saves (except in textareas), Escape cancels, blur saves for inputs/selects.
+ * Enter saves (except in textareas), Escape cancels. Moving focus out of the editor
+ * saves inputs/selects; moving it to the editor's own Save/Cancel buttons does not.
  *
  * The row layout (label column) belongs to `DetailField`; `label` here names the
  * edit control for assistive tech.
@@ -13,6 +14,7 @@ import {
   useRef,
   useEffect,
   useCallback,
+  type FocusEvent,
   type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
@@ -91,6 +93,9 @@ export function EditableField({
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(null);
   /** Guards against a second save (e.g. blur then Save click) while one is in flight. */
   const committingRef = useRef(false);
+  const editorRef = useRef<HTMLDivElement>(null);
+  /** Set once the editor is closing, so a blur fired while it unmounts never saves. */
+  const closingRef = useRef(false);
 
   /** Auto-focus the input when entering edit mode */
   useEffect(() => {
@@ -106,10 +111,12 @@ export function EditableField({
     if (isSaving) return;
     setEditValue(value ?? '');
     setError(null);
+    closingRef.current = false;
     setIsEditing(true);
   }, [isSaving, value]);
 
   const cancelEdit = useCallback(() => {
+    closingRef.current = true;
     setIsEditing(false);
     setEditValue(value ?? '');
     setError(null);
@@ -120,6 +127,7 @@ export function EditableField({
     const finalValue = inputType === 'number' ? Number(editValue) : editValue;
 
     if (finalValue === value) {
+      closingRef.current = true;
       setIsEditing(false);
       return;
     }
@@ -128,6 +136,7 @@ export function EditableField({
     try {
       setError(null);
       await onSave(finalValue);
+      closingRef.current = true;
       setIsEditing(false);
     } catch (err: unknown) {
       setError(errorMessage(err));
@@ -148,6 +157,18 @@ export function EditableField({
       }
     },
     [cancelEdit, commitEdit, inputType]
+  );
+
+  /** Blur-save only when focus leaves the editor (not when it moves to Save/Cancel). */
+  const blurSaves = inputType !== 'textarea' && !renderEditInput;
+  const handleEditorBlur = useCallback(
+    (e: FocusEvent<HTMLDivElement>) => {
+      if (!blurSaves || closingRef.current) return;
+      const next = e.relatedTarget as Node | null;
+      if (next && editorRef.current?.contains(next)) return;
+      commitEdit();
+    },
+    [blurSaves, commitEdit]
   );
 
   const containerClass = [styles.root, compact ? styles.compact : ''].filter(Boolean).join(' ');
@@ -205,7 +226,6 @@ export function EditableField({
             {...controlProps}
             ref={inputRef as React.RefObject<HTMLSelectElement>}
             onChange={e => setEditValue(e.target.value)}
-            onBlur={commitEdit}
           >
             {options?.map(opt => (
               <option key={opt.value} value={opt.value}>
@@ -232,7 +252,6 @@ export function EditableField({
             type={inputType}
             value={inputType === 'number' ? editValue : String(editValue)}
             onChange={e => setEditValue(e.target.value)}
-            onBlur={commitEdit}
             step={inputType === 'number' ? 'any' : undefined}
           />
         );
@@ -240,7 +259,7 @@ export function EditableField({
   };
 
   return (
-    <div className={`${containerClass} ${styles.editor}`}>
+    <div ref={editorRef} className={`${containerClass} ${styles.editor}`} onBlur={handleEditorBlur}>
       {renderEditInput ? (
         <div className={styles.custom}>
           {renderEditInput({

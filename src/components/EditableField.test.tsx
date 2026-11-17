@@ -164,4 +164,46 @@ describe('EditableField', () => {
     await user.keyboard('{Enter}');
     expect(screen.getByRole('textbox')).toHaveValue('Sharma');
   });
+
+  it('does not save when tabbing from the input to Cancel, and Cancel then cancels', async () => {
+    const { user, onSave, startEditing } = setup();
+
+    await startEditing();
+    await user.type(screen.getByRole('textbox'), 'xyz');
+    await user.tab(); // Save
+    await user.tab(); // Cancel
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    expect(onSave).not.toHaveBeenCalled();
+
+    await user.keyboard('{Enter}');
+    expect(onSave).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /Sharma/ })).toBeInTheDocument();
+  });
+
+  it('saves from the keyboard on Save, once', async () => {
+    const { user, onSave, startEditing } = setup();
+
+    await startEditing();
+    await user.type(screen.getByRole('textbox'), '2');
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveFocus();
+    await user.keyboard('{Enter}');
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave).toHaveBeenCalledWith('Sharma2');
+  });
+
+  it('saves when focus leaves the editor', async () => {
+    const onSave = vi.fn(async () => {});
+    const user = userEvent.setup();
+    render(
+      <>
+        <EditableField label="Name" value="Sharma" inputType="text" onSave={onSave} />
+        <button type="button">Elsewhere</button>
+      </>
+    );
+    await user.click(screen.getByRole('button', { name: /Sharma/ }));
+    await user.type(screen.getByRole('textbox'), '3');
+    await user.click(screen.getByRole('button', { name: 'Elsewhere' }));
+    expect(onSave).toHaveBeenCalledWith('Sharma3');
+  });
 });

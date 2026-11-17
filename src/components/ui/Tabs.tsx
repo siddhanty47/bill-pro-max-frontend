@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import styles from './Tabs.module.css';
 
 interface Tab {
@@ -22,9 +22,32 @@ interface TabsProps {
 const tabId = (prefix: string, id: string) => `${prefix}-tab-${id}`;
 const panelId = (prefix: string, id: string) => `${prefix}-panel-${id}`;
 
+/** True while the row overflows and is not scrolled to its end. */
+function useOverflowFade(tabCount: number) {
+  const ref = useRef<HTMLElement>(null);
+  const [fade, setFade] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => setFade(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+    observer?.observe(el);
+    return () => {
+      el.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+      observer?.disconnect();
+    };
+  }, [tabCount]);
+  return [ref, fade] as const;
+}
+
 export function Tabs({ tabs, activeTab, onChange, idPrefix }: TabsProps) {
+  const [ref, fade] = useOverflowFade(tabs.length);
   return (
-    <nav className={styles.tabs} role="tablist">
+    <nav ref={ref} className={`${styles.tabs} ${fade ? styles.scrollable : ''}`} role="tablist">
       {tabs.map(tab => (
         <button
           key={tab.id}

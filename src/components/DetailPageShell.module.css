@@ -40,6 +40,7 @@
 
 /* DetailSection body sized for DetailField rows */
 .sectionBody {
+  margin: 0;
   padding: var(--space-1) var(--space-5) var(--space-2);
 }
 
@@ -51,11 +52,11 @@
   align-items: baseline;
   margin: 0;
   padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--border-subtle);
 }
 
-.field:last-child {
-  border-bottom: 0;
+/* Dividers between rows only — never after the last one */
+.field + .field {
+  border-top: 1px solid var(--border-subtle);
 }
 
 .sidebar .field {

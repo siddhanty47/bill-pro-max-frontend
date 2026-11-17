@@ -3,7 +3,8 @@ import styles from './PageHeader.module.css';
 
 export type PageHeaderProps = {
   title: string;
-  eyebrow?: string;
+  /** Context line above the title, in the text font; wrap codes/numbers in `.mono`. */
+  eyebrow?: ReactNode;
   actions?: ReactNode;
   /** Shown beside the title, e.g. a `StatusChip` on a detail page. */
   badge?: ReactNode;

@@ -5,7 +5,16 @@
  * `DetailField` (a label/value row, optionally inline-editable via EditableField).
  * Built on the ui kit; see the "Detail page" recipe in the frontend-design skill.
  */
-import type { ReactNode } from 'react';
+import {
+  Children,
+  createContext,
+  Fragment,
+  isValidElement,
+  useContext,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
 import { Link } from 'react-router-dom';
 import { Card, ErrorMessage, Icon, PageHeader, Spinner, StatusChip, TabPanel, Tabs } from './ui';
 import type { Tone } from './ui/status';
@@ -38,6 +47,8 @@ export interface DetailPageShellProps {
   backLabel: string;
   /** Whether data is loading */
   isLoading?: boolean;
+  /** Spinner message while loading (default "Loading…") */
+  loadingLabel?: string;
   /** Error object from RTK Query (rendered via ErrorMessage) */
   error?: unknown;
   /** Retry callback for error state */
@@ -48,8 +59,9 @@ export interface DetailPageShellProps {
   sidebar?: ReactNode;
   /** Tabs under the header; `children` is the active tab's content */
   tabs?: DetailTab[];
-  /** Active tab id (defaults to the first tab) */
+  /** Active tab id. Omit it for uncontrolled tabs (start on the first, switch internally). */
   activeTab?: string;
+  /** Called with the new tab id (controlled or not) */
   onTabChange?: (id: string) => void;
   /** Unique per page; wires tabs to the panel (default "detail") */
   idPrefix?: string;
@@ -61,9 +73,17 @@ export interface DetailPageShellProps {
   statusClassName?: string;
 }
 
-function eyebrowText(eyebrow?: string, code?: string, subtitle?: string) {
-  if (eyebrow && code) return `${eyebrow} · ${code}`;
-  return eyebrow ?? code ?? subtitle;
+/** "Party · MEHT": the entity word in the text font, only the code in mono. */
+function eyebrowNode(eyebrow?: string, code?: string, subtitle?: string): ReactNode {
+  const codeNode = code ? <span className="mono">{code}</span> : null;
+  if (eyebrow && codeNode) {
+    return (
+      <>
+        {eyebrow} · {codeNode}
+      </>
+    );
+  }
+  return eyebrow ?? codeNode ?? subtitle;
 }
 
 export function DetailPageShell({
@@ -75,6 +95,7 @@ export function DetailPageShell({
   backTo,
   backLabel,
   isLoading,
+  loadingLabel,
   error,
   onRetry,
   headerActions,
@@ -86,15 +107,21 @@ export function DetailPageShell({
   children,
   subtitle,
 }: DetailPageShellProps) {
+  const [ownTab, setOwnTab] = useState(tabs?.[0]?.id);
+
   if (isLoading) {
-    return <Spinner />;
+    return <Spinner message={loadingLabel} />;
   }
 
   if (error) {
     return <ErrorMessage error={error} onRetry={onRetry} />;
   }
 
-  const currentTab = activeTab ?? tabs?.[0]?.id;
+  const currentTab = activeTab ?? (tabs?.some(t => t.id === ownTab) ? ownTab : tabs?.[0]?.id);
+  const changeTab = (id: string) => {
+    setOwnTab(id);
+    onTabChange?.(id);
+  };
 
   return (
     <div>
@@ -105,18 +132,13 @@ export function DetailPageShell({
 
       <PageHeader
         title={title}
-        eyebrow={eyebrowText(eyebrow, code, subtitle)}
+        eyebrow={eyebrowNode(eyebrow, code, subtitle)}
         badge={status ? <StatusChip status={status} tone={statusTone} /> : undefined}
         actions={headerActions}
       />
 
       {tabs && currentTab && (
-        <Tabs
-          idPrefix={idPrefix}
-          tabs={tabs}
-          activeTab={currentTab}
-          onChange={id => onTabChange?.(id)}
-        />
+        <Tabs idPrefix={idPrefix} tabs={tabs} activeTab={currentTab} onChange={changeTab} />
       )}
 
       <div className={sidebar ? styles.body : undefined}>
@@ -149,7 +171,35 @@ export interface DetailSectionProps {
   children: ReactNode;
 }
 
-/** A detail-page section: a kit Card whose body fits DetailField rows. */
+/** True inside a section body that is one shared `<dl>` of DetailField rows. */
+const InFieldList = createContext(false);
+
+/** Children flattened through fragments, without null/false/true. */
+function flatChildren(children: ReactNode): ReactNode[] {
+  return Children.toArray(children).flatMap(child =>
+    isValidElement(child) && child.type === Fragment
+      ? flatChildren((child as ReactElement<{ children?: ReactNode }>).props.children)
+      : [child]
+  );
+}
+
+function isFieldList(children: ReactNode) {
+  const items = flatChildren(children);
+  return (
+    items.length > 0 &&
+    items.every(
+      item =>
+        isValidElement(item) &&
+        item.type === DetailField &&
+        !!(item as ReactElement<DetailFieldProps>).props.label
+    )
+  );
+}
+
+/**
+ * A detail-page section: a kit Card whose body fits DetailField rows. When every
+ * child is a labelled DetailField the body is a single `<dl>` of rows.
+ */
 export function DetailSection({
   title,
   count,
@@ -160,7 +210,15 @@ export function DetailSection({
 }: DetailSectionProps) {
   return (
     <Card title={title} count={count} actions={actions ?? headerActions} padded={false}>
-      {padded ? <div className={styles.sectionBody}>{children}</div> : children}
+      {!padded ? (
+        children
+      ) : isFieldList(children) ? (
+        <dl className={styles.sectionBody}>
+          <InFieldList.Provider value>{children}</InFieldList.Provider>
+        </dl>
+      ) : (
+        <div className={styles.sectionBody}>{children}</div>
+      )}
     </Card>
   );
 }
@@ -210,7 +268,10 @@ export interface DetailFieldProps {
 
 const isEmptyValue = (value: ReactNode) => value === undefined || value === null || value === '';
 
-/** A label/value row (`<dl>`). With `editable`, the value is an EditableField. */
+/**
+ * A label/value row: a `<div>` group inside a DetailSection's `<dl>`, or its own
+ * `<dl>` elsewhere. With `editable`, the value is an EditableField.
+ */
 export function DetailField({
   label,
   value,
@@ -218,6 +279,7 @@ export function DetailField({
   mono = false,
   editable,
 }: DetailFieldProps) {
+  const inList = useContext(InFieldList);
   const isEmpty = isEmptyValue(value);
 
   const content = editable ? (
@@ -249,10 +311,11 @@ export function DetailField({
     return <div className={`${styles.field} ${styles.bare} ${valueClass}`}>{content}</div>;
   }
 
+  const Row = inList ? 'div' : 'dl';
   return (
-    <dl className={styles.field}>
+    <Row className={styles.field}>
       <dt className={styles.label}>{label}</dt>
       <dd className={valueClass}>{content}</dd>
-    </dl>
+    </Row>
   );
 }

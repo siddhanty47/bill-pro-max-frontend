@@ -30,7 +30,10 @@ describe('DetailPageShell', () => {
     const back = screen.getByRole('link', { name: 'Back to Parties' });
     expect(back).toHaveAttribute('href', '/parties');
     expect(back).toHaveTextContent('Parties');
-    expect(screen.getByText('Party · MEHT')).toBeInTheDocument();
+    const code = screen.getByText('MEHT');
+    expect(code).toHaveClass('mono');
+    expect(code.parentElement).toHaveTextContent('Party · MEHT');
+    expect(code.parentElement).not.toHaveClass('mono');
     expect(screen.getByRole('heading', { level: 1, name: 'Mehta Builders' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'New bill' })).toBeInTheDocument();
   });
@@ -119,9 +122,16 @@ describe('DetailPageShell', () => {
     expect(onTabChange).toHaveBeenCalledWith('bills');
   });
 
-  it('defaults the active tab to the first one', () => {
+  it('runs uncontrolled tabs without activeTab, starting on the first', async () => {
+    const onTabChange = vi.fn();
     renderInRouter(
-      <DetailPageShell title="T" backTo="/t" backLabel="Things" tabs={TABS}>
+      <DetailPageShell
+        title="T"
+        backTo="/t"
+        backLabel="Things"
+        tabs={TABS}
+        onTabChange={onTabChange}
+      >
         content
       </DetailPageShell>
     );
@@ -130,6 +140,26 @@ describe('DetailPageShell', () => {
       'id',
       'detail-panel-about'
     );
+
+    await userEvent.click(screen.getByRole('tab', { name: /Bills/ }));
+    expect(screen.getByRole('tab', { name: /Bills/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'detail-panel-bills');
+    expect(onTabChange).toHaveBeenCalledWith('bills');
+  });
+
+  it('shows a custom loading label', () => {
+    renderInRouter(
+      <DetailPageShell
+        title="X"
+        backTo="/x"
+        backLabel="Items"
+        isLoading
+        loadingLabel="Loading item"
+      >
+        body
+      </DetailPageShell>
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('Loading item');
   });
 
   it('places the sidebar in a complementary region after the main column', () => {
@@ -231,5 +261,41 @@ describe('DetailField', () => {
       />
     );
     expect(screen.getByRole('button', { name: /Not added/ })).toBeInTheDocument();
+  });
+
+  it('renders a section of labelled fields as one <dl> of row groups', () => {
+    const { container } = render(
+      <DetailSection title="Contact">
+        <DetailField label="Name" value="Mehta" />
+        <>
+          <DetailField label="Phone" value="98200" mono />
+          {false}
+        </>
+        <DetailField label="Email" value="" />
+      </DetailSection>
+    );
+    const lists = container.querySelectorAll('dl');
+    expect(lists).toHaveLength(1);
+    const rows = Array.from(lists[0].children);
+    expect(rows).toHaveLength(3);
+    rows.forEach(row => {
+      expect(row.tagName).toBe('DIV');
+      expect(row.querySelector('dt')).not.toBeNull();
+      expect(row.querySelector('dd')).not.toBeNull();
+    });
+    expect(screen.getAllByRole('term')).toHaveLength(3);
+  });
+
+  it('keeps each field its own <dl> when the section mixes other content', () => {
+    const { container } = render(
+      <DetailSection title="Notes">
+        <DetailField label="Name" value="Mehta" />
+        <p>Free text</p>
+      </DetailSection>
+    );
+    const lists = container.querySelectorAll('dl');
+    expect(lists).toHaveLength(1);
+    expect(lists[0].parentElement?.tagName).toBe('DIV');
+    expect(screen.getByText('Free text').closest('dl')).toBeNull();
   });
 });
