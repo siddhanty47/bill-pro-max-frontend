@@ -76,18 +76,19 @@ const rowCodes = () =>
 afterEach(() => vi.restoreAllMocks());
 
 /** Fills and submits the add-item form. */
-async function fillForm(user: UserEvent, dialog: HTMLElement) {
-  await user.type(within(dialog).getByLabelText(/Item Code/), 'NEW-1');
-  await user.type(within(dialog).getByLabelText(/Item Name/), 'New thing');
+async function fillForm(user: UserEvent, dialog: HTMLElement, withRates = false) {
+  await user.type(within(dialog).getByLabelText(/Item code/), 'NEW-1');
+  await user.type(within(dialog).getByLabelText(/Item name/), 'New thing');
   await user.type(within(dialog).getByPlaceholderText(/category/i), 'Misc');
-  const qtyField = within(dialog).getByLabelText(/Total Quantity/);
+  const qtyField = within(dialog).getByLabelText(/Total quantity/);
   await user.clear(qtyField);
   await user.type(qtyField, '5');
-  // empty optional number inputs register as NaN and fail the form's schema
-  await user.type(within(dialog).getByLabelText(/Daily Rate/), '10');
-  await user.type(within(dialog).getByLabelText(/Damage Charge/), '11');
-  await user.type(within(dialog).getByLabelText(/Cost Price/), '12');
-  await user.click(within(dialog).getByRole('button', { name: 'Add Item' }));
+  if (withRates) {
+    await user.type(within(dialog).getByLabelText(/Daily rate/), '10');
+    await user.type(within(dialog).getByLabelText(/Damage charge/), '11');
+    await user.type(within(dialog).getByLabelText(/Cost price/), '12');
+  }
+  await user.click(within(dialog).getByRole('button', { name: 'Add item' }));
 }
 
 describe('InventoryPage', () => {
@@ -199,7 +200,7 @@ describe('InventoryPage', () => {
     await screen.findByRole('table');
     await user.click(screen.getByRole('button', { name: /Add item/ }));
     const dialog = await screen.findByRole('dialog');
-    await fillForm(user, dialog);
+    await fillForm(user, dialog, true);
     await waitFor(() => expect(body).toBeDefined());
     expect(body).toMatchObject({
       code: 'NEW-1',
