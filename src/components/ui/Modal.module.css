@@ -34,9 +34,11 @@
   flex-direction: column;
 }
 
+/* Header stays put; the body scrolls so tall forms keep their actions reachable. */
 .modal.formSize .body {
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
