@@ -7,6 +7,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Employee, CreateEmployeeInput } from '../../types';
+import { Button, Field, Fieldset, Input, Select, Textarea } from '../ui';
 import styles from './EmployeeForm.module.css';
 
 const EMPLOYEE_TYPES = [
@@ -17,6 +18,12 @@ const EMPLOYEE_TYPES = [
   { value: 'supervisor', label: 'Supervisor' },
 ] as const;
 
+const nonNegative = z
+  .string()
+  .optional()
+  .or(z.literal(''))
+  .refine(v => !v || Number(v) >= 0, 'Enter 0 or more');
+
 const employeeSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   phone: z.string().max(20).optional().or(z.literal('')),
@@ -25,9 +32,9 @@ const employeeSchema = z.object({
   address: z.string().max(500).optional().or(z.literal('')),
   joiningDate: z.string().optional().or(z.literal('')),
   salaryType: z.enum(['monthly', 'daily']).optional().or(z.literal('')),
-  monthlySalary: z.string().optional().or(z.literal('')),
-  dailyRate: z.string().optional().or(z.literal('')),
-  overtimeRatePerHour: z.string().optional().or(z.literal('')),
+  monthlySalary: nonNegative,
+  dailyRate: nonNegative,
+  overtimeRatePerHour: nonNegative,
   vehicleNumber: z.string().max(20).optional().or(z.literal('')),
   emergencyContactName: z.string().max(100).optional().or(z.literal('')),
   emergencyContactPhone: z.string().max(20).optional().or(z.literal('')),
@@ -133,185 +140,146 @@ export function EmployeeForm({ initialData, onSubmit, onCancel, isLoading }: Emp
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)}>
-      <div className="form-content">
-        <div className="form-columns">
-          <div>
-            <div className="form-group">
-              <label htmlFor="emp-name">Name *</label>
-              <input id="emp-name" {...register('name')} disabled={isLoading} />
-              {errors.name && <span className="error-message">{errors.name.message}</span>}
-            </div>
+    <form onSubmit={handleSubmit(handleFormSubmit)} noValidate>
+      <div className={styles.columns}>
+        <div className={styles.column}>
+          <Field label="Name" required error={errors.name?.message}>
+            <Input id="emp-name" {...register('name')} disabled={isLoading} />
+          </Field>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="emp-phone">Phone</label>
-                <input id="emp-phone" {...register('phone')} disabled={isLoading} />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="emp-type">Type</label>
-                <select
-                  id="emp-type"
-                  {...register('type')}
-                  disabled={isLoading || !!initialData}
-                  className={styles.typeSelect}
-                >
-                  {EMPLOYEE_TYPES.map(t => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="emp-designation">Designation</label>
-              <input
-                id="emp-designation"
-                {...register('designation')}
-                disabled={isLoading}
-                placeholder="e.g. Crane Operator, Site Supervisor"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="emp-joining">Joining Date</label>
-              <input
-                id="emp-joining"
-                type="date"
-                {...register('joiningDate')}
-                disabled={isLoading}
-              />
-            </div>
-
-            {employeeType === 'transporter' && (
-              <div className="form-group">
-                <label htmlFor="emp-vehicle">Vehicle Number</label>
-                <input
-                  id="emp-vehicle"
-                  {...register('vehicleNumber')}
-                  disabled={isLoading}
-                  className={styles.uppercaseInput}
-                  placeholder="e.g. MH12AB1234"
-                />
-              </div>
-            )}
+          <div className={styles.pair}>
+            <Field label="Phone" error={errors.phone?.message}>
+              <Input id="emp-phone" mono {...register('phone')} disabled={isLoading} />
+            </Field>
+            <Field label="Type">
+              <Select id="emp-type" {...register('type')} disabled={isLoading || !!initialData}>
+                {EMPLOYEE_TYPES.map(t => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
           </div>
 
-          <div>
-            <div className="form-group">
-              <label>Salary Type</label>
-              <div className={styles.salaryRadioGroup}>
-                <label className={styles.radioLabel}>
-                  <input
-                    type="radio"
-                    value="monthly"
-                    {...register('salaryType')}
-                    disabled={isLoading}
-                  />
-                  Monthly
-                </label>
-                <label className={styles.radioLabel}>
-                  <input
-                    type="radio"
-                    value="daily"
-                    {...register('salaryType')}
-                    disabled={isLoading}
-                  />
-                  Daily
-                </label>
-              </div>
-            </div>
+          <Field label="Designation" error={errors.designation?.message}>
+            <Input
+              id="emp-designation"
+              {...register('designation')}
+              disabled={isLoading}
+              placeholder="e.g. Crane operator, site supervisor"
+            />
+          </Field>
 
-            {salaryType === 'monthly' && (
-              <div className="form-group">
-                <label htmlFor="emp-monthly-salary">Monthly Salary</label>
-                <input
-                  id="emp-monthly-salary"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  {...register('monthlySalary')}
+          <Field label="Joining date" error={errors.joiningDate?.message}>
+            <Input id="emp-joining" type="date" {...register('joiningDate')} disabled={isLoading} />
+          </Field>
+
+          {employeeType === 'transporter' && (
+            <Field label="Vehicle number" error={errors.vehicleNumber?.message}>
+              <Input
+                id="emp-vehicle"
+                mono
+                {...register('vehicleNumber')}
+                disabled={isLoading}
+                className={styles.uppercaseInput}
+                placeholder="e.g. MH12AB1234"
+              />
+            </Field>
+          )}
+        </div>
+
+        <div className={styles.column}>
+          <Field label="Salary type">
+            <Select id="emp-salary-type" {...register('salaryType')} disabled={isLoading}>
+              <option value="">Not set</option>
+              <option value="monthly">Monthly</option>
+              <option value="daily">Daily</option>
+            </Select>
+          </Field>
+
+          {salaryType === 'monthly' && (
+            <Field label="Monthly salary" error={errors.monthlySalary?.message}>
+              <Input
+                id="emp-monthly-salary"
+                mono
+                type="number"
+                min="0"
+                step="0.01"
+                {...register('monthlySalary')}
+                disabled={isLoading}
+                placeholder="0.00"
+              />
+            </Field>
+          )}
+
+          {salaryType === 'daily' && (
+            <Field label="Daily rate" error={errors.dailyRate?.message}>
+              <Input
+                id="emp-daily-rate"
+                mono
+                type="number"
+                min="0"
+                step="0.01"
+                {...register('dailyRate')}
+                disabled={isLoading}
+                placeholder="0.00"
+              />
+            </Field>
+          )}
+
+          {salaryType && (
+            <Field label="Overtime rate / hr (₹)" error={errors.overtimeRatePerHour?.message}>
+              <Input
+                id="emp-ot-rate"
+                mono
+                type="number"
+                min="0"
+                step="0.01"
+                {...register('overtimeRatePerHour')}
+                disabled={isLoading}
+                placeholder="0.00"
+              />
+            </Field>
+          )}
+
+          <Field label="Address" error={errors.address?.message}>
+            <Textarea id="emp-address" {...register('address')} rows={2} disabled={isLoading} />
+          </Field>
+
+          <Fieldset legend="Emergency contact">
+            <div className={styles.pair}>
+              <Field label="Name" error={errors.emergencyContactName?.message}>
+                <Input
+                  id="emp-ec-name"
+                  {...register('emergencyContactName')}
                   disabled={isLoading}
-                  placeholder="0.00"
                 />
-              </div>
-            )}
-
-            {salaryType === 'daily' && (
-              <div className="form-group">
-                <label htmlFor="emp-daily-rate">Daily Rate</label>
-                <input
-                  id="emp-daily-rate"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  {...register('dailyRate')}
+              </Field>
+              <Field label="Phone" error={errors.emergencyContactPhone?.message}>
+                <Input
+                  id="emp-ec-phone"
+                  mono
+                  {...register('emergencyContactPhone')}
                   disabled={isLoading}
-                  placeholder="0.00"
                 />
-              </div>
-            )}
-
-            {salaryType && (
-              <div className="form-group">
-                <label htmlFor="emp-ot-rate">Overtime Rate / Hr (₹)</label>
-                <input
-                  id="emp-ot-rate"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  {...register('overtimeRatePerHour')}
-                  disabled={isLoading}
-                  placeholder="0.00"
-                />
-              </div>
-            )}
-
-            <div className="form-group">
-              <label htmlFor="emp-address">Address</label>
-              <textarea id="emp-address" {...register('address')} rows={2} disabled={isLoading} />
+              </Field>
             </div>
+          </Fieldset>
 
-            <fieldset className={styles.emergencyFieldset}>
-              <legend>Emergency Contact</legend>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="emp-ec-name">Name</label>
-                  <input
-                    id="emp-ec-name"
-                    {...register('emergencyContactName')}
-                    disabled={isLoading}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="emp-ec-phone">Phone</label>
-                  <input
-                    id="emp-ec-phone"
-                    {...register('emergencyContactPhone')}
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-            </fieldset>
-
-            <div className="form-group">
-              <label htmlFor="emp-notes">Notes</label>
-              <textarea id="emp-notes" {...register('notes')} rows={2} disabled={isLoading} />
-            </div>
-          </div>
+          <Field label="Notes" error={errors.notes?.message}>
+            <Textarea id="emp-notes" {...register('notes')} rows={2} disabled={isLoading} />
+          </Field>
         </div>
       </div>
 
-      <div className="form-actions">
-        <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={isLoading}>
+      <div className={styles.actions}>
+        <Button onClick={onCancel} disabled={isLoading}>
           Cancel
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={isLoading}>
-          {isLoading ? 'Saving...' : initialData ? 'Update Employee' : 'Add Employee'}
-        </button>
+        </Button>
+        <Button variant="primary" type="submit" loading={isLoading}>
+          {initialData ? 'Update employee' : 'Add employee'}
+        </Button>
       </div>
     </form>
   );

@@ -13,6 +13,8 @@ export default defineConfig({
   envDir: './src/test/env',
   test: {
     environment: 'jsdom',
+    // Heavy form tests slow down under full-suite CPU load.
+    testTimeout: 15000,
     include: ['src/**/*.test.{ts,tsx}'],
     setupFiles: ['./src/test/setup.ts'],
     env: {
@@ -36,7 +38,7 @@ export default defineConfig({
       ],
       reporter: ['text-summary', 'json-summary', 'lcov'],
       // Repo-wide floor (ratchet): raise when coverage grows, never lower.
-      thresholds: { lines: 56 },
+      thresholds: { lines: 90 },
     },
   },
 });

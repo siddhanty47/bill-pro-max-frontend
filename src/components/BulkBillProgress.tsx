@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import type { BatchProgress } from '../hooks/useBillGenerationProgress';
+import { Button, IconButton, Notice, ProgressBar } from './ui';
 import styles from './BulkBillProgress.module.css';
 
 interface BulkBillProgressProps {
@@ -32,63 +33,45 @@ function BatchBanner({
 }) {
   const [expanded, setExpanded] = useState(false);
   const done = batch.completed + batch.failed;
-  const pct = batch.total > 0 ? Math.round((done / batch.total) * 100) : 0;
   const hasFailures = batch.failed > 0;
   const failures = batch.results.filter(r => r.status === 'failed');
+  const tone = batch.isProcessing ? 'info' : hasFailures ? 'warning' : 'success';
 
   return (
-    <div
-      className={`${styles.banner} ${!batch.isProcessing ? styles.done : ''} ${hasFailures ? styles.hasErrors : ''}`}
-    >
+    <Notice tone={tone}>
       <div className={styles.header}>
-        <div className={styles.info}>
-          {batch.isProcessing ? (
-            <span className={styles.spinner} />
-          ) : (
-            <span className={styles.checkmark}>&#10003;</span>
-          )}
-          <span>
-            {batch.isProcessing
-              ? `Generating bills: ${batch.completed}/${batch.total} completed`
-              : `Bill generation complete: ${batch.completed} succeeded`}
-            {batch.failed > 0 && <span className={styles.failCount}>, {batch.failed} failed</span>}
-          </span>
-        </div>
+        <span className={styles.message}>
+          {batch.isProcessing
+            ? `Generating bills: ${batch.completed}/${batch.total} completed`
+            : `Bill generation complete: ${batch.completed} succeeded`}
+          {hasFailures && `, ${batch.failed} failed`}
+        </span>
         <div className={styles.actions}>
           {hasFailures && (
-            <button type="button" className={styles.toggleBtn} onClick={() => setExpanded(e => !e)}>
+            <Button variant="ghost" size="sm" onClick={() => setExpanded(e => !e)}>
               {expanded ? 'Hide errors' : 'Show errors'}
-            </button>
+            </Button>
           )}
           {!batch.isProcessing && (
-            <button
-              type="button"
-              className={styles.dismissBtn}
-              onClick={() => onDismiss(batch.batchId)}
-              title="Dismiss"
-            >
-              &times;
-            </button>
+            <IconButton icon="close" label="Dismiss" onClick={() => onDismiss(batch.batchId)} />
           )}
         </div>
       </div>
 
       {batch.isProcessing && (
-        <div className={styles.progressTrack}>
-          <div className={styles.progressBar} style={{ width: `${pct}%` }} />
-        </div>
+        <ProgressBar value={done} max={batch.total} label="Bill generation progress" />
       )}
 
       {expanded && failures.length > 0 && (
-        <div className={styles.errorList}>
+        <ul className={styles.errorList}>
           {failures.map((f, i) => (
-            <div key={i} className={styles.errorItem}>
-              <span className={styles.errorAgreement}>{f.agreementId}</span>
-              <span className={styles.errorMsg}>{f.error}</span>
-            </div>
+            <li key={i} className={styles.errorItem}>
+              <span className="mono">{f.agreementId}</span>
+              <span>{f.error}</span>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
-    </div>
+    </Notice>
   );
 }

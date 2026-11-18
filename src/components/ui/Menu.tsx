@@ -168,12 +168,15 @@ export function Menu({
 export type MenuItemProps = {
   onSelect?: () => void;
   to?: string;
+  /** Marks the item as unread/new: accent tint and a leading bar. */
+  unread?: boolean;
   children?: ReactNode;
 } & ButtonHTMLAttributes<HTMLButtonElement>;
 
 export function MenuItem({
   onSelect,
   to,
+  unread,
   children,
   className,
   onClick,
@@ -181,12 +184,16 @@ export function MenuItem({
   ...rest
 }: MenuItemProps) {
   const { close } = useContext(MenuContext);
-  const classes = [styles.item, className].filter(Boolean).join(' ');
+  const classes = [styles.item, unread && styles.unread, className].filter(Boolean).join(' ');
   const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
+    // aria-disabled items are focusable but never activate: no consumer onClick,
+    // no select, and a router link must not navigate.
+    if (rest['aria-disabled'] === true || rest['aria-disabled'] === 'true') {
+      e.preventDefault();
+      return;
+    }
     onClick?.(e);
     if (e.defaultPrevented) return;
-    // aria-disabled items are focusable but never activate.
-    if (rest['aria-disabled'] === true || rest['aria-disabled'] === 'true') return;
     onSelect?.();
     close();
   };
@@ -197,6 +204,7 @@ export function MenuItem({
         {...(rest as unknown as HTMLAttributes<HTMLAnchorElement>)}
         to={to}
         role="menuitem"
+        data-unread={unread ? 'true' : undefined}
         className={classes}
         onClick={handleClick as unknown as (e: MouseEvent<HTMLAnchorElement>) => void}
       >
@@ -205,7 +213,14 @@ export function MenuItem({
     );
   }
   return (
-    <button {...rest} type={type} role="menuitem" className={classes} onClick={handleClick}>
+    <button
+      {...rest}
+      type={type}
+      role="menuitem"
+      data-unread={unread ? 'true' : undefined}
+      className={classes}
+      onClick={handleClick}
+    >
       {children}
     </button>
   );

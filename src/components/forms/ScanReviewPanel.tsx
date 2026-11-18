@@ -1,11 +1,14 @@
 /**
  * ScanReviewPanel
  * Shows what the photo-scan extractor read and flagged, so the user can verify
- * before submitting: confidence, raw GSTIN/site read off the challan, items that
- * were not auto-matched, and any warnings (e.g. failed quantity checksums).
+ * before submitting: confidence, raw GSTIN/site read off the challan, the party
+ * and items that were not auto-matched, and any warnings (e.g. failed quantity
+ * checksums).
  */
 import { useMemo } from 'react';
 import type { ExtractedChallanData } from '../../types';
+import { IconButton, Notice, StatusChip, Table, TBody, Td, Th, Tr } from '../ui';
+import type { Tone } from '../ui/status';
 import styles from './ScanReviewPanel.module.css';
 
 interface ScanReviewPanelProps {
@@ -13,70 +16,82 @@ interface ScanReviewPanelProps {
   onDismiss: () => void;
 }
 
+const CONFIDENCE_TONE: Record<ExtractedChallanData['confidence'], Tone> = {
+  high: 'success',
+  medium: 'warning',
+  low: 'danger',
+};
+
+const CONFIDENCE_LABEL: Record<ExtractedChallanData['confidence'], string> = {
+  high: 'High confidence',
+  medium: 'Medium confidence',
+  low: 'Low confidence',
+};
+
 export default function ScanReviewPanel({ result, onDismiss }: ScanReviewPanelProps) {
   const unmatchedItems = useMemo(
     () => result.items.filter(i => !i.itemId).map(i => i.itemName),
     [result.items]
   );
   const partyUnmatched = !result.partyId && !!result.partyName;
+  const needsAttention =
+    partyUnmatched ||
+    unmatchedItems.length > 0 ||
+    result.warnings.length > 0 ||
+    result.confidence !== 'high';
 
-  const confidenceClass =
-    result.confidence === 'high'
-      ? styles.badgeHigh
-      : result.confidence === 'medium'
-        ? styles.badgeMedium
-        : styles.badgeLow;
+  const rows: { label: string; value: string; mono?: boolean }[] = [];
+  if (result.partyGstin) rows.push({ label: 'GSTIN read', value: result.partyGstin, mono: true });
+  if (result.siteAddress) rows.push({ label: 'Site read', value: result.siteAddress });
+  if (partyUnmatched)
+    rows.push({ label: 'Party not matched', value: `${result.partyName}. Select it below.` });
+  if (unmatchedItems.length > 0)
+    rows.push({
+      label: unmatchedItems.length > 1 ? 'Items not matched' : 'Item not matched',
+      value: `${unmatchedItems.join(', ')}. Select ${unmatchedItems.length > 1 ? 'them' : 'it'} below.`,
+    });
 
   return (
-    <div className={styles.panel} role="status" aria-live="polite">
-      <div className={styles.header}>
-        <span className={styles.title}>Scan review</span>
-        <span className={`${styles.badge} ${confidenceClass}`}>{result.confidence} confidence</span>
-        <button type="button" className={styles.dismiss} onClick={onDismiss} aria-label="Dismiss">
-          ×
-        </button>
-      </div>
-
-      {(result.partyGstin || result.siteAddress) && (
-        <dl className={styles.readList}>
-          {result.partyGstin && (
-            <div className={styles.readRow}>
-              <dt className={styles.readLabel}>GSTIN read</dt>
-              <dd className={styles.readValue}>{result.partyGstin}</dd>
-            </div>
-          )}
-          {result.siteAddress && (
-            <div className={styles.readRow}>
-              <dt className={styles.readLabel}>Site read</dt>
-              <dd className={styles.readValue}>{result.siteAddress}</dd>
-            </div>
-          )}
-        </dl>
-      )}
-
-      {partyUnmatched && (
-        <p className={styles.flag}>
-          Party <strong>{result.partyName}</strong> was not auto-matched — please select it
-          manually.
-        </p>
-      )}
-
-      {unmatchedItems.length > 0 && (
-        <p className={styles.flag}>
-          {unmatchedItems.length} item{unmatchedItems.length > 1 ? 's' : ''} not auto-matched —
-          select manually: <span className={styles.flagItems}>{unmatchedItems.join(', ')}</span>
-        </p>
+    <Notice
+      tone={needsAttention ? 'warning' : 'success'}
+      className={styles.panel}
+      title={
+        <span className={styles.header}>
+          Scan review
+          <StatusChip status={result.confidence} tone={CONFIDENCE_TONE[result.confidence]}>
+            {CONFIDENCE_LABEL[result.confidence]}
+          </StatusChip>
+          <IconButton
+            label="Dismiss scan review"
+            icon="close"
+            onClick={onDismiss}
+            className={styles.dismiss}
+          />
+        </span>
+      }
+    >
+      {rows.length > 0 && (
+        <Table aria-label="Read from photo">
+          <TBody>
+            {rows.map(row => (
+              <Tr key={row.label}>
+                <Th scope="row" nowrap>
+                  {row.label}
+                </Th>
+                <Td mono={row.mono}>{row.value}</Td>
+              </Tr>
+            ))}
+          </TBody>
+        </Table>
       )}
 
       {result.warnings.length > 0 && (
-        <ul className={styles.warnings}>
+        <ul className={styles.warnings} aria-label="Warnings">
           {result.warnings.map((w, i) => (
-            <li key={i} className={styles.warning}>
-              {w}
-            </li>
+            <li key={i}>{w}</li>
           ))}
         </ul>
       )}
-    </div>
+    </Notice>
   );
 }

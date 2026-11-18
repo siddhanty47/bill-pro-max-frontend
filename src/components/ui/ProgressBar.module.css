@@ -1,0 +1,15 @@
+.bar {
+  display: block;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  color: inherit;
+}
+
+.track {
+  fill: currentColor;
+  opacity: 0.18;
+}
+
+.fill {
+  fill: currentColor;
+}

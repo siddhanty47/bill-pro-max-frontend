@@ -1,87 +1,64 @@
-.warningText {
-  color: var(--status-danger-text);
+/* Agreement form: layout only; controls, table and buttons are kit components. */
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.column,
+.fieldsetBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
 }
 
 .categoryPanel {
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 12px 16px;
-  background: var(--bg-card);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
-.selectAllLabel {
-  display: flex !important;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-subtle);
-  margin-bottom: 8px;
-  cursor: pointer;
-}
-
-.categoryLabel {
-  display: flex !important;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 0;
-  cursor: pointer;
-}
-
-.categoryCount {
-  color: var(--text-muted);
-  font-size: 0.85em;
-}
-
-.previewContainer {
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  max-height: 300px;
-  overflow-y: auto;
-  background: var(--bg-card);
-}
-
-.previewTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9em;
-}
-
-.previewTable thead tr {
-  border-bottom: 1px solid var(--border-subtle);
-  text-align: left;
-}
-
-.previewTable th {
-  padding: 10px 12px;
-  font-size: var(--text-xs);
+.gridTitle {
+  font-size: var(--text-sm);
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
-.rateColumn {
-  width: 120px;
-}
-
-.previewTable tbody tr {
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.codeCell {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  padding: 6px 12px;
-  color: var(--text-heading);
-}
-
-.cell {
-  padding: 6px 12px;
+/* The grid scrolls inside its own box, never the page. */
+.gridScroll {
+  max-height: 320px;
+  overflow: auto;
 }
 
 .rateInput {
-  width: 100%;
+  min-width: 96px;
 }
 
-.formCheckbox {
-  width: fit-content !important;
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+@media (max-width: 768px) {
+  .columns,
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

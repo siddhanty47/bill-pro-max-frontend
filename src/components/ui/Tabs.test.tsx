@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Tabs, TabPanel } from './Tabs';
 import { Tabs as TabsShim } from '../Tabs';
@@ -23,6 +23,35 @@ describe('Tabs', () => {
     render(<Tabs tabs={TABS} activeTab="bills" onChange={onChange} />);
     await userEvent.click(screen.getByRole('tab', { name: 'Challans' }));
     expect(onChange).toHaveBeenCalledWith('challans');
+  });
+
+  it('uses a roving tabindex and moves with arrow keys, Home and End', async () => {
+    const onChange = vi.fn();
+    const tabs = [...TABS, { id: 'payments', label: 'Payments' }];
+    const user = userEvent.setup();
+    render(<Tabs tabs={tabs} activeTab="bills" onChange={onChange} />);
+    expect(screen.getByRole('tab', { name: 'Bills' })).toHaveAttribute('tabindex', '0');
+    expect(screen.getByRole('tab', { name: 'Challans' })).toHaveAttribute('tabindex', '-1');
+
+    screen.getByRole('tab', { name: 'Bills' }).focus();
+    await user.keyboard('{ArrowRight}');
+    expect(onChange).toHaveBeenLastCalledWith('challans');
+    expect(screen.getByRole('tab', { name: 'Challans' })).toHaveFocus();
+    await user.keyboard('{ArrowLeft}');
+    expect(onChange).toHaveBeenLastCalledWith('payments');
+    await user.keyboard('{End}');
+    expect(onChange).toHaveBeenLastCalledWith('payments');
+    await user.keyboard('{Home}');
+    expect(onChange).toHaveBeenLastCalledWith('bills');
+    onChange.mockClear();
+    await user.keyboard('a');
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('keeps the first tab tabbable when activeTab matches no tab', () => {
+    render(<Tabs tabs={TABS} activeTab="nope" onChange={vi.fn()} />);
+    expect(screen.getByRole('tab', { name: 'Bills' })).toHaveAttribute('tabindex', '0');
+    expect(screen.getByRole('tab', { name: 'Challans' })).toHaveAttribute('tabindex', '-1');
   });
 
   it('is re-exported from the legacy path', () => {
@@ -57,5 +86,39 @@ describe('Tabs', () => {
     const tab = screen.getByRole('tab', { name: 'Bills' });
     expect(tab).not.toHaveAttribute('id');
     expect(tab).not.toHaveAttribute('aria-controls');
+  });
+
+  it('shows a count after the label', () => {
+    render(
+      <Tabs
+        tabs={[
+          { id: 'bills', label: 'Bills', count: 12 },
+          { id: 'about', label: 'About' },
+        ]}
+        activeTab="about"
+        onChange={vi.fn()}
+      />
+    );
+    expect(screen.getByRole('tab', { name: 'Bills 12' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'About' })).toBeInTheDocument();
+  });
+
+  it('fades the trailing edge only while the row overflows', () => {
+    render(<Tabs tabs={TABS} activeTab="bills" onChange={vi.fn()} />);
+    const list = screen.getByRole('tablist');
+    expect(list.className).not.toMatch(/scrollable/);
+
+    Object.defineProperty(list, 'scrollWidth', { configurable: true, value: 600 });
+    Object.defineProperty(list, 'clientWidth', { configurable: true, value: 300 });
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    expect(list.className).toMatch(/scrollable/);
+
+    act(() => {
+      list.scrollLeft = 300;
+      list.dispatchEvent(new Event('scroll'));
+    });
+    expect(list.className).not.toMatch(/scrollable/);
   });
 });

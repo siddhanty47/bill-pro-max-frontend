@@ -1,12 +1,13 @@
 /**
  * @fileoverview Bill detail view page
- * @description Detail page showing all information for a single bill, including
- * line items, financial summary, and payment status. Supports Jira-style inline
- * editing for the bill status field and stale-bill regeneration.
+ * @description Detail page for a single bill: billing period, summary and notes,
+ * line/damage/transportation tables, payments and change history. Header actions
+ * (send email, mark paid, download PDF, status changes) and stale-bill
+ * regeneration. Built on the kit's detail recipe.
  */
 import { useCallback, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import pageStyles from './BillDetailPage.module.css';
+import styles from './BillDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
   useGetBillQuery,
@@ -19,13 +20,31 @@ import {
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetPaymentsByBillQuery } from '../api/paymentApi';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
+import {
+  Button,
+  Card,
+  DataTable,
+  DocNumber,
+  EmptyState,
+  IconButton,
+  Menu,
+  MenuItem,
+  MenuLabel,
+  Notice,
+  StatusChip,
+  Table,
+  TBody,
+  Td,
+  Tr,
+  type Column,
+} from '../components/ui';
 import { getErrorMessage } from '../api/baseApi';
-import { Tabs } from '../components/Tabs';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
-import type { Bill } from '../types';
+import { formatDate, formatMoney } from '../utils/format';
+import type { Bill, BillItem, DamageBillItem, Payment, TransportationBreakupItem } from '../types';
 
-/** Bill status options — matches the Bill type union */
-const BILL_STATUS_OPTIONS: { value: Bill['status']; label: string }[] = [
+/** Bill statuses a bill can be moved to from the header menu */
+const BILL_STATUSES: { value: Bill['status']; label: string }[] = [
   { value: 'draft', label: 'Draft' },
   { value: 'sent', label: 'Sent' },
   { value: 'paid', label: 'Paid' },
@@ -34,20 +53,20 @@ const BILL_STATUS_OPTIONS: { value: Bill['status']; label: string }[] = [
   { value: 'cancelled', label: 'Cancelled' },
 ];
 
-/**
- * Formats an ISO date string for display.
- */
-function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString();
-}
+const METHOD_LABEL: Record<Payment['method'], string> = {
+  cash: 'Cash',
+  bank_transfer: 'Bank transfer',
+  upi: 'UPI',
+  cheque: 'Cheque',
+  other: 'Other',
+};
 
-/**
- * Formats a currency amount with the rupee symbol.
- */
-function formatCurrency(amount: number): string {
-  return `₹${amount.toLocaleString()}`;
-}
+/** Rows carry their list position so repeated items keep distinct keys. */
+type ItemRow = BillItem & { idx: number };
+type DamageRow = DamageBillItem & { idx: number };
+type TransportRow = TransportationBreakupItem & { idx: number };
+
+const notAdded = <span className="text-empty">Not added</span>;
 
 /**
  * BillDetailPage displays the full details of a single bill/invoice.
@@ -91,21 +110,31 @@ export function BillDetailPage() {
     ? bill.subtotal - (bill.transportationCharges || 0) - (bill.damageCharges || 0)
     : 0;
 
-  const TABS = [
-    { id: 'about', label: 'About' },
-    { id: 'line-items', label: 'Line Items' },
-    { id: 'payments', label: 'Payments' },
-    { id: 'change-history', label: 'Change History' },
-  ];
+  const paymentList = [...(payments ?? [])].sort(
+    (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
+  );
 
-  /** Save handler for bill status changes */
-  const handleStatusSave = useCallback(
-    async (newValue: string | number) => {
-      await updateBillStatus({
-        businessId: currentBusinessId!,
-        billId: billId!,
-        status: newValue as Bill['status'],
-      }).unwrap();
+  const tabs = bill
+    ? [
+        { id: 'about', label: 'About' },
+        { id: 'line-items', label: 'Line items', count: bill.items.length },
+        { id: 'payments', label: 'Payments', count: paymentList.length },
+        { id: 'change-history', label: 'Change history' },
+      ]
+    : undefined;
+
+  /** Move the bill to another status (same mutation the inline status edit used) */
+  const handleStatusChange = useCallback(
+    async (status: Bill['status']) => {
+      try {
+        await updateBillStatus({
+          businessId: currentBusinessId!,
+          billId: billId!,
+          status,
+        }).unwrap();
+      } catch (err) {
+        alert(getErrorMessage(err));
+      }
     },
     [currentBusinessId, billId, updateBillStatus]
   );
@@ -173,23 +202,134 @@ export function BillDetailPage() {
     }
   }, [bill, currentBusinessId, downloadPdf]);
 
+  // ─── Line items ───────────────────────────────────────────────────
+
+  const itemColumns: Column<ItemRow>[] = [
+    { key: 'itemName', header: 'Item' },
+    { key: 'quantity', header: 'Qty', mono: true, align: 'right', nowrap: true },
+    {
+      key: 'rate',
+      header: 'Rate/day',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: r => formatMoney(r.ratePerDay),
+    },
+    {
+      key: 'days',
+      header: 'Days',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: r => r.totalDays,
+    },
+    {
+      key: 'amount',
+      header: 'Amount',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: r => formatMoney(r.amount),
+    },
+  ];
+  const itemRows: ItemRow[] = (bill?.items ?? []).map((item, idx) => ({ ...item, idx }));
+
+  const damageColumns: Column<DamageRow>[] = [
+    {
+      key: 'challan',
+      header: 'Challan',
+      nowrap: true,
+      render: d => (d.challanNumber ? <span className="mono">{d.challanNumber}</span> : notAdded),
+    },
+    { key: 'itemName', header: 'Item' },
+    { key: 'quantity', header: 'Qty', mono: true, align: 'right', nowrap: true },
+    {
+      key: 'rate',
+      header: 'Rate',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: d => formatMoney(d.damageRate),
+    },
+    {
+      key: 'amount',
+      header: 'Amount',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: d => formatMoney(d.amount),
+    },
+    { key: 'note', header: 'Note', hideOnMobile: true, render: d => d.note || notAdded },
+  ];
+  const damageRows: DamageRow[] = (bill?.damageItems ?? []).map((d, idx) => ({ ...d, idx }));
+
+  const money = (
+    key: string,
+    header: string,
+    pick: (t: TransportRow) => number
+  ): Column<TransportRow> => ({
+    key,
+    header,
+    mono: true,
+    align: 'right',
+    nowrap: true,
+    render: t => formatMoney(pick(t)),
+  });
+  const transportColumns: Column<TransportRow>[] = [
+    { key: 'challanNumber', header: 'Challan', mono: true, nowrap: true },
+    {
+      key: 'type',
+      header: 'Type',
+      nowrap: true,
+      render: t => (t.challanType === 'delivery' ? 'Delivery' : 'Return'),
+    },
+    money('cartage', 'Cartage', t => t.cartageCharge),
+    money('loading', 'Loading', t => t.loadingCharge),
+    money('unloading', 'Unloading', t => t.unloadingCharge),
+    money('total', 'Total', t => t.totalCharge),
+  ];
+  const transportRows: TransportRow[] = (bill?.transportationBreakup ?? []).map((t, idx) => ({
+    ...t,
+    idx,
+  }));
+
+  // ─── Payments ─────────────────────────────────────────────────────
+
+  const paymentDate = (p: Payment) => (
+    <Link to={`/payments/${p._id}`} className="link-accent">
+      {formatDate(p.date)}
+    </Link>
+  );
+  const paymentColumns: Column<Payment>[] = [
+    { key: 'date', header: 'Date', nowrap: true, render: paymentDate },
+    {
+      key: 'amount',
+      header: 'Amount',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: p => formatMoney(p.amount),
+    },
+    { key: 'method', header: 'Method', nowrap: true, render: p => METHOD_LABEL[p.method] },
+    {
+      key: 'status',
+      header: 'Status',
+      nowrap: true,
+      render: p => <StatusChip status={p.status} />,
+    },
+    {
+      key: 'reference',
+      header: 'Reference',
+      hideOnMobile: true,
+      render: p => (p.reference ? <span className="mono">{p.reference}</span> : notAdded),
+    },
+  ];
+
+  // ─── Shell ────────────────────────────────────────────────────────
+
   const sidebar = bill ? (
     <DetailSection title="Details">
-      <DetailField label="Bill Number" value={bill.billNumber} />
-
-      {/* Editable: Status */}
-      <DetailField
-        label="Status"
-        value={<span className={`status status-${bill.status}`}>{bill.status}</span>}
-        editable={{
-          rawValue: bill.status,
-          inputType: 'select',
-          options: BILL_STATUS_OPTIONS,
-          onSave: handleStatusSave,
-          isSaving,
-        }}
-      />
-
+      <DetailField label="Bill number" value={bill.billNumber} mono />
       <DetailField
         label="Party"
         value={
@@ -200,318 +340,262 @@ export function BillDetailPage() {
       />
       <DetailField
         label="Agreement"
-        value={
-          <Link to={`/agreements/${bill.agreementId}`} className="link-accent">
-            {bill.agreementId}
-          </Link>
-        }
+        value={<DocNumber wrap value={bill.agreementId} to={`/agreements/${bill.agreementId}`} />}
       />
-      <DetailField label="Due Date" value={formatDate(bill.dueDate)} />
+      <DetailField label="Due date" value={formatDate(bill.dueDate ?? '')} />
       <DetailField label="Currency" value={bill.currency} />
-      <DetailField label="Created" value={formatDate(bill.createdAt)} />
-      <DetailField label="Updated" value={formatDate(bill.updatedAt)} />
+      <DetailField label="Created" value={formatDate(bill.createdAt ?? '')} />
+      <DetailField label="Updated" value={formatDate(bill.updatedAt ?? '')} />
     </DetailSection>
   ) : null;
+
+  const summaryRow = (label: string, amount: string, strong = false, pct?: number) => {
+    const value = <span className="mono">{amount}</span>;
+    return (
+      <Tr key={label}>
+        <Td>{strong ? <strong>{label}</strong> : label}</Td>
+        <Td align="right" nowrap>
+          {strong ? <strong>{value}</strong> : value}
+          {pct !== undefined && <span> ({pct}%)</span>}
+        </Td>
+      </Tr>
+    );
+  };
+
+  const status = bill?.status;
+  const canEmail = status !== undefined && status !== 'cancelled' && status !== 'paid';
+  const primary: 'send' | 'paid' | 'download' =
+    status === 'draft' ? 'send' : status === 'sent' || status === 'partial' ? 'paid' : 'download';
+  const emailButton = (variant: 'primary' | 'secondary') => (
+    <Button variant={variant} onClick={handleSendEmail} loading={isSending}>
+      Send email
+    </Button>
+  );
+  const downloadButton = (variant: 'primary' | 'secondary') => (
+    <Button variant={variant} onClick={handleDownloadPdf} loading={isDownloading}>
+      Download invoice
+    </Button>
+  );
 
   return (
     <DetailPageShell
       title={bill?.billNumber || 'Bill'}
-      subtitle={partyName ? `Party: ${partyName}` : undefined}
-      status={bill?.status}
-      statusClassName={`status status-${bill?.status}`}
+      eyebrow="Bill"
+      status={status}
       backTo="/bills"
       backLabel="Bills"
       isLoading={isLoading}
+      loadingLabel="Loading bill…"
       error={error}
       onRetry={refetch}
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      idPrefix="bill"
       sidebar={sidebar}
       headerActions={
         bill && currentBusinessId ? (
           <>
-            {bill.status !== 'cancelled' && bill.status !== 'paid' && (
-              <button className="btn btn-secondary" onClick={handleSendEmail} disabled={isSending}>
-                {isSending ? 'Sending...' : 'Send Email'}
-              </button>
-            )}
-            <button
-              className="btn btn-primary"
-              onClick={handleDownloadPdf}
-              disabled={isDownloading}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="icon-inline"
+            {primary === 'send' && emailButton('primary')}
+            {primary === 'paid' && (
+              <Button
+                variant="primary"
+                onClick={() => handleStatusChange('paid')}
+                loading={isSaving}
               >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Download Invoice
-            </button>
+                Mark paid
+              </Button>
+            )}
+            {primary === 'download' ? downloadButton('primary') : downloadButton('secondary')}
+            <Menu trigger={p => <IconButton label="More actions" icon="more" {...p} />}>
+              {canEmail && primary !== 'send' && (
+                <MenuItem onSelect={handleSendEmail}>Send email</MenuItem>
+              )}
+              <MenuLabel>Set status</MenuLabel>
+              {BILL_STATUSES.filter(o => o.value !== bill.status).map(o => (
+                <MenuItem key={o.value} onSelect={() => handleStatusChange(o.value)}>
+                  {o.label}
+                </MenuItem>
+              ))}
+            </Menu>
           </>
         ) : undefined
       }
     >
       {bill && (
         <>
-          {/* Stale Warning Banner — always visible */}
           {bill.isStale && (
-            <div className={pageStyles.staleBanner}>
-              <span className={pageStyles.iconSize20}>&#9888;</span>
-              <span className={pageStyles.flexGrow1}>
-                <strong>Stale bill</strong> &mdash; Underlying challan data has changed since this
-                bill was generated.
+            <Notice tone="warning" title="Stale bill">
+              <span className={styles.stale}>
+                Underlying challan data has changed since this bill was generated.
+                <Button variant="primary" onClick={handleRegenerate} loading={isRegenerating}>
+                  Regenerate bill
+                </Button>
               </span>
-              <button
-                className="btn btn-primary"
-                onClick={handleRegenerate}
-                disabled={isRegenerating}
-              >
-                {isRegenerating ? 'Regenerating...' : 'Regenerate Bill'}
-              </button>
-            </div>
+            </Notice>
           )}
 
-          <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
-
-          {/* About Tab */}
           {activeTab === 'about' && (
             <>
-              {/* Billing Period */}
-              <DetailSection title="Billing Period">
-                <DetailField label="Period Start" value={formatDate(bill.billingPeriod.start)} />
-                <DetailField label="Period End" value={formatDate(bill.billingPeriod.end)} />
+              <DetailSection title="Billing period">
+                <DetailField label="Period start" value={formatDate(bill.billingPeriod.start)} />
+                <DetailField label="Period end" value={formatDate(bill.billingPeriod.end)} />
                 <DetailField
-                  label="Bill Date"
+                  label="Bill date"
                   value={formatDate(bill.billDate || bill.billingPeriod?.end || bill.createdAt)}
                 />
               </DetailSection>
 
-              {/* Financial Summary */}
-              <DetailSection title="Financial Summary">
-                <DetailField label="Rental Subtotal" value={formatCurrency(rentalSubtotal)} />
-                <DetailField
-                  label="Transportation Charges"
-                  value={formatCurrency(bill.transportationCharges || 0)}
-                />
-                <DetailField
-                  label="Damage Charges"
-                  value={formatCurrency(bill.damageCharges || 0)}
-                />
-                <DetailField label="Subtotal" value={formatCurrency(bill.subtotal)} />
-                {bill.taxMode === 'intra' ? (
-                  <>
-                    <DetailField
-                      label="SGST"
-                      value={`${formatCurrency(bill.sgstAmount || 0)} (${bill.sgstRate || 0}%)`}
-                    />
-                    <DetailField
-                      label="CGST"
-                      value={`${formatCurrency(bill.cgstAmount || 0)} (${bill.cgstRate || 0}%)`}
-                    />
-                  </>
-                ) : bill.taxMode === 'inter' ? (
-                  <DetailField
-                    label="IGST"
-                    value={`${formatCurrency(bill.igstAmount || 0)} (${bill.igstRate || 0}%)`}
-                  />
-                ) : (
-                  <DetailField
-                    label="Tax"
-                    value={`${formatCurrency(bill.taxAmount)} (${bill.taxRate || 0}%)`}
-                  />
-                )}
-                {(bill.taxMode === 'intra' || bill.taxMode === 'inter') && (
-                  <DetailField label="Total Tax" value={formatCurrency(bill.taxAmount)} />
-                )}
-                <DetailField
-                  label="Discount"
-                  value={`${formatCurrency(bill.discountAmount)} (${bill.discountRate}%)`}
-                />
-                <DetailField
-                  label="Total Amount"
-                  value={<strong>{formatCurrency(bill.totalAmount)}</strong>}
-                />
-                <DetailField label="Amount Paid" value={formatCurrency(bill.amountPaid)} />
-                <DetailField
-                  label="Outstanding"
-                  value={
-                    <strong
-                      className={
-                        outstanding > 0
-                          ? pageStyles.outstandingDanger
-                          : pageStyles.outstandingSuccess
-                      }
-                    >
-                      {formatCurrency(outstanding)}
-                    </strong>
-                  }
-                />
-              </DetailSection>
+              <Card title="Summary" padded={false}>
+                <Table aria-label="Summary">
+                  <TBody>
+                    {summaryRow('Rental subtotal', formatMoney(rentalSubtotal))}
+                    {summaryRow('Transportation', formatMoney(bill.transportationCharges || 0))}
+                    {summaryRow('Damage charges', formatMoney(bill.damageCharges || 0))}
+                    {summaryRow('Subtotal', formatMoney(bill.subtotal))}
+                    {bill.taxMode === 'intra' ? (
+                      <>
+                        {summaryRow(
+                          'SGST',
+                          formatMoney(bill.sgstAmount || 0),
+                          false,
+                          bill.sgstRate || 0
+                        )}
+                        {summaryRow(
+                          'CGST',
+                          formatMoney(bill.cgstAmount || 0),
+                          false,
+                          bill.cgstRate || 0
+                        )}
+                      </>
+                    ) : bill.taxMode === 'inter' ? (
+                      summaryRow(
+                        'IGST',
+                        formatMoney(bill.igstAmount || 0),
+                        false,
+                        bill.igstRate || 0
+                      )
+                    ) : (
+                      summaryRow('Tax', formatMoney(bill.taxAmount), false, bill.taxRate || 0)
+                    )}
+                    {(bill.taxMode === 'intra' || bill.taxMode === 'inter') &&
+                      summaryRow('Total tax', formatMoney(bill.taxAmount))}
+                    {summaryRow(
+                      'Discount',
+                      formatMoney(bill.discountAmount),
+                      false,
+                      bill.discountRate
+                    )}
+                    {summaryRow('Total', formatMoney(bill.totalAmount), true)}
+                    {summaryRow('Paid', formatMoney(bill.amountPaid))}
+                    {summaryRow('Balance due', formatMoney(outstanding), true)}
+                  </TBody>
+                </Table>
+              </Card>
 
-              {/* Notes */}
               <DetailSection title="Notes">
-                <p className={bill.notes ? 'text-notes' : 'text-notes-empty'}>
-                  {bill.notes || 'No notes.'}
-                </p>
+                <DetailField label="" value={bill.notes || undefined} />
               </DetailSection>
             </>
           )}
 
-          {/* Line Items Tab */}
           {activeTab === 'line-items' && (
             <>
-              {/* Line Items */}
-              <DetailSection title={`Line Items (${bill.items.length})`}>
-                {bill.items.length > 0 ? (
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Item</th>
-                        <th>Qty</th>
-                        <th>Rate/Day</th>
-                        <th>Days</th>
-                        <th className="text-right">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bill.items.map((item, idx) => (
-                        <tr key={`${item.itemId}-${idx}`}>
-                          <td>{item.itemName}</td>
-                          <td>{item.quantity}</td>
-                          <td>₹{item.ratePerDay}</td>
-                          <td>{item.totalDays}</td>
-                          <td className="text-right">{formatCurrency(item.amount)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p className="text-empty">No line items.</p>
-                )}
-              </DetailSection>
+              <Card title="Line items" count={bill.items.length} padded={false}>
+                <DataTable
+                  aria-label="Line items"
+                  columns={itemColumns}
+                  rows={itemRows}
+                  rowKey={r => `${r.itemId}-${r.idx}`}
+                  empty={<EmptyState title="No line items" />}
+                  mobile={{
+                    title: r => r.itemName,
+                    badge: r => <span className="mono">{formatMoney(r.amount)}</span>,
+                    meta: r => [
+                      <span key="qty" className="mono">
+                        {r.quantity} × {formatMoney(r.ratePerDay)} × {r.totalDays}d
+                      </span>,
+                    ],
+                  }}
+                />
+              </Card>
 
-              {/* Damage Items (if any) */}
-              {bill.damageItems && bill.damageItems.length > 0 && (
-                <DetailSection title={`Damage Items (${bill.damageItems.length})`}>
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Challan</th>
-                        <th>Item</th>
-                        <th>Qty</th>
-                        <th>Rate</th>
-                        <th className="text-right">Amount</th>
-                        <th>Note</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bill.damageItems.map((d, idx) => (
-                        <tr key={`${d.itemId}-${idx}`}>
-                          <td>{d.challanNumber || '-'}</td>
-                          <td>{d.itemName}</td>
-                          <td>{d.quantity}</td>
-                          <td>₹{d.damageRate}</td>
-                          <td className="text-right">{formatCurrency(d.amount)}</td>
-                          <td className={d.note ? 'text-notes' : 'text-notes-empty'}>
-                            {d.note || '-'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </DetailSection>
+              {damageRows.length > 0 && (
+                <Card title="Damage items" count={damageRows.length} padded={false}>
+                  <DataTable
+                    aria-label="Damage items"
+                    columns={damageColumns}
+                    rows={damageRows}
+                    rowKey={r => `${r.itemId}-${r.idx}`}
+                    mobile={{
+                      title: r => r.itemName,
+                      badge: r => <span className="mono">{formatMoney(r.amount)}</span>,
+                      subtitle: r => r.challanNumber,
+                      meta: r => [
+                        <span key="qty" className="mono">
+                          {r.quantity} × {formatMoney(r.damageRate)}
+                        </span>,
+                        r.note,
+                      ],
+                    }}
+                  />
+                </Card>
               )}
 
-              {/* Transportation Breakup */}
-              {bill.transportationBreakup && bill.transportationBreakup.length > 0 && (
-                <DetailSection title="Transportation Breakup">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Challan No</th>
-                        <th>Type</th>
-                        <th className="text-right">Cartage</th>
-                        <th className="text-right">Loading</th>
-                        <th className="text-right">Unloading</th>
-                        <th className="text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bill.transportationBreakup.map((t, idx) => (
-                        <tr key={`${t.challanNumber}-${idx}`}>
-                          <td>{t.challanNumber}</td>
-                          <td>{t.challanType === 'delivery' ? 'Delivery' : 'Return'}</td>
-                          <td className="text-right">{formatCurrency(t.cartageCharge)}</td>
-                          <td className="text-right">{formatCurrency(t.loadingCharge)}</td>
-                          <td className="text-right">{formatCurrency(t.unloadingCharge)}</td>
-                          <td className="text-right">{formatCurrency(t.totalCharge)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <td colSpan={5}>
-                          <strong>Total</strong>
-                        </td>
-                        <td className="text-right">
-                          <strong>{formatCurrency(bill.transportationCharges || 0)}</strong>
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </DetailSection>
+              {transportRows.length > 0 && (
+                <Card title="Transportation breakup" padded={false}>
+                  <DataTable
+                    aria-label="Transportation breakup"
+                    columns={transportColumns}
+                    rows={transportRows}
+                    rowKey={r => `${r.challanNumber}-${r.idx}`}
+                    mobile={{
+                      title: r => <DocNumber value={r.challanNumber} />,
+                      badge: r => <span className="mono">{formatMoney(r.totalCharge)}</span>,
+                      subtitle: r => (r.challanType === 'delivery' ? 'Delivery' : 'Return'),
+                      meta: r => [
+                        <span key="c">
+                          Cartage <span className="mono">{formatMoney(r.cartageCharge)}</span>
+                        </span>,
+                        <span key="l">
+                          Loading <span className="mono">{formatMoney(r.loadingCharge)}</span>
+                        </span>,
+                        <span key="u">
+                          Unloading <span className="mono">{formatMoney(r.unloadingCharge)}</span>
+                        </span>,
+                      ],
+                    }}
+                  />
+                  <p className={styles.total}>
+                    <strong>Total</strong>
+                    <strong className="mono">{formatMoney(bill.transportationCharges || 0)}</strong>
+                  </p>
+                </Card>
               )}
             </>
           )}
 
-          {/* Payments Tab */}
           {activeTab === 'payments' && (
-            <DetailSection title={`Payments (${(payments || []).length})`}>
-              {(payments || []).length > 0 ? (
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Amount</th>
-                      <th>Method</th>
-                      <th>Status</th>
-                      <th>Reference</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...(payments || [])]
-                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                      .map(payment => (
-                        <tr key={payment._id}>
-                          <td>
-                            <Link to={`/payments/${payment._id}`} className="link-accent">
-                              {formatDate(payment.date)}
-                            </Link>
-                          </td>
-                          <td>{formatCurrency(payment.amount)}</td>
-                          <td>{payment.method.replace('_', ' ')}</td>
-                          <td>
-                            <span className={`status status-${payment.status}`}>
-                              {payment.status}
-                            </span>
-                          </td>
-                          <td>{payment.reference || '-'}</td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="text-empty">No payments recorded for this bill.</p>
-              )}
-            </DetailSection>
+            <Card title="Payments" count={paymentList.length} padded={false}>
+              <DataTable
+                aria-label="Payments"
+                columns={paymentColumns}
+                rows={paymentList}
+                rowKey={p => p._id}
+                empty={<EmptyState title="No payments recorded for this bill" />}
+                mobile={{
+                  title: paymentDate,
+                  badge: p => <StatusChip status={p.status} />,
+                  meta: p => [
+                    <span key="a" className="mono">
+                      {formatMoney(p.amount)}
+                    </span>,
+                    METHOD_LABEL[p.method],
+                    p.reference,
+                  ],
+                }}
+              />
+            </Card>
           )}
 
           {activeTab === 'change-history' && (

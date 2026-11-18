@@ -1,6 +1,7 @@
 .wrap {
   position: relative;
-  flex: 1 1 240px;
+  /* Container decides: FilterBar sets --search-flex; elsewhere it is content-sized and never grows a column's height. */
+  flex: var(--search-flex, 0 1 auto);
   max-width: 360px;
   min-width: 0;
 }

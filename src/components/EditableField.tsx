@@ -1,11 +1,25 @@
 /**
- * @fileoverview Jira-style inline editable field component
- * @description Provides a click-to-edit pattern: displays a value in view mode
- * with a hover pencil icon, then transforms into an input on click. Supports
- * text, number, select, textarea, and date input types. Reuses the same HTML
- * input elements and styling patterns as the existing modal forms.
+ * @fileoverview Inline editable value
+ * @description Click-to-edit value for detail pages and table cells. View mode shows
+ * the value with an "Edit" hint revealed on hover/focus; edit mode swaps in a kit
+ * Input/Select/Textarea (or a custom renderer) with Save and Cancel buttons.
+ * Enter saves (except in textareas), Escape cancels. Moving focus out of the editor
+ * saves inputs/selects; moving it to the editor's own Save/Cancel buttons does not.
+ *
+ * The row layout (label column) belongs to `DetailField`; `label` here names the
+ * edit control for assistive tech.
  */
-import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from 'react';
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type FocusEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+} from 'react';
+import { Button, Input, Select, Textarea } from './ui';
 import styles from './EditableField.module.css';
 
 /**
@@ -14,17 +28,18 @@ import styles from './EditableField.module.css';
 interface RenderEditInputProps {
   value: string | number;
   onChange: (val: string | number) => void;
-  onSave: () => void;
+  /** Save now; pass a value to save it instead of the current edit value (e.g. a just-picked suggestion). */
+  onSave: (override?: string | number) => void;
   onCancel: () => void;
 }
 
-interface EditableFieldProps {
-  /** Field label (rendered on the left) */
+export interface EditableFieldProps {
+  /** Field label: the accessible name of the edit control */
   label: string;
   /** Raw value used in edit mode and as the source of truth */
   value: string | number | undefined;
   /** Display override for view mode (e.g. "₹500" for a number 500) */
-  displayValue?: React.ReactNode;
+  displayValue?: ReactNode;
   /** Input type for the edit-mode control */
   inputType: 'text' | 'number' | 'select' | 'textarea' | 'date';
   /** Options for select-type inputs */
@@ -39,25 +54,27 @@ interface EditableFieldProps {
   suffix?: string;
   /** Prefix for display (e.g. "₹") */
   prefix?: string;
+  /** Monospace value and input (codes, phone, GST, amounts, quantities) */
+  mono?: boolean;
   /**
    * Optional custom render for edit mode. Replaces the default input element.
    * Use this for specialized components like CodeAutocomplete.
    */
-  renderEditInput?: (props: RenderEditInputProps) => React.ReactNode;
-  /** Compact mode for table cells — hides label, inline edit row */
+  renderEditInput?: (props: RenderEditInputProps) => ReactNode;
+  /** Compact spacing for table cells */
   compact?: boolean;
+  /** `right` for right-aligned numeric table cells: value flush right, hint before it, input right-aligned */
+  align?: 'left' | 'right';
 }
 
-/**
- * EditableField implements a Jira-style inline edit pattern.
- *
- * In **view mode**, the value is displayed with a hover pencil icon and a
- * light-blue background highlight. Clicking enters **edit mode**, which renders
- * the appropriate input (or a custom renderer) with save/cancel action buttons.
- *
- * Save is triggered by Enter (for non-textarea inputs), blur, or the checkmark
- * button. Cancel is triggered by Escape or the X button.
- */
+const errorMessage = (err: unknown) =>
+  err && typeof err === 'object' && 'data' in err
+    ? ((err as { data?: { error?: { message?: string } } }).data?.error?.message ?? 'Save failed')
+    : 'Save failed';
+
+/** Keeps focus (and so the blur-save) on the input when an action button is pressed. */
+const keepFocus = (e: MouseEvent) => e.preventDefault();
+
 export function EditableField({
   label,
   value,
@@ -66,16 +83,23 @@ export function EditableField({
   options,
   onSave,
   isSaving = false,
-  emptyText = '-',
+  emptyText = 'Not added',
   suffix,
   prefix,
+  mono = false,
   renderEditInput,
   compact = false,
+  align = 'left',
 }: EditableFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState<string | number>(value ?? '');
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(null);
+  /** Guards against a second save (e.g. blur then Save click) while one is in flight. */
+  const committingRef = useRef(false);
+  const editorRef = useRef<HTMLDivElement>(null);
+  /** Set once the editor is closing, so a blur fired while it unmounts never saves. */
+  const closingRef = useRef(false);
 
   /** Auto-focus the input when entering edit mode */
   useEffect(() => {
@@ -91,36 +115,43 @@ export function EditableField({
     if (isSaving) return;
     setEditValue(value ?? '');
     setError(null);
+    closingRef.current = false;
     setIsEditing(true);
   }, [isSaving, value]);
 
   const cancelEdit = useCallback(() => {
+    closingRef.current = true;
     setIsEditing(false);
     setEditValue(value ?? '');
     setError(null);
   }, [value]);
 
-  const commitEdit = useCallback(async () => {
-    const finalValue = inputType === 'number' ? Number(editValue) : editValue;
+  const commitEdit = useCallback(
+    async (override?: string | number) => {
+      if (committingRef.current) return;
+      const current = override ?? editValue;
+      const finalValue = inputType === 'number' ? Number(current) : current;
 
-    if (finalValue === value) {
-      setIsEditing(false);
-      return;
-    }
+      if (finalValue === value) {
+        closingRef.current = true;
+        setIsEditing(false);
+        return;
+      }
 
-    try {
-      setError(null);
-      await onSave(finalValue);
-      setIsEditing(false);
-    } catch (err: unknown) {
-      const message =
-        err && typeof err === 'object' && 'data' in err
-          ? ((err as { data?: { error?: { message?: string } } }).data?.error?.message ??
-            'Save failed')
-          : 'Save failed';
-      setError(message);
-    }
-  }, [editValue, inputType, onSave, value]);
+      committingRef.current = true;
+      try {
+        setError(null);
+        await onSave(finalValue);
+        closingRef.current = true;
+        setIsEditing(false);
+      } catch (err: unknown) {
+        setError(errorMessage(err));
+      } finally {
+        committingRef.current = false;
+      }
+    },
+    [editValue, inputType, onSave, value]
+  );
 
   /** Keyboard handler for inputs (Enter saves, Escape cancels) */
   const handleKeyDown = useCallback(
@@ -136,95 +167,108 @@ export function EditableField({
     [cancelEdit, commitEdit, inputType]
   );
 
-  const handleInputChange = useCallback(
-    (rawValue: string) => {
-      setEditValue(inputType === 'number' ? rawValue : rawValue);
+  /** Blur-save only when focus leaves the editor (not when it moves to Save/Cancel). */
+  const blurSaves = inputType !== 'textarea' && !renderEditInput;
+  const handleEditorBlur = useCallback(
+    (e: FocusEvent<HTMLDivElement>) => {
+      if (!blurSaves || closingRef.current) return;
+      const next = e.relatedTarget as Node | null;
+      if (next && editorRef.current?.contains(next)) return;
+      commitEdit();
     },
-    [inputType]
+    [blurSaves, commitEdit]
   );
 
-  // ── Build displayed value text for view mode ──
-
-  const isEmpty = value === undefined || value === null || value === '';
-  let viewContent: React.ReactNode;
-
-  if (displayValue !== undefined) {
-    viewContent = displayValue;
-  } else if (isEmpty) {
-    viewContent = <span className={styles.valueEmpty}>{emptyText}</span>;
-  } else {
-    viewContent = `${prefix ?? ''}${value}${suffix ?? ''}`;
-  }
+  const containerClass = [styles.root, compact ? styles.compact : ''].filter(Boolean).join(' ');
 
   // ── View mode ──
 
-  const wrapperClassName = `${styles.wrapper}${compact ? ` ${styles.compact}` : ''}`;
-
   if (!isEditing) {
+    const isEmpty = value === undefined || value === null || value === '';
+    let viewContent: ReactNode;
+    if (displayValue !== undefined) {
+      viewContent = displayValue;
+    } else if (isEmpty) {
+      viewContent = <span className={styles.empty}>{emptyText}</span>;
+    } else {
+      viewContent = `${prefix ?? ''}${value}${suffix ?? ''}`;
+    }
+
     return (
-      <div className={wrapperClassName}>
-        <span className={styles.label}>{label}</span>
-        <span
-          className={styles.valueDisplay}
-          onClick={enterEditMode}
-          role="button"
-          tabIndex={0}
-          onKeyDown={e => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              enterEditMode();
-            }
-          }}
-        >
-          {isSaving ? <span className={styles.spinner} /> : viewContent}
-          <span className={styles.pencilIcon} aria-hidden="true">
-            ✎
-          </span>
+      <span
+        className={[
+          containerClass,
+          styles.trigger,
+          align === 'right' ? styles.right : '',
+          mono ? 'mono' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        onClick={enterEditMode}
+        role="button"
+        tabIndex={0}
+        aria-busy={isSaving || undefined}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            enterEditMode();
+          }
+        }}
+      >
+        {align === 'right' && <span className={styles.hint}>Edit</span>}
+        <span className={styles.value}>
+          {isSaving ? <span className={styles.spinner} aria-hidden="true" /> : viewContent}
         </span>
-      </div>
+        {align === 'left' && <span className={styles.hint}>Edit</span>}
+      </span>
     );
   }
 
   // ── Edit mode ──
 
+  const controlProps = {
+    'aria-label': label || undefined,
+    value: String(editValue),
+    onKeyDown: handleKeyDown,
+    invalid: !!error,
+    mono,
+    className: align === 'right' ? styles.rightInput : undefined,
+  };
+
   const renderDefaultInput = () => {
     switch (inputType) {
       case 'select':
         return (
-          <select
+          <Select
+            {...controlProps}
             ref={inputRef as React.RefObject<HTMLSelectElement>}
-            value={String(editValue)}
-            onChange={e => handleInputChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onBlur={commitEdit}
+            onChange={e => setEditValue(e.target.value)}
           >
             {options?.map(opt => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
-          </select>
+          </Select>
         );
 
       case 'textarea':
         return (
-          <textarea
+          <Textarea
+            {...controlProps}
             ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-            value={String(editValue)}
-            onChange={e => handleInputChange(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onChange={e => setEditValue(e.target.value)}
           />
         );
 
       default:
         return (
-          <input
+          <Input
+            {...controlProps}
             ref={inputRef as React.RefObject<HTMLInputElement>}
             type={inputType}
             value={inputType === 'number' ? editValue : String(editValue)}
-            onChange={e => handleInputChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onBlur={commitEdit}
+            onChange={e => setEditValue(e.target.value)}
             step={inputType === 'number' ? 'any' : undefined}
           />
         );
@@ -232,45 +276,44 @@ export function EditableField({
   };
 
   return (
-    <div className={wrapperClassName}>
-      <span className={styles.label}>{label}</span>
-      <div className={styles.editContainer}>
-        <div className={styles.editRow}>
-          {renderEditInput ? (
-            <div className={styles.customInputWrapper}>
-              {renderEditInput({
-                value: editValue,
-                onChange: val => setEditValue(val),
-                onSave: commitEdit,
-                onCancel: cancelEdit,
-              })}
-            </div>
-          ) : (
-            renderDefaultInput()
-          )}
-          <div className={styles.editActions}>
-            <button
-              type="button"
-              className={`${styles.actionBtn} ${styles.saveBtn}`}
-              onClick={commitEdit}
-              title="Save (Enter)"
-              disabled={isSaving}
-            >
-              {isSaving ? <span className={styles.spinner} /> : '[ok]'}
-            </button>
-            <button
-              type="button"
-              className={`${styles.actionBtn} ${styles.cancelBtn}`}
-              onClick={cancelEdit}
-              title="Cancel (Esc)"
-              disabled={isSaving}
-            >
-              [x]
-            </button>
-          </div>
+    <div
+      ref={editorRef}
+      className={[containerClass, styles.editor, align === 'right' ? styles.editorRight : '']
+        .filter(Boolean)
+        .join(' ')}
+      onBlur={handleEditorBlur}
+    >
+      {renderEditInput ? (
+        <div className={styles.custom}>
+          {renderEditInput({
+            value: editValue,
+            onChange: val => setEditValue(val),
+            onSave: commitEdit,
+            onCancel: cancelEdit,
+          })}
         </div>
-        {error && <span className={styles.editError}>{error}</span>}
+      ) : (
+        renderDefaultInput()
+      )}
+      <div className={styles.actions}>
+        <Button
+          size="sm"
+          variant="primary"
+          onMouseDown={keepFocus}
+          onClick={() => commitEdit()}
+          loading={isSaving}
+        >
+          Save
+        </Button>
+        <Button size="sm" onMouseDown={keepFocus} onClick={cancelEdit} disabled={isSaving}>
+          Cancel
+        </Button>
       </div>
+      {error && (
+        <span className={styles.error} role="alert">
+          {error}
+        </span>
+      )}
     </div>
   );
 }

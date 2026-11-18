@@ -19,10 +19,14 @@ const names: IconName[] = [
   'close',
   'menu',
   'more',
+  'arrow-left',
   'arrow-right',
   'rupee',
   'settings',
   'logout',
+  'paperclip',
+  'mic',
+  'stop',
   'brand',
 ];
 

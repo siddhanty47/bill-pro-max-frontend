@@ -163,7 +163,7 @@ describe('DashboardPage', () => {
     const { user } = renderPage();
     await user.click(await screen.findByRole('button', { name: /Add business/ }));
     const dialog = await screen.findByRole('dialog');
-    await user.type(within(dialog).getByLabelText(/Business Name/), 'New Co');
+    await user.type(within(dialog).getByLabelText(/Business name/), 'New Co');
     await user.click(within(dialog).getByRole('button', { name: /create|save/i }));
     await waitFor(() =>
       expect(alertSpy).toHaveBeenCalledWith(
@@ -183,7 +183,7 @@ describe('DashboardPage', () => {
     const { user } = renderPage();
     await user.click(await screen.findByRole('button', { name: /Add business/ }));
     const dialog = await screen.findByRole('dialog');
-    await user.type(within(dialog).getByLabelText(/Business Name/), 'New Co');
+    await user.type(within(dialog).getByLabelText(/Business name/), 'New Co');
     await user.click(within(dialog).getByRole('button', { name: /create|save/i }));
     await waitFor(() => expect(alertSpy).toHaveBeenCalled());
     expect(alertSpy).not.toHaveBeenCalledWith(expect.stringContaining('successfully'));

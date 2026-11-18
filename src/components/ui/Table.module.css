@@ -92,4 +92,21 @@
   .table .hideOnMobile {
     display: none;
   }
+
+  /* Tr stackOnMobile: one divider per row, none between its stacked cells. */
+  .table tbody .stack {
+    display: grid;
+    align-items: center;
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .table tbody .stack:last-child {
+    border-bottom: 0;
+  }
+
+  .table .stack td {
+    padding: var(--space-1) var(--space-2);
+    border-bottom: 0;
+  }
 }

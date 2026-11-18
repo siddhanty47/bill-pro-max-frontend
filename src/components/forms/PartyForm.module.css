@@ -1,79 +1,79 @@
+/* Party form: layout only; controls, notices and buttons are kit components. */
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.gstGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 .gstRow {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: flex-start;
 }
 
 .gstInput {
   flex: 1;
+  min-width: 0;
   text-transform: uppercase;
 }
 
-.gstFetchButton {
-  white-space: nowrap;
-  padding: 8px 12px;
-  font-size: 13px;
+.nameCode {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--space-4);
 }
 
-.gstSuccess {
-  color: var(--status-success-text);
-  font-size: 12px;
-  margin-top: 4px;
-  display: block;
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
 }
 
-.nameGroup {
-  flex: 2;
+.roles {
+  display: flex;
+  gap: var(--space-4);
 }
 
-.codeGroup {
-  flex: 1;
+.siteFields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .uppercaseInput {
   text-transform: uppercase;
 }
 
-.rolesContainer {
+.actions {
   display: flex;
-  gap: 15px;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
 }
 
-.checkboxLabel {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+@media (max-width: 768px) {
+  .columns,
+  .nameCode,
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
-.siteFieldset {
-  border: 1px solid var(--border-subtle);
-  padding: 15px;
-  border-radius: var(--radius-lg);
-  margin-top: 20px;
-  background: var(--bg-card);
-}
-
-.siteFieldset legend {
-  padding: 0 10px;
-  font-weight: bold;
-  color: var(--text-heading);
-}
-
-.sameAsOfficeLabel {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-weight: normal;
-}
-
-.sameAsOfficeGroup {
-  margin-bottom: 10px;
-}
-
-.siteAddressGroup {
-  flex: 2;
-}
-
-.siteCodeGroup {
-  flex: 1;
+.gstInput::placeholder,
+.uppercaseInput::placeholder {
+  text-transform: none;
 }

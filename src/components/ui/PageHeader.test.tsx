@@ -14,4 +14,12 @@ describe('PageHeader', () => {
     render(<PageHeader title="Bills" />);
     expect(screen.getByRole('heading', { name: 'Bills' })).toBeInTheDocument();
   });
+
+  it('renders a badge next to the title', () => {
+    render(
+      <PageHeader title="Mehta Builders" eyebrow="Party · MEHT" badge={<span>Active</span>} />
+    );
+    const heading = screen.getByRole('heading', { name: 'Mehta Builders' });
+    expect(heading.parentElement).toHaveTextContent('Active');
+  });
 });

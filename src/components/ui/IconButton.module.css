@@ -25,6 +25,33 @@
   cursor: not-allowed;
 }
 
+/* Small buttons sit on top of content (e.g. a thumbnail), so they carry a surface. */
+.iconBtn.sm {
+  width: 24px;
+  height: 24px;
+  background: var(--bg-elevated);
+}
+
+/* Declared after .sm so a danger tone keeps its fill on every size. */
+.iconBtn.danger,
+.iconBtn.danger:hover:not(:disabled) {
+  background: var(--status-danger-bg);
+  color: var(--status-danger-text);
+}
+
+/* Invisible hit area: 44px on touch while the visual stays 24px. */
+@media (max-width: 768px) {
+  .iconBtn.sm::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+}
+
 .badge {
   position: absolute;
   top: 8px;
@@ -40,5 +67,10 @@
   .iconBtn {
     width: 44px;
     height: 44px;
+  }
+
+  .iconBtn.sm {
+    width: 24px;
+    height: 24px;
   }
 }

@@ -8,6 +8,20 @@
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* Set by Tabs when the row overflows: fade the trailing edge so hidden tabs are hinted */
+.scrollable {
+  mask-image: linear-gradient(
+    to right,
+    var(--mask-solid) calc(100% - var(--space-10)),
+    transparent
+  );
 }
 
 .tab {
@@ -29,6 +43,14 @@
 
 .tabActive {
   color: var(--text-heading);
+}
+
+.count {
+  margin-left: 2px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 
 .tabActive::after {

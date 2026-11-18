@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import { http } from 'msw';
+import { useLocation } from 'react-router-dom';
 import { NotificationBell } from './NotificationBell';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
 import { apiUrl, ok } from '../test/msw/handlers';
 import { makeNotification } from '../test/factories';
+
+function Where() {
+  return <p data-testid="where">{useLocation().pathname}</p>;
+}
 
 describe('NotificationBell', () => {
   it('shows the unread count from the API', async () => {
@@ -70,5 +75,84 @@ describe('NotificationBell', () => {
     await user.click(await screen.findByText('Hi'));
 
     await waitFor(() => expect(marked).toEqual(['n-7']));
+  });
+
+  it('lists notifications as keyboard-reachable menu items with unread marked', async () => {
+    server.use(
+      http.get(apiUrl('/notifications'), () =>
+        ok([
+          makeNotification({ _id: 'a', title: 'Unread one', isRead: false }),
+          makeNotification({ _id: 'b', title: 'Read one', isRead: true }),
+        ])
+      )
+    );
+    const { user } = renderWithProviders(<NotificationBell />, { preloadedState: signedIn() });
+
+    await user.click(await screen.findByRole('button', { name: /^Notifications/ }));
+
+    const unread = await screen.findByRole('menuitem', { name: /Unread one/ });
+    expect(unread).toHaveAttribute('data-unread', 'true');
+    expect(screen.getByRole('menuitem', { name: /Read one/ })).not.toHaveAttribute('data-unread');
+    await user.keyboard('{ArrowDown}');
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByRole('menuitem', { name: /Read one/ })).toHaveFocus();
+  });
+
+  it('shows an empty state', async () => {
+    server.use(http.get(apiUrl('/notifications'), () => ok([])));
+    const { user } = renderWithProviders(<NotificationBell />, { preloadedState: signedIn() });
+
+    await user.click(await screen.findByRole('button', { name: /^Notifications/ }));
+
+    expect(await screen.findByText('No notifications')).toBeInTheDocument();
+  });
+
+  it('marks all as read and closes the menu', async () => {
+    let called = 0;
+    server.use(
+      http.get(apiUrl('/notifications/unread-count'), () => ok({ count: 2 })),
+      http.get(apiUrl('/notifications'), () => ok([makeNotification({ title: 'Hi' })])),
+      http.patch(apiUrl('/notifications/read-all'), () => {
+        called++;
+        return ok(null);
+      })
+    );
+    const { user } = renderWithProviders(<NotificationBell />, { preloadedState: signedIn() });
+
+    await user.click(await screen.findByRole('button', { name: 'Notifications, 2 unread' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Mark all read' }));
+
+    await waitFor(() => expect(called).toBe(1));
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('opens the invitation when an invitation notification is selected', async () => {
+    server.use(
+      http.get(apiUrl('/notifications'), () =>
+        ok([
+          makeNotification({
+            _id: 'inv',
+            title: 'Invited',
+            isRead: true,
+            data: { invitationToken: 'tok-1' },
+          }),
+        ])
+      )
+    );
+    const { user } = renderWithProviders(
+      <>
+        <NotificationBell />
+        <Where />
+      </>,
+      { preloadedState: signedIn() }
+    );
+
+    await user.click(await screen.findByRole('button', { name: /^Notifications/ }));
+    await user.click(await screen.findByRole('menuitem', { name: /Invited/ }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('where')).toHaveTextContent('/invitations/tok-1')
+    );
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 });

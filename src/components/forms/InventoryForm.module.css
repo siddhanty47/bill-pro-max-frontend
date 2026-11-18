@@ -1,11 +1,63 @@
-.nameGroup {
-  flex: 2;
+/* Inventory form: layout only; controls and buttons are kit components. */
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
 }
 
-.codeGroup {
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.nameGroup {
+  flex: 2;
+  min-width: 0;
+}
+
+.codeGroup,
+.group {
   flex: 1;
+  min-width: 0;
+}
+
+.numbers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
 }
 
 .uppercaseInput {
   text-transform: uppercase;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+@media (max-width: 768px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.uppercaseInput::placeholder {
+  text-transform: none;
 }

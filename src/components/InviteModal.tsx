@@ -6,7 +6,8 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useCreateInvitationMutation } from '../api/invitationApi';
 import { getErrorMessage } from '../api/baseApi';
-import { Modal } from './Modal';
+import { Button, Field, Input, Modal, Notice, Select } from './ui';
+import styles from './InviteModal.module.css';
 
 interface InviteModalProps {
   businessId: string;
@@ -36,55 +37,39 @@ export function InviteModal({ businessId, onClose }: InviteModalProps) {
   };
 
   return (
-    <Modal isOpen={true} title="Invite Team Member" onClose={onClose} size="form">
-      {error && <div className="error-message">{getErrorMessage(error)}</div>}
+    <Modal isOpen={true} title="Invite team member" onClose={onClose} size="form">
+      <form onSubmit={handleSubmit} className={styles.form}>
+        {error && <Notice tone="danger">{getErrorMessage(error)}</Notice>}
 
-      <form onSubmit={handleSubmit}>
-        <div className="form-content">
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="invite-email">Email Address</label>
-              <input
-                id="invite-email"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="colleague@example.com"
-                required
-                disabled={isLoading}
-              />
-            </div>
+        <div className={styles.pair}>
+          <Field label="Email address" required>
+            <Input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="colleague@example.com"
+              disabled={isLoading}
+            />
+          </Field>
 
-            <div className="form-group">
-              <label htmlFor="invite-role">Role</label>
-              <select
-                id="invite-role"
-                value={role}
-                onChange={e => setRole(e.target.value)}
-                disabled={isLoading}
-              >
-                {ROLES.map(r => (
-                  <option key={r.value} value={r.value}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <Field label="Role">
+            <Select value={role} onChange={e => setRole(e.target.value)} disabled={isLoading}>
+              {ROLES.map(r => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
         </div>
 
-        <div className="form-actions">
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={onClose}
-            disabled={isLoading}
-          >
+        <div className={styles.actions}>
+          <Button onClick={onClose} disabled={isLoading}>
             Cancel
-          </button>
-          <button type="submit" className="btn btn-primary" disabled={isLoading}>
-            {isLoading ? 'Sending...' : 'Send Invitation'}
-          </button>
+          </Button>
+          <Button variant="primary" type="submit" loading={isLoading}>
+            Send invitation
+          </Button>
         </div>
       </form>
     </Modal>

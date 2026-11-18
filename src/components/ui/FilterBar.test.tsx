@@ -28,6 +28,16 @@ describe('FilterBar', () => {
 
   // jsdom evaluates no media queries and vitest hands CSS modules back as class maps,
   // so read the stylesheet source (vitest runs from the repo root) and check the narrow-phone rule exists.
+  it('lets the search box grow from 240px in a row (same sizing as before)', async () => {
+    const fs = (await import(/* @vite-ignore */ 'node:fs' as string)) as {
+      readFileSync(path: string, encoding: 'utf8'): string;
+    };
+    const bar = fs.readFileSync('src/components/ui/FilterBar.module.css', 'utf8');
+    const search = fs.readFileSync('src/components/ui/SearchInput.module.css', 'utf8');
+    expect(bar).toMatch(/--search-flex:\s*1 1 240px/);
+    expect(search).toMatch(/flex:\s*var\(--search-flex,\s*0 1 auto\)/);
+  });
+
   it('stacks children full width at ≤480', async () => {
     const fs = (await import(/* @vite-ignore */ 'node:fs' as string)) as {
       readFileSync(path: string, encoding: 'utf8'): string;

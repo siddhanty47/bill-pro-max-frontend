@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Menu, MenuDivider, MenuItem, MenuLabel } from './Menu';
 import { placePanel } from './placePanel';
 
@@ -286,6 +286,51 @@ describe('Menu portal and placement', () => {
     await user.click(locked);
     expect(onSelect).not.toHaveBeenCalled();
     expect(screen.getByRole('menu')).toBeInTheDocument();
+  });
+
+  it('does not run the consumer onClick or navigate for an aria-disabled item', async () => {
+    const onClick = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/start']}>
+        <Menu trigger={p => <button {...p}>Open</button>}>
+          <MenuItem aria-disabled="true" onClick={onClick}>
+            Locked button
+          </MenuItem>
+          <MenuItem to="/elsewhere" aria-disabled="true" onClick={onClick}>
+            Locked link
+          </MenuItem>
+          <MenuItem>Spare</MenuItem>
+        </Menu>
+        <Routes>
+          <Route path="/start" element={<p>Start page</p>} />
+          <Route path="/elsewhere" element={<p>Elsewhere page</p>} />
+        </Routes>
+      </MemoryRouter>
+    );
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Locked button' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Locked link' }));
+    expect(onClick).not.toHaveBeenCalled();
+    expect(screen.getByText('Start page')).toBeInTheDocument();
+    expect(screen.queryByText('Elsewhere page')).not.toBeInTheDocument();
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+  });
+
+  it('marks an unread item', async () => {
+    const user = userEvent.setup();
+    render(
+      <Menu trigger={p => <button {...p}>Open</button>}>
+        <MenuItem unread>New one</MenuItem>
+        <MenuItem>Old one</MenuItem>
+      </Menu>
+    );
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    expect(screen.getByRole('menuitem', { name: 'New one' })).toHaveAttribute(
+      'data-unread',
+      'true'
+    );
+    expect(screen.getByRole('menuitem', { name: 'Old one' })).not.toHaveAttribute('data-unread');
   });
 
   it('repositions on resize', async () => {

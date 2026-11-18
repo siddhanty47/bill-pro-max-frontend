@@ -270,6 +270,18 @@ describe('TeamPage', () => {
     expect(item).toHaveTextContent('₹25,000 / month');
   });
 
+  it('drops the empty salary slot from the phone meta when salary is not set', async () => {
+    useApi();
+    renderPage();
+    await screen.findByRole('table');
+    const item = within(screen.getByRole('list', { name: 'Employees' })).getAllByRole(
+      'listitem'
+    )[2];
+    expect(item).toHaveTextContent('Nita');
+    expect(item.textContent).not.toMatch(/·\s*$/);
+    expect(item.textContent).not.toContain('month');
+  });
+
   it('switches to the invite tab with members, pending count and invite modal', async () => {
     useApi();
     const { user } = renderPage();

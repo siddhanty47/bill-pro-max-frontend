@@ -17,10 +17,14 @@ export type IconName =
   | 'close'
   | 'menu'
   | 'more'
+  | 'arrow-left'
   | 'arrow-right'
   | 'rupee'
   | 'settings'
   | 'logout'
+  | 'paperclip'
+  | 'mic'
+  | 'stop'
   | 'brand';
 
 export interface IconProps {
@@ -103,6 +107,7 @@ const GLYPHS: Record<Exclude<IconName, 'brand'>, ReactNode> = {
       <circle cx="14" cy="9" r="1" />
     </>
   ),
+  'arrow-left': <path d="M14.5 9h-11M8 4.5 3.5 9 8 13.5" />,
   'arrow-right': <path d="M3.5 9h11M10 4.5 14.5 9 10 13.5" />,
   rupee: <path d="M5 3.5h8M5 6.5h8M7 3.5c3 0 4 1.7 4 3.2S10 9.9 7 9.9H5l5.5 5.1" />,
   settings: (
@@ -113,6 +118,16 @@ const GLYPHS: Record<Exclude<IconName, 'brand'>, ReactNode> = {
     </>
   ),
   logout: <path d="M7.5 3H4v12h3.5M11 6l3 3-3 3M14 9H7" />,
+  paperclip: (
+    <path d="M14 8.2 8.4 13.8a3.2 3.2 0 0 1-4.5-4.5l6-6a2.1 2.1 0 0 1 3 3l-6 6a1 1 0 0 1-1.4-1.4l5.3-5.3" />
+  ),
+  mic: (
+    <>
+      <rect x="6.5" y="2" width="5" height="8" rx="2.5" />
+      <path d="M4 8.5a5 5 0 0 0 10 0M9 13.5V16" />
+    </>
+  ),
+  stop: <rect x="4.5" y="4.5" width="9" height="9" rx="1.5" fill="currentColor" />,
 };
 
 export function Icon({ name, size = 16, className }: IconProps) {

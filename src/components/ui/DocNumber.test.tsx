@@ -10,6 +10,13 @@ describe('DocNumber', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
+  it('wraps long codes only when asked', () => {
+    const { rerender } = render(<DocNumber value="LONG-CODE" />);
+    expect(screen.getByText('LONG-CODE')).not.toHaveClass('wrap');
+    rerender(<DocNumber value="LONG-CODE" wrap />);
+    expect(screen.getByText('LONG-CODE')).toHaveClass('docno', 'wrap');
+  });
+
   it('renders a link when to is given', () => {
     render(
       <MemoryRouter>

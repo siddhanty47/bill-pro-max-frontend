@@ -1,0 +1,15 @@
+/* Month navigation: layout only. Buttons are kit IconButtons. */
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.label {
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 700;
+  font-stretch: 108%;
+  color: var(--text-heading);
+}

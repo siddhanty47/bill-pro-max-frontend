@@ -13,9 +13,10 @@
   align-items: center;
   gap: 10px;
   margin: 0;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--text-xs);
-  letter-spacing: 0.04em;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   color: var(--accent);
 }
 
@@ -38,6 +39,19 @@
 }
 
 .title:first-child {
+  margin-top: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: 14px;
+}
+
+.titleRow:first-child,
+.titleRow .title {
   margin-top: 0;
 }
 

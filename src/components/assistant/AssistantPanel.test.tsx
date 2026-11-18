@@ -328,6 +328,16 @@ describe('AssistantPanel', () => {
       );
     });
 
+    it('shows plain-language recording guidance without a glyph', async () => {
+      const { user } = renderPanel();
+
+      await user.click(screen.getByRole('button', { name: 'Record voice' }));
+
+      const input = await screen.findByLabelText('Message the assistant');
+      expect(input).toHaveAttribute('placeholder', expect.stringContaining('Tap stop to end'));
+      expect(input.getAttribute('placeholder')).not.toContain('■');
+    });
+
     it('reports a transcription failure', async () => {
       server.use(
         http.post(apiUrl('/businesses/biz-1/assistant/transcribe'), () =>

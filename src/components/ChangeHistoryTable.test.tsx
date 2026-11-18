@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import ChangeHistoryTable from './ChangeHistoryTable';
 import { renderWithProviders, signedIn } from '../test/render';
@@ -49,7 +49,7 @@ describe('ChangeHistoryTable', () => {
   it('shows an empty message when there is no history', async () => {
     server.use(http.get(apiUrl(HISTORY), () => page([])));
     renderTable();
-    expect(await screen.findByText('No change history available.')).toBeInTheDocument();
+    expect(await screen.findByText('No changes yet')).toBeInTheDocument();
   });
 
   it('renders created, updated and deleted entries with status badges', async () => {
@@ -78,21 +78,76 @@ describe('ChangeHistoryTable', () => {
     );
     renderTable();
 
-    expect(await screen.findByText('Document created')).toBeInTheDocument();
-    expect(screen.getByText('Document updated')).toBeInTheDocument();
-    expect(screen.getByText('Document deleted')).toBeInTheDocument();
-    expect(screen.getByText('Total Amount')).toBeInTheDocument();
-    expect(screen.getByText('Meta > site')).toBeInTheDocument();
-    expect(screen.getByText('Paid early')).toBeInTheDocument();
-    expect(screen.getByText('[2 items]')).toBeInTheDocument();
-    expect(screen.getByText('{"a":1}')).toBeInTheDocument();
-    expect(screen.getByText('2h ago')).toBeInTheDocument();
-    expect(screen.getAllByText('just now').length).toBeGreaterThan(0);
+    const table = within(await screen.findByRole('table', { name: 'Change history' }));
+    expect(table.getByText('Document created')).toBeInTheDocument();
+    expect(table.getByText('Document updated')).toBeInTheDocument();
+    expect(table.getByText('Document deleted')).toBeInTheDocument();
+    expect(table.getByText('Total amount')).toBeInTheDocument();
+    expect(table.getByText('Meta > site')).toBeInTheDocument();
+    expect(table.getByText('Paid early')).toBeInTheDocument();
+    expect(table.getByText('2 items')).toBeInTheDocument();
+    expect(table.getByText('{"a":1}')).toBeInTheDocument();
+    expect(table.getAllByText('Not set').length).toBe(3);
+    expect(table.getByText('2 Jan')).toBeInTheDocument();
+    expect(table.getByText('Yes')).toBeInTheDocument();
+    expect(table.getByText('Created')).toBeInTheDocument();
+    expect(table.getAllByText('Updated')).toHaveLength(2);
+    expect(table.getByText('Deleted')).toBeInTheDocument();
+    expect(table.getByText('1 Jan 2020, 12:00 am')).toBeInTheDocument();
+  });
 
-    const updated = screen.getAllByText('updated');
-    expect(updated[0]).toHaveClass('status', 'status-pending');
-    expect(screen.getByText('created')).toHaveClass('status', 'status-active');
-    expect(screen.getByText('deleted')).toHaveClass('status', 'status-cancelled');
+  it('sits inside a card', async () => {
+    server.use(http.get(apiUrl(HISTORY), () => page([entry()])));
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Change history' });
+    expect(table.closest('[class*="card"]')).not.toBeNull();
+  });
+
+  it('formats time deterministically and sentence-cases status values', async () => {
+    server.use(
+      http.get(apiUrl(HISTORY), () =>
+        page([
+          entry({
+            _id: 'x',
+            action: 'updated',
+            createdAt: '2020-03-04T15:05:00.000Z',
+            changes: [
+              { field: 'status', oldValue: 'draft', newValue: 'confirmed' },
+              { field: 'notes', oldValue: 'draft', newValue: 'x' },
+            ],
+          }),
+          entry({ _id: 'y', createdAt: '2020-03-04T00:30:00.000Z' }),
+          entry({ _id: 'z', createdAt: '2020-03-04T12:00:00.000Z' }),
+        ])
+      )
+    );
+    renderTable();
+    const table = within(await screen.findByRole('table', { name: 'Change history' }));
+    expect(table.getByText('4 Mar 2020, 3:05 pm')).toBeInTheDocument();
+    expect(table.getByText('4 Mar 2020, 12:30 am')).toBeInTheDocument();
+    expect(table.getByText('4 Mar 2020, 12:00 pm')).toBeInTheDocument();
+    expect(table.getByText('Draft')).toBeInTheDocument();
+    expect(table.getByText('Confirmed')).toBeInTheDocument();
+    expect(table.getByText('draft')).toBeInTheDocument();
+  });
+
+  it('shows old then new in the phone list', async () => {
+    server.use(
+      http.get(apiUrl(HISTORY), () =>
+        page([
+          entry({
+            action: 'updated',
+            changes: [{ field: 'totalAmount', oldValue: 100, newValue: 250 }],
+          }),
+        ])
+      )
+    );
+    renderTable();
+    const list = within(await screen.findByRole('list', { name: 'Change history' }));
+    const old = list.getByText('100');
+    const next = list.getByText('250');
+    expect(old.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(list.getByText('Asha', { exact: false })).toBeInTheDocument();
   });
 
   it('pages through history', async () => {

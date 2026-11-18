@@ -5,7 +5,8 @@
  * editing for status, dates, terms, and per-item rate values.
  */
 import { useState, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import styles from './AgreementDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
   useGetAgreementQuery,
@@ -16,8 +17,21 @@ import {
 import { useGetItemsWithPartyQuery, useGetChallansByAgreementQuery } from '../api/challanApi';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import { EditableField } from '../components/EditableField';
-import { Tabs } from '../components/Tabs';
+import {
+  Card,
+  DataTable,
+  DocNumber,
+  EmptyState,
+  IconButton,
+  Menu,
+  MenuItem,
+  MenuLabel,
+  StatusChip,
+  type Column,
+} from '../components/ui';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
+import { formatDate, formatMoney } from '../utils/format';
+import type { AgreementRate, AgreementRateWithItem, Challan, ItemWithParty } from '../types';
 
 /** Status options matching EditAgreementForm */
 const STATUS_OPTIONS = [
@@ -33,12 +47,9 @@ const BILLING_CYCLE_OPTIONS = [
   { value: 'yearly', label: 'Yearly' },
 ];
 
-/**
- * Formats an ISO date string for display.
- */
-function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString();
+/** Display date, or undefined so the field shows "Not added". */
+function displayDate(dateStr: string | undefined): string | undefined {
+  return dateStr ? formatDate(dateStr) : undefined;
 }
 
 /**
@@ -55,6 +66,7 @@ function toDateInputValue(dateStr: string | undefined): string {
  */
 export function AgreementDetailPage() {
   const { agreementId } = useParams<{ agreementId: string }>();
+  const navigate = useNavigate();
   const { currentBusinessId } = useCurrentBusiness();
 
   const {
@@ -92,13 +104,6 @@ export function AgreementDetailPage() {
   /** Tracks which rate row is currently being saved */
   const [savingRateItemId, setSavingRateItemId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('about');
-
-  const TABS = [
-    { id: 'about', label: 'About' },
-    { id: 'site-items', label: 'Site Items' },
-    { id: 'challans', label: 'Challans' },
-    { id: 'change-history', label: 'Change History' },
-  ];
 
   /**
    * Save handler for top-level agreement fields (status, dates).
@@ -169,9 +174,21 @@ export function AgreementDetailPage() {
     [currentBusinessId, agreementId, updateRate]
   );
 
+  const tabs = agreement
+    ? [
+        { id: 'about', label: 'About' },
+        { id: 'site-items', label: 'Site items', count: itemsAtSite?.length },
+        { id: 'challans', label: 'Challans', count: challans?.length },
+        { id: 'change-history', label: 'Change history' },
+      ]
+    : undefined;
+
+  const optionLabel = (options: { value: string; label: string }[], value: string) =>
+    options.find(o => o.value === value)?.label ?? value;
+
   const sidebar = agreement ? (
     <DetailSection title="Details">
-      <DetailField label="Agreement ID" value={agreement.agreementId} />
+      <DetailField label="Agreement ID" value={agreement.agreementId} mono />
       <DetailField
         label="Party"
         value={
@@ -180,160 +197,189 @@ export function AgreementDetailPage() {
           </Link>
         }
       />
-      <DetailField label="Site Code" value={agreement.siteCode} />
-
-      {/* Editable: Status */}
-      <DetailField
-        label="Status"
-        value={<span className={`status status-${agreement.status}`}>{agreement.status}</span>}
-        editable={{
-          rawValue: agreement.status,
-          inputType: 'select',
-          options: STATUS_OPTIONS,
-          onSave: v => handleSave('status', v),
-          isSaving,
-        }}
-      />
-
-      {/* Editable: Billing Cycle */}
-      <DetailField
-        label="Billing Cycle"
-        value={agreement.terms.billingCycle}
-        editable={{
-          rawValue: agreement.terms.billingCycle,
-          inputType: 'select',
-          options: BILLING_CYCLE_OPTIONS,
-          onSave: v => handleTermsSave('billingCycle', v),
-          isSaving,
-        }}
-      />
-
-      {/* Editable: Payment Due Days */}
-      <DetailField
-        label="Payment Due"
-        value={`${agreement.terms.paymentDueDays} days`}
-        editable={{
-          rawValue: agreement.terms.paymentDueDays,
-          inputType: 'number',
-          suffix: ' days',
-          onSave: v => handleTermsSave('paymentDueDays', v),
-          isSaving,
-        }}
-      />
-
-      {/* Editable: Security Deposit */}
-      <DetailField
-        label="Security Deposit"
-        value={
-          agreement.terms.securityDeposit != null
-            ? `₹${agreement.terms.securityDeposit.toLocaleString()}`
-            : undefined
-        }
-        editable={{
-          rawValue: agreement.terms.securityDeposit,
-          inputType: 'number',
-          prefix: '₹',
-          onSave: v => handleTermsSave('securityDeposit', v),
-          isSaving,
-        }}
-      />
-
-      {/* Editable: Delivery Cartage */}
-      <DetailField
-        label="Delivery Cartage"
-        value={
-          agreement.terms.deliveryCartage != null
-            ? `₹${agreement.terms.deliveryCartage.toLocaleString()}`
-            : undefined
-        }
-        editable={{
-          rawValue: agreement.terms.deliveryCartage,
-          inputType: 'number',
-          prefix: '₹',
-          onSave: v => handleTermsSave('deliveryCartage', v),
-          isSaving,
-        }}
-      />
-
-      {/* Editable: Return Cartage */}
-      <DetailField
-        label="Return Cartage"
-        value={
-          agreement.terms.returnCartage != null
-            ? `₹${agreement.terms.returnCartage.toLocaleString()}`
-            : undefined
-        }
-        editable={{
-          rawValue: agreement.terms.returnCartage,
-          inputType: 'number',
-          prefix: '₹',
-          onSave: v => handleTermsSave('returnCartage', v),
-          isSaving,
-        }}
-      />
-
-      {/* Editable: Loading Charge */}
-      <DetailField
-        label="Loading Charge"
-        value={
-          agreement.terms.loadingCharge != null
-            ? `₹${agreement.terms.loadingCharge.toLocaleString()}`
-            : undefined
-        }
-        editable={{
-          rawValue: agreement.terms.loadingCharge,
-          inputType: 'number',
-          prefix: '₹',
-          onSave: v => handleTermsSave('loadingCharge', v),
-          isSaving,
-        }}
-      />
-
-      {/* Editable: Unloading Charge */}
-      <DetailField
-        label="Unloading Charge"
-        value={
-          agreement.terms.unloadingCharge != null
-            ? `₹${agreement.terms.unloadingCharge.toLocaleString()}`
-            : undefined
-        }
-        editable={{
-          rawValue: agreement.terms.unloadingCharge,
-          inputType: 'number',
-          prefix: '₹',
-          onSave: v => handleTermsSave('unloadingCharge', v),
-          isSaving,
-        }}
-      />
-
-      <DetailField label="Created" value={formatDate(agreement.createdAt)} />
+      <DetailField label="Site code" value={agreement.siteCode} mono />
+      <DetailField label="Created" value={displayDate(agreement.createdAt)} />
     </DetailSection>
   ) : null;
+
+  /** Editable money term (security deposit, cartage, loading charges). */
+  const chargeField = (
+    label: string,
+    field:
+      'securityDeposit' | 'deliveryCartage' | 'returnCartage' | 'loadingCharge' | 'unloadingCharge'
+  ) => {
+    const amount = agreement?.terms[field];
+    return (
+      <DetailField
+        label={label}
+        value={amount != null ? formatMoney(amount) : undefined}
+        mono
+        editable={{
+          rawValue: amount,
+          inputType: 'number',
+          prefix: '₹',
+          onSave: v => handleTermsSave(field, v),
+          isSaving,
+        }}
+      />
+    );
+  };
+
+  // ─── Rates ────────────────────────────────────────────────────────
+
+  const rateCell = (itemId: string, ratePerDay: number) => (
+    <EditableField
+      label="Rate per day"
+      value={ratePerDay}
+      displayValue={formatMoney(ratePerDay)}
+      inputType="number"
+      prefix="₹"
+      compact
+      mono
+      align="right"
+      onSave={async v => handleRateSave(itemId, Number(v))}
+      isSaving={savingRateItemId === itemId}
+    />
+  );
+
+  const openingCell = (itemId: string, openingBalance: number) => (
+    <EditableField
+      label="Opening balance"
+      value={openingBalance}
+      displayValue={`${openingBalance}`}
+      inputType="number"
+      compact
+      mono
+      align="right"
+      onSave={async v => handleOpeningBalanceSave(itemId, Number(v))}
+      isSaving={savingOpeningBalItemId === itemId}
+    />
+  );
+
+  const rateColumns: Column<AgreementRateWithItem>[] = [
+    { key: 'itemCode', header: 'Code', mono: true, nowrap: true },
+    { key: 'itemName', header: 'Item' },
+    { key: 'itemCategory', header: 'Category', hideOnMobile: true },
+    {
+      key: 'ratePerDay',
+      header: 'Rate per day',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: r => rateCell(r.itemId, r.ratePerDay),
+    },
+    {
+      key: 'openingBalance',
+      header: 'Opening balance',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: r => openingCell(r.itemId, r.openingBalance),
+    },
+  ];
+
+  const baseRateColumns: Column<AgreementRate>[] = [
+    { key: 'itemId', header: 'Item ID', mono: true, nowrap: true },
+    {
+      key: 'ratePerDay',
+      header: 'Rate per day',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: r => rateCell(r.itemId, r.ratePerDay),
+    },
+    {
+      key: 'openingBalance',
+      header: 'Opening balance',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: r => openingCell(r.itemId, r.openingBalance ?? 0),
+    },
+  ];
+
+  const rateMeta = (itemId: string, ratePerDay: number, openingBalance: number) => [
+    <span key="rate" className={styles.inline}>
+      Rate {rateCell(itemId, ratePerDay)}
+    </span>,
+    <span key="opening" className={styles.inline}>
+      Opening {openingCell(itemId, openingBalance)}
+    </span>,
+  ];
+
+  const emptyRates = <EmptyState title="No items or rates yet" />;
+  const rateCount = (rates?.length ? rates : agreement?.rates)?.length ?? 0;
+
+  // ─── Site items ───────────────────────────────────────────────────
+
+  const siteItemColumns: Column<ItemWithParty>[] = [
+    { key: 'itemName', header: 'Item' },
+    { key: 'quantity', header: 'Quantity at site', mono: true, align: 'right', nowrap: true },
+  ];
+
+  // ─── Challans ─────────────────────────────────────────────────────
+
+  const challanLink = (c: Challan) => (
+    <DocNumber value={c.challanNumber} to={`/challans/${c._id}`} />
+  );
+
+  const challanColumns: Column<Challan>[] = [
+    { key: 'challanNumber', header: 'Challan', nowrap: true, render: challanLink },
+    { key: 'type', header: 'Type', nowrap: true, render: c => <StatusChip status={c.type} /> },
+    { key: 'date', header: 'Date', nowrap: true, render: c => formatDate(c.date) },
+    {
+      key: 'items',
+      header: 'Items',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: c => c.items.length,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      nowrap: true,
+      render: c => <StatusChip status={c.status} />,
+    },
+  ];
 
   return (
     <DetailPageShell
       title={agreement?.agreementId || 'Agreement'}
-      subtitle={agreement?.partyName ? `Party: ${agreement.partyName}` : undefined}
+      eyebrow={agreement?.partyName ? `Agreement · ${agreement.partyName}` : 'Agreement'}
       status={agreement?.status}
-      statusClassName={`status status-${agreement?.status}`}
       backTo="/agreements"
       backLabel="Agreements"
       isLoading={isLoading}
+      loadingLabel="Loading agreement…"
       error={error}
       onRetry={refetch}
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      idPrefix="agreement"
       sidebar={sidebar}
+      headerActions={
+        agreement ? (
+          <Menu trigger={p => <IconButton label="More actions" icon="more" {...p} />}>
+            <MenuLabel>Set status</MenuLabel>
+            {STATUS_OPTIONS.filter(o => o.value !== agreement.status).map(o => (
+              <MenuItem key={o.value} onSelect={() => handleSave('status', o.value)}>
+                {o.label}
+              </MenuItem>
+            ))}
+          </Menu>
+        ) : undefined
+      }
     >
       {agreement && (
         <>
-          <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
-
           {activeTab === 'about' && (
             <>
-              {/* Period — editable dates */}
-              <DetailSection title="Agreement Period">
+              <DetailSection title="Period">
                 <DetailField
-                  label="Start Date"
-                  value={formatDate(agreement.startDate)}
+                  label="Start date"
+                  value={displayDate(agreement.startDate)}
                   editable={{
                     rawValue: toDateInputValue(agreement.startDate),
                     inputType: 'date',
@@ -342,8 +388,8 @@ export function AgreementDetailPage() {
                   }}
                 />
                 <DetailField
-                  label="End Date"
-                  value={formatDate(agreement.endDate)}
+                  label="End date"
+                  value={displayDate(agreement.endDate)}
                   editable={{
                     rawValue: toDateInputValue(agreement.endDate),
                     inputType: 'date',
@@ -353,169 +399,113 @@ export function AgreementDetailPage() {
                 />
               </DetailSection>
 
-              {/* Items / Rates — each rate row has an editable Rate/Day column */}
-              <DetailSection title={`Items & Rates (${(rates || agreement.rates || []).length})`}>
-                {rates && rates.length > 0 ? (
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Item Code</th>
-                        <th>Item Name</th>
-                        <th>Category</th>
-                        <th className="col-editable-num">Rate/Day</th>
-                        <th className="col-editable-num">Opening Bal.</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rates.map(rate => (
-                        <tr key={rate.itemId}>
-                          <td>{rate.itemCode}</td>
-                          <td>{rate.itemName}</td>
-                          <td>{rate.itemCategory}</td>
-                          <td className="cell-compact">
-                            <EditableField
-                              label=""
-                              value={rate.ratePerDay}
-                              displayValue={`₹${rate.ratePerDay}`}
-                              inputType="number"
-                              prefix="₹"
-                              onSave={async v => handleRateSave(rate.itemId, Number(v))}
-                              isSaving={savingRateItemId === rate.itemId}
-                              compact
-                            />
-                          </td>
-                          <td className="cell-compact">
-                            <EditableField
-                              label=""
-                              value={rate.openingBalance}
-                              displayValue={`${rate.openingBalance}`}
-                              inputType="number"
-                              onSave={async v => handleOpeningBalanceSave(rate.itemId, Number(v))}
-                              isSaving={savingOpeningBalItemId === rate.itemId}
-                              compact
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : agreement.rates && agreement.rates.length > 0 ? (
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Item ID</th>
-                        <th className="col-editable-num">Rate/Day</th>
-                        <th className="col-editable-num">Opening Bal.</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {agreement.rates.map(rate => (
-                        <tr key={rate.itemId}>
-                          <td>{rate.itemId}</td>
-                          <td className="cell-compact">
-                            <EditableField
-                              label=""
-                              value={rate.ratePerDay}
-                              displayValue={`₹${rate.ratePerDay}`}
-                              inputType="number"
-                              prefix="₹"
-                              onSave={async v => handleRateSave(rate.itemId, Number(v))}
-                              isSaving={savingRateItemId === rate.itemId}
-                              compact
-                            />
-                          </td>
-                          <td className="cell-compact">
-                            <EditableField
-                              label=""
-                              value={rate.openingBalance ?? 0}
-                              displayValue={`${rate.openingBalance ?? 0}`}
-                              inputType="number"
-                              onSave={async v => handleOpeningBalanceSave(rate.itemId, Number(v))}
-                              isSaving={savingOpeningBalItemId === rate.itemId}
-                              compact
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p className="text-empty">No items/rates configured.</p>
-                )}
+              <DetailSection title="Terms">
+                <DetailField
+                  label="Billing cycle"
+                  value={optionLabel(BILLING_CYCLE_OPTIONS, agreement.terms.billingCycle)}
+                  editable={{
+                    rawValue: agreement.terms.billingCycle,
+                    inputType: 'select',
+                    options: BILLING_CYCLE_OPTIONS,
+                    onSave: v => handleTermsSave('billingCycle', v),
+                    isSaving,
+                  }}
+                />
+                <DetailField
+                  label="Payment due"
+                  value={
+                    <>
+                      <span className="mono">{agreement.terms.paymentDueDays}</span> days
+                    </>
+                  }
+                  editable={{
+                    rawValue: agreement.terms.paymentDueDays,
+                    inputType: 'number',
+                    suffix: ' days',
+                    onSave: v => handleTermsSave('paymentDueDays', v),
+                    isSaving,
+                  }}
+                />
+                {chargeField('Security deposit', 'securityDeposit')}
+                {chargeField('Delivery cartage', 'deliveryCartage')}
+                {chargeField('Return cartage', 'returnCartage')}
+                {chargeField('Loading charge', 'loadingCharge')}
+                {chargeField('Unloading charge', 'unloadingCharge')}
               </DetailSection>
+
+              <Card title="Items and rates" count={rateCount} padded={false}>
+                {rates && rates.length > 0 ? (
+                  <DataTable
+                    aria-label="Items and rates"
+                    columns={rateColumns}
+                    rows={rates}
+                    rowKey={r => r.itemId}
+                    empty={emptyRates}
+                    mobile={{
+                      title: r => r.itemName,
+                      subtitle: r => r.itemCode,
+                      meta: r => rateMeta(r.itemId, r.ratePerDay, r.openingBalance),
+                    }}
+                  />
+                ) : (
+                  <DataTable
+                    aria-label="Items and rates"
+                    columns={baseRateColumns}
+                    rows={agreement.rates ?? []}
+                    rowKey={r => r.itemId}
+                    empty={emptyRates}
+                    mobile={{
+                      title: r => r.itemId,
+                      meta: r => rateMeta(r.itemId, r.ratePerDay, r.openingBalance ?? 0),
+                    }}
+                  />
+                )}
+              </Card>
             </>
           )}
 
-          {/* Items currently deployed at the site under this agreement */}
           {activeTab === 'site-items' && (
-            <DetailSection title={`Items at Site (${itemsAtSite?.length || 0})`}>
-              {itemsAtSite && itemsAtSite.length > 0 ? (
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Item</th>
-                      <th>Quantity at Site</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {itemsAtSite.map(item => (
-                      <tr key={item.itemId}>
-                        <td>{item.itemName}</td>
-                        <td>{item.quantity}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="text-empty">No items currently at site.</p>
-              )}
-            </DetailSection>
+            <Card title="Items at site" count={itemsAtSite?.length} padded={false}>
+              <DataTable
+                aria-label="Items at site"
+                columns={siteItemColumns}
+                rows={itemsAtSite ?? []}
+                rowKey={i => i.itemId}
+                empty={<EmptyState title="No items at this site" />}
+                mobile={{
+                  title: i => i.itemName,
+                  meta: i => [
+                    <span key="qty">
+                      Qty <span className="mono">{i.quantity}</span>
+                    </span>,
+                  ],
+                }}
+              />
+            </Card>
           )}
 
-          {/* Challans linked to this agreement */}
           {activeTab === 'challans' && (
-            <DetailSection title={`Challans (${challans?.length || 0})`}>
-              {challans && challans.length > 0 ? (
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Challan #</th>
-                      <th>Type</th>
-                      <th>Date</th>
-                      <th>Items</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {challans.map(challan => (
-                      <tr key={challan._id}>
-                        <td>
-                          <Link to={`/challans/${challan._id}`} className="link-accent">
-                            {challan.challanNumber}
-                          </Link>
-                        </td>
-                        <td>
-                          <span
-                            className={`status status-${challan.type === 'delivery' ? 'active' : 'pending'}`}
-                          >
-                            {challan.type}
-                          </span>
-                        </td>
-                        <td>{formatDate(challan.date)}</td>
-                        <td>{challan.items.length}</td>
-                        <td>
-                          <span className={`status status-${challan.status}`}>
-                            {challan.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="text-empty">No challans yet.</p>
-              )}
-            </DetailSection>
+            <Card title="Challans" count={challans?.length} padded={false}>
+              <DataTable
+                aria-label="Challans"
+                columns={challanColumns}
+                rows={challans ?? []}
+                rowKey={c => c._id}
+                onRowClick={c => navigate(`/challans/${c._id}`)}
+                empty={<EmptyState title="No challans yet" />}
+                mobile={{
+                  title: challanLink,
+                  badge: c => <StatusChip status={c.status} />,
+                  subtitle: c => (c.type === 'delivery' ? 'Delivery' : 'Return'),
+                  meta: c => [
+                    formatDate(c.date),
+                    <span key="items">
+                      <span className="mono">{c.items.length}</span> items
+                    </span>,
+                  ],
+                }}
+              />
+            </Card>
           )}
 
           {activeTab === 'change-history' && (

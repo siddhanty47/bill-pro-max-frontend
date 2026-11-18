@@ -335,7 +335,7 @@ export function TeamPage() {
                     meta: e => [
                       e.phone,
                       formatEmployeeType(e.type),
-                      <span key="salary">{salaryCell(e)}</span>,
+                      salaryCell(e) && <span key="salary">{salaryCell(e)}</span>,
                     ],
                     actions: actionsCell,
                   }}

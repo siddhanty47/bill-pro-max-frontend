@@ -1,31 +1,28 @@
 /**
  * @fileoverview Business detail view page
  * @description Detail page for editing business information including address,
- * contact details, and settings. Supports Jira-style inline editing for all fields.
- * Route: /business
+ * contact details, and settings, with inline editing for every field. Built on
+ * the kit's detail recipe. Route: /business
  */
 import { useCallback, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useGetBusinessQuery, useUpdateBusinessMutation } from '../api/businessApi';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
-import { Tabs } from '../components/Tabs';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
+import { formatDate } from '../utils/format';
 import type { BusinessSettings } from '../types';
+
+const TABS = [
+  { id: 'about', label: 'About' },
+  { id: 'change-history', label: 'Change history' },
+];
 
 const BILLING_CYCLE_OPTIONS = [
   { value: 'monthly', label: 'Monthly' },
   { value: 'weekly', label: 'Weekly' },
   { value: 'yearly', label: 'Yearly' },
 ];
-
-/**
- * Formats an ISO date string for display.
- */
-function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString();
-}
 
 /**
  * BusinessDetailPage displays and allows editing of the current business.
@@ -44,11 +41,6 @@ export function BusinessDetailPage() {
   const [updateBusiness, { isLoading: isSaving }] = useUpdateBusinessMutation();
 
   const [activeTab, setActiveTab] = useState('about');
-
-  const TABS = [
-    { id: 'about', label: 'About' },
-    { id: 'change-history', label: 'Change History' },
-  ];
 
   /** Save handler for top-level business fields */
   const handleSave = useCallback(
@@ -85,14 +77,6 @@ export function BusinessDetailPage() {
 
   const sidebar = business ? (
     <DetailSection title="Details">
-      <DetailField
-        label="Status"
-        value={
-          <span className={`status status-${business.isActive ? 'active' : 'inactive'}`}>
-            {business.isActive ? 'Active' : 'Inactive'}
-          </span>
-        }
-      />
       <DetailField label="Created" value={formatDate(business.createdAt)} />
       <DetailField label="Updated" value={formatDate(business.updatedAt)} />
     </DetailSection>
@@ -101,26 +85,28 @@ export function BusinessDetailPage() {
   return (
     <DetailPageShell
       title={business?.name || 'Business'}
-      subtitle="Business details and settings"
-      status={business ? (business.isActive ? 'Active' : 'Inactive') : undefined}
-      statusClassName={`status status-${business?.isActive ? 'active' : 'inactive'}`}
+      eyebrow="Business"
+      status={business ? (business.isActive ? 'active' : 'inactive') : undefined}
       backTo="/"
       backLabel="Dashboard"
       isLoading={isLoading}
+      loadingLabel="Loading business…"
       error={error}
       onRetry={refetch}
+      tabs={business ? TABS : undefined}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      idPrefix="business"
       sidebar={sidebar}
     >
       {business && (
         <>
-          <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
-
           {activeTab === 'about' && (
             <>
-              {/* Contact & Address */}
-              <DetailSection title="Contact & Address">
+              {/* Contact and address */}
+              <DetailSection title="Contact and address">
                 <DetailField
-                  label="Business Name"
+                  label="Business name"
                   value={business.name}
                   editable={{
                     rawValue: business.name,
@@ -141,6 +127,7 @@ export function BusinessDetailPage() {
                 />
                 <DetailField
                   label="Phone"
+                  mono
                   value={business.phone}
                   editable={{
                     rawValue: business.phone ?? '',
@@ -161,6 +148,7 @@ export function BusinessDetailPage() {
                 />
                 <DetailField
                   label="GST"
+                  mono
                   value={business.gst}
                   editable={{
                     rawValue: business.gst ?? '',
@@ -170,7 +158,8 @@ export function BusinessDetailPage() {
                   }}
                 />
                 <DetailField
-                  label="State Code"
+                  label="State code"
+                  mono
                   value={business.stateCode}
                   editable={{
                     rawValue: business.stateCode ?? '',
@@ -181,10 +170,10 @@ export function BusinessDetailPage() {
                 />
               </DetailSection>
 
-              {/* Business Settings */}
-              <DetailSection title="Business Settings">
+              {/* Business settings */}
+              <DetailSection title="Business settings">
                 <DetailField
-                  label="Billing Cycle"
+                  label="Billing cycle"
                   value={
                     BILLING_CYCLE_OPTIONS.find(o => o.value === business.settings.billingCycle)
                       ?.label ?? business.settings.billingCycle
@@ -209,6 +198,7 @@ export function BusinessDetailPage() {
                 />
                 <DetailField
                   label="Default SGST (%)"
+                  mono
                   value={
                     business.settings.defaultSgstRate != null
                       ? `${business.settings.defaultSgstRate}`
@@ -223,6 +213,7 @@ export function BusinessDetailPage() {
                 />
                 <DetailField
                   label="Default CGST (%)"
+                  mono
                   value={
                     business.settings.defaultCgstRate != null
                       ? `${business.settings.defaultCgstRate}`
@@ -237,6 +228,7 @@ export function BusinessDetailPage() {
                 />
                 <DetailField
                   label="Default IGST (%)"
+                  mono
                   value={
                     business.settings.defaultIgstRate != null
                       ? `${business.settings.defaultIgstRate}`
@@ -250,7 +242,8 @@ export function BusinessDetailPage() {
                   }}
                 />
                 <DetailField
-                  label="Payment Due Days"
+                  label="Payment due days"
+                  mono
                   value={
                     business.settings.defaultPaymentDueDays != null
                       ? `${business.settings.defaultPaymentDueDays}`

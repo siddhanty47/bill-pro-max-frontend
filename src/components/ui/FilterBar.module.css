@@ -4,6 +4,8 @@
   align-items: center;
   gap: var(--space-3);
   margin-bottom: var(--space-4);
+  /* The search box grows from 240px (capped by its own max-width). */
+  --search-flex: 1 1 240px;
 }
 
 /* Controls size to their content on desktop (the search box grows on its own). */

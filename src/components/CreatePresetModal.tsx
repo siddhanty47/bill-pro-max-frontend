@@ -1,8 +1,23 @@
 /**
  * Modal for creating a new preset from a business's existing inventory.
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useId } from 'react';
 import { Modal } from './Modal';
+import {
+  Button,
+  Checkbox,
+  EmptyState,
+  Field,
+  Input,
+  Notice,
+  SearchInput,
+  Table,
+  TBody,
+  Td,
+  Th,
+  THead,
+  Tr,
+} from './ui';
 import { getErrorMessage } from '../api/baseApi';
 import { useCreatePresetMutation } from '../api/presetApi';
 import type { Inventory } from '../types';
@@ -21,6 +36,7 @@ export function CreatePresetModal({
   businessId,
   inventory,
 }: CreatePresetModalProps) {
+  const pickerTitleId = useId();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -107,90 +123,100 @@ export function CreatePresetModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create Preset" size="form">
-      <form onSubmit={handleSubmit}>
-        {error && <div className={`error-message ${styles.errorAlert}`}>{error}</div>}
+    <Modal isOpen={isOpen} onClose={onClose} title="Create preset" size="form">
+      <form onSubmit={handleSubmit} className={styles.form} noValidate>
+        {error && <Notice tone="danger">{error}</Notice>}
 
-        <div className="form-content">
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="preset-name">Preset Name *</label>
-              <input
-                id="preset-name"
-                type="text"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                maxLength={100}
-                disabled={isLoading}
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="preset-description">Description</label>
-              <input
-                id="preset-description"
-                type="text"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                maxLength={500}
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>Select Items</label>
-            <input
+        <div className={styles.fields}>
+          <Field label="Preset name" required>
+            <Input
               type="text"
-              placeholder="Search items..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className={styles.searchInput}
+              value={name}
+              onChange={e => setName(e.target.value)}
+              maxLength={100}
               disabled={isLoading}
             />
-            <div className={styles.selectActions}>
-              <button type="button" className={styles.selectBtn} onClick={selectAll}>
-                Select All
-              </button>
-              <button type="button" className={styles.selectBtn} onClick={selectNone}>
-                Clear
-              </button>
-            </div>
-            <div className={styles.itemList}>
-              {filteredInventory.map(item => (
-                <label key={item._id} className={styles.itemRow}>
-                  <input
-                    type="checkbox"
-                    className={styles.itemCheckbox}
-                    checked={selectedIds.has(item._id)}
-                    onChange={() => toggleItem(item._id)}
-                    disabled={isLoading}
-                  />
-                  <span className={styles.itemCode}>{item.code}</span>
-                  <span className={styles.itemName}>{item.name}</span>
-                  <span className={styles.itemCategory}>{item.category}</span>
-                </label>
-              ))}
-            </div>
-            <div className={styles.selectionCount}>{selectedIds.size} items selected</div>
-          </div>
+          </Field>
+          <Field label="Description">
+            <Input
+              type="text"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              maxLength={500}
+              disabled={isLoading}
+            />
+          </Field>
         </div>
 
-        <div className={styles.actions}>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={onClose}
+        <section className={styles.picker} aria-labelledby={pickerTitleId}>
+          <h3 id={pickerTitleId} className={styles.pickerTitle}>
+            Select items
+          </h3>
+          <SearchInput
+            label="Search items"
+            placeholder="Search items"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
             disabled={isLoading}
-          >
+          />
+          <div className={styles.selectActions}>
+            <Button variant="ghost" size="sm" onClick={selectAll}>
+              Select all
+            </Button>
+            <Button variant="ghost" size="sm" onClick={selectNone}>
+              Clear
+            </Button>
+            <span className={styles.selectionCount}>{selectedIds.size} items selected</span>
+          </div>
+          {filteredInventory.length === 0 ? (
+            <EmptyState
+              title={inventory.length === 0 ? 'No items yet' : 'No items match your search'}
+            />
+          ) : (
+            <Table className={styles.itemList} aria-label="Items to include">
+              <THead>
+                <Tr>
+                  <Th aria-label="Include" />
+                  <Th>Code</Th>
+                  <Th>Name</Th>
+                  <Th hideOnMobile>Category</Th>
+                </Tr>
+              </THead>
+              <TBody>
+                {filteredInventory.map(item => (
+                  <Tr key={item._id} onClick={() => !isLoading && toggleItem(item._id)}>
+                    <Td>
+                      <Checkbox
+                        aria-label={`Select ${item.code} ${item.name}`}
+                        checked={selectedIds.has(item._id)}
+                        onChange={() => toggleItem(item._id)}
+                        disabled={isLoading}
+                      />
+                    </Td>
+                    <Td mono nowrap>
+                      {item.code}
+                    </Td>
+                    <Td>{item.name}</Td>
+                    <Td hideOnMobile>{item.category}</Td>
+                  </Tr>
+                ))}
+              </TBody>
+            </Table>
+          )}
+        </section>
+
+        <div className={styles.actions}>
+          <Button onClick={onClose} disabled={isLoading}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             type="submit"
-            className="btn btn-primary"
-            disabled={isLoading || selectedIds.size === 0}
+            loading={isLoading}
+            disabled={selectedIds.size === 0}
           >
-            {isLoading ? 'Creating...' : 'Create Preset'}
-          </button>
+            Create preset
+          </Button>
         </div>
       </form>
     </Modal>
