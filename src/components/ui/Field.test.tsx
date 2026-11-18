@@ -275,3 +275,48 @@ describe('Fieldset', () => {
     expect(screen.getByTestId('fs')).toBeDisabled();
   });
 });
+
+describe('Field labelAction', () => {
+  it('renders the action outside the label and keeps the association', () => {
+    render(
+      <Field label="Password" labelAction={<a href="/forgot">Forgot?</a>}>
+        <Input type="password" />
+      </Field>
+    );
+    const input = screen.getByLabelText('Password');
+    expect(input).toHaveAttribute('type', 'password');
+    const link = screen.getByRole('link', { name: 'Forgot?' });
+    expect(link.closest('label')).toBeNull();
+    expect(link.closest('.labelRow')).not.toBeNull();
+  });
+
+  it('renders no label row without an action', () => {
+    const { container } = render(
+      <Field label="Email">
+        <Input />
+      </Field>
+    );
+    expect(container.querySelector('.labelRow')).toBeNull();
+  });
+});
+
+describe('control size', () => {
+  it('applies lg to Input and Select', () => {
+    render(
+      <>
+        <Input aria-label="Email" size="lg" />
+        <Select aria-label="Role" size="lg">
+          <option>Owner</option>
+        </Select>
+      </>
+    );
+    expect(screen.getByLabelText('Email')).toHaveClass('control', 'lg');
+    expect(screen.getByLabelText('Role')).toHaveClass('control', 'lg');
+  });
+
+  it('does not apply lg by default', () => {
+    render(<Input aria-label="Email" />);
+    expect(screen.getByLabelText('Email')).not.toHaveClass('lg');
+    expect(screen.getByLabelText('Email')).not.toHaveAttribute('size');
+  });
+});

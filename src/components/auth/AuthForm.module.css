@@ -1,0 +1,28 @@
+/* Layout shared by the auth pages (sign in, register, reset, invitation).
+   Look comes from the ui kit: Field, Input/Button size="lg", Notice. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.full {
+  width: 100%;
+}
+
+/* "or" rule between the form and the Google button. */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}

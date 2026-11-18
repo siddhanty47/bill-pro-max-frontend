@@ -63,7 +63,7 @@ Defined in `src/App.tsx`.
 - `/payments`, `/payments/:paymentId`
 - `/team` — Team members & invitations
 
-**Sidebar navigation** defined in `Layout.tsx` (`navItems` array at ~line 58).
+**Sidebar navigation** defined in `Layout.tsx` (`navGroups` array near the top: optional group label + items with `path`, `label`, `icon`).
 
 ## Component Patterns
 
@@ -75,7 +75,7 @@ Defined in `src/App.tsx`.
 
 ### Shared Components
 
-**UI kit — `src/components/ui/`** (import from `components/ui`; one component per pattern, see `ui/README.md`): `Button`, `IconButton`, `Icon`, `GoogleIcon`, `Card`, `StatCard`, `Meter`, `PageHeader`, `EmptyState`, `StatusChip` (tone map in `ui/status.ts`), `DocNumber`, `DataTable` + `Table` primitives, `Field`/`Input`/`Select`/`Textarea`/`Checkbox`/`Fieldset`, `FilterBar`, `Menu`, `Modal`, `Tabs`, `Spinner`, `ErrorMessage`.
+**UI kit — `src/components/ui/`** (import from `components/ui`; one component per pattern, see `ui/README.md`): `Button`, `IconButton`, `Icon`, `GoogleIcon`, `Avatar`, `Notice`, `Card`, `StatCard`, `Meter`, `PageHeader`, `EmptyState`, `StatusChip` (tone map in `ui/status.ts`), `DocNumber`, `DataTable` + `Table` primitives, `Field`/`Input`/`Select`/`Textarea`/`Checkbox`/`Fieldset`, `FilterBar`, `Menu`, `Modal`, `Tabs`, `Spinner`, `ErrorMessage`.
 
 Feature components (being rebuilt from `ui/` parts during the revamp):
 - `Layout.tsx` — App shell with sidebar + header + business switcher
@@ -133,7 +133,7 @@ Feature components (being rebuilt from `ui/` parts during the revamp):
 7. Add routes in `src/App.tsx`:
    - List: `<Route path="newentities" element={<NewEntitiesPage />} />`
    - Detail: `<Route path="newentities/:entityId" element={<NewEntityDetailPage />} />`
-8. Add sidebar link in `src/components/Layout.tsx` — add to `navItems` array (~line 58)
+8. Add sidebar link in `src/components/Layout.tsx` — add an item (with an `Icon` name) to the right group in the `navGroups` array
 
 ## Regression Risks
 

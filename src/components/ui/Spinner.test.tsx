@@ -21,6 +21,12 @@ describe('Spinner', () => {
     expect(status.querySelector('.ring')).toHaveAttribute('aria-hidden', 'true');
   });
 
+  it('drops the visible message when given an empty one', () => {
+    const { container } = render(<Spinner message="" />);
+    expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
+    expect(container.querySelector('p')).toBeNull();
+  });
+
   it('keeps the LoadingSpinner alias and legacy path', () => {
     expect(LoadingSpinner).toBe(Spinner);
     expect(LoadingSpinnerShim).toBe(Spinner);

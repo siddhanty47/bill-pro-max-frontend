@@ -10,6 +10,14 @@ const TAG_CLASS: Record<SearchTag, string> = {
   BILL: styles.tagBill,
 };
 
+const TAG_LABEL: Record<SearchTag, string> = {
+  PARTY: 'Party',
+  AGREEMENT: 'Agreement',
+  INVENTORY: 'Inventory',
+  CHALLAN: 'Challan',
+  BILL: 'Bill',
+};
+
 function Highlighted({ text, query }: { text: string; query: string }) {
   return (
     <>
@@ -52,7 +60,7 @@ export function SearchResultRow({ id, result, query, selected, onHover, onPick }
       onClick={onPick}
       title={result.tag === 'AGREEMENT' ? result.href.replace('/agreements/', '') : undefined}
     >
-      <span className={`${styles.tag} ${TAG_CLASS[result.tag]}`}>{result.tag}</span>
+      <span className={`${styles.tag} ${TAG_CLASS[result.tag]}`}>{TAG_LABEL[result.tag]}</span>
       <span className={styles.rowText}>
         <span className={styles.rowTitle}>
           <Highlighted text={result.title} query={query} />
@@ -60,7 +68,7 @@ export function SearchResultRow({ id, result, query, selected, onHover, onPick }
             <span
               className={`${styles.badge} ${result.badge === 'delivery' ? styles.badgeDelivery : styles.badgeReturn}`}
             >
-              {result.badge}
+              {result.badge === 'delivery' ? 'Delivery' : 'Return'}
             </span>
           )}
         </span>

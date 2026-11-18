@@ -13,9 +13,10 @@ import {
   useAcceptInvitationMutation,
   useDeclineInvitationMutation,
 } from '../api/invitationApi';
-import { baseApi } from '../api/baseApi';
-import styles from './LoginPage.module.css';
-import invStyles from './InvitationAcceptPage.module.css';
+import { baseApi, getErrorMessage } from '../api/baseApi';
+import { AuthLayout } from '../components/auth/AuthLayout';
+import { Button, Notice, Spinner } from '../components/ui';
+import styles from '../components/auth/AuthForm.module.css';
 
 export function InvitationAcceptPage() {
   const { token } = useParams<{ token: string }>();
@@ -23,6 +24,7 @@ export function InvitationAcceptPage() {
   const dispatch = useDispatch();
   const { isAuthenticated } = useAuth();
   const [actionDone, setActionDone] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const {
     data: verifyResponse,
@@ -44,6 +46,7 @@ export function InvitationAcceptPage() {
 
   const handleAccept = async () => {
     if (!token) return;
+    setActionError(null);
     try {
       await acceptInvitation(token).unwrap();
 
@@ -51,18 +54,19 @@ export function InvitationAcceptPage() {
       dispatch(baseApi.util.invalidateTags(['Business']));
 
       setActionDone(true);
-    } catch {
-      // Error handled by RTK Query
+    } catch (err) {
+      setActionError(getErrorMessage(err));
     }
   };
 
   const handleDecline = async () => {
     if (!token) return;
+    setActionError(null);
     try {
       await declineInvitation(token).unwrap();
       setActionDone(true);
-    } catch {
-      // Error handled by RTK Query
+    } catch (err) {
+      setActionError(getErrorMessage(err));
     }
   };
 
@@ -76,84 +80,73 @@ export function InvitationAcceptPage() {
 
   if (isLoading) {
     return (
-      <div className={styles.page}>
-        <div className={styles.container}>
-          <h1>BillProMax</h1>
-          <h2>Loading invitation...</h2>
-        </div>
-      </div>
+      <AuthLayout title="Loading invitation…">
+        <Spinner message="" />
+      </AuthLayout>
     );
   }
 
   if (verifyError || !invitation) {
     return (
-      <div className={styles.page}>
-        <div className={styles.container}>
-          <h1>BillProMax</h1>
-          <h2>Invalid or expired invitation</h2>
-          <button className="btn btn-primary" onClick={() => navigate('/login')}>
-            Go to Login
-          </button>
-        </div>
-      </div>
+      <AuthLayout title="Invalid or expired invitation">
+        <Button
+          size="lg"
+          variant="primary"
+          className={styles.full}
+          onClick={() => navigate('/login')}
+        >
+          Go to sign in
+        </Button>
+      </AuthLayout>
     );
   }
 
   if (actionDone) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.container}>
-          <h1>BillProMax</h1>
-          <h2>Done! Redirecting...</h2>
-        </div>
-      </div>
-    );
+    return <AuthLayout title="Done. Redirecting…" />;
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.container}>
-        <h1>BillProMax</h1>
-        <h2>You&apos;re invited!</h2>
+    <AuthLayout title="You're invited">
+      <p>
+        You have been invited to join <strong>{invitation.businessName}</strong> as{' '}
+        <strong>{invitation.role}</strong>.
+      </p>
 
-        <div className={invStyles.centerText}>
-          <p>
-            You have been invited to join <strong>{invitation.businessName}</strong> as{' '}
-            <strong>{invitation.role}</strong>.
-          </p>
-        </div>
-
+      <div className={styles.form}>
+        {actionError && <Notice tone="danger">{actionError}</Notice>}
         {isAuthenticated ? (
           <>
-            <button
-              className="btn btn-primary"
+            <Button
+              size="lg"
+              variant="primary"
+              className={styles.full}
               onClick={handleAccept}
-              disabled={accepting || declining}
+              loading={accepting}
+              disabled={declining}
             >
-              {accepting ? 'Accepting...' : 'Accept Invitation'}
-            </button>
-            <button
-              className={`btn btn-secondary ${invStyles.marginTop12}`}
+              {accepting ? 'Accepting…' : 'Accept invitation'}
+            </Button>
+            <Button
+              size="lg"
+              className={styles.full}
               onClick={handleDecline}
-              disabled={accepting || declining}
+              loading={declining}
+              disabled={accepting}
             >
-              {declining ? 'Declining...' : 'Decline'}
-            </button>
+              {declining ? 'Declining…' : 'Decline'}
+            </Button>
           </>
         ) : (
           <>
-            <button className="btn btn-primary" onClick={handleSignIn}>
-              Sign In to Accept
-            </button>
-            <button
-              className={`btn btn-secondary ${invStyles.marginTop12}`}
-              onClick={handleCreateAccount}
-            >
-              Create Account to Accept
-            </button>
+            <Button size="lg" variant="primary" className={styles.full} onClick={handleSignIn}>
+              Sign in to accept
+            </Button>
+            <Button size="lg" className={styles.full} onClick={handleCreateAccount}>
+              Create account to accept
+            </Button>
           </>
         )}
       </div>
-    </div>
+    </AuthLayout>
   );
 }

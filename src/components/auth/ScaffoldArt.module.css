@@ -1,0 +1,98 @@
+.scaf {
+  width: 78%;
+  max-width: 560px;
+  position: relative;
+  z-index: 1;
+}
+
+.pipe {
+  stroke: var(--accent);
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: draw 1.2s var(--ease-out) forwards;
+}
+
+.brace {
+  stroke: var(--accent-line);
+  stroke-width: 2;
+  fill: none;
+  stroke-dasharray: 500;
+  stroke-dashoffset: 500;
+  animation: draw 1.4s var(--ease-out) 0.9s forwards;
+}
+
+.coupler {
+  fill: var(--bg-surface);
+  stroke: var(--accent);
+  stroke-width: 2;
+  opacity: 0;
+  animation: pop 0.4s var(--ease-out) forwards;
+}
+
+.dim {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  fill: none;
+}
+
+.ann {
+  opacity: 0;
+  animation: fade 0.8s ease 2s forwards;
+}
+
+.ann text {
+  font: 12px var(--font-mono);
+  fill: var(--text-secondary);
+}
+
+.ledgers .pipe {
+  animation-delay: 0.5s;
+}
+
+.row0 .coupler {
+  animation-delay: 1.5s;
+}
+
+.row1 .coupler {
+  animation-delay: 1.65s;
+}
+
+.row2 .coupler {
+  animation-delay: 1.8s;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pop {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Reduced motion: show the fully drawn final state, no animation. */
+@media (prefers-reduced-motion: reduce) {
+  .pipe,
+  .brace {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
+  .coupler,
+  .ann {
+    animation: none;
+    opacity: 1;
+  }
+}

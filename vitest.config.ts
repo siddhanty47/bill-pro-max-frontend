@@ -33,7 +33,7 @@ export default defineConfig({
       ],
       reporter: ['text-summary', 'json-summary', 'lcov'],
       // Repo-wide floor (ratchet): raise when coverage grows, never lower.
-      thresholds: { lines: 11 },
+      thresholds: { lines: 22 },
     },
   },
 });

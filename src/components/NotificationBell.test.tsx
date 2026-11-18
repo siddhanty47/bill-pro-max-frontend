@@ -14,16 +14,27 @@ describe('NotificationBell', () => {
     renderWithProviders(<NotificationBell />, { preloadedState: signedIn() });
 
     expect(
-      await screen.findByRole('button', { name: 'Notifications (3 unread)' })
+      await screen.findByRole('button', { name: 'Notifications, 3 unread' })
     ).toBeInTheDocument();
   });
 
-  it('caps the badge at 9+', async () => {
+  it('names the unread count', async () => {
     server.use(http.get(apiUrl('/notifications/unread-count'), () => ok({ count: 12 })));
 
     renderWithProviders(<NotificationBell />, { preloadedState: signedIn() });
 
-    expect(await screen.findByText('9+')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: 'Notifications, 12 unread' })
+    ).toBeInTheDocument();
+  });
+
+  it('shows the unread count in the open panel header', async () => {
+    server.use(http.get(apiUrl('/notifications/unread-count'), () => ok({ count: 4 })));
+    const { user } = renderWithProviders(<NotificationBell />, { preloadedState: signedIn() });
+
+    await user.click(await screen.findByRole('button', { name: 'Notifications, 4 unread' }));
+
+    expect(await screen.findByText('4')).toBeInTheDocument();
   });
 
   it('loads notifications only when opened', async () => {

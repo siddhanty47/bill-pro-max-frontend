@@ -2,48 +2,6 @@
   position: relative;
 }
 
-.bell {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  background: none;
-  border: none;
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition:
-    background var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.bell:hover {
-  background: var(--bg-hover);
-  color: var(--text-heading);
-}
-
-.badge {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  position: absolute;
-  top: 3px;
-  right: 2px;
-  background: var(--accent);
-  color: var(--text-on-accent);
-  font-size: 10px;
-  font-weight: 500;
-  min-width: 16px;
-  height: 16px;
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-  outline: 2px solid var(--bg-deepest);
-}
-
 .panel {
   position: absolute;
   top: 100%;
@@ -52,7 +10,7 @@
   max-height: 400px;
   background: var(--bg-elevated);
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-pop);
   z-index: var(--z-popover);
   overflow: hidden;
@@ -60,14 +18,32 @@
 }
 
 .panelHeader {
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-heading);
+}
+
+.panelTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.count {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  background: var(--accent-muted);
+  color: var(--accent);
 }
 
 .markAll {
@@ -148,14 +124,11 @@
 }
 
 @media (max-width: 768px) {
-  .bell {
-    width: 44px;
-    height: 44px;
-  }
-
+  /* Fixed under the header; above AssistantPanel's full-screen mobile panel (see Layout.module.css). */
   .panel {
     position: fixed;
-    top: var(--header-height);
+    z-index: calc(var(--z-panel) + 1);
+    top: calc(var(--header-height) + env(safe-area-inset-top, 0px));
     left: var(--space-3);
     right: var(--space-3);
     width: auto;

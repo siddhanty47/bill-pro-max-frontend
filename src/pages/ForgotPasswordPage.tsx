@@ -4,12 +4,18 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useAuth } from '../hooks/useAuth';
-import styles from './LoginPage.module.css';
+import { AuthLayout } from '../components/auth/AuthLayout';
+import { Button, Field, Input, Notice } from '../components/ui';
+import styles from '../components/auth/AuthForm.module.css';
 
-interface ForgotPasswordForm {
-  email: string;
-}
+const forgotSchema = z.object({
+  email: z.string().min(1, 'Email is required').email('Enter a valid email'),
+});
+
+type ForgotPasswordForm = z.infer<typeof forgotSchema>;
 
 export function ForgotPasswordPage() {
   const { forgotPassword, isLoading, error } = useAuth();
@@ -19,7 +25,7 @@ export function ForgotPasswordPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<ForgotPasswordForm>();
+  } = useForm<ForgotPasswordForm>({ resolver: zodResolver(forgotSchema) });
 
   const onSubmit = async (data: ForgotPasswordForm) => {
     const result = await forgotPassword(data.email);
@@ -29,46 +35,36 @@ export function ForgotPasswordPage() {
   };
 
   return (
-    <div className={styles.page}>
-      <div className={styles.container}>
-        <h1>BillProMax</h1>
-        <h2>Reset Password</h2>
+    <AuthLayout title="Reset password" footer={<Link to="/login">Back to sign in</Link>}>
+      {submitted ? (
+        <Notice tone="success">
+          If an account exists with that email, a reset link has been sent.
+        </Notice>
+      ) : (
+        <form onSubmit={handleSubmit(onSubmit)} className={styles.form} noValidate>
+          <Field label="Email" error={errors.email?.message}>
+            <Input
+              size="lg"
+              type="email"
+              autoComplete="email"
+              aria-required="true"
+              {...register('email')}
+            />
+          </Field>
 
-        {submitted ? (
-          <>
-            <div className={styles.success}>
-              If an account exists with that email, a reset link has been sent.
-            </div>
-            <div className={styles.links}>
-              <Link to="/login">Back to Sign In</Link>
-            </div>
-          </>
-        ) : (
-          <>
-            <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
-              <div className={styles.field}>
-                <input
-                  type="email"
-                  placeholder="Email"
-                  autoComplete="email"
-                  {...register('email', { required: 'Email is required' })}
-                />
-                {errors.email && <span className={styles.fieldError}>{errors.email.message}</span>}
-              </div>
+          {error && <Notice tone="danger">{error}</Notice>}
 
-              {error && <div className={styles.error}>{error}</div>}
-
-              <button type="submit" className="btn btn-primary" disabled={isLoading}>
-                {isLoading ? 'Sending...' : 'Send Reset Link'}
-              </button>
-            </form>
-
-            <div className={styles.links}>
-              <Link to="/login">Back to Sign In</Link>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+          <Button
+            size="lg"
+            variant="primary"
+            type="submit"
+            loading={isLoading}
+            className={styles.full}
+          >
+            {isLoading ? 'Sending…' : 'Send reset link'}
+          </Button>
+        </form>
+      )}
+    </AuthLayout>
   );
 }
