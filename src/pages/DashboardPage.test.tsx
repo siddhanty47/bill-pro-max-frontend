@@ -90,10 +90,13 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Loading dashboard…')).toBeInTheDocument();
   });
 
-  it('renders header without a welcome line and formatted stats', async () => {
+  it('titles the page with the current business name, without a welcome line', async () => {
     useApi();
     renderPage();
-    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Patel Scaffold Co.' })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 1, name: 'Dashboard' })).not.toBeInTheDocument();
     expect(screen.queryByText(/Welcome to/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Add business/ })).toBeInTheDocument();
     // outstanding = 184200 + 60000 + 0 + 0

@@ -44,7 +44,12 @@ function overdueLabel(bill: Bill): string {
 }
 
 export function DashboardPage() {
-  const { currentBusinessId, businesses, isLoading: businessLoading } = useCurrentBusiness();
+  const {
+    currentBusinessId,
+    currentBusiness,
+    businesses,
+    isLoading: businessLoading,
+  } = useCurrentBusiness();
   const [isBusinessModalOpen, setIsBusinessModalOpen] = useState(false);
 
   const [createBusiness, { isLoading: isCreating }] = useCreateBusinessMutation();
@@ -163,7 +168,7 @@ export function DashboardPage() {
   return (
     <div>
       <PageHeader
-        title="Dashboard"
+        title={currentBusiness?.name || 'Dashboard'}
         actions={
           <Button icon="plus" onClick={() => setIsBusinessModalOpen(true)}>
             Add business
