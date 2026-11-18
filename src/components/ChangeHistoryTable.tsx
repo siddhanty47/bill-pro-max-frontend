@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { useGetAuditHistoryQuery } from '../api/auditLogApi';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
-import { Button, Card, DataTable, EmptyState, ErrorMessage, Spinner, StatusChip } from './ui';
+import { Card, DataTable, EmptyState, ErrorMessage, Spinner, StatusChip } from './ui';
 import type { Column } from './ui';
 import { statusLabel } from './ui/status';
 import { formatDate, formatDateTime } from '../utils/format';
@@ -17,7 +17,7 @@ interface ChangeHistoryTableProps {
   documentId: string;
 }
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 25;
 
 /** Date plus time, e.g. "17 Nov, 3:45 pm" — the time matters for audit entries. */
 /**
@@ -146,6 +146,12 @@ export default function ChangeHistoryTable({ documentType, documentId }: ChangeH
         columns={COLUMNS}
         rows={data.data}
         rowKey={e => e._id}
+        pagination={{
+          page: pagination.page,
+          pageSize: pagination.pageSize,
+          total: pagination.total,
+          onPageChange: setPage,
+        }}
         mobile={{
           title: e => summaryOf(e),
           badge: e => <StatusChip status={e.action} />,
@@ -154,20 +160,6 @@ export default function ChangeHistoryTable({ documentType, documentId }: ChangeH
           meta: e => [e.performedBy.name, formatDateTime(e.createdAt)],
         }}
       />
-
-      {pagination.totalPages > 1 && (
-        <div className={styles.pager}>
-          <Button disabled={!pagination.hasPrev} onClick={() => setPage(p => p - 1)}>
-            Previous
-          </Button>
-          <span className={styles.pageInfo}>
-            Page {pagination.page} of {pagination.totalPages}
-          </span>
-          <Button disabled={!pagination.hasNext} onClick={() => setPage(p => p + 1)}>
-            Next
-          </Button>
-        </div>
-      )}
     </Card>
   );
 }

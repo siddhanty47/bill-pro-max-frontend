@@ -70,3 +70,4 @@ export { Modal, type ModalVariant, type ModalSize } from './Modal';
 export { Tabs, TabPanel, type TabPanelProps } from './Tabs';
 export { Spinner } from './Spinner';
 export { ErrorMessage } from './ErrorMessage';
+export { Pagination, type PaginationProps } from './Pagination';

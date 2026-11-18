@@ -1,16 +1,3 @@
-.pager {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-  padding: var(--space-4);
-}
-
-.pageInfo {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-}
-
 .changes {
   display: flex;
   flex-direction: column;

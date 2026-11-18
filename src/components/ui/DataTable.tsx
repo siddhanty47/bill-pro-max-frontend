@@ -1,5 +1,6 @@
-import { Fragment, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import { Fragment, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { EmptyState } from './EmptyState';
+import { Pagination } from './Pagination';
 import { fromInnerControl } from './innerControl';
 import { Table, THead, TBody, Tr, Th, Td } from './Table';
 import styles from './DataTable.module.css';
@@ -40,7 +41,26 @@ export type DataTableProps<T> = {
   'aria-label'?: string;
   /** When set, phones get a two-line list instead of the scrolling table. */
   mobile?: DataTableMobile<T>;
+  /**
+   * Rows per page when the table pages `rows` itself (default 25). The pager only
+   * appears when there are more rows than this, and it goes back to page 1 when
+   * the rows change (a filter or search).
+   */
+  pageSize?: number;
+  /**
+   * Server-side paging: `rows` is already the current page and the backend gave
+   * `total`. The table shows the pager and calls `onPageChange`; it does not slice.
+   */
+  pagination?: {
+    page: number;
+    pageSize: number;
+    total: number;
+    onPageChange: (page: number) => void;
+  };
 };
+
+/** Default rows per page for every table. */
+export const DEFAULT_PAGE_SIZE = 25;
 
 const isEmpty = (n: ReactNode) => n === null || n === undefined || n === false || n === '';
 
@@ -130,8 +150,43 @@ export function DataTable<T>({
   empty,
   'aria-label': ariaLabel,
   mobile,
+  pageSize = DEFAULT_PAGE_SIZE,
+  pagination,
 }: DataTableProps<T>) {
+  const [ownPage, setOwnPage] = useState(1);
+  // Back to page 1 when the rows change (filter/search) — adjusted during render.
+  const signature = `${rows.length}:${rows.length ? rowKey(rows[0]) : ''}`;
+  const [lastSignature, setLastSignature] = useState(signature);
+  if (signature !== lastSignature) {
+    setLastSignature(signature);
+    setOwnPage(1);
+  }
+
   if (rows.length === 0) return <>{empty ?? <EmptyState title="Nothing here yet" />}</>;
+
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+  const clientPage = Math.min(ownPage, pageCount);
+  const visible = pagination
+    ? rows
+    : rows.slice((clientPage - 1) * pageSize, clientPage * pageSize);
+  const pager = pagination ? (
+    <Pagination
+      page={pagination.page}
+      pageSize={pagination.pageSize}
+      total={pagination.total}
+      onPageChange={pagination.onPageChange}
+      label={ariaLabel ? `${ariaLabel} pages` : undefined}
+    />
+  ) : (
+    <Pagination
+      page={clientPage}
+      pageSize={pageSize}
+      total={rows.length}
+      onPageChange={setOwnPage}
+      label={ariaLabel ? `${ariaLabel} pages` : undefined}
+    />
+  );
+
   const table = (
     <Table aria-label={ariaLabel} className={mobile ? styles.tableView : undefined}>
       <THead>
@@ -144,7 +199,7 @@ export function DataTable<T>({
         </Tr>
       </THead>
       <TBody>
-        {rows.map(row => (
+        {visible.map(row => (
           <Tr key={rowKey(row)} onClick={onRowClick ? () => onRowClick(row) : undefined}>
             {columns.map(c => (
               <Td
@@ -162,18 +217,26 @@ export function DataTable<T>({
       </TBody>
     </Table>
   );
-  if (!mobile) return table;
+  if (!mobile) {
+    return (
+      <>
+        {table}
+        {pager}
+      </>
+    );
+  }
   // Both render; CSS shows the table above 768px and the list at or below it.
   return (
     <>
       {table}
       <MobileList
         spec={mobile}
-        rows={rows}
+        rows={visible}
         rowKey={rowKey}
         onRowClick={onRowClick}
         ariaLabel={ariaLabel}
       />
+      {pager}
     </>
   );
 }

@@ -1,0 +1,63 @@
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.summary {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.pages {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gap {
+  min-width: var(--space-6);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.compact {
+  display: none;
+  margin: 0 var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* Phones: numbers collapse to "Page 2 of 6"; summary on its own line. */
+@media (max-width: 480px) {
+  .pagination {
+    justify-content: center;
+  }
+
+  .summary {
+    width: 100%;
+    text-align: center;
+  }
+
+  .pages {
+    display: none;
+  }
+
+  .compact {
+    display: block;
+  }
+}
