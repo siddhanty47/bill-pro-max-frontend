@@ -18,7 +18,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `StatCard` | A single headline number with a label; `tone="highlight"` for the one key stat; `valueTone` (`positive`/`negative`/`warning`) colours the number; `value` optional for a children-only card |
 | `Meter` | A segmented bar with legend (e.g. available vs rented stock) |
 | `ProgressBar` | A determinate progress bar for a running job (takes the surrounding text colour, e.g. inside a `Notice`) |
-| `PageHeader` | The title row at the top of every page, with optional eyebrow, actions and a `badge` beside the title |
+| `PageHeader` | The title row at the top of every page, with optional actions, a `badge` beside the title and a muted `subtitle` under it (only for context shown nowhere else) |
 | `EmptyState` | "Nothing here" states: one short title and at most one action |
 | `StatusChip` | Every status badge; tone comes from `status.ts` |
 | `DocNumber` | Bill, challan and other document numbers, optionally linked; `wrap` lets a long code wrap in a narrow sidebar |
@@ -41,7 +41,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 Detail pages are composed from `components/DetailPageShell` (`DetailPageShell`, `DetailSection`, `DetailField`) and `components/EditableField`, which are built on this kit — see "Detail page" in the skill.
 
 ```tsx
-<DetailPageShell title="Mehta Builders" eyebrow="Party" code="MEHT" status="active"
+<DetailPageShell title="Mehta Builders" status="active"
   backTo="/parties" backLabel="Parties" tabs={TABS} activeTab={tab} onTabChange={setTab} idPrefix="party"
   sidebar={<DetailSection title="Details"><DetailField label="Code" value="MEHT" mono /></DetailSection>}>
   <DetailSection title="Contact"><DetailField label="Email" value={undefined} /></DetailSection>

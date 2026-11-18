@@ -3,7 +3,7 @@
  * @description Detail page for a single party: contact and notes (inline-editable),
  * sites and agreements, bills, payments, statements, share links and change history,
  * one tab each. The reference detail page for the kit's detail recipe:
- * DetailPageShell (eyebrow, status once, tabs with counts, sidebar) + DetailSection /
+ * DetailPageShell (status once, tabs with counts, sidebar) + DetailSection /
  * DetailField rows + kit Cards holding DataTables.
  */
 import { useCallback, useMemo, useState } from 'react';
@@ -411,8 +411,6 @@ export function PartyDetailPage() {
   return (
     <DetailPageShell
       title={party?.name || 'Party'}
-      eyebrow="Party"
-      code={party?.code}
       status={party ? (party.isActive ? 'active' : 'inactive') : undefined}
       backTo="/parties"
       backLabel="Parties"

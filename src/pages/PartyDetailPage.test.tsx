@@ -187,8 +187,7 @@ describe('PartyDetailPage', () => {
     useApi();
     renderPage();
     expect(await screen.findByRole('heading', { name: 'Mehta Builders', level: 1 })).toBeVisible();
-    expect(screen.getByText(/^Party ·/)).toHaveTextContent('Party · MEHT');
-    expect(within(screen.getByText(/^Party ·/)).getByText('MEHT')).toHaveClass('mono');
+    expect(screen.queryByText(/^Party ·/)).not.toBeInTheDocument();
     expect(screen.getAllByText('Active')).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'Back to Parties' })).toHaveAttribute(
       'href',

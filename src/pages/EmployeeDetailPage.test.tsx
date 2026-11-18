@@ -108,7 +108,7 @@ describe('EmployeeDetailPage', () => {
     useApi();
     renderPage();
     expect(await screen.findByRole('heading', { name: 'Kiran Patel', level: 1 })).toBeVisible();
-    expect(screen.getByText('Employee')).toBeVisible();
+    expect(screen.queryByText('Employee')).not.toBeInTheDocument();
     expect(screen.getAllByText('Active')).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'Back to Employees' })).toHaveAttribute(
       'href',

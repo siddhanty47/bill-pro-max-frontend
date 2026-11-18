@@ -1,6 +1,6 @@
 /**
  * @fileoverview Detail page building blocks
- * @description `DetailPageShell` (back link, eyebrow, title + status chip, header
+ * @description `DetailPageShell` (back link, title + status chip, header
  * actions, optional tabs, main column + sidebar), `DetailSection` (a kit Card) and
  * `DetailField` (a label/value row, optionally inline-editable via EditableField).
  * Built on the ui kit; see the "Detail page" recipe in the frontend-design skill.
@@ -43,10 +43,6 @@ export interface DetailTab {
 export interface DetailPageShellProps {
   /** Page title (entity name / number) */
   title: string;
-  /** Entity type for the eyebrow line, e.g. "Party" → "Party · MEHT" */
-  eyebrow?: string;
-  /** Entity code appended to the eyebrow */
-  code?: string;
   /** Lifecycle status, rendered once as a StatusChip beside the title */
   status?: string;
   /** Only for non-lifecycle statuses; lifecycle tones come from ui/status.ts */
@@ -79,23 +75,8 @@ export interface DetailPageShellProps {
   children?: ReactNode;
 }
 
-/** "Party · MEHT": the entity word in the text font, only the code in mono. */
-function eyebrowNode(eyebrow?: string, code?: string): ReactNode {
-  const codeNode = code ? <span className="mono">{code}</span> : null;
-  if (eyebrow && codeNode) {
-    return (
-      <>
-        {eyebrow} · {codeNode}
-      </>
-    );
-  }
-  return eyebrow ?? codeNode;
-}
-
 export function DetailPageShell({
   title,
-  eyebrow,
-  code,
   status,
   statusTone,
   backTo,
@@ -137,7 +118,6 @@ export function DetailPageShell({
 
       <PageHeader
         title={title}
-        eyebrow={eyebrowNode(eyebrow, code)}
         badge={status ? <StatusChip status={status} tone={statusTone} /> : undefined}
         actions={headerActions}
       />

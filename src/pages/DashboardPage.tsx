@@ -29,14 +29,6 @@ import styles from './DashboardPage.module.css';
 
 const MAX_OVERDUE_ROWS = 5;
 
-/** `Monday, 16 November` */
-function todayLabel(): string {
-  const now = new Date();
-  const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
-  const month = now.toLocaleDateString('en-US', { month: 'long' });
-  return `${weekday}, ${now.getDate()} ${month}`;
-}
-
 /** Calendar days past due (local midnight to local midnight), at least 1 for an overdue bill. */
 function daysOverdue(bill: Bill): number {
   const due = new Date(bill.dueDate);
@@ -171,7 +163,6 @@ export function DashboardPage() {
   return (
     <div>
       <PageHeader
-        eyebrow={todayLabel()}
         title="Dashboard"
         actions={
           <Button icon="plus" onClick={() => setIsBusinessModalOpen(true)}>

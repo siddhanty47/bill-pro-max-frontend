@@ -338,7 +338,6 @@ export function AgreementDetailPage() {
   return (
     <DetailPageShell
       title={agreement?.agreementId || 'Agreement'}
-      eyebrow={agreement?.partyName ? `Agreement · ${agreement.partyName}` : 'Agreement'}
       status={agreement?.status}
       backTo="/agreements"
       backLabel="Agreements"

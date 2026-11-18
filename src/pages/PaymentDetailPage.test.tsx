@@ -73,7 +73,7 @@ describe('PaymentDetailPage', () => {
     useApi();
     renderPage();
     expect(await screen.findByRole('heading', { name: '₹1,84,200', level: 1 })).toBeVisible();
-    expect(screen.getByText('Payment')).toBeVisible();
+    expect(screen.queryByText('Payment')).not.toBeInTheDocument();
     expect(screen.getAllByText('Completed')).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'Back to Payments' })).toHaveAttribute(
       'href',

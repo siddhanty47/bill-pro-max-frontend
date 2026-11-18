@@ -8,27 +8,14 @@
   animation: var(--animate-rise);
 }
 
-.eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: var(--accent);
-}
-
-.eyebrow::before {
-  content: '';
-  width: 28px;
-  height: 1px;
-  background: var(--accent);
+.subtitle {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
 }
 
 .title {
-  margin: 14px 0 0;
+  margin: 0;
   font-family: var(--font-display);
   font-stretch: 112%;
   font-weight: 800;
@@ -38,21 +25,11 @@
   color: var(--text-heading);
 }
 
-.title:first-child {
-  margin-top: 0;
-}
-
 .titleRow {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-3);
-  margin-top: 14px;
-}
-
-.titleRow:first-child,
-.titleRow .title {
-  margin-top: 0;
 }
 
 .actions {

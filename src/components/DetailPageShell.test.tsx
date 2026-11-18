@@ -13,12 +13,10 @@ const TABS = [
 ];
 
 describe('DetailPageShell', () => {
-  it('renders the back link, eyebrow with code, title and actions', () => {
+  it('renders the back link, title and actions with no context line above the title', () => {
     renderInRouter(
       <DetailPageShell
         title="Mehta Builders"
-        eyebrow="Party"
-        code="MEHT"
         backTo="/parties"
         backLabel="Parties"
         headerActions={<button type="button">New bill</button>}
@@ -30,10 +28,7 @@ describe('DetailPageShell', () => {
     const back = screen.getByRole('link', { name: 'Back to Parties' });
     expect(back).toHaveAttribute('href', '/parties');
     expect(back).toHaveTextContent('Parties');
-    const code = screen.getByText('MEHT');
-    expect(code).toHaveClass('mono');
-    expect(code.parentElement).toHaveTextContent('Party · MEHT');
-    expect(code.parentElement).not.toHaveClass('mono');
+    expect(screen.getByRole('banner')).not.toHaveTextContent(/·/);
     expect(screen.getByRole('heading', { level: 1, name: 'Mehta Builders' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'New bill' })).toBeInTheDocument();
   });
