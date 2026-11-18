@@ -2,33 +2,32 @@
  * Payment API endpoints
  */
 import { baseApi } from './baseApi';
-import type {
-  Payment,
-  CreatePaymentInput,
-  PaymentStats,
-  ApiResponse,
-  PaginatedResponse,
-} from '../types';
+import { fetchAllPages } from './fetchAllPages';
+import type { Payment, CreatePaymentInput, PaymentStats, ApiResponse } from '../types';
 
 export const paymentApi = baseApi.injectEndpoints({
   endpoints: builder => ({
     getPayments: builder.query<Payment[], string>({
-      query: businessId => `/businesses/${businessId}/payments?pageSize=100`,
-      transformResponse: (response: PaginatedResponse<Payment>) => response.data,
+      queryFn: (businessId, _api, _extra, baseQuery) =>
+        fetchAllPages<Payment>(`/businesses/${businessId}/payments`, baseQuery),
       providesTags: ['Payment'],
     }),
 
     getPaymentsByParty: builder.query<Payment[], { businessId: string; partyId: string }>({
-      query: ({ businessId, partyId }) =>
-        `/businesses/${businessId}/payments?partyId=${encodeURIComponent(partyId)}&pageSize=100`,
-      transformResponse: (response: PaginatedResponse<Payment>) => response.data,
+      queryFn: ({ businessId, partyId }, _api, _extra, baseQuery) =>
+        fetchAllPages<Payment>(
+          `/businesses/${businessId}/payments?partyId=${encodeURIComponent(partyId)}`,
+          baseQuery
+        ),
       providesTags: ['Payment'],
     }),
 
     getPaymentsByBill: builder.query<Payment[], { businessId: string; billId: string }>({
-      query: ({ businessId, billId }) =>
-        `/businesses/${businessId}/payments?billId=${encodeURIComponent(billId)}&pageSize=100`,
-      transformResponse: (response: PaginatedResponse<Payment>) => response.data,
+      queryFn: ({ businessId, billId }, _api, _extra, baseQuery) =>
+        fetchAllPages<Payment>(
+          `/businesses/${businessId}/payments?billId=${encodeURIComponent(billId)}`,
+          baseQuery
+        ),
       providesTags: (_result, _error, { billId }) => ['Payment', { type: 'Bill', id: billId }],
     }),
 

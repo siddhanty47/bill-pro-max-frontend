@@ -2,20 +2,20 @@
  * Inventory API endpoints
  */
 import { baseApi } from './baseApi';
+import { fetchAllPages } from './fetchAllPages';
 import type {
   Inventory,
   CreateInventoryInput,
   AdjustQuantityInput,
   InventoryStats,
   ApiResponse,
-  PaginatedResponse,
 } from '../types';
 
 export const inventoryApi = baseApi.injectEndpoints({
   endpoints: builder => ({
     getInventory: builder.query<Inventory[], string>({
-      query: businessId => `/businesses/${businessId}/inventory?pageSize=100`,
-      transformResponse: (response: PaginatedResponse<Inventory>) => response.data,
+      queryFn: (businessId, _api, _extra, baseQuery) =>
+        fetchAllPages<Inventory>(`/businesses/${businessId}/inventory`, baseQuery),
       providesTags: ['Inventory'],
     }),
 
