@@ -1,0 +1,134 @@
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  font: 500 var(--text-base) var(--font-sans);
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition:
+    transform var(--transition-default),
+    background var(--transition-default),
+    border-color var(--transition-default),
+    box-shadow var(--transition-default),
+    color var(--transition-default);
+}
+
+.sm {
+  height: 30px;
+  padding: 0 12px;
+  font-size: var(--text-sm);
+  gap: 6px;
+}
+
+.primary {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-weight: 600;
+}
+
+/* Every hover rule sets color: as a link (to/href) globals' a:hover would otherwise recolour it. */
+.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  color: var(--text-on-accent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-accent);
+}
+
+.secondary {
+  background: transparent;
+  color: var(--text-heading);
+  border-color: var(--border-default);
+}
+
+.secondary:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-heading);
+  border-color: var(--border-medium);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.ghost:hover:not(:disabled) {
+  color: var(--text-heading);
+  background: var(--bg-hover);
+}
+
+.danger {
+  background: transparent;
+  color: var(--status-danger-text);
+  border-color: var(--status-danger-border);
+}
+
+.danger:hover:not(:disabled) {
+  background: var(--status-danger-bg);
+  color: var(--status-danger-text);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loading:disabled {
+  cursor: progress;
+  opacity: 0.8;
+}
+
+.content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: inherit;
+}
+
+.contentHidden {
+  opacity: 0;
+}
+
+.spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: -7px 0 0 -7px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2s;
+  }
+}
+
+@media (max-width: 768px) {
+  .btn {
+    min-height: 44px;
+  }
+}
+
+.inert {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}

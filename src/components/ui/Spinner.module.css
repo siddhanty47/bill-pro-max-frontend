@@ -1,0 +1,28 @@
+.container {
+  text-align: center;
+  padding: var(--space-10);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.ring {
+  width: 24px;
+  height: 24px;
+  margin: 0 auto var(--space-3);
+  border: 2px solid var(--border-default);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring {
+    animation: none;
+  }
+}

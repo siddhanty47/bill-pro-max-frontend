@@ -74,16 +74,15 @@ Defined in `src/App.tsx`.
 - Forms: `BusinessForm`, `PartyForm`, `InventoryForm`, `AgreementForm`, `ChallanForm`, `BillForm`, `BulkBillForm`, `PaymentForm`
 
 ### Shared Components
+
+**UI kit — `src/components/ui/`** (import from `components/ui`; one component per pattern, see `ui/README.md`): `Button`, `IconButton`, `Icon`, `GoogleIcon`, `Card`, `StatCard`, `Meter`, `PageHeader`, `EmptyState`, `StatusChip` (tone map in `ui/status.ts`), `DocNumber`, `DataTable` + `Table` primitives, `Field`/`Input`/`Select`/`Textarea`/`Checkbox`/`Fieldset`, `FilterBar`, `Menu`, `Modal`, `Tabs`, `Spinner`, `ErrorMessage`.
+
+Feature components (being rebuilt from `ui/` parts during the revamp):
 - `Layout.tsx` — App shell with sidebar + header + business switcher
 - `ProtectedRoute.tsx` — Auth guard, redirects to `/login` if unauthenticated
-- `DataTable.tsx` — Reusable sortable/paginated table
-- `Modal.tsx` — Modal dialog wrapper
-- `ErrorMessage.tsx` — Error display component
-- `LoadingSpinner.tsx` — Loading indicator
+- `DataTable.tsx`, `Modal.tsx`, `Tabs.tsx`, `LoadingSpinner.tsx`, `ErrorMessage.tsx`, `DocumentNumberBadge.tsx` — legacy paths; use the `ui/` versions in new code
 - `DetailPageShell.tsx` — Consistent detail page layout
 - `NotificationBell.tsx` — In-app notification dropdown
-- `Tabs.tsx` — Tab navigation component
-- `DocumentNumberBadge.tsx` — Styled document number display
 - `EditableField.tsx` — Inline-editable field component
 - `ShareLinkManager.tsx` — Share link CRUD (embedded in PartyDetailPage)
 - `ChangeHistoryTable.tsx` — Shared Jira-style audit history table (used in all detail pages)
@@ -94,14 +93,14 @@ Defined in `src/App.tsx`.
 
 ## Styling Rules
 
-**Before building or restyling ANY component, invoke the `frontend-design` skill** (`.claude/skills/frontend-design/`). It documents the dark terminal design system — the exact CSS tokens, reusable global classes, and ghost-button/form/badge recipes every component must follow. The app has one deliberate visual language (green-on-black, monospace, 2px corners, no shadows, hairline borders); components that ignore it look bolted-on.
+**Before building, restyling or migrating ANY component or page, invoke the `frontend-design` skill** (`.claude/skills/frontend-design/`). It documents the design system (the landing page's "calm workspace" language): tokens, the `src/components/ui/` kit and its props, page/form recipes, copy rules and mobile rules.
 
 **MANDATORY: Never use inline `style={}` attributes in JSX.**
 
-- Component styles: CSS modules (`.module.css` files) — `import styles from './Component.module.css'`
-- Global styles: `src/globals.css` — all design tokens live in `:root`
-- **Never hardcode colors/fonts/radii** — always use `var(--…)` tokens from `globals.css`. A literal hex, `white`, non-2px radius, or `box-shadow` will not match the theme.
-- Prefer existing global classes (`.btn`, `.form-group`, `.data-table`, `.status`, `.card`) over re-styling from scratch
+- Use the `ui/` kit for every pattern it covers (buttons, cards, tables, fields, status chips, menus, modals). Never restyle a kit component from a page — change the kit file instead.
+- Page/feature CSS modules (`.module.css`) are **layout only**: grid, flex, gap, margins with `--space-*` tokens.
+- All design tokens live in `src/globals.css` `:root`. **Never hardcode colors/fonts/radii/shadows** — always `var(--…)`. `npm run lint` runs `scripts/check-design-tokens.mjs` to flag violations.
+- Monospace only for numbers, amounts and document numbers; sentence case; no filler copy.
 - If you encounter existing inline styles, refactor them into CSS class definitions
 - Class names: `className={styles.myClass}` or `className="global-class"`
 

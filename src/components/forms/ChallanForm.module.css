@@ -23,8 +23,8 @@
 }
 
 .warning {
-  color: var(--status-warning-text, #b45309);
-  font-size: 0.85rem;
+  color: var(--status-warning-text);
+  font-size: var(--text-sm);
 }
 
 /* ---- Layout helpers ---- */
@@ -36,8 +36,8 @@
 /* ---- Items section (table/spreadsheet style) ---- */
 
 .itemsTableWrap {
-  border: 1px solid var(--border-default);
-  border-radius: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   margin-bottom: 8px;
 }
@@ -57,11 +57,9 @@
 
 .itemsTable thead th {
   background: var(--bg-card);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--text-xs);
+  font-weight: 500;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
 }
 
 .itemsTable tbody tr:last-child td {
@@ -96,18 +94,21 @@
 .itemsTable input[type='number'] {
   width: 100%;
   min-width: 50px;
-  padding: 6px 8px;
-  border: 1px solid var(--border-medium);
-  border-radius: 0;
-  font-size: 13px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
   background: var(--bg-input);
-  color: var(--text-primary);
+  color: var(--text-heading);
 }
 
 .itemsTable input[type='number']:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: none;
+  box-shadow: var(--ring-focus);
 }
 
 .addRowBtn {
@@ -117,8 +118,8 @@
 /* ---- Loss section (table style) ---- */
 
 .lossTableWrap {
-  border: 1px solid var(--border-default);
-  border-radius: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   margin-bottom: 8px;
 }
@@ -138,11 +139,9 @@
 
 .lossTable thead th {
   background: var(--bg-card);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--text-xs);
+  font-weight: 500;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
 }
 
 .lossTable tbody tr:last-child td {
@@ -186,19 +185,20 @@
 .lossTable input[type='text'],
 .lossTable select {
   width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--border-medium);
-  border-radius: 0;
-  font-size: 13px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
   background: var(--bg-input);
-  color: var(--text-primary);
+  color: var(--text-heading);
 }
 
 .lossTable input:focus,
 .lossTable select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: none;
+  box-shadow: var(--ring-focus);
 }
 
 .addLossRowBtn {
@@ -217,7 +217,7 @@
   border: none;
   background: transparent;
   color: var(--text-muted);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition:
     color var(--transition-fast),
@@ -259,24 +259,30 @@
   flex: 2;
 }
 
+.inputSmall,
+.inputMedium {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  background: var(--bg-input);
+  color: var(--text-heading);
+}
+
 .inputSmall {
   width: 70px;
-  padding: 4px 6px;
-  border: 1px solid var(--border-medium);
-  border-radius: 0;
-  font-size: 13px;
-  background: var(--bg-input);
-  color: var(--text-primary);
 }
 
 .inputMedium {
   width: 110px;
-  padding: 4px 6px;
-  border: 1px solid var(--border-medium);
-  border-radius: 0;
-  font-size: 13px;
-  background: var(--bg-input);
-  color: var(--text-primary);
+}
+
+.inputSmall:focus,
+.inputMedium:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--ring-focus);
 }
 
 .editableText {
@@ -295,7 +301,9 @@
 }
 
 .inlineDeleteBtn:hover {
-  text-decoration: underline;
+  color: var(--status-danger-text);
+  background: var(--status-danger-bg);
+  border-radius: var(--radius-sm);
 }
 
 .inlineSaveBtn {
@@ -308,7 +316,7 @@
 }
 
 .inlineSaveBtn:hover {
-  text-decoration: underline;
+  color: var(--accent-hover);
 }
 
 .colWidth80 {

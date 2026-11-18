@@ -16,8 +16,6 @@
 .businessName {
   font-size: 12px;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   margin: 0 0 4px;
 }
 
@@ -26,8 +24,6 @@
   font-weight: 700;
   margin: 0 0 4px;
   color: var(--text-heading);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .scope {
@@ -49,7 +45,6 @@
 .tab {
   padding: 10px 20px;
   font-size: 13px;
-  font-family: var(--font-body);
   cursor: pointer;
   border: none;
   background: none;
@@ -77,8 +72,6 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   margin: 24px 0 12px;
 }
 
@@ -94,8 +87,6 @@
   font-size: 16px;
   font-weight: 700;
   color: var(--text-heading);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   margin: 0 0 8px;
 }
 

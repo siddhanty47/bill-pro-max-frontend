@@ -7,7 +7,7 @@
   max-height: 300px;
   overflow-y: auto;
   border: 1px solid var(--border-default);
-  border-radius: 0;
+  border-radius: var(--radius-lg);
 }
 
 .editRateInline {

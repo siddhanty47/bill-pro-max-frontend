@@ -35,3 +35,5 @@ dist-ssr
 
 # test coverage output
 coverage/
+.superpowers/
+docs/superpowers/

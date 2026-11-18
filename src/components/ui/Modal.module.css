@@ -1,0 +1,148 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-overlay);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+  animation: overlayIn var(--transition-default) both;
+}
+
+.modal {
+  background: var(--bg-elevated);
+  border: none;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-pop);
+  animation: modalIn var(--duration-enter) var(--ease-out) both;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  max-height: 90dvh;
+  overflow-y: auto;
+}
+
+/* Landscape form layout — wider, less vertical scroll */
+.modal.formSize {
+  max-width: min(95vw, 900px);
+  min-width: 600px;
+  max-height: 85vh;
+  max-height: 85dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal.formSize .body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal.formSize .body > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.header h2 {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  font-stretch: 108%;
+  letter-spacing: -0.01em;
+  color: var(--text-heading);
+}
+
+/* Size, radius, colours and the 44px mobile target come from IconButton. */
+.closeButton {
+  flex-shrink: 0;
+}
+
+/* Default (non-form) modals: plain block body, the modal itself scrolls. */
+.body {
+  padding: var(--space-6);
+}
+
+/* Delivery variant — blue accent */
+.delivery {
+  border-top: 2px solid var(--delivery-accent);
+}
+
+.delivery .header {
+  background: transparent;
+}
+
+.delivery .header h2 {
+  color: var(--delivery-accent);
+}
+
+/* Return variant — amber accent */
+.return {
+  border-top: 2px solid var(--return-accent);
+}
+
+.return .header {
+  background: transparent;
+}
+
+.return .header h2 {
+  color: var(--return-accent);
+}
+
+/* Full-screen sheet: header fixed at top, body scrolls. */
+@media (max-width: 768px) {
+  .overlay {
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .modal,
+  .modal.formSize {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .header {
+    padding: calc(var(--space-3) + env(safe-area-inset-top, 0px)) var(--space-4) var(--space-3);
+  }
+
+  .body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-4) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}

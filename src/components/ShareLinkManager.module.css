@@ -1,7 +1,7 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .createRow {
@@ -14,40 +14,45 @@
 .fieldGroup {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .fieldLabel {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.input {
-  padding: 6px 10px;
-  border: 1px solid var(--border-medium);
-  border-radius: 0;
-  font-size: 13px;
-  background: var(--bg-input);
+  font-size: var(--text-sm);
+  font-weight: 500;
   color: var(--text-primary);
 }
 
+.input,
 .select {
-  padding: 6px 10px;
-  border: 1px solid var(--border-medium);
-  border-radius: 0;
-  font-size: 13px;
+  height: 38px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
   background: var(--bg-input);
-  color: var(--text-primary);
+  color: var(--text-heading);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.input:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--ring-focus);
 }
 
 .linkRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--border-light);
-  background: var(--bg-surface);
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
 }
 
 .linkInfo {
@@ -59,16 +64,16 @@
 }
 
 .linkLabel {
-  font-size: 14px;
+  font-size: var(--text-base);
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--text-heading);
 }
 
 .linkMeta {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--text-secondary);
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   flex-wrap: wrap;
 }
 
@@ -78,49 +83,64 @@
   flex-shrink: 0;
 }
 
-.copyBtn {
-  padding: 4px 10px;
-  font-size: 12px;
+.copyBtn,
+.revokeBtn {
+  height: 30px;
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 500;
   cursor: pointer;
-  border: 1px solid var(--border-medium);
-  background: var(--bg-input);
-  color: var(--text-primary);
-  border-radius: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.copyBtn {
+  border: 1px solid var(--border-default);
+  color: var(--text-heading);
 }
 
 .copyBtn:hover {
   background: var(--bg-hover);
+  border-color: var(--border-medium);
 }
 
 .revokeBtn {
-  padding: 4px 10px;
-  font-size: 12px;
-  cursor: pointer;
-  border: 1px solid var(--color-error, #dc3545);
-  background: transparent;
-  color: var(--color-error, #dc3545);
-  border-radius: 0;
+  border: 1px solid var(--status-danger-border);
+  color: var(--status-danger-text);
 }
 
 .revokeBtn:hover {
-  background: var(--color-error, #dc3545);
-  color: #fff;
+  background: var(--status-danger-bg);
+}
+
+.revokedBadge,
+.expiredBadge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
 }
 
 .revokedBadge {
-  font-size: 11px;
-  padding: 2px 8px;
-  background: var(--bg-muted, #eee);
-  color: var(--text-secondary);
+  background: var(--status-neutral-bg);
+  color: var(--status-neutral-text);
 }
 
 .expiredBadge {
-  font-size: 11px;
-  padding: 2px 8px;
-  background: var(--color-warning-bg, #fff3cd);
-  color: var(--color-warning, #856404);
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
 }
 
 .copied {
-  color: var(--color-success, #28a745);
+  color: var(--status-success-text);
+}
+
+.createRow :global(.btn) {
+  height: 38px;
 }
