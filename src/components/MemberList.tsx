@@ -6,10 +6,14 @@ import { useState } from 'react';
 import type { BusinessMember } from '../types';
 import { useUpdateMemberRoleMutation, useRemoveMemberMutation } from '../api/memberApi';
 import { useAuth } from '../hooks/useAuth';
+import { formatDate } from '../utils/format';
+import { Button, DataTable, EmptyState, RowActions, Select, StatusChip, type Column } from './ui';
 
 interface MemberListProps {
   members: BusinessMember[];
   businessId: string;
+  /** Shown as the empty-state action when there are no members. */
+  onInvite?: () => void;
 }
 
 const ROLES = [
@@ -20,18 +24,18 @@ const ROLES = [
   { value: 'viewer', label: 'Viewer' },
 ];
 
-export function MemberList({ members, businessId }: MemberListProps) {
+export function MemberList({ members, businessId, onInvite }: MemberListProps) {
   const { user } = useAuth();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [updateRole] = useUpdateMemberRoleMutation();
   const [removeMember] = useRemoveMemberMutation();
 
-  if (members.length === 0) {
-    return <p className="text-secondary-sm">No members yet. Invite someone to get started.</p>;
-  }
-
-  const handleRoleChange = async (memberId: string, newRole: string) => {
-    await updateRole({ businessId, memberId, role: newRole });
+  const handleRoleChange = async (member: BusinessMember, newRole: string) => {
+    if (newRole === member.role) {
+      setEditingId(null);
+      return;
+    }
+    await updateRole({ businessId, memberId: member._id, role: newRole });
     setEditingId(null);
   };
 
@@ -41,65 +45,76 @@ export function MemberList({ members, businessId }: MemberListProps) {
     }
   };
 
-  return (
-    <table className="data-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Joined</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {members.map(member => {
-          const isCurrentUser = member.userId === user?.id;
-          const isOwner = member.role === 'owner';
+  const isManageable = (member: BusinessMember) =>
+    member.role !== 'owner' && member.userId !== user?.id;
 
-          return (
-            <tr key={member._id}>
-              <td>{member.name || '—'}</td>
-              <td>{member.email}</td>
-              <td>
-                {editingId === member._id ? (
-                  <select
-                    value={member.role}
-                    onChange={e => handleRoleChange(member._id, e.target.value)}
-                    onBlur={() => setEditingId(null)}
-                    autoFocus
-                  >
-                    {ROLES.map(r => (
-                      <option key={r.value} value={r.value}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <span
-                    className={`status-badge status-${member.role}`}
-                    onClick={() => !isOwner && !isCurrentUser && setEditingId(member._id)}
-                    style={{ cursor: !isOwner && !isCurrentUser ? 'pointer' : 'default' }}
-                  >
-                    {member.role}
-                  </span>
-                )}
-              </td>
-              <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
-              <td>
-                {!isOwner && !isCurrentUser && (
-                  <button
-                    className="btn btn-danger btn-sm btn-action-sm"
-                    onClick={() => handleRemove(member._id)}
-                  >
-                    Remove
-                  </button>
-                )}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+  const roleCell = (member: BusinessMember, focus = false) =>
+    editingId === member._id ? (
+      <Select
+        aria-label="Role"
+        value={member.role}
+        onChange={e => handleRoleChange(member, e.target.value)}
+        onBlur={() => setEditingId(null)}
+        autoFocus={focus}
+        onKeyDown={e => e.key === 'Escape' && setEditingId(null)}
+      >
+        {ROLES.map(r => (
+          <option key={r.value} value={r.value}>
+            {r.label}
+          </option>
+        ))}
+      </Select>
+    ) : (
+      <StatusChip status={member.role} />
+    );
+
+  const actionsCell = (member: BusinessMember) =>
+    isManageable(member) ? (
+      <RowActions
+        items={[
+          {
+            label: 'Change role',
+            onClick: () => setEditingId(member._id),
+          },
+          { label: 'Remove', onClick: () => handleRemove(member._id), tone: 'danger' },
+        ]}
+      />
+    ) : null;
+
+  const columns: Column<BusinessMember>[] = [
+    { key: 'name', header: 'Name', render: m => m.name || '—' },
+    { key: 'email', header: 'Email' },
+    { key: 'role', header: 'Role', nowrap: true, render: m => roleCell(m, true) },
+    { key: 'joinedAt', header: 'Joined', nowrap: true, render: m => formatDate(m.joinedAt) },
+    { key: 'actions', header: '', align: 'right', nowrap: true, render: actionsCell },
+  ];
+
+  return (
+    <DataTable
+      aria-label="Members"
+      columns={columns}
+      rows={members}
+      rowKey={m => m._id}
+      empty={
+        <EmptyState
+          title="No members yet"
+          action={
+            onInvite && (
+              <Button variant="primary" icon="plus" onClick={onInvite}>
+                Invite member
+              </Button>
+            )
+          }
+        />
+      }
+      mobile={{
+        title: m => m.name || m.email,
+        subtitle: m => (m.name ? m.email : undefined),
+        badge: roleCell,
+        meta: m => [`Joined ${formatDate(m.joinedAt)}`],
+        actions: actionsCell,
+        actionsPlacement: 'trailing',
+      }}
+    />
   );
 }

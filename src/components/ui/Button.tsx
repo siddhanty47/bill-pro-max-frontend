@@ -13,6 +13,10 @@ export type ButtonProps = {
   loading?: boolean;
   /** At ≤768 the label is visually hidden (kept in the accessible name) and the button becomes a 44px icon square. Needs `icon`. */
   collapseLabel?: boolean;
+  /** Small status-tone dot before the label (e.g. delivery = info, return = warning). */
+  dot?: 'info' | 'warning' | 'success' | 'danger';
+  /** Keyboard-shortcut hint shown after the label (hidden at ≤768). Decorative: wire the key itself with `useHotkey`. */
+  hint?: string;
   to?: string;
   href?: string;
   className?: string;
@@ -25,6 +29,8 @@ export function Button({
   icon,
   loading = false,
   collapseLabel = false,
+  dot,
+  hint,
   to,
   href,
   className,
@@ -51,7 +57,13 @@ export function Button({
       {loading && <span className={styles.spinner} aria-hidden="true" />}
       <span className={loading ? `${styles.content} ${styles.contentHidden}` : styles.content}>
         {icon && <Icon name={icon} size={size === 'sm' ? 14 : 16} />}
+        {dot && <span className={`${styles.dot} ${styles[`dot-${dot}`]}`} aria-hidden="true" />}
         {collapseLabel ? <span className={styles.collapsibleLabel}>{children}</span> : children}
+        {hint && (
+          <kbd className={styles.hint} aria-hidden="true">
+            {hint}
+          </kbd>
+        )}
       </span>
     </>
   );

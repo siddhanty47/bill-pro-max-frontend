@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Tabs } from './Tabs';
+import { Tabs, TabPanel } from './Tabs';
 import { Tabs as TabsShim } from '../Tabs';
 
 const TABS = [
@@ -27,5 +27,35 @@ describe('Tabs', () => {
 
   it('is re-exported from the legacy path', () => {
     expect(TabsShim).toBe(Tabs);
+  });
+
+  it('wires tabs to panels when given an idPrefix', () => {
+    render(
+      <>
+        <Tabs tabs={TABS} activeTab="bills" onChange={vi.fn()} idPrefix="party" />
+        <TabPanel idPrefix="party" tabId="bills" className="extra">
+          Bill list
+        </TabPanel>
+      </>
+    );
+    const tab = screen.getByRole('tab', { name: 'Bills' });
+    expect(tab).toHaveAttribute('id', 'party-tab-bills');
+    expect(tab).toHaveAttribute('aria-controls', 'party-panel-bills');
+    expect(screen.getByRole('tab', { name: 'Challans' })).toHaveAttribute(
+      'aria-controls',
+      'party-panel-challans'
+    );
+    const panel = screen.getByRole('tabpanel', { name: 'Bills' });
+    expect(panel).toHaveAttribute('id', 'party-panel-bills');
+    expect(panel).toHaveAttribute('tabindex', '0');
+    expect(panel).toHaveClass('extra');
+    expect(panel).toHaveTextContent('Bill list');
+  });
+
+  it('omits id wiring without an idPrefix', () => {
+    render(<Tabs tabs={TABS} activeTab="bills" onChange={vi.fn()} />);
+    const tab = screen.getByRole('tab', { name: 'Bills' });
+    expect(tab).not.toHaveAttribute('id');
+    expect(tab).not.toHaveAttribute('aria-controls');
   });
 });

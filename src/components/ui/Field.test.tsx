@@ -211,6 +211,23 @@ describe('inputs', () => {
     expect(screen.getByRole('option', { name: 'A' })).toBeInTheDocument();
   });
 
+  it('Select gets the kit chevron class; Input does not', () => {
+    render(
+      <>
+        <Select aria-label="Status" className="placed">
+          <option>All statuses</option>
+        </Select>
+        <Input aria-label="Search" />
+      </>
+    );
+    expect(screen.getByRole('combobox', { name: 'Status' })).toHaveClass(
+      'control',
+      'select',
+      'placed'
+    );
+    expect(screen.getByLabelText('Search')).not.toHaveClass('select');
+  });
+
   it('Textarea renders with invalid and mono', () => {
     render(<Textarea aria-label="Notes" invalid mono rows={3} />);
     const el = screen.getByRole('textbox', { name: 'Notes' });

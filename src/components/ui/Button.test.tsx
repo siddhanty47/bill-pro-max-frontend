@@ -180,4 +180,17 @@ describe('Button', () => {
       expect(button).toHaveClass(variant);
     }
   );
+
+  it('renders a decorative dot and shortcut hint outside the accessible name', () => {
+    const { container } = render(
+      <Button dot="info" hint="Alt+D">
+        New delivery
+      </Button>
+    );
+    expect(screen.getByRole('button', { name: 'New delivery' })).toBeInTheDocument();
+    const dot = container.querySelector('span[aria-hidden="true"]');
+    expect(dot).toBeInTheDocument();
+    expect(dot).toHaveClass('dot', 'dot-info');
+    expect(screen.getByText('Alt+D')).toHaveAttribute('aria-hidden', 'true');
+  });
 });

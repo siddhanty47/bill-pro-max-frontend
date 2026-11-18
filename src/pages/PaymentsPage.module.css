@@ -1,11 +1,14 @@
+/* Layout only — controls come from the ui kit. */
+
 .summaryGrid {
-  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
 }
 
-.valueReceived {
-  color: var(--status-success-text);
-}
-
-.valuePaid {
-  color: var(--status-danger-text);
+@media (max-width: 768px) {
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
 }

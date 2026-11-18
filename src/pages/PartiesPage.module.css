@@ -1,4 +1,4 @@
 .contactPhone {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--text-muted);
 }

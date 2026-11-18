@@ -6,19 +6,22 @@ import type {
   ThHTMLAttributes,
   HTMLAttributes,
 } from 'react';
+import { fromInnerControl } from './innerControl';
 import styles from './Table.module.css';
 
 type CellExtras = {
   align?: 'left' | 'right' | 'center';
   mono?: boolean;
   hideOnMobile?: boolean;
+  /** Keep the cell's content on one line. */
+  nowrap?: boolean;
 };
 
 export type ThProps = CellExtras & Omit<ThHTMLAttributes<HTMLTableCellElement>, 'align'>;
 export type TdProps = CellExtras & Omit<TdHTMLAttributes<HTMLTableCellElement>, 'align'>;
 
 function cellClass(
-  { align = 'left', mono, hideOnMobile }: CellExtras,
+  { align = 'left', mono, hideOnMobile, nowrap }: CellExtras,
   className: string | undefined
 ) {
   return (
@@ -27,6 +30,7 @@ function cellClass(
       align === 'center' ? styles.center : '',
       mono ? styles.mono : '',
       hideOnMobile ? styles.hideOnMobile : '',
+      nowrap ? styles.nowrap : '',
       className ?? '',
     ]
       .filter(Boolean)
@@ -34,10 +38,23 @@ function cellClass(
   );
 }
 
-export function Table({ children, className }: { children: ReactNode; className?: string }) {
+export type TableProps = {
+  children: ReactNode;
+  /** On the scroll wrapper; placement only. */
+  className?: string;
+  /** Accessible name for the table (use when no visible heading names it). */
+  'aria-label'?: string;
+  /** Visually hidden `<caption>`; names the table for screen readers. */
+  caption?: ReactNode;
+};
+
+export function Table({ children, className, caption, 'aria-label': ariaLabel }: TableProps) {
   return (
     <div className={[styles.wrap, className ?? ''].filter(Boolean).join(' ')}>
-      <table className={styles.table}>{children}</table>
+      <table className={styles.table} aria-label={ariaLabel}>
+        {caption && <caption className={styles.caption}>{caption}</caption>}
+        {children}
+      </table>
     </div>
   );
 }
@@ -49,8 +66,6 @@ export function THead({ children }: { children: ReactNode }) {
 export function TBody({ children }: { children: ReactNode }) {
   return <tbody>{children}</tbody>;
 }
-
-const INTERACTIVE = 'button, a, input, select, textarea, label';
 
 export type TrProps = Omit<HTMLAttributes<HTMLTableRowElement>, 'onClick'> & {
   /** Fires on row click and on Enter when the row itself is focused. */
@@ -66,8 +81,7 @@ export function Tr({ onClick, className, children, onKeyDown, ...rest }: TrProps
     );
   }
   const handleClick = (e: MouseEvent<HTMLTableRowElement>) => {
-    const hit = (e.target as Element).closest(INTERACTIVE);
-    if (hit && e.currentTarget.contains(hit)) return;
+    if (fromInnerControl(e)) return;
     onClick(e);
   };
   const handleKeyDown = (e: KeyboardEvent<HTMLTableRowElement>) => {
@@ -87,17 +101,17 @@ export function Tr({ onClick, className, children, onKeyDown, ...rest }: TrProps
   );
 }
 
-export function Th({ align, mono, hideOnMobile, className, children, ...rest }: ThProps) {
+export function Th({ align, mono, hideOnMobile, nowrap, className, children, ...rest }: ThProps) {
   return (
-    <th {...rest} className={cellClass({ align, mono, hideOnMobile }, className)}>
+    <th {...rest} className={cellClass({ align, mono, hideOnMobile, nowrap }, className)}>
       {children}
     </th>
   );
 }
 
-export function Td({ align, mono, hideOnMobile, className, children, ...rest }: TdProps) {
+export function Td({ align, mono, hideOnMobile, nowrap, className, children, ...rest }: TdProps) {
   return (
-    <td {...rest} className={cellClass({ align, mono, hideOnMobile }, className)}>
+    <td {...rest} className={cellClass({ align, mono, hideOnMobile, nowrap }, className)}>
       {children}
     </td>
   );

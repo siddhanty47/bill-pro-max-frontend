@@ -3,6 +3,7 @@
   font-variant-numeric: tabular-nums;
   color: var(--text-heading);
   font-size: var(--text-sm);
+  white-space: nowrap;
 }
 
 .link {

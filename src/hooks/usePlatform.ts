@@ -11,6 +11,11 @@ const isMac = macPattern.test(navigator.platform);
 /** "⌥" (Option symbol) on macOS, "Alt" on Windows/Linux */
 const modLabel = isMac ? '⌥' : 'Alt';
 
+/** Shortcut hint for an Alt/Option key: "⌥N" on macOS, "Alt+N" elsewhere. */
+export function shortcutLabel(key: string): string {
+  return isMac ? `${modLabel}${key}` : `${modLabel}+${key}`;
+}
+
 export function usePlatform() {
   return { isMac, modLabel } as const;
 }

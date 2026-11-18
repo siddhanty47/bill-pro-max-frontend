@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type ButtonHTMLAttributes,
@@ -13,7 +14,9 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
+import { placePanel } from './placePanel';
 import styles from './Menu.module.css';
 
 export type MenuTriggerProps = {
@@ -38,7 +41,9 @@ export type MenuProps = {
 
 const MenuContext = createContext<{ close: () => void }>({ close: () => {} });
 
-const ITEM_SELECTOR = '[role="menuitem"]:not([aria-disabled="true"]):not(:disabled)';
+// aria-disabled items stay in the arrow-key order (focusable, so their hint can be read).
+const ITEM_SELECTOR = '[role="menuitem"]:not(:disabled)';
+const ENABLED_ITEM_SELECTOR = '[role="menuitem"]:not([aria-disabled="true"]):not(:disabled)';
 
 export function Menu({
   trigger,
@@ -60,12 +65,37 @@ export function Menu({
     triggerRef.current?.focus();
   }, []);
 
+  useLayoutEffect(() => {
+    if (!open) return;
+    const place = () => {
+      if (menuRef.current && triggerRef.current) {
+        placePanel(menuRef.current, triggerRef.current, align);
+      }
+    };
+    place();
+    const onScroll = (e: Event) => {
+      if (e.target instanceof Node && menuRef.current?.contains(e.target)) return;
+      // Only pull focus back to the trigger if it was inside the panel.
+      if (menuRef.current?.contains(document.activeElement)) triggerRef.current?.focus();
+      setOpen(false);
+    };
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', onScroll, true);
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', onScroll, true);
+    };
+  }, [open, align]);
+
   useEffect(() => {
     if (!open) return;
-    const first = menuRef.current?.querySelector<HTMLElement>(ITEM_SELECTOR);
+    const first =
+      menuRef.current?.querySelector<HTMLElement>(ENABLED_ITEM_SELECTOR) ??
+      menuRef.current?.querySelector<HTMLElement>(ITEM_SELECTOR);
     (first ?? menuRef.current)?.focus();
     const onMouseDown = (e: globalThis.MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false);
     };
     document.addEventListener('mousedown', onMouseDown);
     return () => document.removeEventListener('mousedown', onMouseDown);
@@ -106,29 +136,31 @@ export function Menu({
         'aria-controls': open ? menuId : undefined,
         ref: triggerRef,
       })}
-      {open && (
-        <MenuContext.Provider value={{ close }}>
-          <div
-            {...rest}
-            id={menuId}
-            role="menu"
-            ref={menuRef}
-            // Focusable so a mousedown on padding, a label or a divider keeps
-            // focus inside the menu (Escape/arrows keep working).
-            tabIndex={-1}
-            className={[
-              styles.menu,
-              align === 'end' ? styles.alignEnd : styles.alignStart,
-              menuClassName,
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            onKeyDown={handleKeyDown}
-          >
-            {children}
-          </div>
-        </MenuContext.Provider>
-      )}
+      {open &&
+        createPortal(
+          <MenuContext.Provider value={{ close }}>
+            <div
+              {...rest}
+              id={menuId}
+              role="menu"
+              ref={menuRef}
+              // Focusable so a mousedown on padding, a label or a divider keeps
+              // focus inside the menu (Escape/arrows keep working).
+              tabIndex={-1}
+              className={[
+                styles.menu,
+                align === 'end' ? styles.alignEnd : styles.alignStart,
+                menuClassName,
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              onKeyDown={handleKeyDown}
+            >
+              {children}
+            </div>
+          </MenuContext.Provider>,
+          document.body
+        )}
     </div>
   );
 }
@@ -153,6 +185,8 @@ export function MenuItem({
   const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
     onClick?.(e);
     if (e.defaultPrevented) return;
+    // aria-disabled items are focusable but never activate.
+    if (rest['aria-disabled'] === true || rest['aria-disabled'] === 'true') return;
     onSelect?.();
     close();
   };

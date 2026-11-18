@@ -101,7 +101,7 @@ export function AddSiteModal({ isOpen, onClose, businessId, party }: AddSiteModa
   const existingSiteCodes = party.sites.map(s => s.code).join(', ') || 'None';
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title={`Add Site to ${party.name}`} size="form">
+    <Modal isOpen={isOpen} onClose={handleClose} title={`Add site to ${party.name}`} size="form">
       <form onSubmit={handleSubmit(handleFormSubmit)}>
         {error && <div className={`error-message ${styles.errorAlert}`}>{error}</div>}
 

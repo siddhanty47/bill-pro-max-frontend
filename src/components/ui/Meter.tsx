@@ -10,20 +10,25 @@ export function Meter({ segments }: { segments: MeterSegment[] }) {
   const total = segments.reduce((sum, s) => sum + s.value, 0);
   const ariaLabel = segments.map(s => `${s.label} ${fmt(s.value)} of ${fmt(total)}`).join(', ');
 
+  // Round each width once, then place every segment at the sum of the rounded widths
+  // before it, and give the last one the remainder: no 0.1% gaps or overlaps.
   let offset = 0;
   const rects =
     total > 0
-      ? segments.map(s => {
-          const width = (s.value / total) * 100;
+      ? segments.map((s, i) => {
           const x = offset;
-          offset += width;
+          const width =
+            i === segments.length - 1
+              ? Math.max(0, round1(100 - x))
+              : round1((s.value / total) * 100);
+          offset = round1(offset + width);
           return (
             <rect
-              key={s.label}
+              key={i}
               className={styles[s.tone]}
-              x={`${round1(x)}%`}
+              x={`${x}%`}
               y="0"
-              width={`${round1(width)}%`}
+              width={`${width}%`}
               height="6"
             />
           );
@@ -43,8 +48,8 @@ export function Meter({ segments }: { segments: MeterSegment[] }) {
         {rects}
       </svg>
       <ul className={styles.legend}>
-        {segments.map(s => (
-          <li key={s.label} className={styles.item}>
+        {segments.map((s, i) => (
+          <li key={i} className={styles.item}>
             <span className={`${styles.swatch} ${styles[`sw-${s.tone}`]}`} aria-hidden="true" />
             {s.label} <span className="mono">{fmt(s.value)}</span>
           </li>

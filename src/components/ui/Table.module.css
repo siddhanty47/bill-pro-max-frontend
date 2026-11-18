@@ -12,7 +12,7 @@
 
 .table th,
 .table td {
-  padding: 14px 20px;
+  padding: 14px 16px;
   text-align: left;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-primary);
@@ -37,8 +37,18 @@
   border-bottom: 0;
 }
 
-.table tbody tr:hover {
+/* Hover only signals rows you can open. */
+.table tbody .clickable:hover {
   background: var(--bg-hover);
+}
+
+.caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .clickable {
@@ -56,6 +66,10 @@
 
 .table .center {
   text-align: center;
+}
+
+.table .nowrap {
+  white-space: nowrap;
 }
 
 .table .mono {

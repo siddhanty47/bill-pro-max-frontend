@@ -156,7 +156,43 @@
   }
 }
 
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-info {
+  background: var(--status-info-text);
+}
+
+.dot-warning {
+  background: var(--status-warning-text);
+}
+
+.dot-success {
+  background: var(--status-success-text);
+}
+
+.dot-danger {
+  background: var(--status-danger-text);
+}
+
+.hint {
+  font: 500 11px var(--font-mono);
+  line-height: 1.4;
+  padding: 0 5px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  opacity: 0.6;
+}
+
 @media (max-width: 768px) {
+  .hint {
+    display: none;
+  }
+
   .btn {
     min-height: 44px;
   }

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Meter } from './Meter';
 
@@ -38,5 +38,36 @@ describe('Meter', () => {
     );
     expect(container.querySelectorAll('rect')).toHaveLength(0);
     expect(screen.getByText('Empty')).toBeInTheDocument();
+  });
+
+  it('leaves no gaps: each x is the sum of the previous rounded widths, ending at 100%', () => {
+    const thirds = [
+      { value: 1, tone: 'accent' as const, label: 'A' },
+      { value: 1, tone: 'info' as const, label: 'B' },
+      { value: 1, tone: 'warning' as const, label: 'C' },
+    ];
+    const { container } = render(<Meter segments={thirds} />);
+    const rects = Array.from(container.querySelectorAll('rect'));
+    const xs = rects.map(r => parseFloat(r.getAttribute('x') as string));
+    const ws = rects.map(r => parseFloat(r.getAttribute('width') as string));
+    expect(xs[0]).toBe(0);
+    expect(xs[1]).toBeCloseTo(ws[0], 5);
+    expect(xs[2]).toBeCloseTo(ws[0] + ws[1], 5);
+    expect(xs[2] + ws[2]).toBeCloseTo(100, 5);
+  });
+
+  it('renders segments that share a label without key collisions', () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { container } = render(
+      <Meter
+        segments={[
+          { value: 1, tone: 'accent', label: 'Same' },
+          { value: 2, tone: 'info', label: 'Same' },
+        ]}
+      />
+    );
+    expect(container.querySelectorAll('rect')).toHaveLength(2);
+    expect(container.querySelectorAll('li')).toHaveLength(2);
+    expect(errSpy).not.toHaveBeenCalled();
   });
 });

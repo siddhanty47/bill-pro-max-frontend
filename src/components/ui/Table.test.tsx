@@ -40,6 +40,25 @@ describe('Table primitives', () => {
     expect(screen.getByRole('cell', { name: '10' })).toHaveClass('right', 'hideOnMobile');
   });
 
+  it('applies the nowrap class to cells and headers', () => {
+    render(
+      <Table>
+        <THead>
+          <Tr>
+            <Th nowrap>Head</Th>
+          </Tr>
+        </THead>
+        <TBody>
+          <Tr>
+            <Td nowrap>Cell</Td>
+          </Tr>
+        </TBody>
+      </Table>
+    );
+    expect(screen.getByRole('columnheader')).toHaveClass('nowrap');
+    expect(screen.getByRole('cell')).toHaveClass('nowrap');
+  });
+
   it('keeps non-clickable rows out of the tab order', () => {
     renderTable();
     const row = screen.getAllByRole('row')[1];
@@ -116,5 +135,29 @@ describe('Table primitives', () => {
     expect(screen.getByRole('cell')).toHaveAttribute('title', 't');
     expect(screen.getAllByRole('row')[1]).toHaveClass('clickable', 'r2');
     expect(screen.getAllByRole('row')[1]).toHaveAttribute('id', 'row');
+  });
+
+  it('accepts an aria-label and a visually hidden caption', () => {
+    const { rerender } = render(
+      <Table aria-label="Bills">
+        <TBody>
+          <Tr>
+            <Td>x</Td>
+          </Tr>
+        </TBody>
+      </Table>
+    );
+    expect(screen.getByRole('table', { name: 'Bills' })).toBeInTheDocument();
+    rerender(
+      <Table caption="Recent bills">
+        <TBody>
+          <Tr>
+            <Td>x</Td>
+          </Tr>
+        </TBody>
+      </Table>
+    );
+    expect(screen.getByRole('table', { name: 'Recent bills' })).toBeInTheDocument();
+    expect(screen.getByText('Recent bills')).toHaveClass('caption');
   });
 });
