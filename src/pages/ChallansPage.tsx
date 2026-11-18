@@ -5,10 +5,12 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { LIST_PAGE_SIZE, useListPage } from '../hooks/useListPage';
 import { shortcutLabel } from '../hooks/usePlatform';
 import { useAuth } from '../hooks/useAuth';
 import {
-  useGetChallansQuery,
+  useGetChallansPageQuery,
   useCreateChallanMutation,
   useConfirmChallanMutation,
 } from '../api/challanApi';
@@ -49,10 +51,6 @@ const TYPE_OPTIONS = [
 
 const TYPE_LABEL: Record<Challan['type'], string> = { delivery: 'Delivery', return: 'Return' };
 
-const byNewest = (a: Challan, b: Challan) =>
-  new Date(b.date).getTime() - new Date(a.date).getTime() ||
-  b.challanNumber.localeCompare(a.challanNumber, undefined, { numeric: true });
-
 const itemsLabel = (c: Challan) => `${c.items.length} ${c.items.length === 1 ? 'item' : 'items'}`;
 
 function TypeDot({ type }: { type: Challan['type'] }) {
@@ -70,14 +68,31 @@ export function ChallansPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
 
+  // Filters and search run on the server; the table shows one page at a time.
+  const search = useDebouncedValue(searchTerm.trim());
+  const type = typeFilter === 'all' ? undefined : typeFilter;
+  const filtersKey = `${search}|${type ?? ''}|${statusFilter}`;
+  const [lastTotal, setLastTotal] = useState<number | undefined>(undefined);
+  const [page, setPage] = useListPage(filtersKey, lastTotal);
+
   const {
-    data: challans,
+    data: pageData,
     isLoading,
     error,
     refetch,
-  } = useGetChallansQuery(currentBusinessId || '', {
-    skip: !currentBusinessId,
-  });
+  } = useGetChallansPageQuery(
+    {
+      businessId: currentBusinessId || '',
+      page,
+      pageSize: LIST_PAGE_SIZE,
+      search: search || undefined,
+      status: statusFilter || undefined,
+      type,
+    },
+    { skip: !currentBusinessId }
+  );
+  if (pageData && pageData.total !== lastTotal) setLastTotal(pageData.total);
+  const hasFilters = Boolean(search || type || statusFilter);
 
   const { data: parties } = useGetPartiesQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
@@ -145,20 +160,9 @@ export function ChallansPage() {
     return agreement?.siteCode ?? '—';
   };
 
-  // Filter challans, newest first
-  const filteredChallans = (challans || [])
-    .filter(challan => {
-      const matchesSearch =
-        !searchTerm ||
-        challan.challanNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        getPartyName(challan.partyId).toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesType = typeFilter === 'all' || challan.type === typeFilter;
-      const matchesStatus = !statusFilter || challan.status === statusFilter;
-      return matchesSearch && matchesType && matchesStatus;
-    })
-    .sort(byNewest);
+  const challans = pageData?.rows ?? [];
 
-  const hasDraftChallans = filteredChallans.some(c => c.status === 'draft');
+  const hasDraftChallans = challans.some(c => c.status === 'draft');
 
   const confirmButton = (challan: Challan) =>
     challan.status === 'draft' ? (
@@ -280,11 +284,17 @@ export function ChallansPage() {
         <DataTable
           aria-label="Challans"
           columns={columns}
-          rows={filteredChallans}
+          rows={challans}
           rowKey={c => c._id}
+          pagination={{
+            page,
+            pageSize: LIST_PAGE_SIZE,
+            total: pageData?.total ?? 0,
+            onPageChange: setPage,
+          }}
           onRowClick={c => navigate(`/challans/${c._id}`)}
           empty={
-            (challans || []).length === 0 ? (
+            !hasFilters ? (
               <EmptyState
                 title="No challans yet"
                 action={

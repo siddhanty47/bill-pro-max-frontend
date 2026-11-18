@@ -2,6 +2,8 @@
  * Bill API endpoints
  */
 import { baseApi } from './baseApi';
+import { fetchAllPages } from './fetchAllPages';
+import { listParams, toPagedList } from './listPage';
 import type {
   Bill,
   GenerateBillInput,
@@ -9,13 +11,15 @@ import type {
   BillGenerationResponse,
   ApiResponse,
   PaginatedResponse,
+  PagedList,
+  ListPageArgs,
 } from '../types';
 
 export const billApi = baseApi.injectEndpoints({
   endpoints: builder => ({
     getBills: builder.query<Bill[], string>({
-      query: businessId => `/businesses/${businessId}/bills?pageSize=100`,
-      transformResponse: (response: PaginatedResponse<Bill>) => response.data,
+      queryFn: (businessId, _api, _extra, baseQuery) =>
+        fetchAllPages<Bill>(`/businesses/${businessId}/bills`, baseQuery),
       providesTags: ['Bill'],
     }),
 
@@ -25,6 +29,16 @@ export const billApi = baseApi.injectEndpoints({
       providesTags: (_result, _error, { billId }) => [{ type: 'Bill', id: billId }],
     }),
 
+    /** One page of bills, filtered and searched on the server (Bills page). */
+    getBillsPage: builder.query<PagedList<Bill>, ListPageArgs>({
+      query: ({ businessId, page, pageSize, search, status }) => ({
+        url: `/businesses/${businessId}/bills`,
+        params: listParams({ page, pageSize, search, status }),
+      }),
+      transformResponse: (response: PaginatedResponse<Bill>) => toPagedList(response),
+      providesTags: ['Bill'],
+    }),
+
     getOverdueBills: builder.query<Bill[], string>({
       query: businessId => `/businesses/${businessId}/bills/overdue`,
       transformResponse: (response: ApiResponse<Bill[]>) => response.data,
@@ -32,9 +46,11 @@ export const billApi = baseApi.injectEndpoints({
     }),
 
     getBillsByParty: builder.query<Bill[], { businessId: string; partyId: string }>({
-      query: ({ businessId, partyId }) =>
-        `/businesses/${businessId}/bills?partyId=${encodeURIComponent(partyId)}&pageSize=100`,
-      transformResponse: (response: PaginatedResponse<Bill>) => response.data,
+      queryFn: ({ businessId, partyId }, _api, _extra, baseQuery) =>
+        fetchAllPages<Bill>(
+          `/businesses/${businessId}/bills?partyId=${encodeURIComponent(partyId)}`,
+          baseQuery
+        ),
       providesTags: ['Bill'],
     }),
 
@@ -133,6 +149,7 @@ export const billApi = baseApi.injectEndpoints({
 
 export const {
   useGetBillsQuery,
+  useGetBillsPageQuery,
   useGetBillQuery,
   useGetOverdueBillsQuery,
   useGetPaymentSummaryQuery,

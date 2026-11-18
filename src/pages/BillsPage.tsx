@@ -5,9 +5,11 @@ import { useState, useRef, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { LIST_PAGE_SIZE, useListPage } from '../hooks/useListPage';
 import { shortcutLabel } from '../hooks/usePlatform';
 import {
-  useGetBillsQuery,
+  useGetBillsPageQuery,
   useGenerateBillMutation,
   useBulkGenerateBillsMutation,
   useUpdateBillStatusMutation,
@@ -52,14 +54,30 @@ export function BillsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
 
+  // Status filter and search run on the server; the table shows one page at a time.
+  const search = useDebouncedValue(searchTerm.trim());
+  const filtersKey = `${search}|${statusFilter}`;
+  const [lastTotal, setLastTotal] = useState<number | undefined>(undefined);
+  const [page, setPage] = useListPage(filtersKey, lastTotal);
+
   const {
-    data: bills,
+    data: pageData,
     isLoading,
     error,
     refetch,
-  } = useGetBillsQuery(currentBusinessId || '', {
-    skip: !currentBusinessId,
-  });
+  } = useGetBillsPageQuery(
+    {
+      businessId: currentBusinessId || '',
+      page,
+      pageSize: LIST_PAGE_SIZE,
+      search: search || undefined,
+      status: statusFilter || undefined,
+    },
+    { skip: !currentBusinessId }
+  );
+  if (pageData && pageData.total !== lastTotal) setLastTotal(pageData.total);
+  const hasFilters = Boolean(search || statusFilter);
+  const bills = pageData?.rows ?? [];
 
   const { data: parties } = useGetPartiesQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
@@ -181,15 +199,6 @@ export function BillsPage() {
   const getPartyName = (partyId: string) => {
     return parties?.find(p => p._id === partyId)?.name || 'Unknown';
   };
-
-  const filteredBills = (bills || []).filter(bill => {
-    const matchesSearch =
-      !searchTerm ||
-      bill.billNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getPartyName(bill.partyId).toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = !statusFilter || bill.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
 
   const billDateOf = (bill: Bill) => bill.billDate ?? bill.billingPeriod?.end ?? bill.createdAt;
   const periodOf = (bill: Bill) =>
@@ -339,11 +348,17 @@ export function BillsPage() {
         <DataTable
           aria-label="Bills"
           columns={columns}
-          rows={filteredBills}
+          rows={bills}
           rowKey={bill => bill._id}
+          pagination={{
+            page,
+            pageSize: LIST_PAGE_SIZE,
+            total: pageData?.total ?? 0,
+            onPageChange: setPage,
+          }}
           onRowClick={bill => navigate(`/bills/${bill._id}`)}
           empty={
-            (bills || []).length === 0 ? (
+            !hasFilters ? (
               <EmptyState
                 title="No bills yet"
                 action={

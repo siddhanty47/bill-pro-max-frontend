@@ -138,6 +138,9 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
 ## Recipes
 
 **List page** = `PageHeader` + `FilterBar` + `Card padded={false}` holding a `DataTable` with a `mobile` spec.
+- **Paging:** every `DataTable` pages itself 25 rows at a time and shows the kit `Pagination` bar only when there are more rows; it returns to page 1 when the rows change. Never build a pager by hand.
+- **Lists that grow without bound (challans, bills)** page on the server: `useGet…PageQuery({ businessId, page, pageSize: LIST_PAGE_SIZE, search, status, … })` returns `{ rows, total }`; keep `page` in `useListPage(filtersKey, total)` (resets on filter change, clamps when the total shrinks), debounce search with `useDebouncedValue`, and pass `pagination={{ page, pageSize, total, onPageChange: setPage }}` to `DataTable`. Filters and search must then be sent to the backend, never applied to the page in the browser.
+- Whole-list queries (`useGet…Query`) load every backend page via `fetchAllPages`; there is no 100-row cap.
 ```tsx
 import { formatDate, formatMoney } from '../utils/format';
 
