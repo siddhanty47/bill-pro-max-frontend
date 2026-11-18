@@ -1,21 +1,5 @@
 /* Layout only — controls come from the ui kit. */
 
-.dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.delivery {
-  background: var(--status-info-text);
-}
-
-.return {
-  background: var(--status-warning-text);
-}
-
 .type {
   display: inline-flex;
   align-items: center;

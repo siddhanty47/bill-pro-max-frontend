@@ -3,7 +3,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  animation: rise var(--duration-enter) var(--ease-out) backwards;
+  animation: var(--animate-rise);
   transition:
     border-color 0.2s,
     transform 0.25s var(--ease-out);
@@ -34,6 +34,19 @@
   gap: var(--space-3);
   padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
 }
 
 .title {
@@ -75,15 +88,4 @@
 
 .body {
   padding: var(--space-5);
-}
-
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }

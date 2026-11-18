@@ -259,7 +259,7 @@ describe('ChallansPage', () => {
     await screen.findByRole('table');
     const list = screen.getByRole('list', { name: 'Challans' });
     const item = within(list).getByText('R-2026-27-0003').closest('li') as HTMLElement;
-    expect(within(item).getByText(/Return · SECT · 18 Nov/)).toBeInTheDocument();
+    expect(item).toHaveTextContent(/Return · SECT · 18 Nov/);
   });
 
   it('opens the modals with Alt+D and Alt+R', async () => {

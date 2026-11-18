@@ -1,0 +1,45 @@
+.brand {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-heading);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-stretch: 108%;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.md {
+  font-size: var(--text-ui-lg);
+}
+
+.sm {
+  gap: 8px;
+  font-size: var(--text-sm);
+}
+
+.mark {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* collapseName: the wordmark is visually hidden on phones but stays readable to assistive tech. */
+@media (max-width: 480px) {
+  .brand:has(.collapsible) {
+    gap: 0;
+  }
+
+  .collapsible {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}

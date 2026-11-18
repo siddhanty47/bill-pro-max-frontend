@@ -21,7 +21,7 @@
 .table thead th {
   padding-top: 10px;
   padding-bottom: 10px;
-  /* Same opaque header as legacy .data-table (tint over --bg-card) */
+  /* Opaque header (tint over --bg-card) */
   background: linear-gradient(var(--bg-table-head), var(--bg-table-head)), var(--bg-card);
   font-size: var(--text-xs);
   font-weight: 500;
@@ -58,6 +58,36 @@
 .clickable:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
+}
+
+.table.dense th,
+.table.dense td {
+  padding: 8px 12px;
+}
+
+/* Same insets as a DetailSection row; beats the ≤768 cell padding too. */
+.table.detail th,
+.table.detail td {
+  padding: var(--space-3) var(--space-5);
+}
+
+/* Value tones (Td/Th tone): colour the number, everything inside inherits. */
+.table .tone-positive {
+  color: var(--status-success-text);
+}
+
+.table .tone-negative {
+  color: var(--status-danger-text);
+}
+
+.table .tone-warning {
+  color: var(--status-warning-text);
+}
+
+.table tbody .total td {
+  font-weight: 600;
+  background: var(--bg-elevated);
+  border-top: 2px solid var(--border-medium);
 }
 
 .table .right {

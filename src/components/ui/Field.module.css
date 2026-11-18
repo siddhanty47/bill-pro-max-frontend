@@ -154,6 +154,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Input uppercase: the typed value in capitals, the placeholder in sentence case. */
+.uppercase {
+  text-transform: uppercase;
+}
+
+.uppercase::placeholder {
+  text-transform: none;
+}
+
 .textarea {
   height: auto;
   min-height: 80px;
@@ -162,7 +171,6 @@
   resize: vertical;
 }
 
-/* Matches legacy .form-fieldset / .form-fieldset-legend (globals.css) */
 .fieldset {
   display: flex;
   flex-direction: column;

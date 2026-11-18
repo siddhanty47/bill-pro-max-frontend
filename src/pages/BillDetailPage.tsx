@@ -6,7 +6,7 @@
  * regeneration. Built on the kit's detail recipe.
  */
 import { useCallback, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import styles from './BillDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
@@ -30,14 +30,17 @@ import {
   Menu,
   MenuItem,
   MenuLabel,
+  NotAdded,
   Notice,
   StatusChip,
   Table,
   TBody,
   Td,
+  TextLink,
   Tr,
   type Column,
 } from '../components/ui';
+import type { ValueTone } from '../components/ui/status';
 import { getErrorMessage } from '../api/baseApi';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { formatDate, formatMoney } from '../utils/format';
@@ -66,7 +69,7 @@ type ItemRow = BillItem & { idx: number };
 type DamageRow = DamageBillItem & { idx: number };
 type TransportRow = TransportationBreakupItem & { idx: number };
 
-const notAdded = <span className="text-empty">Not added</span>;
+const notAdded = <NotAdded />;
 
 /**
  * BillDetailPage displays the full details of a single bill/invoice.
@@ -296,9 +299,7 @@ export function BillDetailPage() {
   // ─── Payments ─────────────────────────────────────────────────────
 
   const paymentDate = (p: Payment) => (
-    <Link to={`/payments/${p._id}`} className="link-accent">
-      {formatDate(p.date)}
-    </Link>
+    <TextLink to={`/payments/${p._id}`}>{formatDate(p.date)}</TextLink>
   );
   const paymentColumns: Column<Payment>[] = [
     { key: 'date', header: 'Date', nowrap: true, render: paymentDate },
@@ -332,11 +333,7 @@ export function BillDetailPage() {
       <DetailField label="Bill number" value={bill.billNumber} mono />
       <DetailField
         label="Party"
-        value={
-          <Link to={`/parties/${bill.partyId}`} className="link-accent">
-            {partyName}
-          </Link>
-        }
+        value={<TextLink to={`/parties/${bill.partyId}`}>{partyName}</TextLink>}
       />
       <DetailField
         label="Agreement"
@@ -349,12 +346,18 @@ export function BillDetailPage() {
     </DetailSection>
   ) : null;
 
-  const summaryRow = (label: string, amount: string, strong = false, pct?: number) => {
+  const summaryRow = (
+    label: string,
+    amount: string,
+    strong = false,
+    pct?: number,
+    tone?: ValueTone
+  ) => {
     const value = <span className="mono">{amount}</span>;
     return (
       <Tr key={label}>
         <Td>{strong ? <strong>{label}</strong> : label}</Td>
-        <Td align="right" nowrap>
+        <Td align="right" nowrap tone={tone}>
           {strong ? <strong>{value}</strong> : value}
           {pct !== undefined && <span> ({pct}%)</span>}
         </Td>
@@ -447,7 +450,7 @@ export function BillDetailPage() {
               </DetailSection>
 
               <Card title="Summary" padded={false}>
-                <Table aria-label="Summary">
+                <Table aria-label="Summary" detail>
                   <TBody>
                     {summaryRow('Rental subtotal', formatMoney(rentalSubtotal))}
                     {summaryRow('Transportation', formatMoney(bill.transportationCharges || 0))}
@@ -488,7 +491,13 @@ export function BillDetailPage() {
                     )}
                     {summaryRow('Total', formatMoney(bill.totalAmount), true)}
                     {summaryRow('Paid', formatMoney(bill.amountPaid))}
-                    {summaryRow('Balance due', formatMoney(outstanding), true)}
+                    {summaryRow(
+                      'Balance due',
+                      formatMoney(outstanding),
+                      true,
+                      undefined,
+                      outstanding > 0 ? 'negative' : 'positive'
+                    )}
                   </TBody>
                 </Table>
               </Card>

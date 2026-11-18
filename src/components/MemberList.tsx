@@ -8,6 +8,7 @@ import { useUpdateMemberRoleMutation, useRemoveMemberMutation } from '../api/mem
 import { useAuth } from '../hooks/useAuth';
 import { formatDate } from '../utils/format';
 import { Button, DataTable, EmptyState, RowActions, Select, StatusChip, type Column } from './ui';
+import { roleTone } from './ui/status';
 
 interface MemberListProps {
   members: BusinessMember[];
@@ -65,7 +66,7 @@ export function MemberList({ members, businessId, onInvite }: MemberListProps) {
         ))}
       </Select>
     ) : (
-      <StatusChip status={member.role} />
+      <StatusChip status={member.role} tone={roleTone(member.role)} />
     );
 
   const actionsCell = (member: BusinessMember) =>

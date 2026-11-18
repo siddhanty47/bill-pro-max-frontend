@@ -27,22 +27,25 @@ describe('FilterBar', () => {
   });
 
   // jsdom evaluates no media queries and vitest hands CSS modules back as class maps,
-  // so read the stylesheet source (vitest runs from the repo root) and check the narrow-phone rule exists.
-  it('lets the search box grow from 240px in a row (same sizing as before)', async () => {
+  // so read the stylesheet source (resolved next to this file) and check the rules exist.
+  // The file name is a parameter on purpose: Vite rewrites a literal
+  // `new URL('./x.css', import.meta.url)` into a served asset path.
+  async function readCss(file: string) {
     const fs = (await import(/* @vite-ignore */ 'node:fs' as string)) as {
-      readFileSync(path: string, encoding: 'utf8'): string;
+      readFileSync(path: URL, encoding: 'utf8'): string;
     };
-    const bar = fs.readFileSync('src/components/ui/FilterBar.module.css', 'utf8');
-    const search = fs.readFileSync('src/components/ui/SearchInput.module.css', 'utf8');
+    return fs.readFileSync(new URL(file, import.meta.url), 'utf8');
+  }
+
+  it('lets the search box grow from 240px in a row (same sizing as before)', async () => {
+    const bar = await readCss('./FilterBar.module.css');
+    const search = await readCss('./SearchInput.module.css');
     expect(bar).toMatch(/--search-flex:\s*1 1 240px/);
     expect(search).toMatch(/flex:\s*var\(--search-flex,\s*0 1 auto\)/);
   });
 
   it('stacks children full width at ≤480', async () => {
-    const fs = (await import(/* @vite-ignore */ 'node:fs' as string)) as {
-      readFileSync(path: string, encoding: 'utf8'): string;
-    };
-    const css = fs.readFileSync('src/components/ui/FilterBar.module.css', 'utf8');
+    const css = await readCss('./FilterBar.module.css');
     const block = css.slice(css.indexOf('@media (max-width: 480px)'));
     expect(block).toMatch(/\.bar\s*>\s*\*\s*\{[^}]*flex:\s*1 1 100%/);
   });

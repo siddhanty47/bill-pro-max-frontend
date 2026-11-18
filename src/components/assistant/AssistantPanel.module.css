@@ -106,7 +106,7 @@
   height: 1em;
   margin-left: 2px;
   vertical-align: text-bottom;
-  border-radius: 1px;
+  border-radius: var(--radius-sm);
   background: var(--accent);
   animation: caretPulse 1.2s ease-in-out infinite;
 }

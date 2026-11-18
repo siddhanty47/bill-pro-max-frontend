@@ -4,6 +4,7 @@ import { http } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
+import { readCss } from '../test/readCss';
 import { apiUrl, ok } from '../test/msw/handlers';
 import type { RootState } from '../store';
 import type { Business, User } from '../types';
@@ -70,6 +71,22 @@ function setup({
 }
 
 describe('Layout', () => {
+  it('uses the kit Brand with a collapsible wordmark', () => {
+    setup();
+    const word = screen.getByText('Bill Pro Max');
+    expect(word).toHaveClass('collapsible');
+    expect(word.parentElement).toHaveClass('brand', 'md');
+  });
+
+  it('fits the header at 320px (CSS present at <=360)', async () => {
+    const css = await readCss('src/components/Layout.module.css');
+    expect(css).toContain('@media (max-width: 360px)');
+    const block = css.slice(css.indexOf('@media (max-width: 360px)'));
+    expect(block).toMatch(/\.header\s*\{[^}]*padding:[^;]*var\(--space-2\)[^}]*gap:\s*0/);
+    expect(block).toMatch(/\.headerActions\s*\{[^}]*gap:\s*2px/);
+    expect(block).toMatch(/\.profileControl\s*\{[^}]*margin-left:\s*0/);
+  });
+
   it('groups navigation under Yard, Paperwork and Business', () => {
     setup();
     const nav = screen.getByRole('navigation', { name: 'Main' });

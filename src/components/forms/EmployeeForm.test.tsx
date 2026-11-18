@@ -29,6 +29,8 @@ describe('EmployeeForm', () => {
     await user.type(screen.getByLabelText(/designation/i), 'Driver');
     await user.type(screen.getByLabelText(/joining date/i), '2026-04-01');
     await user.type(screen.getByLabelText(/vehicle number/i), 'mh12ab1234');
+    // Shown in capitals (kit Input uppercase), sent as typed.
+    expect(screen.getByLabelText(/vehicle number/i)).toHaveClass('uppercase');
     await chooseSalary(user, 'Monthly');
     await user.type(screen.getByLabelText(/monthly salary/i), '18000');
     await user.type(screen.getByLabelText(/overtime rate/i), '90.5');
@@ -60,6 +62,31 @@ describe('EmployeeForm', () => {
     await user.type(screen.getByLabelText(/monthly salary/i), '-5');
     await user.click(screen.getByRole('button', { name: /^add employee$/i }));
     expect(await screen.findByText('Enter 0 or more')).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('ignores a negative salary hidden by a salary type switch', async () => {
+    const { user, onSubmit } = setup();
+    await user.type(screen.getByLabelText(/^name/i, { selector: '#emp-name' }), 'Anil');
+    await chooseSalary(user, 'Monthly');
+    await user.type(screen.getByLabelText(/monthly salary/i), '-5');
+    await chooseSalary(user, 'Daily');
+    await user.type(screen.getByLabelText(/daily rate/i), '650');
+    await user.click(screen.getByRole('button', { name: /^add employee$/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('Enter 0 or more')).not.toBeInTheDocument();
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ salaryType: 'daily', dailyRate: 650 });
+    expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('monthlySalary');
+  });
+
+  it('rejects a negative overtime rate and a negative daily rate', async () => {
+    const { user, onSubmit } = setup();
+    await user.type(screen.getByLabelText(/^name/i, { selector: '#emp-name' }), 'Anil');
+    await chooseSalary(user, 'Daily');
+    await user.type(screen.getByLabelText(/daily rate/i), '-1');
+    await user.type(screen.getByLabelText(/overtime rate/i), '-2');
+    await user.click(screen.getByRole('button', { name: /^add employee$/i }));
+    expect(await screen.findAllByText('Enter 0 or more')).toHaveLength(2);
     expect(onSubmit).not.toHaveBeenCalled();
   });
 

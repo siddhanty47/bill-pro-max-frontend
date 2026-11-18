@@ -2,8 +2,16 @@
  * Multi-step modal for browsing, previewing, and importing inventory presets.
  */
 import { useState, useMemo } from 'react';
-import { Modal } from './Modal';
-import { Button, DataTable, EmptyState, Notice, SearchInput, Spinner, type Column } from './ui';
+import {
+  Button,
+  DataTable,
+  EmptyState,
+  Modal,
+  Notice,
+  SearchInput,
+  Spinner,
+  type Column,
+} from './ui';
 import { getErrorMessage } from '../api/baseApi';
 import {
   useGetPresetsQuery,

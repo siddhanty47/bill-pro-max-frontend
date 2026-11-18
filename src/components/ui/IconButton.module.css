@@ -60,7 +60,7 @@
   height: 7px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 2px var(--bg-deepest);
+  box-shadow: var(--ring-dot);
 }
 
 @media (max-width: 768px) {

@@ -168,6 +168,7 @@ export function BusinessForm({ onSubmit, onCancel, isLoading }: BusinessFormProp
                   disabled={isLoading}
                   placeholder="e.g. 22AAAAA0000A1Z5"
                   className={styles.gstInput}
+                  uppercase
                   maxLength={15}
                 />
                 <Button

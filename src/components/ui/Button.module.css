@@ -156,29 +156,6 @@
   }
 }
 
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.dot-info {
-  background: var(--status-info-text);
-}
-
-.dot-warning {
-  background: var(--status-warning-text);
-}
-
-.dot-success {
-  background: var(--status-success-text);
-}
-
-.dot-danger {
-  background: var(--status-danger-text);
-}
-
 .hint {
   font: 500 11px var(--font-mono);
   line-height: 1.4;

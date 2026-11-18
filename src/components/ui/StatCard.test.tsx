@@ -47,3 +47,32 @@ describe('StatCard', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });
+
+describe('StatCard value', () => {
+  it('colours the value by valueTone', () => {
+    render(
+      <>
+        <StatCard label="In" value="₹10" valueTone="positive" />
+        <StatCard label="Out" value="₹5" valueTone="negative" />
+        <StatCard label="Due" value="₹2" valueTone="warning" />
+        <StatCard label="Plain" value="₹1" />
+      </>
+    );
+    expect(screen.getByText('₹10')).toHaveClass('value', 'tone-positive');
+    expect(screen.getByText('₹5')).toHaveClass('tone-negative');
+    expect(screen.getByText('₹2')).toHaveClass('tone-warning');
+    expect(screen.getByText('₹1').className).not.toMatch(/tone-/);
+  });
+
+  it('renders without a value (children only), but keeps a 0 value', () => {
+    const { container } = render(
+      <StatCard label="Stock">
+        <p>meter</p>
+      </StatCard>
+    );
+    expect(container.querySelector('.value')).toBeNull();
+    expect(screen.getByText('meter')).toBeInTheDocument();
+    render(<StatCard label="Overdue" value={0} />);
+    expect(screen.getByText('0')).toHaveClass('value');
+  });
+});

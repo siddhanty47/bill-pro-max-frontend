@@ -22,8 +22,13 @@ interface TabsProps {
 const tabId = (prefix: string, id: string) => `${prefix}-tab-${id}`;
 const panelId = (prefix: string, id: string) => `${prefix}-panel-${id}`;
 
-/** True while the row overflows and is not scrolled to its end. */
-function useOverflowFade(tabCount: number) {
+/**
+ * True while the row overflows and is not scrolled to its end. Re-measures when
+ * the row resizes and when its content grows: each tab is observed too (a count
+ * arriving after mount widens a tab, not the row), and `contentKey` re-runs the
+ * effect when tabs or their labels/counts change.
+ */
+function useOverflowFade(contentKey: string) {
   const ref = useRef<HTMLElement>(null);
   const [fade, setFade] = useState(false);
   useEffect(() => {
@@ -34,18 +39,23 @@ function useOverflowFade(tabCount: number) {
     el.addEventListener('scroll', update, { passive: true });
     window.addEventListener('resize', update);
     const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
-    observer?.observe(el);
+    if (observer) {
+      observer.observe(el);
+      Array.from(el.children).forEach(child => observer.observe(child));
+    }
     return () => {
       el.removeEventListener('scroll', update);
       window.removeEventListener('resize', update);
       observer?.disconnect();
     };
-  }, [tabCount]);
+  }, [contentKey]);
   return [ref, fade] as const;
 }
 
 export function Tabs({ tabs, activeTab, onChange, idPrefix }: TabsProps) {
-  const [ref, fade] = useOverflowFade(tabs.length);
+  const [ref, fade] = useOverflowFade(
+    tabs.map(t => `${t.id}:${t.label}:${t.count ?? ''}`).join('|')
+  );
   // If activeTab matches nothing, the first tab stays reachable.
   const tabbableId = tabs.some(t => t.id === activeTab) ? activeTab : tabs[0]?.id;
   // Roving tabindex: only the active tab is in the Tab order; arrows move and activate.

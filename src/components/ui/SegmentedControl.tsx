@@ -1,7 +1,8 @@
 import { useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { Dot, type DotTone } from './Dot';
 import styles from './SegmentedControl.module.css';
 
-export type SegmentedDot = 'info' | 'warning' | 'success' | 'danger';
+export type SegmentedDot = DotTone;
 
 export type SegmentedOption<V extends string> = {
   value: V;
@@ -62,9 +63,7 @@ export function SegmentedControl<V extends string>({
             onClick={() => onChange(o.value)}
             onKeyDown={e => handleKeyDown(e, i)}
           >
-            {o.dot && (
-              <span className={`${styles.dot} ${styles[`dot-${o.dot}`]}`} aria-hidden="true" />
-            )}
+            {o.dot && <Dot tone={o.dot} />}
             {o.label}
           </button>
         );

@@ -1,14 +1,8 @@
-import { Link } from 'react-router-dom';
 import type { LedgerStatementData } from '../../types';
+import { FULL_DATE, formatDate, formatMoney } from '../../utils/format';
+import { DocNumber, Table, THead, TBody, Tr, Th, Td } from '../ui';
+import { StatementShell } from './StatementShell';
 import styles from './StatementPreview.module.css';
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString();
-}
-
-function formatAmount(amount: number): string {
-  return amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 interface LedgerPreviewProps {
   data: LedgerStatementData;
@@ -16,68 +10,73 @@ interface LedgerPreviewProps {
 
 export function LedgerPreview({ data }: LedgerPreviewProps) {
   return (
-    <div className={styles.previewContainer}>
-      <div className={styles.previewHeader}>
-        <p className={styles.previewTitle}>Ledger Statement - {data.party.name}</p>
-        <p className={styles.previewSubtitle}>
-          {formatDate(data.period.from)} to {formatDate(data.period.to)}
-        </p>
-      </div>
-
-      {data.entries.length === 0 ? (
-        <p className={styles.emptyMessage}>No transactions found for this period.</p>
-      ) : (
-        <table className={styles.previewTable}>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Description</th>
-              <th>Reference</th>
-              <th className={styles.numericCell}>Debit</th>
-              <th className={styles.numericCell}>Credit</th>
-              <th className={styles.numericCell}>Balance</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className={styles.balanceRow}>
-              <td colSpan={5}>Opening Balance</td>
-              <td className={styles.numericCell}>{formatAmount(data.openingBalance)}</td>
-            </tr>
+    <StatementShell
+      title="Ledger statement"
+      partyName={data.party.name}
+      period={`${formatDate(data.period.from, FULL_DATE)} to ${formatDate(data.period.to, FULL_DATE)}`}
+      emptyMessage={
+        data.entries.length === 0 ? 'No transactions found for this period.' : undefined
+      }
+      body={
+        <Table dense aria-label="Ledger statement">
+          <THead>
+            <Tr>
+              <Th nowrap>Date</Th>
+              <Th className={styles.description}>Description</Th>
+              <Th>Reference</Th>
+              <Th align="right">Debit</Th>
+              <Th align="right">Credit</Th>
+              <Th align="right">Balance</Th>
+            </Tr>
+          </THead>
+          <TBody>
+            <Tr variant="total">
+              <Td colSpan={5}>Opening balance</Td>
+              <Td align="right" mono nowrap>
+                {formatMoney(data.openingBalance)}
+              </Td>
+            </Tr>
             {data.entries.map((entry, idx) => (
-              <tr key={idx}>
-                <td>{formatDate(entry.date)}</td>
-                <td>{entry.description}</td>
-                <td>
-                  {entry.billId ? (
-                    <Link to={`/bills/${entry.billId}`} className={styles.entityLink}>
-                      {entry.reference}
-                    </Link>
-                  ) : (
-                    entry.reference
-                  )}
-                </td>
-                <td className={styles.numericCell}>
-                  {entry.debit > 0 ? formatAmount(entry.debit) : '-'}
-                </td>
-                <td className={styles.numericCell}>
-                  {entry.credit > 0 ? formatAmount(entry.credit) : '-'}
-                </td>
-                <td className={styles.numericCell}>{formatAmount(entry.balance)}</td>
-              </tr>
+              <Tr key={idx}>
+                <Td nowrap>{formatDate(entry.date, FULL_DATE)}</Td>
+                <Td className={styles.description}>{entry.description}</Td>
+                <Td>
+                  <DocNumber
+                    value={entry.reference}
+                    to={entry.billId ? `/bills/${entry.billId}` : undefined}
+                    wrap
+                  />
+                </Td>
+                <Td align="right" mono nowrap>
+                  {entry.debit > 0 ? formatMoney(entry.debit) : '-'}
+                </Td>
+                <Td align="right" mono nowrap>
+                  {entry.credit > 0 ? formatMoney(entry.credit) : '-'}
+                </Td>
+                <Td align="right" mono nowrap>
+                  {formatMoney(entry.balance)}
+                </Td>
+              </Tr>
             ))}
-            <tr className={styles.totalsRow}>
-              <td colSpan={3}>Totals</td>
-              <td className={styles.numericCell}>{formatAmount(data.totalDebits)}</td>
-              <td className={styles.numericCell}>{formatAmount(data.totalCredits)}</td>
-              <td className={styles.numericCell}></td>
-            </tr>
-            <tr className={styles.balanceRow}>
-              <td colSpan={5}>Closing Balance</td>
-              <td className={styles.numericCell}>{formatAmount(data.closingBalance)}</td>
-            </tr>
-          </tbody>
-        </table>
-      )}
-    </div>
+            <Tr variant="total">
+              <Td colSpan={3}>Totals</Td>
+              <Td align="right" mono nowrap>
+                {formatMoney(data.totalDebits)}
+              </Td>
+              <Td align="right" mono nowrap>
+                {formatMoney(data.totalCredits)}
+              </Td>
+              <Td align="right" mono />
+            </Tr>
+            <Tr variant="total">
+              <Td colSpan={5}>Closing balance</Td>
+              <Td align="right" mono nowrap>
+                {formatMoney(data.closingBalance)}
+              </Td>
+            </Tr>
+          </TBody>
+        </Table>
+      }
+    />
   );
 }

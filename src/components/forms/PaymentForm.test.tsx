@@ -83,7 +83,7 @@ describe('PaymentForm', () => {
   it('submits a payable to a supplier with omitted optionals', async () => {
     const { user, onSubmit } = setup();
     await user.selectOptions(screen.getByLabelText(/payment type/i), 'payable');
-    await user.type(screen.getByPlaceholderText(/party code/i), 'SUP');
+    await user.type(screen.getByPlaceholderText('Party code or name'), 'SUP');
     await user.click(await screen.findByRole('option', { name: /Supply Co/ }));
     expect(screen.queryByLabelText(/link to bill/i)).not.toBeInTheDocument();
     await user.type(screen.getByLabelText(/^amount/i), '200');

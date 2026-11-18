@@ -112,6 +112,10 @@ describe('PaymentsPage', () => {
     expect(screen.getByText('Total received').nextElementSibling).toHaveTextContent('₹1,84,200');
     expect(screen.getByText('Total paid').nextElementSibling).toHaveTextContent('₹99.50');
     expect(screen.getByText('Net').nextElementSibling).toHaveTextContent('₹1,84,100.50');
+    // Money in green, money out red, net by its sign.
+    expect(screen.getByText('Total received').nextElementSibling).toHaveClass('tone-positive');
+    expect(screen.getByText('Total paid').nextElementSibling).toHaveClass('tone-negative');
+    expect(screen.getByText('Net').nextElementSibling).toHaveClass('tone-positive');
   });
 
   it('filters by type and method', async () => {

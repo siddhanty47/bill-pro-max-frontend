@@ -132,6 +132,32 @@ describe('DataTable mobile list', () => {
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
   });
 
+  it('keeps meta in the body font; only an explicit mono span is mono', async () => {
+    const css = await readCss('./DataTable.module.css');
+    expect(css.match(/\.meta\s*\{[^}]*\}/)![0]).not.toMatch(/font-family/);
+    const { container } = render(
+      <DataTable
+        aria-label="B"
+        columns={[{ key: 'n', header: 'N', render: () => 'x' }]}
+        rows={[{ id: '1' }]}
+        rowKey={r => r.id}
+        mobile={{
+          title: () => 'T',
+          meta: () => [
+            'Due 1 Dec',
+            <span key="a" className="mono">
+              ₹10
+            </span>,
+          ],
+        }}
+      />
+    );
+    const meta = container.querySelector('.meta')!;
+    expect(meta).not.toHaveClass('mono');
+    expect(within(meta as HTMLElement).getByText('₹10')).toHaveClass('mono');
+    expect(meta.querySelectorAll('.mono')).toHaveLength(1);
+  });
+
   it('shows title, leading, badge, subtitle and meta joined with a middle dot', () => {
     render(<DataTable columns={cols} rows={bills} rowKey={b => b.id} mobile={mobile} />);
     const [first, second] = within(screen.getByRole('list')).getAllByRole('listitem');
@@ -139,9 +165,40 @@ describe('DataTable mobile list', () => {
     expect(within(first).getByText('Paid').parentElement).toHaveClass('badge');
     expect(within(first).getByTestId('lead-1')).toBeInTheDocument();
     expect(within(first).getByText('Mehta Builders')).toHaveClass('subtitle');
-    expect(within(first).getByText('PLOT · 16 Nov · 3 items')).toHaveClass('meta');
+    const meta = first.querySelector('.meta')!;
+    expect(meta).toHaveTextContent('PLOT · 16 Nov · 3 items');
+    // The middle dots are decoration: hidden from assistive tech.
+    const dots = meta.querySelectorAll('[aria-hidden="true"]');
+    expect(dots).toHaveLength(2);
+    dots.forEach(d => expect(d).toHaveTextContent('·'));
     // Empty meta parts are skipped, not joined as blank segments.
     expect(within(second).getByText('3 items')).toHaveClass('meta');
+  });
+
+  it('activates an item with Space (and keeps the page from scrolling)', async () => {
+    const user = userEvent.setup();
+    const onRowClick = vi.fn();
+    render(
+      <DataTable
+        columns={cols}
+        rows={bills}
+        rowKey={b => b.id}
+        mobile={mobile}
+        onRowClick={onRowClick}
+      />
+    );
+    const items = within(screen.getByRole('list')).getAllByRole('listitem');
+    items[0].focus();
+    await user.keyboard(' ');
+    expect(onRowClick).toHaveBeenCalledWith(bills[0]);
+    const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    items[1].dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    // Space inside an action button is the button's own business.
+    onRowClick.mockClear();
+    within(items[1]).getByRole('button', { name: 'Confirm' }).focus();
+    await user.keyboard(' ');
+    expect(onRowClick).not.toHaveBeenCalled();
   });
 
   it('calls onRowClick when an item is tapped or activated with Enter', async () => {
@@ -303,5 +360,28 @@ describe('DataTable with RowActions in a clickable row', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
     expect(onDelete).toHaveBeenCalledTimes(1);
     expect(onRowClick).not.toHaveBeenCalled();
+  });
+});
+
+// vitest hands CSS modules back as class maps, so read the stylesheet source.
+async function readCss(file: string) {
+  const fs = (await import(/* @vite-ignore */ 'node:fs' as string)) as {
+    readFileSync(path: URL, encoding: 'utf8'): string;
+  };
+  return fs.readFileSync(new URL(file, import.meta.url), 'utf8');
+}
+
+const rule = (css: string, selector: string) =>
+  css.match(new RegExp(`\\${selector}\\s*\\{([^}]*)\\}`))?.[1] ?? '';
+
+describe('DataTable phone list hierarchy', () => {
+  it('makes the title the most prominent line and the subtitle secondary', async () => {
+    const css = await readCss('./DataTable.module.css');
+    const weight = (block: string) => Number(block.match(/font-weight:\s*(\d+)/)?.[1] ?? 400);
+    const title = rule(css, '.title');
+    const subtitle = rule(css, '.subtitle');
+    expect(weight(title)).toBeGreaterThan(weight(subtitle));
+    expect(title).toMatch(/color:\s*var\(--text-heading\)/);
+    expect(subtitle).not.toMatch(/--text-heading/);
   });
 });

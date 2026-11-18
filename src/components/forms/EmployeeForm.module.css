@@ -19,10 +19,6 @@
   gap: var(--space-4);
 }
 
-.uppercaseInput {
-  text-transform: uppercase;
-}
-
 .actions {
   display: flex;
   justify-content: flex-end;
@@ -35,8 +31,4 @@
   .pair {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-
-.uppercaseInput::placeholder {
-  text-transform: none;
 }

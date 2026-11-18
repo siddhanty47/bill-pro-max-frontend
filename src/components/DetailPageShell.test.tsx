@@ -5,14 +5,6 @@ import { MemoryRouter } from 'react-router-dom';
 import type { ReactElement } from 'react';
 import { DetailField, DetailPageShell, DetailSection } from './DetailPageShell';
 
-/** Reads a CSS module's source (vitest runs from the repo root). */
-async function cssSource(path: string) {
-  const fs = (await import(/* @vite-ignore */ 'node:fs' as string)) as {
-    readFileSync(path: string, encoding: 'utf8'): string;
-  };
-  return fs.readFileSync(path, 'utf8');
-}
-
 const renderInRouter = (ui: ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
 const TABS = [
@@ -53,24 +45,6 @@ describe('DetailPageShell', () => {
       </DetailPageShell>
     );
     expect(screen.getAllByText('Active')).toHaveLength(1);
-  });
-
-  it('keeps the legacy props working: subtitle becomes the eyebrow, statusClassName is ignored', () => {
-    renderInRouter(
-      <DetailPageShell
-        title="B-001"
-        subtitle="Party: Mehta"
-        status="partially_paid"
-        statusClassName="status status-partially_paid"
-        backTo="/bills"
-        backLabel="Bills"
-      >
-        body
-      </DetailPageShell>
-    );
-    expect(screen.getByText('Party: Mehta')).toBeInTheDocument();
-    const chip = screen.getByText('Partially paid');
-    expect(chip).not.toHaveClass('status');
   });
 
   it('renders a spinner while loading and an error with retry', async () => {
@@ -201,15 +175,6 @@ describe('DetailSection', () => {
     expect(screen.getByRole('button', { name: 'Add site' })).toBeInTheDocument();
     expect(screen.getByText('rows')).toBeInTheDocument();
   });
-
-  it('accepts the legacy headerActions prop', () => {
-    render(
-      <DetailSection title="Sites" headerActions={<button type="button">Add</button>}>
-        rows
-      </DetailSection>
-    );
-    expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument();
-  });
 });
 
 describe('DetailField', () => {
@@ -236,11 +201,7 @@ describe('DetailField', () => {
 
   it('keeps the empty placeholder in the text font on a mono field', async () => {
     render(<DetailField label="GST" value={undefined} mono />);
-    const empty = screen.getByText('Not added');
-    expect(empty).toHaveClass('empty');
-    expect(await cssSource('src/components/DetailPageShell.module.css')).toMatch(
-      /\.empty\s*{[^}]*font-family:\s*var\(--font-sans\)/
-    );
+    expect(screen.getByText('Not added')).toHaveClass('notAdded');
   });
 
   it('renders a bare value without a label row', () => {
@@ -314,5 +275,42 @@ describe('DetailField', () => {
     expect(lists).toHaveLength(1);
     expect(lists[0].parentElement?.tagName).toBe('DIV');
     expect(screen.getByText('Free text').closest('dl')).toBeNull();
+  });
+});
+
+describe('DetailField list context nesting', () => {
+  it('gives a DetailField nested in a row value its own <dl>', () => {
+    renderInRouter(
+      <DetailSection title="Outer">
+        <DetailField label="Address" value={<DetailField label="City" value="Pune" />} />
+      </DetailSection>
+    );
+    const outerRow = screen.getByText('Address').closest('div');
+    expect(outerRow?.parentElement?.tagName).toBe('DL');
+    // The inner field is not a row of the outer list: it is a <dl> of its own.
+    expect(screen.getByText('City').parentElement?.tagName).toBe('DL');
+  });
+
+  it('resets the context inside non-list and unpadded sections nested in a list', () => {
+    renderInRouter(
+      <DetailSection title="Outer">
+        <DetailField
+          label="Nested"
+          value={
+            <>
+              <DetailSection title="Mixed">
+                <p>text</p>
+                <DetailField label="A" value="1" />
+              </DetailSection>
+              <DetailSection title="Bare" padded={false}>
+                <DetailField label="B" value="2" />
+              </DetailSection>
+            </>
+          }
+        />
+      </DetailSection>
+    );
+    expect(screen.getByText('A').parentElement?.tagName).toBe('DL');
+    expect(screen.getByText('B').parentElement?.tagName).toBe('DL');
   });
 });

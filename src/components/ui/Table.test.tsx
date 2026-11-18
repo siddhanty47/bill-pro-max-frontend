@@ -100,8 +100,10 @@ describe('Table primitives', () => {
     row.focus();
     await user.keyboard('{Enter}');
     expect(onClick).toHaveBeenCalledTimes(2);
+    await user.keyboard(' ');
+    expect(onClick).toHaveBeenCalledTimes(3);
     await user.keyboard('a');
-    expect(onClick).toHaveBeenCalledTimes(2);
+    expect(onClick).toHaveBeenCalledTimes(3);
   });
 
   it('ignores clicks on interactive children but still runs their handler', async () => {
@@ -181,5 +183,56 @@ describe('Table primitives', () => {
     );
     expect(screen.getByRole('table', { name: 'Recent bills' })).toBeInTheDocument();
     expect(screen.getByText('Recent bills')).toHaveClass('caption');
+  });
+
+  it('applies dense padding and the total row variant', () => {
+    render(
+      <Table dense aria-label="Statement">
+        <TBody>
+          <Tr variant="total">
+            <Td>Totals</Td>
+          </Tr>
+        </TBody>
+      </Table>
+    );
+    expect(screen.getByRole('table', { name: 'Statement' })).toHaveClass('dense');
+    expect(screen.getByText('Totals').closest('tr')).toHaveClass('total');
+  });
+});
+
+describe('Table detail padding and value tones', () => {
+  it('applies the detail class and colours cells by tone', () => {
+    render(
+      <Table detail aria-label="Summary">
+        <THead>
+          <Tr>
+            <Th tone="warning">Head</Th>
+          </Tr>
+        </THead>
+        <TBody>
+          <Tr>
+            <Td tone="negative">₹500</Td>
+            <Td tone="positive">₹0</Td>
+            <Td>plain</Td>
+          </Tr>
+        </TBody>
+      </Table>
+    );
+    expect(screen.getByRole('table', { name: 'Summary' })).toHaveClass('detail');
+    expect(screen.getByText('Head')).toHaveClass('tone-warning');
+    expect(screen.getByText('₹500')).toHaveClass('tone-negative');
+    expect(screen.getByText('₹0')).toHaveClass('tone-positive');
+    expect(screen.getByText('plain')).not.toHaveAttribute('class');
+  });
+});
+
+describe('signTone', () => {
+  it('maps the sign of a number to a value tone', async () => {
+    const { signTone } = await import('./status');
+    expect(signTone(5)).toBe('positive');
+    expect(signTone(-5)).toBe('negative');
+    expect(signTone(0)).toBeUndefined();
+    expect(signTone(0.1 + 0.2 - 0.3)).toBeUndefined();
+    expect(signTone(-0.001)).toBeUndefined();
   });
 });

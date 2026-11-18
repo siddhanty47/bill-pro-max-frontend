@@ -4,6 +4,8 @@ import styles from './Card.module.css';
 
 export type CardProps = {
   title?: string;
+  /** Muted secondary line under the title (period, as-of date). */
+  subtitle?: string;
   to?: string;
   count?: number;
   countTone?: 'danger' | 'neutral';
@@ -15,6 +17,7 @@ export type CardProps = {
 
 export function Card({
   title,
+  subtitle,
   to,
   count,
   countTone = 'neutral',
@@ -31,12 +34,15 @@ export function Card({
       {(title || actions) && (
         <div className={styles.head}>
           {title && (
-            <h2 className={styles.title}>
-              {title}
-              {count !== undefined && (
-                <span className={`${styles.count} ${styles[countTone]}`}>{count}</span>
-              )}
-            </h2>
+            <div className={styles.heading}>
+              <h2 className={styles.title}>
+                {title}
+                {count !== undefined && (
+                  <span className={`${styles.count} ${styles[countTone]}`}>{count}</span>
+                )}
+              </h2>
+              {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+            </div>
           )}
           {actions && <div className={styles.actions}>{actions}</div>}
         </div>

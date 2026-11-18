@@ -48,8 +48,6 @@ const linkName = (link: ShareLink) => link.label || `Link ${link.token.slice(0, 
 const scope = (link: ShareLink) =>
   link.siteCode ? <span className="mono">{link.siteCode}</span> : 'All sites';
 
-const date = (d?: string) => (d ? formatDate(d) : '');
-
 export function ShareLinkManager({ partyId, sites }: ShareLinkManagerProps) {
   const { currentBusinessId } = useCurrentBusiness();
 
@@ -129,20 +127,20 @@ export function ShareLinkManager({ partyId, sites }: ShareLinkManagerProps) {
     { key: 'label', header: 'Link', render: linkName },
     { key: 'scope', header: 'Scope', nowrap: true, render: scope },
     { key: 'views', header: 'Views', mono: true, align: 'right', render: l => l.accessCount },
-    { key: 'created', header: 'Created', nowrap: true, render: l => date(l.createdAt) },
+    { key: 'created', header: 'Created', nowrap: true, render: l => formatDate(l.createdAt) },
     {
       key: 'expires',
       header: 'Expires',
       nowrap: true,
       hideOnMobile: true,
-      render: l => date(l.expiresAt),
+      render: l => formatDate(l.expiresAt),
     },
     {
       key: 'lastViewed',
       header: 'Last viewed',
       nowrap: true,
       hideOnMobile: true,
-      render: l => date(l.lastAccessedAt),
+      render: l => formatDate(l.lastAccessedAt),
     },
     {
       key: 'status',
@@ -199,8 +197,8 @@ export function ShareLinkManager({ partyId, sites }: ShareLinkManagerProps) {
               <span key="views">
                 <span className="mono">{l.accessCount}</span> views
               </span>,
-              <span key="created">Created {date(l.createdAt)}</span>,
-              l.expiresAt && <span key="expires">Expires {date(l.expiresAt)}</span>,
+              <span key="created">Created {formatDate(l.createdAt)}</span>,
+              l.expiresAt && <span key="expires">Expires {formatDate(l.expiresAt)}</span>,
             ],
             actions,
           }}

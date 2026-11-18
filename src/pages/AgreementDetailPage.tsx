@@ -5,7 +5,7 @@
  * editing for status, dates, terms, and per-item rate values.
  */
 import { useState, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import styles from './AgreementDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
@@ -27,6 +27,7 @@ import {
   MenuItem,
   MenuLabel,
   StatusChip,
+  TextLink,
   type Column,
 } from '../components/ui';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
@@ -46,11 +47,6 @@ const BILLING_CYCLE_OPTIONS = [
   { value: 'weekly', label: 'Weekly' },
   { value: 'yearly', label: 'Yearly' },
 ];
-
-/** Display date, or undefined so the field shows "Not added". */
-function displayDate(dateStr: string | undefined): string | undefined {
-  return dateStr ? formatDate(dateStr) : undefined;
-}
 
 /**
  * Extracts the YYYY-MM-DD portion from an ISO date string for date inputs.
@@ -191,14 +187,10 @@ export function AgreementDetailPage() {
       <DetailField label="Agreement ID" value={agreement.agreementId} mono />
       <DetailField
         label="Party"
-        value={
-          <Link to={`/parties/${agreement.partyId}`} className="link-accent">
-            {agreement.partyName}
-          </Link>
-        }
+        value={<TextLink to={`/parties/${agreement.partyId}`}>{agreement.partyName}</TextLink>}
       />
       <DetailField label="Site code" value={agreement.siteCode} mono />
-      <DetailField label="Created" value={displayDate(agreement.createdAt)} />
+      <DetailField label="Created" value={formatDate(agreement.createdAt)} />
     </DetailSection>
   ) : null;
 
@@ -379,7 +371,7 @@ export function AgreementDetailPage() {
               <DetailSection title="Period">
                 <DetailField
                   label="Start date"
-                  value={displayDate(agreement.startDate)}
+                  value={formatDate(agreement.startDate)}
                   editable={{
                     rawValue: toDateInputValue(agreement.startDate),
                     inputType: 'date',
@@ -389,7 +381,7 @@ export function AgreementDetailPage() {
                 />
                 <DetailField
                   label="End date"
-                  value={displayDate(agreement.endDate)}
+                  value={formatDate(agreement.endDate)}
                   editable={{
                     rawValue: toDateInputValue(agreement.endDate),
                     inputType: 'date',

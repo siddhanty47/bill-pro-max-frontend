@@ -33,7 +33,7 @@ describe('InvitationList', () => {
     renderWithProviders(<InvitationList invitations={rows} businessId="biz-1" />);
     const first = bodyRows()[0];
     expect(within(first).getByText('a@x.in')).toBeInTheDocument();
-    expect(within(first).getByText('Staff')).toBeInTheDocument();
+    expect(within(first).getByText('Staff')).toHaveClass('neutral');
     expect(within(first).getByText('Pending')).toBeInTheDocument();
     expect(within(first).getByText('7 Jun 2020')).toBeInTheDocument();
   });

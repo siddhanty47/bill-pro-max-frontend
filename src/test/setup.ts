@@ -6,7 +6,7 @@
  * - DOM cleanup + localStorage reset between tests
  */
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import { server } from './msw/server';
 
@@ -22,6 +22,10 @@ vi.mock('../lib/supabase', () => ({
     },
   },
 }));
+
+// findBy/waitFor budget: the default 1000 ms is too tight when CI or a second
+// test run saturates the CPU.
+configure({ asyncUtilTimeout: 5000 });
 
 // jsdom gaps used by UI code.
 if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => {};

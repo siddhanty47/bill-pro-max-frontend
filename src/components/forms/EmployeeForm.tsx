@@ -18,13 +18,12 @@ const EMPLOYEE_TYPES = [
   { value: 'supervisor', label: 'Supervisor' },
 ] as const;
 
-const nonNegative = z
-  .string()
-  .optional()
-  .or(z.literal(''))
-  .refine(v => !v || Number(v) >= 0, 'Enter 0 or more');
+const amount = z.string().optional().or(z.literal(''));
 
-const employeeSchema = z.object({
+const NEGATIVE_MESSAGE = 'Enter 0 or more';
+const isNegative = (v: string | undefined) => !!v && Number(v) < 0;
+
+const employeeFields = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   phone: z.string().max(20).optional().or(z.literal('')),
   type: z.enum(['general', 'transporter', 'worker', 'operator', 'supervisor']),
@@ -32,13 +31,30 @@ const employeeSchema = z.object({
   address: z.string().max(500).optional().or(z.literal('')),
   joiningDate: z.string().optional().or(z.literal('')),
   salaryType: z.enum(['monthly', 'daily']).optional().or(z.literal('')),
-  monthlySalary: nonNegative,
-  dailyRate: nonNegative,
-  overtimeRatePerHour: nonNegative,
+  monthlySalary: amount,
+  dailyRate: amount,
+  overtimeRatePerHour: amount,
   vehicleNumber: z.string().max(20).optional().or(z.literal('')),
   emergencyContactName: z.string().max(100).optional().or(z.literal('')),
   emergencyContactPhone: z.string().max(20).optional().or(z.literal('')),
   notes: z.string().max(1000).optional().or(z.literal('')),
+});
+
+/**
+ * Salary amounts must be 0 or more, but only the ones on screen for the chosen salary
+ * type: a value left in a field hidden by a type switch is never submitted, so it must
+ * not block the submit either.
+ */
+const employeeSchema = employeeFields.superRefine((data, ctx) => {
+  const visible: (keyof typeof data)[] = [];
+  if (data.salaryType === 'monthly') visible.push('monthlySalary');
+  if (data.salaryType === 'daily') visible.push('dailyRate');
+  if (data.salaryType) visible.push('overtimeRatePerHour');
+  for (const key of visible) {
+    if (isNegative(data[key])) {
+      ctx.addIssue({ code: 'custom', path: [key], message: NEGATIVE_MESSAGE });
+    }
+  }
 });
 
 type FormData = z.infer<typeof employeeSchema>;
@@ -182,7 +198,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel, isLoading }: Emp
                 mono
                 {...register('vehicleNumber')}
                 disabled={isLoading}
-                className={styles.uppercaseInput}
+                uppercase
                 placeholder="e.g. MH12AB1234"
               />
             </Field>

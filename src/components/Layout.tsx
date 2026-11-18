@@ -13,6 +13,7 @@ import AssistantPanel from './assistant/AssistantPanel';
 import { GlobalSearch } from './GlobalSearch/GlobalSearch';
 import {
   Avatar,
+  Brand,
   Button,
   Icon,
   IconButton,
@@ -97,10 +98,7 @@ export function Layout() {
               aria-expanded={isSidebarOpen}
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             />
-            <div className={styles.brand}>
-              <Icon name="brand" size={20} className={styles.brandMark} />
-              <span className={styles.brandName}>Bill Pro Max</span>
-            </div>
+            <Brand collapseName />
           </div>
 
           <div className={styles.headerSearch}>

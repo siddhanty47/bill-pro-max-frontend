@@ -72,7 +72,12 @@ function MobileList<T>({
                 if (!fromInnerControl(e)) onRowClick(row);
               },
               onKeyDown: (e: KeyboardEvent<HTMLLIElement>) => {
-                if (e.key === 'Enter' && e.target === e.currentTarget) onRowClick(row);
+                if (e.target !== e.currentTarget) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  // Space would otherwise scroll the page.
+                  if (e.key === ' ') e.preventDefault();
+                  onRowClick(row);
+                }
               },
             }
           : {};
@@ -101,7 +106,7 @@ function MobileList<T>({
                   <span className={styles.meta}>
                     {meta.map((m, i) => (
                       <Fragment key={i}>
-                        {i > 0 && ' · '}
+                        {i > 0 && <span aria-hidden="true"> · </span>}
                         {m}
                       </Fragment>
                     ))}

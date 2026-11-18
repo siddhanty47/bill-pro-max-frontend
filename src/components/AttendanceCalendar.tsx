@@ -19,6 +19,7 @@ import { MonthNav } from './MonthNav';
 import { Button, Input, Spinner, StatusChip } from './ui';
 import { statusTone, type Tone } from './ui/status';
 import type { AttendanceStatus } from '../types';
+import { formatMonth } from '../utils/format';
 import styles from './AttendanceCalendar.module.css';
 
 interface AttendanceCalendarProps {
@@ -278,10 +279,7 @@ export function AttendanceCalendar({ employeeId }: AttendanceCalendarProps) {
     if (target && target !== key) moveFocus(target);
   };
 
-  const monthLabel = new Date(viewYear, viewMonth).toLocaleString('default', {
-    month: 'long',
-    year: 'numeric',
-  });
+  const monthLabel = formatMonth(viewYear, viewMonth + 1);
 
   const isFutureMonth =
     viewYear > today.getFullYear() ||

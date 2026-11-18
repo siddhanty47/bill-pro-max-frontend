@@ -306,6 +306,7 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
                   disabled={isLoading}
                   placeholder="e.g. 22AAAAA0000A1Z5"
                   className={styles.gstInput}
+                  uppercase
                   maxLength={15}
                 />
                 <Button
@@ -358,7 +359,7 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
                   handleCodeBlur();
                 }}
                 disabled={isLoading}
-                className={styles.uppercaseInput}
+                uppercase
                 placeholder="Auto-generated"
               />
             </Field>
@@ -436,7 +437,7 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
                       mono
                       {...register('siteCode')}
                       disabled={isLoading}
-                      className={styles.uppercaseInput}
+                      uppercase
                       placeholder="Auto-generated"
                     />
                   </Field>

@@ -1,14 +1,7 @@
-import { Link } from 'react-router-dom';
 import type { AgingStatementData } from '../../types';
-import styles from './StatementPreview.module.css';
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString();
-}
-
-function formatAmount(amount: number): string {
-  return amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+import { FULL_DATE, formatDate, formatMoney } from '../../utils/format';
+import { DocNumber, StatCard, Table, THead, TBody, Tr, Th, Td } from '../ui';
+import { StatementShell, StatementSummary } from './StatementShell';
 
 interface AgingPreviewProps {
   data: AgingStatementData;
@@ -16,74 +9,65 @@ interface AgingPreviewProps {
 
 export function AgingPreview({ data }: AgingPreviewProps) {
   return (
-    <div className={styles.previewContainer}>
-      <div className={styles.previewHeader}>
-        <p className={styles.previewTitle}>Aging Statement - {data.party.name}</p>
-        <p className={styles.previewSubtitle}>As of {formatDate(data.asOfDate)}</p>
-      </div>
-
-      {data.bills.length === 0 ? (
-        <p className={styles.emptyMessage}>No outstanding bills found.</p>
-      ) : (
-        <>
-          <table className={styles.previewTable}>
-            <thead>
-              <tr>
-                <th>Bill #</th>
-                <th>Bill Date</th>
-                <th>Due Date</th>
-                <th className={styles.numericCell}>Days Overdue</th>
-                <th className={styles.numericCell}>Total</th>
-                <th className={styles.numericCell}>Paid</th>
-                <th className={styles.numericCell}>Balance Due</th>
-                <th>Bucket</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.bills.map(bill => (
-                <tr key={bill.billId}>
-                  <td>
-                    <Link to={`/bills/${bill.billId}`} className={styles.entityLink}>
-                      {bill.billNumber}
-                    </Link>
-                  </td>
-                  <td>{formatDate(bill.billDate)}</td>
-                  <td>{formatDate(bill.dueDate)}</td>
-                  <td className={styles.numericCell}>{bill.daysOverdue}</td>
-                  <td className={styles.numericCell}>{formatAmount(bill.totalAmount)}</td>
-                  <td className={styles.numericCell}>{formatAmount(bill.amountPaid)}</td>
-                  <td className={styles.numericCell}>{formatAmount(bill.balanceDue)}</td>
-                  <td>{bill.bucket}</td>
-                </tr>
-              ))}
-              <tr className={styles.totalsRow}>
-                <td colSpan={6}>Grand Total</td>
-                <td className={styles.numericCell}>{formatAmount(data.grandTotal)}</td>
-                <td></td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div className={styles.summaryGrid}>
-            <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>Current (0-30)</span>
-              <span className={styles.summaryValue}>{formatAmount(data.buckets.current)}</span>
-            </div>
-            <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>31-60 Days</span>
-              <span className={styles.summaryValue}>{formatAmount(data.buckets.days31_60)}</span>
-            </div>
-            <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>61-90 Days</span>
-              <span className={styles.summaryValue}>{formatAmount(data.buckets.days61_90)}</span>
-            </div>
-            <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>90+ Days</span>
-              <span className={styles.summaryValue}>{formatAmount(data.buckets.days90Plus)}</span>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+    <StatementShell
+      title="Aging statement"
+      partyName={data.party.name}
+      period={`As of ${formatDate(data.asOfDate, FULL_DATE)}`}
+      emptyMessage={data.bills.length === 0 ? 'No outstanding bills found.' : undefined}
+      body={
+        <Table dense aria-label="Aging statement">
+          <THead>
+            <Tr>
+              <Th>Bill #</Th>
+              <Th nowrap>Bill date</Th>
+              <Th nowrap>Due date</Th>
+              <Th align="right">Days overdue</Th>
+              <Th align="right">Total</Th>
+              <Th align="right">Paid</Th>
+              <Th align="right">Balance due</Th>
+              <Th>Bucket</Th>
+            </Tr>
+          </THead>
+          <TBody>
+            {data.bills.map(bill => (
+              <Tr key={bill.billId}>
+                <Td>
+                  <DocNumber value={bill.billNumber} to={`/bills/${bill.billId}`} wrap />
+                </Td>
+                <Td nowrap>{formatDate(bill.billDate, FULL_DATE)}</Td>
+                <Td nowrap>{formatDate(bill.dueDate, FULL_DATE)}</Td>
+                <Td align="right" mono nowrap>
+                  {bill.daysOverdue}
+                </Td>
+                <Td align="right" mono nowrap>
+                  {formatMoney(bill.totalAmount)}
+                </Td>
+                <Td align="right" mono nowrap>
+                  {formatMoney(bill.amountPaid)}
+                </Td>
+                <Td align="right" mono nowrap>
+                  {formatMoney(bill.balanceDue)}
+                </Td>
+                <Td>{bill.bucket}</Td>
+              </Tr>
+            ))}
+            <Tr variant="total">
+              <Td colSpan={6}>Grand total</Td>
+              <Td align="right" mono nowrap>
+                {formatMoney(data.grandTotal)}
+              </Td>
+              <Td />
+            </Tr>
+          </TBody>
+        </Table>
+      }
+    >
+      <StatementSummary>
+        <StatCard label="Current (0-30)" value={formatMoney(data.buckets.current)} />
+        <StatCard label="31-60 days" value={formatMoney(data.buckets.days31_60)} />
+        <StatCard label="61-90 days" value={formatMoney(data.buckets.days61_90)} />
+        <StatCard label="90+ days" value={formatMoney(data.buckets.days90Plus)} />
+      </StatementSummary>
+    </StatementShell>
   );
 }

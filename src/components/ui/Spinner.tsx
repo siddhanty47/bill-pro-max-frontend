@@ -15,6 +15,3 @@ export function Spinner({ message = 'Loading…' }: { message?: string }) {
     </div>
   );
 }
-
-/** Legacy name kept for existing call sites. */
-export const LoadingSpinner = Spinner;

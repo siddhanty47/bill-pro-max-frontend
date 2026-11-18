@@ -142,7 +142,7 @@ describe('ImportPresetModal', () => {
     setup();
     const list = await screen.findByRole('list', { name: 'Presets' });
     expect(within(list).getByText('2 items')).toBeInTheDocument();
-    expect(within(list).getByText(/System · Starter/)).toBeInTheDocument();
+    expect(list).toHaveTextContent(/System · Starter/);
     expect(within(list).getByText(/^Custom$/)).toBeInTheDocument();
   });
 });

@@ -337,3 +337,18 @@ describe('control size', () => {
     expect(screen.getByLabelText('Email')).not.toHaveAttribute('size');
   });
 });
+
+describe('Input uppercase', () => {
+  it('adds the uppercase class without changing the value, keeping className and mono', () => {
+    render(
+      <>
+        <Input aria-label="GSTIN" uppercase mono className="place" defaultValue="22aaaaa0000a1z5" />
+        <Input aria-label="Name" />
+      </>
+    );
+    const gst = screen.getByLabelText('GSTIN') as HTMLInputElement;
+    expect(gst).toHaveClass('control', 'uppercase', 'mono', 'place');
+    expect(gst.value).toBe('22aaaaa0000a1z5');
+    expect(screen.getByLabelText('Name')).not.toHaveClass('uppercase');
+  });
+});

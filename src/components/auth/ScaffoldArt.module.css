@@ -44,7 +44,7 @@
 }
 
 .ann text {
-  font: 12px var(--font-mono);
+  font: var(--text-xs) var(--font-mono);
   fill: var(--text-secondary);
 }
 

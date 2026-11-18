@@ -16,7 +16,17 @@ import {
   type ReactNode,
 } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, ErrorMessage, Icon, PageHeader, Spinner, StatusChip, TabPanel, Tabs } from './ui';
+import {
+  Card,
+  ErrorMessage,
+  Icon,
+  NotAdded,
+  PageHeader,
+  Spinner,
+  StatusChip,
+  TabPanel,
+  Tabs,
+} from './ui';
 import type { Tone } from './ui/status';
 import { EditableField } from './EditableField';
 import styles from './DetailPageShell.module.css';
@@ -67,14 +77,10 @@ export interface DetailPageShellProps {
   idPrefix?: string;
   /** Main column content */
   children?: ReactNode;
-  /** @deprecated Use `eyebrow` + `code`. Shown as the eyebrow when neither is set. */
-  subtitle?: string;
-  /** @deprecated Ignored; the status renders as a StatusChip. */
-  statusClassName?: string;
 }
 
 /** "Party · MEHT": the entity word in the text font, only the code in mono. */
-function eyebrowNode(eyebrow?: string, code?: string, subtitle?: string): ReactNode {
+function eyebrowNode(eyebrow?: string, code?: string): ReactNode {
   const codeNode = code ? <span className="mono">{code}</span> : null;
   if (eyebrow && codeNode) {
     return (
@@ -83,7 +89,7 @@ function eyebrowNode(eyebrow?: string, code?: string, subtitle?: string): ReactN
       </>
     );
   }
-  return eyebrow ?? codeNode ?? subtitle;
+  return eyebrow ?? codeNode;
 }
 
 export function DetailPageShell({
@@ -105,7 +111,6 @@ export function DetailPageShell({
   onTabChange,
   idPrefix = 'detail',
   children,
-  subtitle,
 }: DetailPageShellProps) {
   const [ownTab, setOwnTab] = useState(tabs?.[0]?.id);
 
@@ -132,7 +137,7 @@ export function DetailPageShell({
 
       <PageHeader
         title={title}
-        eyebrow={eyebrowNode(eyebrow, code, subtitle)}
+        eyebrow={eyebrowNode(eyebrow, code)}
         badge={status ? <StatusChip status={status} tone={statusTone} /> : undefined}
         actions={headerActions}
       />
@@ -164,8 +169,6 @@ export interface DetailSectionProps {
   count?: number;
   /** Right of the title, e.g. an "Add site" Button */
   actions?: ReactNode;
-  /** @deprecated Use `actions`. */
-  headerActions?: ReactNode;
   /** Default true. Pass false when the body is a table. */
   padded?: boolean;
   children: ReactNode;
@@ -204,20 +207,21 @@ export function DetailSection({
   title,
   count,
   actions,
-  headerActions,
   padded = true,
   children,
 }: DetailSectionProps) {
   return (
-    <Card title={title} count={count} actions={actions ?? headerActions} padded={false}>
+    <Card title={title} count={count} actions={actions} padded={false}>
       {!padded ? (
-        children
+        <InFieldList.Provider value={false}>{children}</InFieldList.Provider>
       ) : isFieldList(children) ? (
         <dl className={styles.sectionBody}>
           <InFieldList.Provider value>{children}</InFieldList.Provider>
         </dl>
       ) : (
-        <div className={styles.sectionBody}>{children}</div>
+        <div className={styles.sectionBody}>
+          <InFieldList.Provider value={false}>{children}</InFieldList.Provider>
+        </div>
       )}
     </Card>
   );
@@ -298,7 +302,7 @@ export function DetailField({
       renderEditInput={editable.renderEditInput}
     />
   ) : isEmpty ? (
-    <span className={styles.empty}>{emptyText}</span>
+    <NotAdded>{emptyText}</NotAdded>
   ) : (
     value
   );
@@ -307,15 +311,19 @@ export function DetailField({
     .filter(Boolean)
     .join(' ');
 
+  // A DetailField nested inside this value (or inside a section in it) is not a row
+  // of this list: reset the context so it renders its own <dl>.
+  const body = <InFieldList.Provider value={false}>{content}</InFieldList.Provider>;
+
   if (!label) {
-    return <div className={`${styles.field} ${styles.bare} ${valueClass}`}>{content}</div>;
+    return <div className={`${styles.field} ${styles.bare} ${valueClass}`}>{body}</div>;
   }
 
   const Row = inList ? 'div' : 'dl';
   return (
     <Row className={styles.field}>
       <dt className={styles.label}>{label}</dt>
-      <dd className={valueClass}>{content}</dd>
+      <dd className={valueClass}>{body}</dd>
     </Row>
   );
 }

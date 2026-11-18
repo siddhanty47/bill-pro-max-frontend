@@ -7,7 +7,9 @@ describe('ui barrel', () => {
     'IconButton',
     'Icon',
     'GoogleIcon',
+    'Brand',
     'Avatar',
+    'Dot',
     'Notice',
     'Card',
     'StatCard',
@@ -41,7 +43,8 @@ describe('ui barrel', () => {
     'Tabs',
     'TabPanel',
     'Spinner',
-    'LoadingSpinner',
+    'NotAdded',
+    'TextLink',
     'ErrorMessage',
   ])('exports %s', name => {
     expect(ui).toHaveProperty(name);

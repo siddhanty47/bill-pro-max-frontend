@@ -15,7 +15,7 @@ export default defineConfig({
     environment: 'jsdom',
     // Heavy form tests slow down under full-suite CPU load.
     testTimeout: 15000,
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs'],
     setupFiles: ['./src/test/setup.ts'],
     env: {
       VITE_API_URL: 'http://api.test/api/v1',
@@ -38,7 +38,7 @@ export default defineConfig({
       ],
       reporter: ['text-summary', 'json-summary', 'lcov'],
       // Repo-wide floor (ratchet): raise when coverage grows, never lower.
-      thresholds: { lines: 90 },
+      thresholds: { lines: 94 },
     },
   },
 });

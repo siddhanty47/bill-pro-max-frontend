@@ -228,6 +228,8 @@ describe('EmployeeDetailPage', () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const { user } = renderPage();
     await user.click(await screen.findByRole('button', { name: 'More actions' }));
+    // Header overflow is the kit Menu pattern: the delete is a danger item.
+    expect(screen.getByRole('menuitem', { name: 'Delete employee' })).toHaveClass('danger');
     await user.click(screen.getByRole('menuitem', { name: 'Delete employee' }));
     expect(confirmSpy).toHaveBeenCalledWith(
       'Delete employee "Kiran Patel"? This will deactivate them.'

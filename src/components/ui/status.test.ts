@@ -55,3 +55,16 @@ describe('statusLabel', () => {
     expect(statusLabel('')).toBe('');
   });
 });
+
+describe('roleTone', () => {
+  it('gives each senior role its own tone and the rest neutral', async () => {
+    const { roleTone } = await import('./status');
+    expect(roleTone('owner')).toBe('success');
+    expect(roleTone('Manager')).toBe('info');
+    expect(roleTone('accountant')).toBe('warning');
+    expect(roleTone('staff')).toBe('neutral');
+    expect(roleTone('viewer')).toBe('neutral');
+    expect(roleTone(undefined)).toBe('neutral');
+    expect(roleTone('toString')).toBe('neutral');
+  });
+});

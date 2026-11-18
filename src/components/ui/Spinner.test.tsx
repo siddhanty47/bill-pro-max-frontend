@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Spinner, LoadingSpinner } from './Spinner';
-import { LoadingSpinner as LoadingSpinnerShim } from '../LoadingSpinner';
+import { Spinner } from './Spinner';
 
 describe('Spinner', () => {
   it('shows the default message as a status', () => {
@@ -25,10 +24,5 @@ describe('Spinner', () => {
     const { container } = render(<Spinner message="" />);
     expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
     expect(container.querySelector('p')).toBeNull();
-  });
-
-  it('keeps the LoadingSpinner alias and legacy path', () => {
-    expect(LoadingSpinner).toBe(Spinner);
-    expect(LoadingSpinnerShim).toBe(Spinner);
   });
 });

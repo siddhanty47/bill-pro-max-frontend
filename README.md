@@ -76,10 +76,7 @@ src/
 ├── components/
 │   ├── Layout.tsx          # App shell with sidebar + header
 │   ├── ProtectedRoute.tsx  # Auth guard
-│   ├── DataTable.tsx       # Reusable data table
-│   ├── Modal.tsx           # Modal dialog
-│   ├── ErrorMessage.tsx    # Error display
-│   ├── LoadingSpinner.tsx  # Loading indicator
+│   ├── ui/                 # UI kit: DataTable, Modal, Tabs, Spinner, ErrorMessage, ...
 │   └── forms/              # Form components for each entity
 ├── pages/
 │   ├── LoginPage.tsx       # Login form + Google OAuth

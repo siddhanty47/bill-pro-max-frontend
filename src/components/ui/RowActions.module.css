@@ -6,12 +6,6 @@
   white-space: nowrap;
 }
 
-.danger:not(:disabled):not([aria-disabled='true']),
-.danger:hover:not(:disabled):not([aria-disabled='true']),
-.danger:focus-visible:not(:disabled):not([aria-disabled='true']) {
-  color: var(--status-danger-text);
-}
-
 .text {
   display: flex;
   flex-direction: column;

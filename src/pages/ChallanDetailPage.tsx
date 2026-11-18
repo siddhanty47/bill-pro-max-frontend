@@ -6,7 +6,7 @@
  * DetailPageShell + DetailSection/DetailField + Cards holding DataTables.
  */
 import { useState, useCallback, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import styles from './ChallanDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useAuth } from '../hooks/useAuth';
@@ -32,9 +32,11 @@ import {
   DocNumber,
   EmptyState,
   Input,
+  NotAdded,
   RowActions,
   Select,
   StatusChip,
+  TextLink,
   type Column,
 } from '../components/ui';
 import { EditableField } from '../components/EditableField';
@@ -331,8 +333,7 @@ export function ChallanDetailPage() {
 
   const lossAmount = (d: DamagedItem) => formatMoney(d.quantity * d.damageRate);
   const lossType = (d: DamagedItem) => LOSS_LABEL[d.lossType ?? 'damage'];
-  const lossNote = (d: DamagedItem) =>
-    d.note ? d.note : <span className="text-empty">Not added</span>;
+  const lossNote = (d: DamagedItem) => (d.note ? d.note : <NotAdded />);
 
   const lossColumns: Column<LossRow>[] = [
     { key: 'itemName', header: 'Item' },
@@ -467,11 +468,7 @@ export function ChallanDetailPage() {
       <DetailField label="Type" value={<StatusChip status={challan.type} />} />
       <DetailField
         label="Party"
-        value={
-          <Link to={`/parties/${challan.partyId}`} className="link-accent">
-            {partyName}
-          </Link>
-        }
+        value={<TextLink to={`/parties/${challan.partyId}`}>{partyName}</TextLink>}
       />
       <DetailField
         label="Agreement"

@@ -28,7 +28,6 @@
 .gstInput {
   flex: 1;
   min-width: 0;
-  text-transform: uppercase;
 }
 
 .pair {
@@ -53,8 +52,4 @@
   .pair {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-
-.gstInput::placeholder {
-  text-transform: none;
 }

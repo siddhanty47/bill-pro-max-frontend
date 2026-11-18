@@ -23,7 +23,7 @@ export function NotificationBell() {
   return (
     <Menu
       align="end"
-      menuClassName={styles.menu}
+      width="wide"
       aria-label="Notifications"
       trigger={props => (
         <IconButton
