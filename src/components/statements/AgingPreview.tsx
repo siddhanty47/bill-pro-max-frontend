@@ -30,9 +30,14 @@ export function AgingPreview({ data }: AgingPreviewProps) {
           </THead>
           <TBody>
             {data.bills.map(bill => (
-              <Tr key={bill.billId}>
+              <Tr key={bill.billId || bill.kind}>
                 <Td>
-                  <DocNumber value={bill.billNumber} to={`/bills/${bill.billId}`} wrap />
+                  {bill.kind === 'bill' ? (
+                    <DocNumber value={bill.billNumber} to={`/bills/${bill.billId}`} wrap />
+                  ) : (
+                    // Opening balance / on-account advance: party-level, no bill to open
+                    bill.billNumber
+                  )}
                 </Td>
                 <Td nowrap>{formatDate(bill.billDate, FULL_DATE)}</Td>
                 <Td nowrap>{formatDate(bill.dueDate, FULL_DATE)}</Td>

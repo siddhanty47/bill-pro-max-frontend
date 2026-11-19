@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useGetInventoryStatsQuery } from '../api/inventoryApi';
-import { useGetPartiesQuery } from '../api/partyApi';
+import { useGetOutstandingSummaryQuery, useGetPartiesQuery } from '../api/partyApi';
 import { useGetBillsQuery, useGetOverdueBillsQuery } from '../api/billApi';
 import { useCreateBusinessMutation } from '../api/businessApi';
 import {
@@ -67,6 +67,11 @@ export function DashboardPage() {
     skip: !currentBusinessId,
   });
 
+  // Opening balances + bills - all payments (incl. on-account), so migrated parties add up
+  const { data: outstanding } = useGetOutstandingSummaryQuery(currentBusinessId || '', {
+    skip: !currentBusinessId,
+  });
+
   const { data: overdueBills } = useGetOverdueBillsQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
   });
@@ -125,7 +130,7 @@ export function DashboardPage() {
   const activeParties = parties?.filter(p => p.isActive).length || 0;
   const pendingBills =
     bills?.filter(b => b.status === 'sent' || b.status === 'partial').length || 0;
-  const totalOutstanding = bills?.reduce((sum, b) => sum + (b.totalAmount - b.amountPaid), 0) || 0;
+  const totalOutstanding = outstanding?.totalOutstanding ?? 0;
   const available = inventoryStats?.availableQuantity || 0;
   const rented = inventoryStats?.rentedQuantity || 0;
 

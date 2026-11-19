@@ -184,8 +184,29 @@ export interface Party {
   authProviderId?: string;
   isActive: boolean;
   notes?: string;
+  /** Opening money balance (INR) carried in from before BillProMax; positive = party owes us */
+  openingBalance?: number;
+  /** ISO date the opening balance is as of */
+  openingBalanceDate?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/** One party's ledger-style outstanding: opening + billed - received */
+export interface PartyOutstanding {
+  partyId: string;
+  partyName: string;
+  partyCode: string;
+  openingBalance: number;
+  totalBilled: number;
+  totalReceived: number;
+  outstanding: number;
+}
+
+export interface OutstandingSummary {
+  totalOutstanding: number;
+  parties: PartyOutstanding[];
+  currency: string;
 }
 
 export interface CreatePartyInput {
@@ -194,6 +215,9 @@ export interface CreatePartyInput {
   roles: ('client' | 'supplier')[];
   contact: PartyContact;
   notes?: string;
+  openingBalance?: number;
+  /** yyyy-mm-dd */
+  openingBalanceDate?: string;
   /** Initial site for the party (required) */
   initialSite: {
     code?: string;
@@ -885,6 +909,8 @@ export interface PortalInfo {
 
 export interface PortalSummary {
   totalOutstanding: number;
+  /** Party opening balance (0 on site-scoped links) */
+  openingBalance: number;
   totalBilled: number;
   totalPaid: number;
   totalItemsInUse: number;
@@ -1107,6 +1133,8 @@ export interface ItemStatementData {
 }
 
 export interface AgingBill {
+  /** 'opening' = party opening balance, 'advance' = unused on-account credit (no billId) */
+  kind: 'bill' | 'opening' | 'advance';
   billId: string;
   billNumber: string;
   billDate: string;

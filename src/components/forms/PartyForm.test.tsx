@@ -206,4 +206,47 @@ describe('PartyForm', () => {
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onCancel).toHaveBeenCalled();
   });
+
+  it('sends the opening balance and its date for a new party', async () => {
+    const { user, onSubmit } = setup();
+    await fillRequired(user);
+    await user.type(screen.getByLabelText(/site address/i), 'Plot 12');
+    await user.type(screen.getByLabelText(/opening balance/i), '-1250.50');
+    await user.type(screen.getByLabelText(/^as of/i), '2026-03-31');
+    await user.click(screen.getByRole('button', { name: /^add party$/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({
+      openingBalance: -1250.5,
+      openingBalanceDate: '2026-03-31',
+    });
+  });
+
+  it('rejects an opening balance that is not an amount', async () => {
+    const { user, onSubmit } = setup();
+    await fillRequired(user);
+    await user.type(screen.getByLabelText(/site address/i), 'Plot 12');
+    await user.type(screen.getByLabelText(/opening balance/i), '12,500');
+    await user.click(screen.getByRole('button', { name: /^add party$/i }));
+    expect(await screen.findByText(/Enter an amount like/)).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('resets the opening balance to 0 when cleared while editing', async () => {
+    const party = {
+      _id: 'p1',
+      code: 'MEHT',
+      name: 'Mehta',
+      roles: ['client'],
+      contact: { person: 'Rakesh', phone: '98' },
+      openingBalance: 900,
+      sites: [],
+    } as unknown as Party;
+    const { user, onSubmit } = setup(party);
+    const amount = screen.getByLabelText(/opening balance/i);
+    expect(amount).toHaveValue('900');
+    await user.clear(amount);
+    await user.click(screen.getByRole('button', { name: /^update party$/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ openingBalance: 0 });
+  });
 });

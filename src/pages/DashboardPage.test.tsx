@@ -50,16 +50,21 @@ function useApi({
     bill({ _id: 'b3', billNumber: 'BL-0300', status: 'paid', totalAmount: 5000, amountPaid: 5000 }),
   ],
   overdue = [bill({})],
+  totalOutstanding = 344200,
 }: {
   businesses?: Business[];
   parties?: Party[];
   bills?: Bill[];
   overdue?: Bill[];
+  totalOutstanding?: number;
 } = {}) {
   server.use(
     http.get(apiUrl('/businesses'), () => ok(businesses)),
     http.get(apiUrl('/businesses/biz-1/inventory/stats'), () => ok(stats)),
     http.get(apiUrl('/businesses/biz-1/parties'), () => ok(parties)),
+    http.get(apiUrl('/businesses/biz-1/parties/outstanding'), () =>
+      ok({ totalOutstanding, parties: [], currency: 'INR' })
+    ),
     http.get(apiUrl('/businesses/biz-1/bills/overdue'), () => ok(overdue)),
     http.get(apiUrl('/businesses/biz-1/bills'), () =>
       HttpResponse.json({ success: true, data: bills })
@@ -99,8 +104,8 @@ describe('DashboardPage', () => {
     expect(screen.queryByRole('heading', { level: 1, name: 'Dashboard' })).not.toBeInTheDocument();
     expect(screen.queryByText(/Welcome to/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Add business/ })).toBeInTheDocument();
-    // outstanding = 184200 + 60000 + 0 + 0
-    expect(screen.getByText('₹2,44,200')).toBeInTheDocument();
+    // from the outstanding summary (opening balances + bills - payments), not the bill list
+    expect(await screen.findByText('₹3,44,200')).toBeInTheDocument();
     expect(screen.getByText('Stock · 14,820 pcs')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
     const parties = screen.getByText('Active parties').parentElement as HTMLElement;

@@ -352,6 +352,9 @@ export function SharedPortalPage() {
                 value={formatMoney(summary.totalOutstanding)}
                 tone="highlight"
               />
+              {summary.openingBalance ? (
+                <StatCard label="Opening balance" value={formatMoney(summary.openingBalance)} />
+              ) : null}
               <StatCard label="Items in use" value={summary.totalItemsInUse} />
               <StatCard label="Total billed" value={formatMoney(summary.totalBilled)} />
               <StatCard label="Total paid" value={formatMoney(summary.totalPaid)} />

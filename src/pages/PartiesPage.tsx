@@ -7,6 +7,7 @@ import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
 import { shortcutLabel } from '../hooks/usePlatform';
 import {
+  useGetOutstandingSummaryQuery,
   useGetPartiesQuery,
   useCreatePartyMutation,
   useDeletePartyMutation,
@@ -33,6 +34,7 @@ import { PartyForm } from '../components/forms/PartyForm';
 import { AgreementForm } from '../components/forms/AgreementForm';
 import { AddSiteModal } from '../components/AddSiteModal';
 import { getErrorMessage } from '../api/baseApi';
+import { formatMoney } from '../utils/format';
 import type { Party, CreatePartyInput, CreateAgreementInput } from '../types';
 import styles from './PartiesPage.module.css';
 
@@ -55,6 +57,15 @@ export function PartiesPage() {
   } = useGetPartiesQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
   });
+
+  // Opening balance + bills - payments per party
+  const { data: outstandingSummary } = useGetOutstandingSummaryQuery(currentBusinessId || '', {
+    skip: !currentBusinessId,
+  });
+  const outstandingByParty = new Map(
+    (outstandingSummary?.parties ?? []).map(p => [p.partyId, p.outstanding])
+  );
+  const outstandingOf = (party: Party) => formatMoney(outstandingByParty.get(party._id) ?? 0);
 
   const { data: inventory } = useGetInventoryQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
@@ -179,6 +190,14 @@ export function PartiesPage() {
       ),
     },
     {
+      key: 'outstanding',
+      header: 'Outstanding',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: outstandingOf,
+    },
+    {
       key: 'status',
       header: 'Status',
       nowrap: true,
@@ -264,6 +283,9 @@ export function PartiesPage() {
               </span>,
               <span key="phone" className="mono">
                 {party.contact.phone}
+              </span>,
+              <span key="outstanding" className="mono">
+                {outstandingOf(party)}
               </span>,
             ],
             actions: rowActions,

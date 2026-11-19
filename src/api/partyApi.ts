@@ -10,6 +10,7 @@ import type {
   AddSiteInput,
   UpdateSiteInput,
   ApiResponse,
+  OutstandingSummary,
 } from '../types';
 
 export const partyApi = baseApi.injectEndpoints({
@@ -18,6 +19,13 @@ export const partyApi = baseApi.injectEndpoints({
       queryFn: (businessId, _api, _extra, baseQuery) =>
         fetchAllPages<Party>(`/businesses/${businessId}/parties`, baseQuery),
       providesTags: ['Party'],
+    }),
+
+    /** Opening balance + bills - payments, per party and in total */
+    getOutstandingSummary: builder.query<OutstandingSummary, string>({
+      query: businessId => `/businesses/${businessId}/parties/outstanding`,
+      transformResponse: (response: ApiResponse<OutstandingSummary>) => response.data,
+      providesTags: ['Party', 'Bill', 'Payment'],
     }),
 
     getParty: builder.query<Party, { businessId: string; partyId: string }>({
@@ -129,6 +137,7 @@ export const partyApi = baseApi.injectEndpoints({
 export const {
   useGetPartiesQuery,
   useGetPartyQuery,
+  useGetOutstandingSummaryQuery,
   useCreatePartyMutation,
   useUpdatePartyMutation,
   useDeletePartyMutation,
