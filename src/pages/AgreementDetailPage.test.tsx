@@ -133,7 +133,7 @@ describe('AgreementDetailPage', () => {
     useApi();
     renderPage();
     expect(await screen.findByRole('heading', { name: 'AG-001', level: 1 })).toBeVisible();
-    expect(screen.getByText(/Agreement · Mehta Builders/)).toBeVisible();
+    expect(screen.queryByText(/Agreement ·/)).not.toBeInTheDocument();
     expect(screen.getAllByText('Active')).not.toHaveLength(0);
     expect(screen.getByRole('link', { name: 'Back to Agreements' })).toHaveAttribute(
       'href',

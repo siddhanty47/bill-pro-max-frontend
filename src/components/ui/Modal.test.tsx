@@ -169,4 +169,16 @@ describe('Modal', () => {
     );
     expect(screen.getByRole('dialog')).toHaveClass('delivery', 'formSize');
   });
+
+  // Regression: tall forms (add party/agreement/challan) were clipped on desktop
+  // with their Cancel/Save buttons unreachable, because the form-size modal hides
+  // overflow and nothing inside scrolled.
+  it('lets the form-size body scroll so actions stay reachable (CSS present)', async () => {
+    const fs = (await import(/* @vite-ignore */ 'node:fs' as string)) as {
+      readFileSync(path: string, encoding: 'utf8'): string;
+    };
+    const css = fs.readFileSync('src/components/ui/Modal.module.css', 'utf8');
+    expect(css).toMatch(/\.modal\.formSize\s*\{[^}]*overflow:\s*hidden/);
+    expect(css).toMatch(/\.modal\.formSize \.body\s*\{[^}]*overflow-y:\s*auto/);
+  });
 });

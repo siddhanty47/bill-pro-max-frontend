@@ -5,7 +5,7 @@ import { Route, Routes, useLocation } from 'react-router-dom';
 import { BillsPage } from './BillsPage';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
-import { apiUrl, ok } from '../test/msw/handlers';
+import { apiUrl, ok, pagedOk } from '../test/msw/handlers';
 import type { Bill, Party } from '../types';
 
 const bill = (over: Partial<Bill>) =>
@@ -37,12 +37,28 @@ const defaults = [
   bill({ _id: 'b4', billNumber: 'B-2026-27-0004', status: 'cancelled' }),
 ];
 
+const PARTY_NAMES: Record<string, string> = { p1: 'Mehta Builders', p2: 'Om Constructions' };
+
+/** The backend's bill list filters: status, and search on number or party name. */
+function matchBill(b: Bill, q: URLSearchParams): boolean {
+  const search = q.get('search')?.toLowerCase();
+  return (
+    (!q.get('status') || b.status === q.get('status')) &&
+    (!search ||
+      b.billNumber.toLowerCase().includes(search) ||
+      (PARTY_NAMES[b.partyId] ?? '').toLowerCase().includes(search))
+  );
+}
+
 function useApi(bills: Bill[] = defaults) {
   server.use(
     http.get(apiUrl('/businesses'), () =>
       ok([{ _id: 'biz-1', name: 'Patel Scaffold Co.', settings: { defaultTaxRate: 18 } }])
     ),
-    http.get(apiUrl('/businesses/biz-1/bills'), () => ok(bills)),
+    // Behaves like the backend: status filter and search applied server-side.
+    http.get(apiUrl('/businesses/biz-1/bills'), ({ request }) =>
+      pagedOk(bills, request, matchBill)
+    ),
     http.get(apiUrl('/businesses/biz-1/parties'), () =>
       ok([
         { _id: 'p1', name: 'Mehta Builders', isActive: true, agreements: [], sites: [] },
@@ -129,7 +145,7 @@ describe('BillsPage', () => {
     const { user } = renderPage();
     await screen.findByRole('table');
     await user.selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'paid');
-    expect(rowNumbers()).toEqual(['B-2026-27-0003']);
+    await waitFor(() => expect(rowNumbers()).toEqual(['B-2026-27-0003']));
   });
 
   it('searches by party name and by bill number', async () => {
@@ -138,10 +154,10 @@ describe('BillsPage', () => {
     await screen.findByRole('table');
     const search = screen.getByRole('searchbox', { name: 'Search bills' });
     await user.type(search, 'om cons');
-    expect(rowNumbers()).toEqual(['B-2026-27-0002']);
+    await waitFor(() => expect(rowNumbers()).toEqual(['B-2026-27-0002']));
     await user.clear(search);
     await user.type(search, '0004');
-    expect(rowNumbers()).toEqual(['B-2026-27-0004']);
+    await waitFor(() => expect(rowNumbers()).toEqual(['B-2026-27-0004']));
   });
 
   it('focuses the search box on /', async () => {
@@ -157,7 +173,7 @@ describe('BillsPage', () => {
     const { user } = renderPage();
     await screen.findByRole('table');
     await user.type(screen.getByRole('searchbox', { name: 'Search bills' }), 'zzz');
-    expect(screen.getByText('No bills match these filters')).toBeInTheDocument();
+    expect(await screen.findByText('No bills match these filters')).toBeInTheDocument();
   });
 
   it('shows an empty state with no bills', async () => {
@@ -338,6 +354,31 @@ describe('BillsPage', () => {
     expect(screen.getByRole('menuitem', { name: 'Download invoice PDF' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
     expect(screen.queryByTestId('where')).not.toBeInTheDocument();
+  });
+
+  it('pages through bills, asking the server for each page', async () => {
+    const seen: string[] = [];
+    const many = Array.from({ length: 27 }, (_, i) =>
+      bill({
+        _id: `b${i}`,
+        billNumber: `B-2026-27-${String(i + 1).padStart(4, '0')}`,
+        status: 'sent',
+      })
+    );
+    useApi(many);
+    server.events.on('request:start', ({ request }) => {
+      const url = new URL(request.url);
+      if (url.pathname.endsWith('/biz-1/bills')) seen.push(url.search);
+    });
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    const nav = screen.getByRole('navigation', { name: 'Bills pages' });
+    expect(nav).toHaveTextContent('Showing 1–25 of 27');
+
+    await user.click(within(nav).getByRole('button', { name: /Next/ }));
+    await waitFor(() => expect(rowNumbers()).toEqual(['B-2026-27-0026', 'B-2026-27-0027']));
+    expect(seen).toContain('?page=2&pageSize=25');
+    server.events.removeAllListeners();
   });
 
   it('shows an error with retry when loading fails', async () => {

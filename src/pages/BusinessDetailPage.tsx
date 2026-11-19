@@ -85,7 +85,6 @@ export function BusinessDetailPage() {
   return (
     <DetailPageShell
       title={business?.name || 'Business'}
-      eyebrow="Business"
       status={business ? (business.isActive ? 'active' : 'inactive') : undefined}
       backTo="/"
       backLabel="Dashboard"

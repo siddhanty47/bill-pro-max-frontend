@@ -2,6 +2,8 @@
  * Challan API endpoints
  */
 import { baseApi } from './baseApi';
+import { fetchAllPages } from './fetchAllPages';
+import { listParams, toPagedList } from './listPage';
 import type {
   Challan,
   CreateChallanInput,
@@ -10,13 +12,25 @@ import type {
   ExtractedChallanData,
   ApiResponse,
   PaginatedResponse,
+  PagedList,
+  ListPageArgs,
 } from '../types';
 
 export const challanApi = baseApi.injectEndpoints({
   endpoints: builder => ({
     getChallans: builder.query<Challan[], string>({
-      query: businessId => `/businesses/${businessId}/challans?pageSize=100`,
-      transformResponse: (response: PaginatedResponse<Challan>) => response.data,
+      queryFn: (businessId, _api, _extra, baseQuery) =>
+        fetchAllPages<Challan>(`/businesses/${businessId}/challans`, baseQuery),
+      providesTags: ['Challan'],
+    }),
+
+    /** One page of challans, filtered and searched on the server (Challans page). */
+    getChallansPage: builder.query<PagedList<Challan>, ListPageArgs & { type?: string }>({
+      query: ({ businessId, page, pageSize, search, status, type }) => ({
+        url: `/businesses/${businessId}/challans`,
+        params: listParams({ page, pageSize, search, status, type }),
+      }),
+      transformResponse: (response: PaginatedResponse<Challan>) => toPagedList(response),
       providesTags: ['Challan'],
     }),
 
@@ -197,9 +211,11 @@ export const challanApi = baseApi.injectEndpoints({
     }),
 
     getChallansByAgreement: builder.query<Challan[], { businessId: string; agreementId: string }>({
-      query: ({ businessId, agreementId }) =>
-        `/businesses/${businessId}/challans?agreementId=${encodeURIComponent(agreementId)}&pageSize=100`,
-      transformResponse: (response: PaginatedResponse<Challan>) => response.data,
+      queryFn: ({ businessId, agreementId }, _api, _extra, baseQuery) =>
+        fetchAllPages<Challan>(
+          `/businesses/${businessId}/challans?agreementId=${encodeURIComponent(agreementId)}`,
+          baseQuery
+        ),
       providesTags: ['Challan'],
     }),
 
@@ -231,6 +247,7 @@ export const challanApi = baseApi.injectEndpoints({
 
 export const {
   useGetChallansQuery,
+  useGetChallansPageQuery,
   useGetChallanQuery,
   useCreateChallanMutation,
   useConfirmChallanMutation,

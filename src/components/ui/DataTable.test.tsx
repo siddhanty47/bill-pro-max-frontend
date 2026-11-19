@@ -385,3 +385,77 @@ describe('DataTable phone list hierarchy', () => {
     expect(subtitle).not.toMatch(/--text-heading/);
   });
 });
+
+describe('DataTable paging', () => {
+  const many = (n: number, prefix = 'P'): Row[] =>
+    Array.from({ length: n }, (_, i) => ({ id: `${prefix}${i + 1}`, party: `${prefix}${i + 1}` }));
+  const bodyRows = () => screen.getAllByRole('row').slice(1);
+
+  it('shows no pager when rows fit on one page', () => {
+    render(<DataTable columns={columns} rows={many(25)} rowKey={r => r.id} aria-label="Parties" />);
+    expect(bodyRows()).toHaveLength(25);
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  });
+
+  it('pages its own rows 25 at a time', async () => {
+    const user = userEvent.setup();
+    render(<DataTable columns={columns} rows={many(30)} rowKey={r => r.id} aria-label="Parties" />);
+
+    expect(bodyRows()).toHaveLength(25);
+    const nav = screen.getByRole('navigation', { name: 'Parties pages' });
+    expect(nav).toHaveTextContent('Showing 1–25 of 30');
+
+    await user.click(within(nav).getByRole('button', { name: /Next/ }));
+    expect(bodyRows()).toHaveLength(5);
+    expect(screen.getByRole('cell', { name: 'P26' })).toBeInTheDocument();
+    expect(nav).toHaveTextContent('Showing 26–30 of 30');
+  });
+
+  it('honours a custom page size and goes back to page 1 when rows change', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <DataTable columns={columns} rows={many(12)} rowKey={r => r.id} pageSize={5} />
+    );
+    await user.click(screen.getByRole('button', { name: 'Page 3' }));
+    expect(bodyRows()).toHaveLength(2);
+
+    rerender(<DataTable columns={columns} rows={many(12, 'Q')} rowKey={r => r.id} pageSize={5} />);
+    expect(screen.getByRole('cell', { name: 'Q1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Page 1' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('pages the phone list the same way', () => {
+    render(
+      <DataTable
+        columns={columns}
+        rows={many(30)}
+        rowKey={r => r.id}
+        aria-label="Parties"
+        mobile={{ title: r => r.party }}
+      />
+    );
+    const list = screen.getByRole('list', { name: 'Parties' });
+    expect(within(list).getAllByRole('listitem')).toHaveLength(25);
+  });
+
+  it('server mode shows the given rows unsliced with the backend total', async () => {
+    const onPageChange = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <DataTable
+        columns={columns}
+        rows={many(25)}
+        rowKey={r => r.id}
+        aria-label="Challans"
+        pagination={{ page: 2, pageSize: 25, total: 132, onPageChange }}
+      />
+    );
+
+    expect(bodyRows()).toHaveLength(25);
+    expect(screen.getByRole('navigation', { name: 'Challans pages' })).toHaveTextContent(
+      'Showing 26–50 of 132'
+    );
+    await user.click(screen.getByRole('button', { name: 'Page 3' }));
+    expect(onPageChange).toHaveBeenCalledWith(3);
+  });
+});

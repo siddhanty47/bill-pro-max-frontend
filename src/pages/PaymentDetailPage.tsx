@@ -80,7 +80,6 @@ export function PaymentDetailPage() {
   return (
     <DetailPageShell
       title={payment ? formatMoney(payment.amount) : 'Payment'}
-      eyebrow="Payment"
       status={payment?.status}
       backTo="/payments"
       backLabel="Payments"

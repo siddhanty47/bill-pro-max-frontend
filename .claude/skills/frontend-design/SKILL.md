@@ -78,7 +78,7 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
 
 ### Surfaces and page structure
 
-- **`PageHeader`** — top of every page. `title` · `eyebrow?: ReactNode` (small accent line above the title in the text font — wrap only a code or number in `<span className="mono">`; real context only, e.g. today's date on the dashboard or the entity type on a detail page, never a slogan) · `actions?: ReactNode` · `badge?: ReactNode` (beside the title, e.g. the detail page's `StatusChip`). No subtitle prop, by design.
+- **`PageHeader`** — top of every page. `title` · `actions?: ReactNode` · `badge?: ReactNode` (beside the title, e.g. the detail page's `StatusChip`) · `subtitle?: ReactNode` (muted line under the title — only for context the page shows nowhere else, e.g. the sending business on the public portal). No line above the title: entity type, code, party and dates already live in the page or its Details sidebar, so repeating them there is filler.
 - **`Card`** — any panel or section. `title?` · `subtitle?: string` (muted second line under the title, e.g. a statement period; never colour one from a page) · `count?: number` (pill after the title) · `countTone?: 'neutral' | 'danger'` · `actions?: ReactNode` (right of the title, e.g. an "All bills" link) · `padded?` (default `true`; pass `padded={false}` when the body is a table) · `to?` (whole card becomes a link with hover lift; then don't put links or buttons inside it) · `className?`.
 - **`StatCard`** — one headline number. `label` · `value?: ReactNode` (rendered mono; omit for a children-only card) · `valueTone?: 'positive' | 'negative' | 'warning'` (colour the number: money in / money out or owed / needs attention; `signTone(n)` from `ui/status` picks positive/negative/none by sign, e.g. a net) · `icon?` · `tone?: 'default' | 'highlight'` (accent tint; at most one per screen) · `to?` · `children?` (e.g. a `Meter`).
 - **`Meter`** — segmented bar + legend. `segments: { value: number; tone: 'accent' | 'info' | 'warning' | 'danger'; label: string }[]`. Values formatted `en-IN`; bar has an `aria-label` summary. Widths are rounded once and laid end to end (the last takes the remainder), so there are no hairline gaps.
@@ -138,6 +138,9 @@ Import from the barrel: `import { Button, Card, DataTable } from '../components/
 ## Recipes
 
 **List page** = `PageHeader` + `FilterBar` + `Card padded={false}` holding a `DataTable` with a `mobile` spec.
+- **Paging:** every `DataTable` pages itself 25 rows at a time and shows the kit `Pagination` bar only when there are more rows; it returns to page 1 when the rows change. Never build a pager by hand.
+- **Lists that grow without bound (challans, bills)** page on the server: `useGet…PageQuery({ businessId, page, pageSize: LIST_PAGE_SIZE, search, status, … })` returns `{ rows, total }`; keep `page` in `useListPage(filtersKey, total)` (resets on filter change, clamps when the total shrinks), debounce search with `useDebouncedValue`, and pass `pagination={{ page, pageSize, total, onPageChange: setPage }}` to `DataTable`. Filters and search must then be sent to the backend, never applied to the page in the browser.
+- Whole-list queries (`useGet…Query`) load every backend page via `fetchAllPages`; there is no 100-row cap.
 ```tsx
 import { formatDate, formatMoney } from '../utils/format';
 
@@ -173,17 +176,17 @@ import { formatDate, formatMoney } from '../utils/format';
 ```
 Loading → `Spinner`; error → `ErrorMessage onRetry={refetch}`.
 
-**Dashboard** = `PageHeader` (eyebrow for real context) + a layout grid (page CSS) of `StatCard`s and `Card`s. Sections are `Card title=… count=… actions=…`; lists inside are `DataTable` in `Card padded={false}`.
+**Dashboard** = `PageHeader` + a layout grid (page CSS) of `StatCard`s and `Card`s. Sections are `Card title=… count=… actions=…`; lists inside are `DataTable` in `Card padded={false}`.
 
 **Detail page** = `DetailPageShell` + `DetailSection` + `DetailField` from `components/DetailPageShell` (built on `PageHeader`, `StatusChip`, `Tabs`/`TabPanel`, `Card` and `EditableField`).
-- `DetailPageShell` — `title` · `eyebrow?` (entity type) + `code?` → eyebrow "Party · MEHT" (only the code is mono) · `status?` (one `StatusChip` beside the title; never repeat status in the sidebar) · `statusTone?` (non-lifecycle chips only) · `backTo` + `backLabel` (back link "← Parties", accessible name "Back to Parties") · `isLoading?` + `loadingLabel?` (Spinner message, default "Loading…") · `error?` + `onRetry?` (ErrorMessage) · `headerActions?: ReactNode` · `tabs?: { id; label; count? }[]` + `activeTab?` + `onTabChange?` (pass `activeTab` to control the tabs; omit it and the shell keeps its own state, starting on the first tab and still calling `onTabChange`) + `idPrefix?` (default `"detail"`) — `children` is wrapped in the active `TabPanel` · `sidebar?` (right column, 300px; below the main column at ≤768).
+- `DetailPageShell` — `title` · `status?` (one `StatusChip` beside the title; never repeat status in the sidebar) · `statusTone?` (non-lifecycle chips only) · `backTo` + `backLabel` (back link "← Parties", accessible name "Back to Parties") · `isLoading?` + `loadingLabel?` (Spinner message, default "Loading…") · `error?` + `onRetry?` (ErrorMessage) · `headerActions?: ReactNode` · `tabs?: { id; label; count? }[]` + `activeTab?` + `onTabChange?` (pass `activeTab` to control the tabs; omit it and the shell keeps its own state, starting on the first tab and still calling `onTabChange`) + `idPrefix?` (default `"detail"`) — `children` is wrapped in the active `TabPanel` · `sidebar?` (right column, 300px; below the main column at ≤768).
 - **Header actions:** at most one `variant="primary"` Button; at most two visible actions in total; everything else goes in a kit `Menu` (`IconButton label="More actions" icon="more"`). Destructive actions live in the menu.
 - `DetailSection` — a `Card`: `title` · `count?` · `actions?` (e.g. `Button size="sm"` "Add site") · `padded?` (default `true`, sized for `DetailField` rows; `false` when the body is a `DataTable`). When every child is a labelled `DetailField` (fragments are fine), the body is one `<dl>` with a `<div>` per row; otherwise each field is its own `<dl>`. Rows have dividers between them, never after the last.
 - `DetailField` — one `<dl>` label/value row: `label` (sentence case; `""` = full-width value, e.g. notes) · `value?: ReactNode` · `mono?` (codes, phone, GST, amounts, quantities) · `emptyText?` (default "Not added", muted, always text font even on a `mono` field) · `editable?: { rawValue; inputType: 'text'|'number'|'select'|'textarea'|'date'; options?; onSave(v) => Promise (call `.unwrap()`); isSaving?; prefix?; suffix?; renderEditInput?({ value, onChange, onSave(override?) }) }` → the value becomes an `EditableField` (muted "Edit" revealed on hover/focus; Enter saves, Escape cancels, moving focus out of the editor saves an input/select but moving it to the editor's own Save/Cancel does not; kit Save/Cancel buttons; API error shown under the input). Sidebar rows use a narrower label column automatically.
 - `EditableField` on its own (table cells): `compact`, `label` = the input's accessible name. Its trigger bleeds into the container's padding (negative inline margin + matching width), so the value stays flush with the column header; keep the cell's normal padding (never zero it). In a right-aligned numeric column pass `align="right"` (value flush right, "Edit" hint before it, input right-aligned). `DetailField` values wrap long text/codes (`overflow-wrap: anywhere`).
 ```tsx
 <DetailPageShell
-  title={party.name} eyebrow="Party" code={party.code} status={party.isActive ? 'active' : 'inactive'}
+  title={party.name} status={party.isActive ? 'active' : 'inactive'}
   backTo="/parties" backLabel="Parties" isLoading={isLoading} error={error} onRetry={refetch}
   headerActions={<Button variant="primary" icon="plus" onClick={openBill}>New bill</Button>}
   tabs={[{ id: 'about', label: 'About' }, { id: 'bills', label: 'Bills', count: bills.length }]}
@@ -199,7 +202,7 @@ Loading → `Spinner`; error → `ErrorMessage onRetry={refetch}`.
 </DetailPageShell>
 ```
 
-**Form** = `Field` + control + `Button`, inside a `Modal size="form"` or a `Card`.
+**Form** = `Field` + control + `Button`, inside a `Modal size="form"` or a `Card`. A `size="form"` modal keeps its header fixed and scrolls its body, so a form never adds its own outer scroll area; its actions row sits at the end of the form.
 ```tsx
 <form onSubmit={handleSubmit(onSubmit)}>
   <Field label="Party name" required error={errors.name?.message}>

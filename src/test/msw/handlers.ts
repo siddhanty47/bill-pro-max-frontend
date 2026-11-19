@@ -15,3 +15,34 @@ export const handlers = [
   http.get(apiUrl('/notifications/unread-count'), () => ok({ count: 0 })),
   http.get(apiUrl('/notifications'), () => ok([])),
 ];
+
+/**
+ * Paginated `{ data, pagination }` envelope like the backend's list endpoints: reads
+ * `page`/`pageSize` from the request and keeps only rows `match` accepts for the
+ * request's query (status/type/search…). Rows are returned in the given order.
+ */
+export function pagedOk<T>(
+  rows: T[],
+  request: Request,
+  match: (row: T, query: URLSearchParams) => boolean = () => true
+) {
+  const query = new URL(request.url).searchParams;
+  const page = Number(query.get('page') ?? 1);
+  const pageSize = Number(query.get('pageSize') ?? 20);
+  const matching = rows.filter(row => match(row, query));
+  const totalPages = Math.ceil(matching.length / pageSize);
+  return HttpResponse.json({
+    success: true,
+    data: matching.slice((page - 1) * pageSize, page * pageSize),
+    pagination: {
+      page,
+      pageSize,
+      total: matching.length,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
+    },
+    message: 'ok',
+    timestamp: new Date().toISOString(),
+  });
+}

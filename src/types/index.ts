@@ -683,6 +683,23 @@ export interface ApiResponse<T> {
   requestId?: string;
 }
 
+/** One server-side page of a list, as the list pages consume it. */
+export interface PagedList<T> {
+  rows: T[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+/** Arguments of a server-paged list query (challans/bills). Empty filters are not sent. */
+export interface ListPageArgs {
+  businessId: string;
+  page: number;
+  pageSize: number;
+  search?: string;
+  status?: string;
+}
+
 export interface PaginatedResponse<T> {
   success: boolean;
   data: T[];

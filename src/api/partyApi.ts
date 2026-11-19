@@ -2,6 +2,7 @@
  * Party API endpoints
  */
 import { baseApi } from './baseApi';
+import { fetchAllPages } from './fetchAllPages';
 import type {
   Party,
   CreatePartyInput,
@@ -9,14 +10,13 @@ import type {
   AddSiteInput,
   UpdateSiteInput,
   ApiResponse,
-  PaginatedResponse,
 } from '../types';
 
 export const partyApi = baseApi.injectEndpoints({
   endpoints: builder => ({
     getParties: builder.query<Party[], string>({
-      query: businessId => `/businesses/${businessId}/parties?pageSize=100`,
-      transformResponse: (response: PaginatedResponse<Party>) => response.data,
+      queryFn: (businessId, _api, _extra, baseQuery) =>
+        fetchAllPages<Party>(`/businesses/${businessId}/parties`, baseQuery),
       providesTags: ['Party'],
     }),
 

@@ -328,7 +328,7 @@ export function SharedPortalPage() {
       </div>
       <PageHeader
         title={info.partyName}
-        eyebrow={
+        subtitle={
           <>
             <span>{info.businessName}</span>
             {info.siteCode && <span> · Site: {info.siteName || info.siteCode}</span>}

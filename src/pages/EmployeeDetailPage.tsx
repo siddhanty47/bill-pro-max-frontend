@@ -197,7 +197,6 @@ export function EmployeeDetailPage() {
   return (
     <DetailPageShell
       title={employee?.name || 'Employee'}
-      eyebrow="Employee"
       status={employee ? (employee.isActive ? 'active' : 'inactive') : undefined}
       backTo="/team"
       backLabel="Employees"

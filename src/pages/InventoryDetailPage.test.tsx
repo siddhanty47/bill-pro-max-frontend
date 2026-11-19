@@ -118,7 +118,7 @@ describe('InventoryDetailPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Cuplock vertical', level: 1 })
     ).toBeVisible();
-    expect(screen.getByText('SC-01', { selector: 'p .mono, span.mono' })).toBeVisible();
+    expect(screen.queryByText('SC-01', { selector: 'p .mono' })).not.toBeInTheDocument();
     expect(screen.getAllByText('Active')).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'Back to Inventory' })).toHaveAttribute(
       'href',

@@ -352,8 +352,6 @@ export function InventoryDetailPage() {
   return (
     <DetailPageShell
       title={item?.name || 'Item'}
-      eyebrow="Item"
-      code={item?.code}
       status={item ? (item.isActive ? 'active' : 'inactive') : undefined}
       backTo="/inventory"
       backLabel="Inventory"

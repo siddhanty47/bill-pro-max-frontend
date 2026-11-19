@@ -383,7 +383,6 @@ export function BillDetailPage() {
   return (
     <DetailPageShell
       title={bill?.billNumber || 'Bill'}
-      eyebrow="Bill"
       status={status}
       backTo="/bills"
       backLabel="Bills"

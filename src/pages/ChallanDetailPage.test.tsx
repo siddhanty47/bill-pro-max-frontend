@@ -154,7 +154,7 @@ describe('ChallanDetailPage', () => {
     useApi();
     renderPage();
     expect(await screen.findByRole('heading', { name: 'R-2026-27-0003', level: 1 })).toBeVisible();
-    expect(screen.getByText('Return challan')).toBeVisible();
+    expect(screen.queryByText('Return challan')).not.toBeInTheDocument();
     expect(screen.getAllByText('Draft')).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'Back to Challans' })).toHaveAttribute(
       'href',
@@ -439,7 +439,6 @@ describe('ChallanDetailPage', () => {
     await openTab(user, /^Items/);
     await screen.findByRole('table', { name: 'Items' });
     expect(screen.queryByRole('heading', { name: 'Loss items' })).not.toBeInTheDocument();
-    expect(screen.getByText('Delivery challan')).toBeInTheDocument();
   });
 
   it('edits loss items and saves the same payload', async () => {

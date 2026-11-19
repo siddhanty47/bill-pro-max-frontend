@@ -5,7 +5,7 @@ import { Route, Routes, useLocation } from 'react-router-dom';
 import { ChallansPage } from './ChallansPage';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
-import { apiUrl, ok } from '../test/msw/handlers';
+import { apiUrl, ok, pagedOk } from '../test/msw/handlers';
 import type { Challan, ChallanItem, Party } from '../types';
 
 const party = (over: Partial<Party>) =>
@@ -54,11 +54,30 @@ const defaults = [
   }),
 ];
 
+const PARTY_NAMES: Record<string, string> = { p1: 'Mehta Builders', p2: 'Om Constructions' };
+
+/** The backend's challan list filters: type, status, and search on number or party name. */
+function matchChallan(c: Challan, q: URLSearchParams): boolean {
+  const search = q.get('search')?.toLowerCase();
+  return (
+    (!q.get('type') || c.type === q.get('type')) &&
+    (!q.get('status') || c.status === q.get('status')) &&
+    (!search ||
+      c.challanNumber.toLowerCase().includes(search) ||
+      (PARTY_NAMES[c.partyId] ?? '').toLowerCase().includes(search))
+  );
+}
+
 function useApi(challans: Challan[] = defaults) {
   server.use(
     http.get(apiUrl('/businesses'), () => ok([{ _id: 'biz-1', name: 'Patel Scaffold Co.' }])),
-    http.get(apiUrl('/businesses/biz-1/challans'), () =>
-      HttpResponse.json({ success: true, data: challans })
+    // Behaves like the backend: newest date first, filters and search applied server-side.
+    http.get(apiUrl('/businesses/biz-1/challans'), ({ request }) =>
+      pagedOk(
+        [...challans].sort((a, b) => b.date.localeCompare(a.date)),
+        request,
+        matchChallan
+      )
     ),
     http.get(apiUrl('/businesses/biz-1/parties'), () =>
       ok([
@@ -131,11 +150,11 @@ describe('ChallansPage', () => {
     const { user } = renderPage();
     await screen.findByRole('table');
     await user.click(screen.getByRole('radio', { name: 'Delivery' }));
-    expect(rowNumbers()).toEqual(['D-2026-27-0007', 'D-2026-27-0005']);
+    await waitFor(() => expect(rowNumbers()).toEqual(['D-2026-27-0007', 'D-2026-27-0005']));
     await user.click(screen.getByRole('radio', { name: 'Return' }));
-    expect(rowNumbers()).toEqual(['R-2026-27-0003']);
+    await waitFor(() => expect(rowNumbers()).toEqual(['R-2026-27-0003']));
     await user.click(screen.getByRole('radio', { name: 'All' }));
-    expect(rowNumbers()).toHaveLength(3);
+    await waitFor(() => expect(rowNumbers()).toHaveLength(3));
   });
 
   it('filters by status', async () => {
@@ -143,7 +162,7 @@ describe('ChallansPage', () => {
     const { user } = renderPage();
     await screen.findByRole('table');
     await user.selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'confirmed');
-    expect(rowNumbers()).toEqual(['R-2026-27-0003']);
+    await waitFor(() => expect(rowNumbers()).toEqual(['R-2026-27-0003']));
   });
 
   it('searches by party name and by challan number', async () => {
@@ -152,10 +171,10 @@ describe('ChallansPage', () => {
     await screen.findByRole('table');
     const search = screen.getByRole('searchbox', { name: 'Search challans' });
     await user.type(search, 'om cons');
-    expect(rowNumbers()).toEqual(['R-2026-27-0003']);
+    await waitFor(() => expect(rowNumbers()).toEqual(['R-2026-27-0003']));
     await user.clear(search);
     await user.type(search, '0005');
-    expect(rowNumbers()).toEqual(['D-2026-27-0005']);
+    await waitFor(() => expect(rowNumbers()).toEqual(['D-2026-27-0005']));
   });
 
   it('focuses the search box on /', async () => {
@@ -171,7 +190,7 @@ describe('ChallansPage', () => {
     const { user } = renderPage();
     await screen.findByRole('table');
     await user.type(screen.getByRole('searchbox', { name: 'Search challans' }), 'zzz');
-    expect(screen.getByText('No challans match these filters')).toBeInTheDocument();
+    expect(await screen.findByText('No challans match these filters')).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
@@ -276,6 +295,51 @@ describe('ChallansPage', () => {
     await screen.findByRole('table');
     fireEvent.keyDown(document, { code: 'KeyR', altKey: true });
     expect(await screen.findByRole('dialog')).toHaveTextContent(/Create return challan/);
+  });
+
+  it('asks the server for one page with the active filters', async () => {
+    const seen: string[] = [];
+    useApi();
+    server.events.on('request:start', ({ request }) => {
+      const url = new URL(request.url);
+      if (url.pathname.endsWith('/biz-1/challans')) seen.push(url.search);
+    });
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await user.click(screen.getByRole('radio', { name: 'Return' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'confirmed');
+    await user.type(screen.getByRole('searchbox', { name: 'Search challans' }), 'om');
+    await waitFor(() =>
+      expect(seen.at(-1)).toBe('?page=1&pageSize=25&search=om&status=confirmed&type=return')
+    );
+    expect(seen[0]).toBe('?page=1&pageSize=25');
+    server.events.removeAllListeners();
+  });
+
+  it('pages through challans with the server total', async () => {
+    const many = Array.from({ length: 30 }, (_, i) =>
+      challan({
+        _id: `c${i}`,
+        challanNumber: `D-2026-27-${String(i + 1).padStart(4, '0')}`,
+        date: `2026-10-${String(i + 1).padStart(2, '0')}T00:00:00.000Z`,
+        status: 'confirmed',
+      })
+    );
+    useApi(many);
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    const nav = screen.getByRole('navigation', { name: 'Challans pages' });
+    expect(nav).toHaveTextContent('Showing 1–25 of 30');
+    expect(rowNumbers()).toHaveLength(25);
+
+    await user.click(within(nav).getByRole('button', { name: 'Page 2' }));
+    await waitFor(() => expect(rowNumbers()).toHaveLength(5));
+    expect(rowNumbers()[0]).toBe('D-2026-27-0005');
+    expect(nav).toHaveTextContent('Showing 26–30 of 30');
+
+    // A new filter starts again from page 1.
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'confirmed');
+    await waitFor(() => expect(rowNumbers()).toHaveLength(25));
   });
 
   it('shows an error with retry when loading fails', async () => {

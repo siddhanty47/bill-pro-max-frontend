@@ -18,11 +18,12 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `StatCard` | A single headline number with a label; `tone="highlight"` for the one key stat; `valueTone` (`positive`/`negative`/`warning`) colours the number; `value` optional for a children-only card |
 | `Meter` | A segmented bar with legend (e.g. available vs rented stock) |
 | `ProgressBar` | A determinate progress bar for a running job (takes the surrounding text colour, e.g. inside a `Notice`) |
-| `PageHeader` | The title row at the top of every page, with optional eyebrow, actions and a `badge` beside the title |
+| `PageHeader` | The title row at the top of every page, with optional actions, a `badge` beside the title and a muted `subtitle` under it (only for context shown nowhere else) |
 | `EmptyState` | "Nothing here" states: one short title and at most one action |
 | `StatusChip` | Every status badge; tone comes from `status.ts` |
 | `DocNumber` | Bill, challan and other document numbers, optionally linked; `wrap` lets a long code wrap in a narrow sidebar |
-| `DataTable` | Read-only list data from an array of rows (column flags `align`, `mono`, `nowrap`, `hideOnMobile`); `mobile` spec turns it into a two-line list on phones (`actionsPlacement: 'trailing'` puts row actions top-right instead of below) |
+| `DataTable` | Read-only list data from an array of rows (column flags `align`, `mono`, `nowrap`, `hideOnMobile`); `mobile` spec turns it into a two-line list on phones (`actionsPlacement: 'trailing'` puts row actions top-right instead of below). Pages its rows 25 at a time (`pageSize` to change); pass `pagination={{ page, pageSize, total, onPageChange }}` when the server already returned one page |
+| `Pagination` | The pager under a table ("Showing 26–50 of 132", Previous, page numbers, Next; "Page 2 of 6" on phones). Hidden when everything fits on one page. `DataTable` renders it for you |
 | `Table`, `THead`, `TBody`, `Tr`, `Th`, `Td` | Hand-built tables and editable grids (challan/bill item rows); `aria-label`/`caption` name the table; `Table dense` tightens cell padding for wide statement tables; `Tr variant="total"` marks a totals/balance row (top rule, heavier weight); `Tr stackOnMobile` stacks an editable grid row on phones (one divider per row; the page places cells with grid areas); `Td`/`Th` `tone` colours a value (balance due); `Table detail` uses DetailSection row insets (bill summary) |
 | `Field` | Label + control + hint + error wrapper for one form control; `labelAction` for a link on the label row |
 | `Input`, `Select`, `Textarea` | Form controls (forwardRef, work with `register()`); `size="lg"` on Input/Select for auth forms; `Input uppercase` for codes/GSTIN (display only); Select draws the kit chevron |
@@ -41,7 +42,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 Detail pages are composed from `components/DetailPageShell` (`DetailPageShell`, `DetailSection`, `DetailField`) and `components/EditableField`, which are built on this kit — see "Detail page" in the skill.
 
 ```tsx
-<DetailPageShell title="Mehta Builders" eyebrow="Party" code="MEHT" status="active"
+<DetailPageShell title="Mehta Builders" status="active"
   backTo="/parties" backLabel="Parties" tabs={TABS} activeTab={tab} onTabChange={setTab} idPrefix="party"
   sidebar={<DetailSection title="Details"><DetailField label="Code" value="MEHT" mono /></DetailSection>}>
   <DetailSection title="Contact"><DetailField label="Email" value={undefined} /></DetailSection>

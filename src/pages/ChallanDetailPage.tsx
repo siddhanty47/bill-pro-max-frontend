@@ -54,11 +54,6 @@ const LOSS_LABEL: Record<LossType, string> = {
   need_repair: 'Need repair',
 };
 
-const CHALLAN_TYPE_WORD: Record<'delivery' | 'return', string> = {
-  delivery: 'Delivery',
-  return: 'Return',
-};
-
 /** Row types carry their list position so repeated items keep distinct keys. */
 type ItemRow = ChallanItem & { idx: number };
 type LossRow = DamagedItem & { idx: number };
@@ -531,7 +526,6 @@ export function ChallanDetailPage() {
   return (
     <DetailPageShell
       title={challan?.challanNumber || 'Challan'}
-      eyebrow={challan ? `${CHALLAN_TYPE_WORD[challan.type]} challan` : 'Challan'}
       status={challan?.status}
       backTo="/challans"
       backLabel="Challans"

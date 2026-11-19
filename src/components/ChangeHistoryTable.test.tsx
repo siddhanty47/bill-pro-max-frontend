@@ -29,8 +29,9 @@ function page(data: AuditLogEntry[], pageNo = 1, totalPages = 1) {
     data,
     pagination: {
       page: pageNo,
-      pageSize: 15,
-      total: data.length,
+      pageSize: 25,
+      // Earlier pages are full; the last holds `data`.
+      total: (totalPages - 1) * 25 + data.length,
       totalPages,
       hasNext: pageNo < totalPages,
       hasPrev: pageNo > 1,
@@ -163,12 +164,17 @@ describe('ChangeHistoryTable', () => {
     );
     const { user } = renderTable();
 
-    expect(await screen.findByText('Page 1 of 2')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: 'Next' }));
-    expect(await screen.findByText('User 2')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Previous' }));
-    expect(await screen.findByText('User 1')).toBeInTheDocument();
+    const nav = await screen.findByRole('navigation', { name: 'Change history pages' });
+    expect(nav).toHaveTextContent('Page 1 of 2');
+    expect(within(nav).getByRole('button', { name: /Previous/ })).toBeDisabled();
+    await user.click(within(nav).getByRole('button', { name: /Next/ }));
+    expect(await screen.findAllByText('User 2')).not.toHaveLength(0);
+    await user.click(
+      within(screen.getByRole('navigation', { name: 'Change history pages' })).getByRole('button', {
+        name: /Previous/,
+      })
+    );
+    expect(await screen.findAllByText('User 1')).not.toHaveLength(0);
   });
 
   it('shows an error with a retry', async () => {
