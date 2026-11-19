@@ -228,7 +228,7 @@ describe('AgreementDetailPage', () => {
     const table = await screen.findByRole('table', { name: 'Items and rates' });
     const row = await within(table).findByRole('row', { name: /Ladder 1.5m/ });
     await user.click(within(row).getByRole('button', { name: /10/ }));
-    const input = within(row).getByRole('spinbutton', { name: 'Opening balance' });
+    const input = within(row).getByRole('spinbutton', { name: 'Opening stock' });
     await user.clear(input);
     await user.type(input, '12{Enter}');
     await waitFor(() => expect(bodies).toEqual([{ openingBalance: 12 }]));
