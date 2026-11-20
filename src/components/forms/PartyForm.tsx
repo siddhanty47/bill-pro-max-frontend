@@ -38,6 +38,13 @@ const createPartySchema = (isEditing: boolean) =>
       .optional()
       .or(z.literal('')),
     notes: z.string().max(1000).optional(),
+    // Opening money balance carried in from before BillProMax (negative = advance)
+    openingBalance: z
+      .string()
+      .regex(/^-?\d+(\.\d{1,2})?$/, 'Enter an amount like 12500 or -500.50')
+      .optional()
+      .or(z.literal('')),
+    openingBalanceDate: z.string().optional(),
     // Site fields - required only for new party
     siteCode: z.string().max(20).optional(),
     siteAddress: isEditing
@@ -95,6 +102,8 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
           gst: initialData.contact.gst || '',
           stateCode: initialData.contact.stateCode || '',
           notes: initialData.notes || '',
+          openingBalance: initialData.openingBalance ? String(initialData.openingBalance) : '',
+          openingBalanceDate: initialData.openingBalanceDate?.split('T')[0] ?? '',
           siteCode: '',
           siteAddress: '',
           siteStateCode: '',
@@ -277,6 +286,13 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
         stateCode: data.stateCode?.trim() || undefined,
       },
       notes: data.notes || undefined,
+      // Editing with the field cleared resets the balance to 0
+      ...(data.openingBalance
+        ? { openingBalance: Number(data.openingBalance) }
+        : initialData?.openingBalance
+          ? { openingBalance: 0 }
+          : {}),
+      ...(data.openingBalanceDate && { openingBalanceDate: data.openingBalanceDate }),
       initialSite: initialData
         ? { address: '' }
         : {
@@ -410,6 +426,21 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
           <Field label="Notes" error={errors.notes?.message}>
             <Textarea {...register('notes')} rows={2} disabled={isLoading} />
           </Field>
+
+          <div className={styles.pair}>
+            <Field label="Opening balance (₹)" error={errors.openingBalance?.message}>
+              <Input
+                mono
+                inputMode="decimal"
+                {...register('openingBalance')}
+                disabled={isLoading}
+                placeholder="0"
+              />
+            </Field>
+            <Field label="As of" error={errors.openingBalanceDate?.message}>
+              <Input type="date" {...register('openingBalanceDate')} disabled={isLoading} />
+            </Field>
+          </div>
 
           {/* Site section: only when creating a new party */}
           {!initialData && (

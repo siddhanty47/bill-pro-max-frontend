@@ -236,7 +236,7 @@ export function AgreementDetailPage() {
 
   const openingCell = (itemId: string, openingBalance: number) => (
     <EditableField
-      label="Opening balance"
+      label="Opening stock"
       value={openingBalance}
       displayValue={`${openingBalance}`}
       inputType="number"
@@ -262,7 +262,7 @@ export function AgreementDetailPage() {
     },
     {
       key: 'openingBalance',
-      header: 'Opening balance',
+      header: 'Opening stock',
       mono: true,
       align: 'right',
       nowrap: true,
@@ -282,7 +282,7 @@ export function AgreementDetailPage() {
     },
     {
       key: 'openingBalance',
-      header: 'Opening balance',
+      header: 'Opening stock',
       mono: true,
       align: 'right',
       nowrap: true,
@@ -295,7 +295,7 @@ export function AgreementDetailPage() {
       Rate {rateCell(itemId, ratePerDay)}
     </span>,
     <span key="opening" className={styles.inline}>
-      Opening {openingCell(itemId, openingBalance)}
+      Opening stock {openingCell(itemId, openingBalance)}
     </span>,
   ];
 

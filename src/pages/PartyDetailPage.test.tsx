@@ -113,7 +113,24 @@ function useApi(party: Party = makeParty()) {
     http.get(apiUrl(BASE), () => ok(party)),
     http.get(apiUrl('/businesses/biz-1/inventory'), () => paged([])),
     http.get(apiUrl('/businesses/biz-1/bills'), () => paged(bills)),
-    http.get(apiUrl('/businesses/biz-1/payments'), () => paged(payments))
+    http.get(apiUrl('/businesses/biz-1/payments'), () => paged(payments)),
+    http.get(apiUrl('/businesses/biz-1/parties/outstanding'), () =>
+      ok({
+        totalOutstanding: 45000,
+        parties: [
+          {
+            partyId: party._id,
+            partyName: party.name,
+            partyCode: party.code,
+            openingBalance: party.openingBalance ?? 0,
+            totalBilled: 0,
+            totalReceived: 0,
+            outstanding: 45000,
+          },
+        ],
+        currency: 'INR',
+      })
+    )
   );
 }
 
@@ -258,6 +275,34 @@ describe('PartyDetailPage', () => {
       },
     });
     expect(bodies[2]).toEqual({ notes: 'Cash only' });
+  });
+
+  it('shows the balance and saves the opening balance and its date', async () => {
+    useApi(makeParty({ openingBalance: 12500.5, openingBalanceDate: '2026-03-31T00:00:00.000Z' }));
+    const bodies = capturePatch(BASE);
+    const { user } = renderPage();
+
+    const balance = (await screen.findByRole('heading', { name: 'Balance' })).closest('section')!;
+    expect(await within(balance).findByText('₹45,000')).toBeInTheDocument();
+    expect(within(balance).getByText('₹12,500.50')).toBeInTheDocument();
+    expect(within(balance).getByText(/^31 Mar/)).toBeInTheDocument();
+
+    await user.click(within(balance).getByRole('button', { name: /12,500/ }));
+    const amount = screen.getByRole('spinbutton', { name: 'Opening balance' });
+    await user.clear(amount);
+    await user.type(amount, '-500{Enter}');
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0]).toEqual({ openingBalance: -500 });
+  });
+
+  it('shows "Not added" for a party without an opening balance', async () => {
+    useApi();
+    renderPage();
+
+    const balance = (await screen.findByRole('heading', { name: 'Balance' })).closest('section')!;
+    expect(
+      within(balance).getByRole('button', { name: /Opening balance.*Not added|Not added/ })
+    ).toBeVisible();
   });
 
   it('lists sites and agreements and edits a site inline', async () => {

@@ -50,7 +50,24 @@ function useApi(items: Party[] = defaults) {
   server.use(
     http.get(apiUrl('/businesses'), () => ok([{ _id: 'biz-1', name: 'Patel Scaffold Co.' }])),
     http.get(apiUrl('/businesses/biz-1/parties'), () => ok(items)),
-    http.get(apiUrl('/businesses/biz-1/inventory'), () => ok([]))
+    http.get(apiUrl('/businesses/biz-1/inventory'), () => ok([])),
+    http.get(apiUrl('/businesses/biz-1/parties/outstanding'), () =>
+      ok({
+        totalOutstanding: 18250.5,
+        parties: [
+          {
+            partyId: 'p1',
+            partyName: 'Acme Builders',
+            partyCode: 'ACME',
+            openingBalance: 10000,
+            totalBilled: 8250.5,
+            totalReceived: 0,
+            outstanding: 18250.5,
+          },
+        ],
+        currency: 'INR',
+      })
+    )
   );
 }
 
@@ -103,6 +120,16 @@ describe('PartiesPage', () => {
       '1 site / 0 active'
     );
     expect(within(steel).getByText('Inactive')).toBeInTheDocument();
+  });
+
+  it("shows each party's outstanding (₹0 when it has none)", async () => {
+    useApi();
+    renderPage();
+    const table = await screen.findByRole('table');
+    const acme = within(table).getByRole('row', { name: /ACME/ });
+    expect(await within(acme).findByText('₹18,250.50')).toHaveClass('mono');
+    const steel = within(table).getByRole('row', { name: /STEEL/ });
+    expect(within(steel).getByText('₹0')).toBeInTheDocument();
   });
 
   it('filters by role', async () => {
@@ -273,7 +300,10 @@ describe('PartiesPage', () => {
       http.get(apiUrl('/businesses/biz-1/parties'), () =>
         HttpResponse.json({ success: false, message: 'Boom' }, { status: 500 })
       ),
-      http.get(apiUrl('/businesses/biz-1/inventory'), () => ok([]))
+      http.get(apiUrl('/businesses/biz-1/inventory'), () => ok([])),
+      http.get(apiUrl('/businesses/biz-1/parties/outstanding'), () =>
+        ok({ totalOutstanding: 0, parties: [], currency: 'INR' })
+      )
     );
     renderPage();
     expect(await screen.findByRole('alert')).toBeInTheDocument();

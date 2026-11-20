@@ -17,6 +17,7 @@ const info = {
 
 const summary = {
   totalOutstanding: 125000,
+  openingBalance: 0,
   totalBilled: 480000,
   totalPaid: 355000,
   totalItemsInUse: 42,
@@ -73,10 +74,17 @@ const page = (totalPages: number, hasNext: boolean) => ({
 const list = <T,>(data: T[], totalPages = 1, hasNext = false) =>
   HttpResponse.json({ success: true, data, pagination: page(totalPages, hasNext) });
 
-function useApi(over: { bills?: unknown[]; payments?: unknown[]; challans?: unknown[] } = {}) {
+function useApi(
+  over: {
+    bills?: unknown[];
+    payments?: unknown[];
+    challans?: unknown[];
+    summary?: Partial<typeof summary>;
+  } = {}
+) {
   server.use(
     http.get(apiUrl('/share/tok'), () => ok(info)),
-    http.get(apiUrl('/share/tok/summary'), () => ok(summary)),
+    http.get(apiUrl('/share/tok/summary'), () => ok({ ...summary, ...over.summary })),
     http.get(apiUrl('/share/tok/challans'), () => list(over.challans ?? [challan])),
     http.get(apiUrl('/share/tok/running-items'), () => ok(summary.itemsBreakdown)),
     http.get(apiUrl('/share/tok/bills'), () => list(over.bills ?? [bill])),
@@ -115,6 +123,20 @@ describe('SharedPortalPage', () => {
     expect(screen.getAllByText('Cuplock vertical 2m').length).toBeGreaterThan(0);
     const table = screen.getByRole('table', { name: 'Items currently in use' });
     expect(within(table).getByText('30')).toBeInTheDocument();
+  });
+
+  it('shows the opening balance only when the party has one', async () => {
+    useApi({ summary: { openingBalance: 75000 } });
+    renderPage();
+    expect(await screen.findByText('Opening balance')).toBeInTheDocument();
+    expect(screen.getByText('₹75,000')).toBeInTheDocument();
+  });
+
+  it('hides the opening balance card when it is zero', async () => {
+    useApi();
+    renderPage();
+    await screen.findByText('₹1,25,000');
+    expect(screen.queryByText('Opening balance')).not.toBeInTheDocument();
   });
 
   it('lists challans with items and downloads the PDF', async () => {

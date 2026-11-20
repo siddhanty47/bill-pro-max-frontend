@@ -12,6 +12,7 @@ const base: AgingStatementData = {
   asOfDate: '2024-03-01',
   bills: [
     {
+      kind: 'bill',
       billId: 'b1',
       billNumber: 'B-001',
       billDate: '2024-01-07',
@@ -23,6 +24,7 @@ const base: AgingStatementData = {
       bucket: '0-30',
     },
     {
+      kind: 'bill',
       billId: 'b2',
       billNumber: 'B-002',
       billDate: '2023-10-02',
@@ -59,6 +61,29 @@ describe('AgingPreview', () => {
     ]) {
       expect(screen.getByText(label).nextSibling).toHaveTextContent(value);
     }
+  });
+
+  it('shows opening balance and advance rows as plain text, not bill links', () => {
+    renderWithProviders(
+      <AgingPreview
+        data={{
+          ...base,
+          bills: [
+            { ...base.bills[1], kind: 'opening', billId: '', billNumber: 'Opening balance' },
+            {
+              ...base.bills[0],
+              kind: 'advance',
+              billId: '',
+              billNumber: 'Advance / on-account credit',
+              balanceDue: -150,
+            },
+          ],
+        }}
+      />
+    );
+    expect(screen.getByText('Opening balance')).toBeInTheDocument();
+    expect(screen.getByText('Advance / on-account credit')).toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
   it('shows a notice when nothing is outstanding', () => {

@@ -42,7 +42,7 @@ const agreementSchema = z.object({
       z.object({
         itemId: z.string().min(1, 'Select an item'),
         ratePerDay: z.number().min(0, 'Rate must be positive'),
-        openingBalance: z.number().min(0, 'Opening balance must be non-negative'),
+        openingBalance: z.number().min(0, 'Opening stock must be non-negative'),
       })
     )
     .min(1, 'Add at least one item rate'),
@@ -394,7 +394,7 @@ export function AgreementForm({
                   <Th>Name</Th>
                   <Th hideOnMobile>Category</Th>
                   <Th align="right">Rate/day (₹)</Th>
-                  <Th align="right">Opening balance</Th>
+                  <Th align="right">Opening stock</Th>
                 </Tr>
               </THead>
               <TBody>
@@ -428,7 +428,7 @@ export function AgreementForm({
                           type="number"
                           step="1"
                           min="0"
-                          aria-label={`Opening balance for ${item?.name ?? 'item'}`}
+                          aria-label={`Opening stock for ${item?.name ?? 'item'}`}
                           {...register(`rates.${index}.openingBalance`, { valueAsNumber: true })}
                           onChange={e =>
                             handleOpeningBalanceChange(

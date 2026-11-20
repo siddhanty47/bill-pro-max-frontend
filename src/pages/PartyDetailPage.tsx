@@ -12,6 +12,7 @@ import styles from './PartyDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
   useGetPartyQuery,
+  useGetOutstandingSummaryQuery,
   useUpdatePartyMutation,
   useCreateAgreementMutation,
   useUpdateSiteMutation,
@@ -110,6 +111,14 @@ export function PartyDetailPage() {
     { businessId: currentBusinessId!, partyId: partyId! },
     { skip: !currentBusinessId || !partyId }
   );
+
+  // Ledger-style outstanding (opening balance + bills - payments) for this party
+  const { data: outstandingSummary } = useGetOutstandingSummaryQuery(currentBusinessId || '', {
+    skip: !currentBusinessId,
+  });
+  const outstanding = outstandingSummary
+    ? (outstandingSummary.parties.find(p => p.partyId === partyId)?.outstanding ?? 0)
+    : undefined;
 
   const [activeTab, setActiveTab] = useState('about');
 
@@ -445,6 +454,38 @@ export function PartyDetailPage() {
                 {contactField('Address', 'address')}
                 {contactField('GST', 'gst', true)}
                 {contactField('State code', 'stateCode', true)}
+              </DetailSection>
+
+              <DetailSection title="Balance">
+                <DetailField
+                  label="Outstanding"
+                  value={outstanding != null ? formatMoney(outstanding) : undefined}
+                  mono
+                />
+                <DetailField
+                  label="Opening balance"
+                  value={party.openingBalance ? formatMoney(party.openingBalance) : undefined}
+                  mono
+                  editable={{
+                    rawValue: party.openingBalance ?? 0,
+                    inputType: 'number',
+                    prefix: '₹',
+                    onSave: v => handleSave('openingBalance', v),
+                    isSaving,
+                  }}
+                />
+                <DetailField
+                  label="Opening balance as of"
+                  value={
+                    party.openingBalanceDate ? formatDate(party.openingBalanceDate) : undefined
+                  }
+                  editable={{
+                    rawValue: party.openingBalanceDate?.split('T')[0] ?? '',
+                    inputType: 'date',
+                    onSave: v => handleSave('openingBalanceDate', v),
+                    isSaving,
+                  }}
+                />
               </DetailSection>
 
               <DetailSection title="Notes">
