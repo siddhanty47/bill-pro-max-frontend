@@ -8,6 +8,7 @@ import { z } from 'zod';
 import type { Inventory, CreateInventoryInput } from '../../types';
 import {
   useLazyCheckInventoryCodeExistsQuery,
+  useLazyGenerateInventoryCodeQuery,
   useGetInventoryCategoriesQuery,
 } from '../../api/inventoryApi';
 import { useCurrentBusiness } from '../../hooks/useCurrentBusiness';
@@ -41,6 +42,7 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
   const { currentBusinessId } = useCurrentBusiness();
   const [codeError, setCodeError] = useState<string | null>(null);
   const [checkCodeExists] = useLazyCheckInventoryCodeExistsQuery();
+  const [generateCode] = useLazyGenerateInventoryCodeQuery();
 
   const { data: existingCategories } = useGetInventoryCategoriesQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
@@ -120,6 +122,24 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
     }
   }, [currentBusinessId, checkCodeExists, getValues, initialData]);
 
+  /**
+   * Suggest a free code from the item name when the code is still empty
+   */
+  const handleNameBlur = useCallback(async () => {
+    const name = getValues('name')?.trim();
+    if (!name || getValues('code') || !currentBusinessId) return;
+
+    try {
+      const code = await generateCode({ businessId: currentBusinessId, name }).unwrap();
+      if (!getValues('code')) {
+        setValue('code', code, { shouldValidate: true });
+        setCodeError(null);
+      }
+    } catch {
+      // Leave the code for the user to type
+    }
+  }, [currentBusinessId, generateCode, getValues, setValue]);
+
   const handleFormSubmit = async (data: FormData) => {
     if (codeError) return;
 
@@ -146,7 +166,14 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
           <div className={styles.row}>
             <div className={styles.nameGroup}>
               <Field label="Item name" required error={errors.name?.message}>
-                <Input {...register('name')} disabled={isLoading} />
+                <Input
+                  {...register('name')}
+                  onBlur={e => {
+                    register('name').onBlur(e);
+                    handleNameBlur();
+                  }}
+                  disabled={isLoading}
+                />
               </Field>
             </div>
             <div className={styles.codeGroup}>
@@ -164,7 +191,7 @@ export function InventoryForm({ initialData, onSubmit, onCancel, isLoading }: In
                   }}
                   disabled={isLoading}
                   uppercase
-                  placeholder="Enter code"
+                  placeholder="Filled from the name"
                 />
               </Field>
             </div>

@@ -95,6 +95,12 @@ export const inventoryApi = baseApi.injectEndpoints({
       transformResponse: (response: ApiResponse<{ exists: boolean }>) => response.data.exists,
     }),
 
+    generateInventoryCode: builder.query<string, { businessId: string; name: string }>({
+      query: ({ businessId, name }) =>
+        `/businesses/${businessId}/inventory/generate-code?name=${encodeURIComponent(name)}`,
+      transformResponse: (response: ApiResponse<{ code: string }>) => response.data.code,
+    }),
+
     deleteInventory: builder.mutation<void, { businessId: string; itemId: string }>({
       query: ({ businessId, itemId }) => ({
         url: `/businesses/${businessId}/inventory/${itemId}`,
@@ -121,4 +127,5 @@ export const {
   useAdjustQuantityMutation,
   useDeleteInventoryMutation,
   useLazyCheckInventoryCodeExistsQuery,
+  useLazyGenerateInventoryCodeQuery,
 } = inventoryApi;

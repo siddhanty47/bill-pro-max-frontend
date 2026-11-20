@@ -11,7 +11,10 @@ function setup(props: Partial<React.ComponentProps<typeof InventoryForm>> = {}, 
   server.use(
     http.get(apiUrl('/businesses'), () => ok([])),
     http.get(apiUrl('/businesses/biz-1/inventory/categories'), () => ok(['Scaffolding'])),
-    http.get(apiUrl('/businesses/biz-1/inventory/check-code'), () => ok({ exists }))
+    http.get(apiUrl('/businesses/biz-1/inventory/check-code'), () => ok({ exists })),
+    http.get(apiUrl('/businesses/biz-1/inventory/generate-code'), ({ request }) =>
+      ok({ code: `GEN-${new URL(request.url).searchParams.get('name') ?? ''}` })
+    )
   );
   const onSubmit = vi.fn().mockResolvedValue(undefined);
   const onCancel = vi.fn();
@@ -24,7 +27,11 @@ function setup(props: Partial<React.ComponentProps<typeof InventoryForm>> = {}, 
 
 async function fillRequired(user: ReturnType<typeof setup>['user']) {
   await user.type(screen.getByLabelText(/Item name/i), 'Cuplock 2m');
-  await user.type(screen.getByLabelText(/Item code/i), 'cup2');
+  await user.tab();
+  const code = screen.getByLabelText(/Item code/i);
+  await waitFor(() => expect(code).not.toHaveValue(''));
+  await user.clear(code);
+  await user.type(code, 'cup2');
   await user.type(screen.getByPlaceholderText(/category/i), 'Scaffolding');
   const qty = screen.getByLabelText(/Total quantity/i);
   await user.clear(qty);
@@ -32,6 +39,22 @@ async function fillRequired(user: ReturnType<typeof setup>['user']) {
 }
 
 describe('InventoryForm', () => {
+  it('fills the code from the item name when the code is empty', async () => {
+    const { user } = setup();
+    await user.type(screen.getByLabelText(/Item name/i), 'Prop 2x2');
+    await user.tab();
+    await waitFor(() => expect(screen.getByLabelText(/Item code/i)).toHaveValue('GEN-Prop 2x2'));
+  });
+
+  it('keeps a code the user already typed', async () => {
+    const { user } = setup();
+    await user.type(screen.getByLabelText(/Item code/i), 'MINE');
+    await user.type(screen.getByLabelText(/Item name/i), 'Prop 2x2');
+    await user.tab();
+    await new Promise(r => setTimeout(r, 50));
+    expect(screen.getByLabelText(/Item code/i)).toHaveValue('MINE');
+  });
+
   it('submits the exact payload for a full fill', async () => {
     const { user, onSubmit } = setup();
     await fillRequired(user);
