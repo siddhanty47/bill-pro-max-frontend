@@ -130,4 +130,86 @@ describe('PaymentForm', () => {
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onCancel).toHaveBeenCalled();
   });
+
+  describe('site', () => {
+    const siteParty = (over: Partial<Party> = {}) =>
+      party({
+        _id: 'p3',
+        code: 'KSD',
+        name: 'KSD Construction',
+        sites: [
+          { code: 'KSDT', address: 'Tower road' },
+          { code: 'KSDW', address: 'West road' },
+        ],
+        agreements: [{ agreementId: 'AG-T', siteCode: 'KSDT' }] as Party['agreements'],
+        ...over,
+      });
+
+    function setupSites(p: Party) {
+      const onSubmit = vi.fn().mockResolvedValue(undefined);
+      const utils = renderWithProviders(
+        <PaymentForm
+          parties={[p]}
+          bills={[bill({ _id: 'b9', partyId: p._id, agreementId: 'AG-T', billNumber: 'B-009' })]}
+          onSubmit={onSubmit}
+          onCancel={vi.fn()}
+        />
+      );
+      return { ...utils, onSubmit };
+    }
+
+    async function pick(user: ReturnType<typeof setupSites>['user'], code: string) {
+      await user.type(screen.getByPlaceholderText(/party code/i), code);
+      await user.click(await screen.findByRole('option', { name: new RegExp(code) }));
+    }
+
+    it("takes the bill's site and locks the picker when a bill is linked", async () => {
+      const { user } = setupSites(siteParty());
+      await pick(user, 'KSD');
+      await user.selectOptions(screen.getByLabelText(/link to bill/i), 'b9');
+      const site = screen.getByLabelText(/^site/i);
+      expect(site).toHaveValue('KSDT');
+      expect(site).toBeDisabled();
+    });
+
+    it('goes back to the default site when the bill is unlinked', async () => {
+      const { user } = setupSites(siteParty());
+      await pick(user, 'KSD');
+      await user.selectOptions(screen.getByLabelText(/link to bill/i), 'b9');
+      await user.selectOptions(screen.getByLabelText(/link to bill/i), '');
+      const site = screen.getByLabelText(/^site/i);
+      expect(site).toHaveValue('');
+      expect(site).not.toBeDisabled();
+    });
+
+    it('preselects the only site of a one-site party', async () => {
+      const { user, onSubmit } = setupSites(
+        siteParty({ sites: [{ code: 'KSDT', address: 'Tower road' }] })
+      );
+      await pick(user, 'KSD');
+      await user.type(screen.getByLabelText(/^amount/i), '700');
+      await user.click(screen.getByRole('button', { name: /^record payment$/i }));
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+      expect(onSubmit.mock.calls[0][0]).toMatchObject({ siteCode: 'KSDT' });
+    });
+
+    it('keeps a one-site party with a legacy opening total on the default site', async () => {
+      const { user } = setupSites(
+        siteParty({ sites: [{ code: 'KSDT', address: 'Tower road' }], openingBalance: 500 })
+      );
+      await pick(user, 'KSD');
+      expect(screen.getByLabelText(/^site/i)).toHaveValue('');
+    });
+
+    it('sends the default site as null', async () => {
+      const { user, onSubmit } = setupSites(siteParty());
+      await pick(user, 'KSD');
+      await user.selectOptions(screen.getByLabelText(/^site/i), 'KSDW');
+      await user.selectOptions(screen.getByLabelText(/^site/i), '');
+      await user.type(screen.getByLabelText(/^amount/i), '70');
+      await user.click(screen.getByRole('button', { name: /^record payment$/i }));
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+      expect(onSubmit.mock.calls[0][0]).toMatchObject({ siteCode: null });
+    });
+  });
 });

@@ -4,17 +4,29 @@
  * Supports GSTIN lookup to auto-fill name, address, and GST details.
  */
 import { useState, useCallback, useEffect } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { Party, CreatePartyInput } from '../../types';
+import type { Party, CreatePartyInput, OpeningBalanceRow } from '../../types';
 import {
   useLazyGeneratePartyCodeQuery,
   useLazyCheckPartyCodeExistsQuery,
 } from '../../api/partyApi';
 import { useLazyLookupGstinQuery } from '../../api/gstinApi';
 import { useCurrentBusiness } from '../../hooks/useCurrentBusiness';
-import { Button, Checkbox, Field, Fieldset, Input, Notice, Textarea } from '../ui';
+import {
+  Button,
+  Checkbox,
+  Field,
+  Fieldset,
+  IconButton,
+  Input,
+  Notice,
+  Select,
+  Textarea,
+} from '../ui';
+import { formatMoney } from '../../utils/format';
+import { DEFAULT_SITE_LABEL } from '../../utils/sites';
 import styles from './PartyForm.module.css';
 
 /**
@@ -38,12 +50,32 @@ const createPartySchema = (isEditing: boolean) =>
       .optional()
       .or(z.literal('')),
     notes: z.string().max(1000).optional(),
-    // Opening money balance carried in from before BillProMax (negative = advance)
-    openingBalance: z
-      .string()
-      .regex(/^-?\d+(\.\d{1,2})?$/, 'Enter an amount like 12500 or -500.50')
-      .optional()
-      .or(z.literal('')),
+    // Opening money balance carried in from before BillProMax, per site (negative = advance).
+    // siteCode '' = the default site (party address).
+    openingRows: z
+      .array(
+        z.object({
+          siteCode: z.string(),
+          amount: z
+            .string()
+            .regex(/^-?\d+(\.\d{1,2})?$/, 'Enter an amount like 12500 or -500.50')
+            .or(z.literal('')),
+        })
+      )
+      .superRefine((rows, ctx) => {
+        const seen = new Set<string>();
+        rows.forEach((row, i) => {
+          if (!row.amount) return;
+          if (seen.has(row.siteCode)) {
+            ctx.addIssue({
+              code: 'custom',
+              path: [i, 'siteCode'],
+              message: 'This site already has a row',
+            });
+          }
+          seen.add(row.siteCode);
+        });
+      }),
     openingBalanceDate: z.string().optional(),
     // Site fields - required only for new party
     siteCode: z.string().max(20).optional(),
@@ -62,6 +94,35 @@ const createPartySchema = (isEditing: boolean) =>
 // Default schema type for form data inference
 
 type FormData = z.infer<ReturnType<typeof createPartySchema>>;
+
+type OpeningFormRow = { siteCode: string; amount: string };
+
+/** Rows to start the form with: saved rows, a legacy total as one default-site row, or one blank row */
+function initialOpeningRows(party: Party): OpeningFormRow[] {
+  if (party.openingBalanceSites?.length) {
+    return party.openingBalanceSites.map(r => ({
+      siteCode: r.siteCode ?? '',
+      amount: String(r.amount),
+    }));
+  }
+  if (party.openingBalance) return [{ siteCode: '', amount: String(party.openingBalance) }];
+  return [{ siteCode: '', amount: '' }];
+}
+
+/**
+ * Opening rows to send, or null to leave the opening untouched (nothing entered on a party that
+ * had none). Blank amounts are dropped; '' site = the default site.
+ */
+function openingPayload(
+  rows: OpeningFormRow[],
+  hadOpening: boolean
+): { openingBalanceSites: OpeningBalanceRow[] } | null {
+  const filled = rows
+    .filter(r => r.amount !== '')
+    .map(r => ({ siteCode: r.siteCode || null, amount: Number(r.amount) }));
+  if (!filled.length && !hadOpening) return null;
+  return { openingBalanceSites: filled };
+}
 
 interface PartyFormProps {
   initialData?: Party;
@@ -102,7 +163,7 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
           gst: initialData.contact.gst || '',
           stateCode: initialData.contact.stateCode || '',
           notes: initialData.notes || '',
-          openingBalance: initialData.openingBalance ? String(initialData.openingBalance) : '',
+          openingRows: initialOpeningRows(initialData),
           openingBalanceDate: initialData.openingBalanceDate?.split('T')[0] ?? '',
           siteCode: '',
           siteAddress: '',
@@ -112,12 +173,33 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
       : {
           code: '',
           roles: ['client'],
+          openingRows: [{ siteCode: '', amount: '' }],
           siteCode: '',
           siteAddress: '',
           siteStateCode: '',
           siteIsSameAsOffice: false,
         },
   });
+
+  const {
+    fields: openingFields,
+    append: addOpeningRow,
+    remove: removeOpeningRow,
+  } = useFieldArray({ control, name: 'openingRows' });
+  const openingRows = useWatch({ control, name: 'openingRows' }) || [];
+  const openingTotal = openingRows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  const initialSiteCode = useWatch({ control, name: 'siteCode' }) || '';
+  // Sites an opening row can name: the party's sites, or on create the initial site once it has a code
+  const openingSiteOptions = initialData
+    ? (initialData.sites ?? []).map(s => ({ code: s.code, label: `${s.code} – ${s.address}` }))
+    : initialSiteCode
+      ? [
+          {
+            code: initialSiteCode.toUpperCase(),
+            label: `${initialSiteCode.toUpperCase()} – initial site`,
+          },
+        ]
+      : [];
 
   const roles = useWatch({ control, name: 'roles' }) || [];
   const siteIsSameAsOffice = useWatch({ control, name: 'siteIsSameAsOffice' });
@@ -286,12 +368,11 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
         stateCode: data.stateCode?.trim() || undefined,
       },
       notes: data.notes || undefined,
-      // Editing with the field cleared resets the balance to 0
-      ...(data.openingBalance
-        ? { openingBalance: Number(data.openingBalance) }
-        : initialData?.openingBalance
-          ? { openingBalance: 0 }
-          : {}),
+      // The server derives the total from the rows; clearing every row while editing resets it to 0
+      ...(openingPayload(
+        data.openingRows,
+        !!initialData?.openingBalance || !!initialData?.openingBalanceSites?.length
+      ) ?? {}),
       ...(data.openingBalanceDate && { openingBalanceDate: data.openingBalanceDate }),
       initialSite: initialData
         ? { address: '' }
@@ -427,20 +508,68 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
             <Textarea {...register('notes')} rows={2} disabled={isLoading} />
           </Field>
 
-          <div className={styles.pair}>
-            <Field label="Opening balance (₹)" error={errors.openingBalance?.message}>
-              <Input
-                mono
-                inputMode="decimal"
-                {...register('openingBalance')}
-                disabled={isLoading}
-                placeholder="0"
-              />
-            </Field>
-            <Field label="As of" error={errors.openingBalanceDate?.message}>
-              <Input type="date" {...register('openingBalanceDate')} disabled={isLoading} />
-            </Field>
-          </div>
+          <Fieldset legend="Opening balance (₹)">
+            <div className={styles.openingRows}>
+              {openingFields.map((row, i) => (
+                <div key={row.id} className={styles.openingRow}>
+                  <Field
+                    label="Site"
+                    error={errors.openingRows?.[i]?.siteCode?.message}
+                    className={styles.openingSite}
+                  >
+                    <Select
+                      aria-label={`Site for opening row ${i + 1}`}
+                      {...register(`openingRows.${i}.siteCode`)}
+                      disabled={isLoading}
+                    >
+                      <option value="">{DEFAULT_SITE_LABEL}</option>
+                      {openingSiteOptions.map(o => (
+                        <option key={o.code} value={o.code}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Field label="Amount" error={errors.openingRows?.[i]?.amount?.message}>
+                    <Input
+                      mono
+                      inputMode="decimal"
+                      aria-label={`Opening amount ${i + 1}`}
+                      {...register(`openingRows.${i}.amount`)}
+                      disabled={isLoading}
+                      placeholder="0"
+                    />
+                  </Field>
+                  <IconButton
+                    icon="close"
+                    label={`Remove opening row ${i + 1}`}
+                    onClick={() => removeOpeningRow(i)}
+                    disabled={isLoading}
+                    className={styles.openingRemove}
+                  />
+                </div>
+              ))}
+              <div className={styles.openingFooter}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon="plus"
+                  onClick={() => addOpeningRow({ siteCode: '', amount: '' })}
+                  disabled={isLoading}
+                >
+                  Add site
+                </Button>
+              </div>
+              <div className={styles.pair}>
+                <Field label="Total">
+                  <Input mono readOnly value={formatMoney(openingTotal)} />
+                </Field>
+                <Field label="As of" error={errors.openingBalanceDate?.message}>
+                  <Input type="date" {...register('openingBalanceDate')} disabled={isLoading} />
+                </Field>
+              </div>
+            </div>
+          </Fieldset>
 
           {/* Site section: only when creating a new party */}
           {!initialData && (

@@ -5,6 +5,7 @@ import { baseApi } from './baseApi';
 import { fetchAllPages } from './fetchAllPages';
 import type {
   Party,
+  PartyOutstandingBySite,
   CreatePartyInput,
   CreateAgreementInput,
   AddSiteInput,
@@ -25,6 +26,16 @@ export const partyApi = baseApi.injectEndpoints({
     getOutstandingSummary: builder.query<OutstandingSummary, string>({
       query: businessId => `/businesses/${businessId}/parties/outstanding`,
       transformResponse: (response: ApiResponse<OutstandingSummary>) => response.data,
+      providesTags: ['Party', 'Bill', 'Payment'],
+    }),
+
+    getPartyOutstandingBySite: builder.query<
+      PartyOutstandingBySite,
+      { businessId: string; partyId: string }
+    >({
+      query: ({ businessId, partyId }) =>
+        `/businesses/${businessId}/parties/${partyId}/outstanding-by-site`,
+      transformResponse: (response: ApiResponse<PartyOutstandingBySite>) => response.data,
       providesTags: ['Party', 'Bill', 'Payment'],
     }),
 
@@ -138,6 +149,7 @@ export const {
   useGetPartiesQuery,
   useGetPartyQuery,
   useGetOutstandingSummaryQuery,
+  useGetPartyOutstandingBySiteQuery,
   useCreatePartyMutation,
   useUpdatePartyMutation,
   useDeletePartyMutation,

@@ -11,14 +11,17 @@ export interface StatementPdfParams {
   from: string;
   to: string;
   agreementId?: string;
+  /** One site; DEFAULT_SITE_PARAM for the default site. Not combined with agreementId */
+  siteCode?: string;
 }
 
 export const statementApi = baseApi.injectEndpoints({
   endpoints: builder => ({
     getStatementPdf: builder.query<Blob, StatementPdfParams>({
-      query: ({ businessId, partyId, type, from, to, agreementId }) => {
+      query: ({ businessId, partyId, type, from, to, agreementId, siteCode }) => {
         const params = new URLSearchParams({ type, from, to });
         if (agreementId) params.set('agreementId', agreementId);
+        if (siteCode) params.set('siteCode', siteCode);
         return {
           url: `/businesses/${businessId}/parties/${partyId}/statements/pdf?${params.toString()}`,
           responseHandler: response => response.blob(),
@@ -27,9 +30,10 @@ export const statementApi = baseApi.injectEndpoints({
     }),
 
     getStatementData: builder.query<StatementData, StatementPdfParams>({
-      query: ({ businessId, partyId, type, from, to, agreementId }) => {
+      query: ({ businessId, partyId, type, from, to, agreementId, siteCode }) => {
         const params = new URLSearchParams({ type, from, to });
         if (agreementId) params.set('agreementId', agreementId);
+        if (siteCode) params.set('siteCode', siteCode);
         return `/businesses/${businessId}/parties/${partyId}/statements/data?${params.toString()}`;
       },
       transformResponse: (response: ApiResponse<StatementData>) => response.data,

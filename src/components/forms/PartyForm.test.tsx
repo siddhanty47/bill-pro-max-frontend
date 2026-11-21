@@ -207,46 +207,104 @@ describe('PartyForm', () => {
     expect(onCancel).toHaveBeenCalled();
   });
 
-  it('sends the opening balance and its date for a new party', async () => {
+  it('sends the opening balance on the default site for a new party', async () => {
     const { user, onSubmit } = setup();
     await fillRequired(user);
     await user.type(screen.getByLabelText(/site address/i), 'Plot 12');
-    await user.type(screen.getByLabelText(/opening balance/i), '-1250.50');
+    await user.type(screen.getByLabelText('Opening amount 1'), '-1250.50');
     await user.type(screen.getByLabelText(/^as of/i), '2026-03-31');
     await user.click(screen.getByRole('button', { name: /^add party$/i }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
-    expect(onSubmit.mock.calls[0][0]).toMatchObject({
-      openingBalance: -1250.5,
+    const payload = onSubmit.mock.calls[0][0];
+    expect(payload).toMatchObject({
+      openingBalanceSites: [{ siteCode: null, amount: -1250.5 }],
       openingBalanceDate: '2026-03-31',
     });
+    expect(payload).not.toHaveProperty('openingBalance');
   });
 
-  it('rejects an opening balance that is not an amount', async () => {
+  it('rejects an opening amount that is not an amount', async () => {
     const { user, onSubmit } = setup();
     await fillRequired(user);
     await user.type(screen.getByLabelText(/site address/i), 'Plot 12');
-    await user.type(screen.getByLabelText(/opening balance/i), '12,500');
+    await user.type(screen.getByLabelText('Opening amount 1'), '12,500');
     await user.click(screen.getByRole('button', { name: /^add party$/i }));
     expect(await screen.findByText(/Enter an amount like/)).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('resets the opening balance to 0 when cleared while editing', async () => {
-    const party = {
+  const twoSiteParty = (extra: Partial<Party> = {}) =>
+    ({
       _id: 'p1',
       code: 'MEHT',
       name: 'Mehta',
       roles: ['client'],
       contact: { person: 'Rakesh', phone: '98' },
-      openingBalance: 900,
-      sites: [],
-    } as unknown as Party;
-    const { user, onSubmit } = setup(party);
-    const amount = screen.getByLabelText(/opening balance/i);
-    expect(amount).toHaveValue('900');
-    await user.clear(amount);
+      sites: [
+        { code: 'A', address: 'Site A Road' },
+        { code: 'B', address: 'Site B Road' },
+      ],
+      agreements: [],
+      ...extra,
+    }) as unknown as Party;
+
+  it('splits the opening balance by site and shows the total', async () => {
+    const { user, onSubmit } = setup(twoSiteParty());
+    await user.type(screen.getByLabelText('Opening amount 1'), '500');
+    await user.click(screen.getByRole('button', { name: /add site/i }));
+    await user.selectOptions(screen.getByLabelText('Site for opening row 2'), 'A');
+    await user.type(screen.getByLabelText('Opening amount 2'), '-200');
+    expect(screen.getByLabelText(/^total/i)).toHaveValue('₹300');
     await user.click(screen.getByRole('button', { name: /^update party$/i }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
-    expect(onSubmit.mock.calls[0][0]).toMatchObject({ openingBalance: 0 });
+    expect(onSubmit.mock.calls[0][0].openingBalanceSites).toEqual([
+      { siteCode: null, amount: 500 },
+      { siteCode: 'A', amount: -200 },
+    ]);
+  });
+
+  it('opens a legacy total as one default-site row', () => {
+    setup(twoSiteParty({ openingBalance: 750 }));
+    expect(screen.getByLabelText('Opening amount 1')).toHaveValue('750');
+    expect(screen.getByLabelText('Site for opening row 1')).toHaveValue('');
+  });
+
+  it('blocks two rows for the same site', async () => {
+    const { user, onSubmit } = setup(
+      twoSiteParty({ openingBalanceSites: [{ siteCode: 'A', amount: 10 }] })
+    );
+    await user.click(screen.getByRole('button', { name: /add site/i }));
+    await user.selectOptions(screen.getByLabelText('Site for opening row 2'), 'A');
+    await user.type(screen.getByLabelText('Opening amount 2'), '5');
+    await user.click(screen.getByRole('button', { name: /^update party$/i }));
+    expect(await screen.findByText(/already has a row/)).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('clears a split that nets to zero when every row is removed', async () => {
+    const { user, onSubmit } = setup(
+      twoSiteParty({
+        openingBalance: 0,
+        openingBalanceSites: [
+          { siteCode: 'A', amount: 500 },
+          { siteCode: null, amount: -500 },
+        ],
+      })
+    );
+    await user.click(screen.getByRole('button', { name: 'Remove opening row 2' }));
+    await user.click(screen.getByRole('button', { name: 'Remove opening row 1' }));
+    await user.click(screen.getByRole('button', { name: /^update party$/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0].openingBalanceSites).toEqual([]);
+  });
+
+  it('clears the opening balance when every row is removed while editing', async () => {
+    const { user, onSubmit } = setup(
+      twoSiteParty({ openingBalance: 900, openingBalanceSites: [{ siteCode: 'B', amount: 900 }] })
+    );
+    await user.click(screen.getByRole('button', { name: 'Remove opening row 1' }));
+    await user.click(screen.getByRole('button', { name: /^update party$/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0].openingBalanceSites).toEqual([]);
   });
 });

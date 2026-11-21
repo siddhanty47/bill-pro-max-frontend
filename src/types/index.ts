@@ -184,12 +184,42 @@ export interface Party {
   authProviderId?: string;
   isActive: boolean;
   notes?: string;
-  /** Opening money balance (INR) carried in from before BillProMax; positive = party owes us */
+  /** Opening money balance (INR) carried in from before BillProMax; positive = party owes us.
+   * Kept by the server as the sum of openingBalanceSites. */
   openingBalance?: number;
   /** ISO date the opening balance is as of */
   openingBalanceDate?: string;
+  /** Opening amounts per site; siteCode null = the default site (party address) */
+  openingBalanceSites?: OpeningBalanceRow[];
   createdAt: string;
   updatedAt: string;
+}
+
+/** One opening amount and the site it belongs to; siteCode null = default site */
+export interface OpeningBalanceRow {
+  siteCode: string | null;
+  amount: number;
+}
+
+/** Money position for one site, or the whole party */
+export interface SiteMoney {
+  opening: number;
+  billed: number;
+  received: number;
+  outstanding: number;
+}
+
+/** One site's money; siteCode null = the default site (party address) */
+export interface SiteOutstanding extends SiteMoney {
+  siteCode: string | null;
+  address: string;
+  isDefault: boolean;
+}
+
+export interface PartyOutstandingBySite {
+  partyId: string;
+  sites: SiteOutstanding[];
+  total: SiteMoney;
 }
 
 /** One party's ledger-style outstanding: opening + billed - received */
@@ -218,6 +248,8 @@ export interface CreatePartyInput {
   openingBalance?: number;
   /** yyyy-mm-dd */
   openingBalanceDate?: string;
+  /** Opening amounts per site; the server derives the total from these */
+  openingBalanceSites?: OpeningBalanceRow[];
   /** Initial site for the party (required) */
   initialSite: {
     code?: string;
@@ -634,6 +666,8 @@ export interface Payment {
   partyId: string;
   billId?: string;
   purchaseId?: string;
+  /** Party site; null = the default site (party address) */
+  siteCode?: string | null;
   amount: number;
   currency: string;
   method: 'cash' | 'bank_transfer' | 'upi' | 'cheque' | 'other';
@@ -650,6 +684,8 @@ export interface CreatePaymentInput {
   partyId: string;
   billId?: string;
   purchaseId?: string;
+  /** Party site; null = the default site. Ignored for bill payments (taken from the bill) */
+  siteCode?: string | null;
   amount: number;
   method: 'cash' | 'bank_transfer' | 'upi' | 'cheque' | 'other';
   reference?: string;

@@ -13,6 +13,7 @@ import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
   useGetPartyQuery,
   useGetOutstandingSummaryQuery,
+  useGetPartyOutstandingBySiteQuery,
   useUpdatePartyMutation,
   useCreateAgreementMutation,
   useUpdateSiteMutation,
@@ -34,8 +35,15 @@ import {
   Modal,
   Select,
   StatusChip,
+  Table,
+  TBody,
+  Td,
+  Th,
+  THead,
+  Tr,
   type Column,
 } from '../components/ui';
+import { DEFAULT_SITE_LABEL, DEFAULT_SITE_PARAM } from '../utils/sites';
 import { AddSiteModal } from '../components/AddSiteModal';
 import { AgreementForm } from '../components/forms/AgreementForm';
 import { getErrorMessage } from '../api/baseApi';
@@ -59,6 +67,13 @@ const sentence = (s: string) => {
 /** The date a bill is listed and sorted by (legacy bills have no billDate). */
 const billSortDate = (b: Bill) => b.billDate ?? b.billingPeriod?.start ?? b.createdAt ?? '';
 const billShownDate = (b: Bill) => b.billDate ?? b.billingPeriod?.end ?? b.createdAt;
+
+/** Statement scope select value → query params: '' whole party, 'site:<code>', 'agreement:<id>' */
+function scopeParams(scope: string): { agreementId?: string; siteCode?: string } {
+  if (scope.startsWith('site:')) return { siteCode: scope.slice(5) };
+  if (scope.startsWith('agreement:')) return { agreementId: scope.slice(10) };
+  return {};
+}
 
 /**
  * PartyDetailPage displays the full details of a single party (customer/supplier).
@@ -95,7 +110,7 @@ export function PartyDetailPage() {
   const [statementType, setStatementType] = useState<StatementType>('ledger');
   const [statementFrom, setStatementFrom] = useState('');
   const [statementTo, setStatementTo] = useState('');
-  const [statementAgreementId, setStatementAgreementId] = useState('');
+  const [statementScope, setStatementScope] = useState('');
   const [triggerStatementPdf, { isFetching: isDownloadingStatement }] =
     useLazyGetStatementPdfQuery();
   const [triggerStatementData, { data: previewData, isFetching: isLoadingPreview }] =
@@ -113,6 +128,10 @@ export function PartyDetailPage() {
   );
 
   // Ledger-style outstanding (opening balance + bills - payments) for this party
+  const { data: bySite } = useGetPartyOutstandingBySiteQuery(
+    { businessId: currentBusinessId || '', partyId: partyId || '' },
+    { skip: !currentBusinessId || !partyId }
+  );
   const { data: outstandingSummary } = useGetOutstandingSummaryQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
   });
@@ -189,7 +208,7 @@ export function PartyDetailPage() {
         type: statementType,
         from: statementFrom,
         to: statementTo,
-        agreementId: statementAgreementId || undefined,
+        ...scopeParams(statementScope),
       }).unwrap();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -206,7 +225,7 @@ export function PartyDetailPage() {
     statementType,
     statementFrom,
     statementTo,
-    statementAgreementId,
+    statementScope,
     triggerStatementPdf,
   ]);
 
@@ -219,7 +238,7 @@ export function PartyDetailPage() {
         type: statementType,
         from: statementFrom,
         to: statementTo,
-        agreementId: statementAgreementId || undefined,
+        ...scopeParams(statementScope),
       }).unwrap();
     } catch (err) {
       alert(getErrorMessage(err));
@@ -230,11 +249,12 @@ export function PartyDetailPage() {
     statementType,
     statementFrom,
     statementTo,
-    statementAgreementId,
+    statementScope,
     triggerStatementData,
   ]);
 
   const sites = useMemo(() => party?.sites ?? [], [party]);
+  const hasSiteSplit = (party?.openingBalanceSites ?? []).some(r => r.siteCode !== null);
   const agreements = useMemo(() => party?.agreements ?? [], [party]);
 
   const agreementSite = useMemo(
@@ -354,6 +374,14 @@ export function PartyDetailPage() {
       </Button>
     ) : null;
 
+  const billById = useMemo(() => new Map((bills ?? []).map(b => [b._id, b])), [bills]);
+  /** A payment's site: its own, else its bill's, else the default site */
+  const paymentSite = (p: Payment) => {
+    const billAgreement = p.billId ? billById.get(p.billId)?.agreementId : undefined;
+    const code = p.siteCode ?? (billAgreement ? agreementSite[billAgreement] : undefined);
+    return code ? <span className="mono">{code}</span> : DEFAULT_SITE_LABEL;
+  };
+
   const paymentColumns: Column<Payment>[] = [
     { key: 'date', header: 'Date', nowrap: true, render: p => formatDate(p.date) },
     {
@@ -366,6 +394,7 @@ export function PartyDetailPage() {
     },
     { key: 'method', header: 'Method', nowrap: true, render: p => sentence(p.method) },
     { key: 'bill', header: 'Bill', nowrap: true, render: paymentBill },
+    { key: 'site', header: 'Site', nowrap: true, hideOnMobile: true, render: paymentSite },
     {
       key: 'status',
       header: 'Status',
@@ -466,13 +495,18 @@ export function PartyDetailPage() {
                   label="Opening balance"
                   value={party.openingBalance ? formatMoney(party.openingBalance) : undefined}
                   mono
-                  editable={{
-                    rawValue: party.openingBalance ?? 0,
-                    inputType: 'number',
-                    prefix: '₹',
-                    onSave: v => handleSave('openingBalance', v),
-                    isSaving,
-                  }}
+                  // A bare total lands on the default site; a split across sites is edited in the form
+                  editable={
+                    hasSiteSplit
+                      ? undefined
+                      : {
+                          rawValue: party.openingBalance ?? 0,
+                          inputType: 'number',
+                          prefix: '₹',
+                          onSave: v => handleSave('openingBalance', v),
+                          isSaving,
+                        }
+                  }
                 />
                 <DetailField
                   label="Opening balance as of"
@@ -487,6 +521,70 @@ export function PartyDetailPage() {
                   }}
                 />
               </DetailSection>
+
+              {bySite && bySite.sites.length > 0 && (
+                <Card title="Outstanding by site" padded={false}>
+                  <Table aria-label="Outstanding by site">
+                    <THead>
+                      <Tr>
+                        <Th>Site</Th>
+                        <Th align="right" hideOnMobile>
+                          Opening
+                        </Th>
+                        <Th align="right" hideOnMobile>
+                          Billed
+                        </Th>
+                        <Th align="right" hideOnMobile>
+                          Received
+                        </Th>
+                        <Th align="right">Outstanding</Th>
+                      </Tr>
+                    </THead>
+                    <TBody>
+                      {bySite.sites.map(row => (
+                        <Tr key={row.siteCode ?? '@default'}>
+                          <Td>
+                            {row.isDefault ? (
+                              DEFAULT_SITE_LABEL
+                            ) : (
+                              <>
+                                <span className="mono">{row.siteCode}</span> {row.address}
+                              </>
+                            )}
+                          </Td>
+                          <Td align="right" mono nowrap hideOnMobile>
+                            {formatMoney(row.opening)}
+                          </Td>
+                          <Td align="right" mono nowrap hideOnMobile>
+                            {formatMoney(row.billed)}
+                          </Td>
+                          <Td align="right" mono nowrap hideOnMobile>
+                            {formatMoney(row.received)}
+                          </Td>
+                          <Td align="right" mono nowrap>
+                            {formatMoney(row.outstanding)}
+                          </Td>
+                        </Tr>
+                      ))}
+                      <Tr variant="total">
+                        <Td>Total</Td>
+                        <Td align="right" mono nowrap hideOnMobile>
+                          {formatMoney(bySite.total.opening)}
+                        </Td>
+                        <Td align="right" mono nowrap hideOnMobile>
+                          {formatMoney(bySite.total.billed)}
+                        </Td>
+                        <Td align="right" mono nowrap hideOnMobile>
+                          {formatMoney(bySite.total.received)}
+                        </Td>
+                        <Td align="right" mono nowrap>
+                          {formatMoney(bySite.total.outstanding)}
+                        </Td>
+                      </Tr>
+                    </TBody>
+                  </Table>
+                </Card>
+              )}
 
               <DetailSection title="Notes">
                 <DetailField
@@ -668,21 +766,31 @@ export function PartyDetailPage() {
                       onChange={e => setStatementTo(e.target.value)}
                     />
                   </Field>
-                  {agreements.length > 0 && (
-                    <Field label="Agreement">
-                      <Select
-                        value={statementAgreementId}
-                        onChange={e => setStatementAgreementId(e.target.value)}
-                      >
-                        <option value="">All agreements</option>
-                        {agreements.map(a => (
-                          <option key={a.agreementId} value={a.agreementId}>
-                            {a.agreementId} ({a.siteCode})
+                  <Field label="Site or agreement">
+                    <Select
+                      value={statementScope}
+                      onChange={e => setStatementScope(e.target.value)}
+                    >
+                      <option value="">Whole party</option>
+                      <optgroup label="Sites">
+                        <option value={`site:${DEFAULT_SITE_PARAM}`}>{DEFAULT_SITE_LABEL}</option>
+                        {sites.map(s => (
+                          <option key={s.code} value={`site:${s.code}`}>
+                            {s.code}
                           </option>
                         ))}
-                      </Select>
-                    </Field>
-                  )}
+                      </optgroup>
+                      {agreements.length > 0 && (
+                        <optgroup label="Agreements">
+                          {agreements.map(a => (
+                            <option key={a.agreementId} value={`agreement:${a.agreementId}`}>
+                              {a.agreementId} ({a.siteCode})
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                    </Select>
+                  </Field>
                 </div>
                 <div className={styles.statementActions}>
                   <Button
