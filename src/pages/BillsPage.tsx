@@ -66,12 +66,13 @@ export function BillsPage() {
     status: statusFilter || undefined,
   };
   const {
-    data: pageData,
+    data,
+    currentData: pageData,
     isLoading,
     error,
     refetch,
   } = useGetBillsPageQuery({ ...listArgs, page }, { skip: !currentBusinessId });
-  if (pageData && pageData.total !== lastTotal) setLastTotal(pageData.total);
+  if (data && data.total !== lastTotal) setLastTotal(data.total);
   const hasFilters = Boolean(search || statusFilter);
   const bills = pageData?.rows ?? [];
 
@@ -341,53 +342,57 @@ export function BillsPage() {
       </FilterBar>
 
       <Card padded={false}>
-        <DataTable
-          aria-label="Bills"
-          columns={columns}
-          rows={bills}
-          rowKey={bill => bill._id}
-          pagination={{
-            page,
-            pageSize: LIST_PAGE_SIZE,
-            total: pageData?.total ?? 0,
-            onPageChange: setPage,
-            navSource: { list: 'bills', args: listArgs },
-          }}
-          rowLink={bill => `/bills/${bill._id}`}
-          empty={
-            !hasFilters ? (
-              <EmptyState
-                title="No bills yet"
-                action={
-                  <Button variant="primary" icon="plus" onClick={handleGenerate}>
-                    Generate bill
-                  </Button>
-                }
-              />
-            ) : (
-              <EmptyState title="No bills match these filters" />
-            )
-          }
-          mobile={{
-            title: bill => <DocNumber value={bill.billNumber} to={`/bills/${bill._id}`} />,
-            badge: statusCell,
-            subtitle: bill => getPartyName(bill.partyId),
-            meta: bill => {
-              const date = billDateOf(bill);
-              return [
-                date ? formatDate(date) : '',
-                <span key="amount" className="mono">
-                  {formatMoney(bill.totalAmount)}
-                </span>,
-                <span key="paid">
-                  Paid <span className="mono">{formatMoney(bill.amountPaid)}</span>
-                </span>,
-                periodOf(bill),
-              ];
-            },
-            actions: rowActions,
-          }}
-        />
+        {pageData ? (
+          <DataTable
+            aria-label="Bills"
+            columns={columns}
+            rows={bills}
+            rowKey={bill => bill._id}
+            pagination={{
+              page,
+              pageSize: LIST_PAGE_SIZE,
+              total: pageData?.total ?? 0,
+              onPageChange: setPage,
+              navSource: { list: 'bills', args: listArgs },
+            }}
+            rowLink={bill => `/bills/${bill._id}`}
+            empty={
+              !hasFilters ? (
+                <EmptyState
+                  title="No bills yet"
+                  action={
+                    <Button variant="primary" icon="plus" onClick={handleGenerate}>
+                      Generate bill
+                    </Button>
+                  }
+                />
+              ) : (
+                <EmptyState title="No bills match these filters" />
+              )
+            }
+            mobile={{
+              title: bill => <DocNumber value={bill.billNumber} to={`/bills/${bill._id}`} />,
+              badge: statusCell,
+              subtitle: bill => getPartyName(bill.partyId),
+              meta: bill => {
+                const date = billDateOf(bill);
+                return [
+                  date ? formatDate(date) : '',
+                  <span key="amount" className="mono">
+                    {formatMoney(bill.totalAmount)}
+                  </span>,
+                  <span key="paid">
+                    Paid <span className="mono">{formatMoney(bill.amountPaid)}</span>
+                  </span>,
+                  periodOf(bill),
+                ];
+              },
+              actions: rowActions,
+            }}
+          />
+        ) : (
+          <Spinner message="Loading bills…" />
+        )}
       </Card>
 
       <Modal

@@ -358,7 +358,9 @@ describe('ChallansPage', () => {
     await user.click(within(nav).getByRole('button', { name: 'Page 2' }));
     await waitFor(() => expect(rowNumbers()).toHaveLength(5));
     expect(rowNumbers()[0]).toBe('D-2026-27-0005');
-    expect(nav).toHaveTextContent('Showing 26–30 of 30');
+    expect(screen.getByRole('navigation', { name: 'Challans pages' })).toHaveTextContent(
+      'Showing 26–30 of 30'
+    );
 
     // A new filter starts again from page 1.
     await user.selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'confirmed');

@@ -1,3 +1,4 @@
+import { Fragment, type ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { delay, http, HttpResponse } from 'msw';
@@ -21,16 +22,21 @@ function Probe() {
   );
 }
 
+/** Mirrors App.tsx: the page (and its pager) remounts when the record changes. */
+function RemountPerPath({ children }: { children: ReactNode }) {
+  return <Fragment key={useLocation().pathname}>{children}</Fragment>;
+}
+
 function renderPager(route: string, routeState?: unknown, noun = 'challan') {
   return renderWithProviders(
     <Routes>
       <Route
         path="*"
         element={
-          <>
+          <RemountPerPath>
             <RecordPager noun={noun} />
             <Probe />
-          </>
+          </RemountPerPath>
         }
       />
     </Routes>,
@@ -65,6 +71,27 @@ describe('RecordPager', () => {
     expect(screen.getByTestId('type')).toHaveTextContent('REPLACE');
     await user.click(screen.getByRole('button', { name: 'Previous challan' }));
     expect(path()).toBe('/challans/b');
+  });
+
+  it('restores focus after a step: Next stays focused, Previous when Next disables', async () => {
+    const { user } = renderPager('/challans/a', local(0));
+    await user.click(screen.getByRole('button', { name: 'Next challan' }));
+    expect(screen.getByRole('button', { name: 'Next challan' })).toHaveFocus();
+    await user.click(screen.getByRole('button', { name: 'Next challan' }));
+    expect(path()).toBe('/challans/c');
+    expect(screen.getByRole('button', { name: 'Previous challan' })).toHaveFocus();
+  });
+
+  it('announces the position politely', () => {
+    renderPager('/challans/b', local(1));
+    expect(screen.getByText('2 of 3')).toHaveAttribute('aria-live', 'polite');
+  });
+
+  it('does not intercept [ and ] without context', () => {
+    renderPager('/challans/b');
+    const ev = new KeyboardEvent('keydown', { code: 'BracketRight', key: ']', cancelable: true });
+    document.dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(false);
   });
 
   it('disables Next at the last record and Prev at the first', () => {

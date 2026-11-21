@@ -443,8 +443,7 @@ describe('PartyDetailPage', () => {
     await waitFor(() => expect(within(table).getAllByRole('link')).toHaveLength(2));
     await user.click(within(table).getByRole('row', { name: /B-0001/ }));
     const { recordNav } = JSON.parse(screen.getByTestId('state').textContent ?? '');
-    expect(recordNav.paths.length).toBe(2);
-    expect(recordNav.paths).toContain('/bills/b1');
+    expect(recordNav.paths).toEqual(['/bills/b2', '/bills/b1']);
     expect(recordNav.paths[recordNav.index]).toBe('/bills/b1');
   });
 
@@ -477,6 +476,17 @@ describe('PartyDetailPage', () => {
     );
     await user.click(within(row).getByText('UTR123'));
     expect(screen.getByTestId('where')).toHaveTextContent('/payments/pay1');
+  });
+
+  it('opens the bill from a payment row with no record context', async () => {
+    useApi();
+    const { user } = renderPage();
+    await openTab(user, /Payments/);
+    const table = await screen.findByRole('table', { name: 'Payments' });
+    const row = await within(table).findByRole('row', { name: /UTR123/ });
+    await user.click(within(row).getByRole('link', { name: 'View bill' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('/bills/b1');
+    expect(screen.getByTestId('state')).toHaveTextContent(/^(null)?$/);
   });
 
   it('previews and downloads a statement with the chosen parameters', async () => {
