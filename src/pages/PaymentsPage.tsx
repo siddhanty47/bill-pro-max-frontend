@@ -2,7 +2,6 @@
  * Payments list page
  */
 import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
 import { shortcutLabel } from '../hooks/usePlatform';
@@ -44,7 +43,6 @@ const typeLabel = (p: Payment) => (p.type === 'receivable' ? 'Received' : 'Paid'
 
 export function PaymentsPage() {
   const { currentBusinessId } = useCurrentBusiness();
-  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -215,7 +213,7 @@ export function PaymentsPage() {
           columns={columns}
           rows={filteredPayments}
           rowKey={p => p._id}
-          onRowClick={p => navigate(`/payments/${p._id}`)}
+          rowLink={p => `/payments/${p._id}`}
           empty={
             (payments || []).length === 0 ? (
               <EmptyState

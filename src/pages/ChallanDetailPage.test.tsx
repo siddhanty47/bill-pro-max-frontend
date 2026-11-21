@@ -3,6 +3,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { ChallanDetailPage } from './ChallanDetailPage';
+import { KeyedByParam } from '../components/KeyedByParam';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
 import { apiUrl, ok } from '../test/msw/handlers';
@@ -127,6 +128,53 @@ function allowBlobInStore() {
 }
 
 afterEach(() => vi.restoreAllMocks());
+
+describe('ChallanDetailPage record navigation', () => {
+  it('steps through the list it was opened from', async () => {
+    useApi();
+    renderWithProviders(
+      <Routes>
+        <Route path="/challans/:challanId" element={<ChallanDetailPage />} />
+      </Routes>,
+      {
+        preloadedState: signedIn(),
+        route: '/challans/c1',
+        routeState: { recordNav: { paths: ['/challans/c1', '/challans/c2'], index: 0 } },
+      }
+    );
+    expect(await screen.findByRole('button', { name: 'Next challan' })).toBeEnabled();
+  });
+
+  it('resets local edit state when stepping to the next record', async () => {
+    useApi();
+    server.use(http.get(apiUrl('/businesses/biz-1/challans/c2'), () => ok(makeChallan())));
+    const { user } = renderWithProviders(
+      <Routes>
+        <Route
+          path="/challans/:challanId"
+          element={
+            <KeyedByParam param="challanId">
+              <ChallanDetailPage />
+            </KeyedByParam>
+          }
+        />
+      </Routes>,
+      {
+        preloadedState: signedIn(),
+        route: '/challans/c1',
+        routeState: { recordNav: { paths: ['/challans/c1', '/challans/c2'], index: 0 } },
+      }
+    );
+    await openTab(user, /^Items/);
+    await user.click(await screen.findByRole('button', { name: 'Edit loss items' }));
+    expect(screen.getAllByRole('spinbutton', { name: 'Loss quantity' }).length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('button', { name: 'Next challan' }));
+    await openTab(user, /^Items/);
+    expect(await screen.findByRole('button', { name: 'Edit loss items' })).toBeInTheDocument();
+    expect(screen.queryByRole('spinbutton', { name: 'Loss quantity' })).not.toBeInTheDocument();
+  });
+});
 
 describe('ChallanDetailPage', () => {
   it('shows a spinner while loading', () => {

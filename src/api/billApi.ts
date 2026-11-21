@@ -150,6 +150,7 @@ export const billApi = baseApi.injectEndpoints({
 export const {
   useGetBillsQuery,
   useGetBillsPageQuery,
+  useLazyGetBillsPageQuery,
   useGetBillQuery,
   useGetOverdueBillsQuery,
   useGetPaymentSummaryQuery,

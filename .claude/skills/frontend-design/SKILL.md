@@ -169,11 +169,12 @@ import { formatDate, formatMoney } from '../utils/format';
     }}
     rows={bills}
     rowKey={b => b._id}
-    onRowClick={b => navigate(`/bills/${b._id}`)}
+    rowLink={b => `/bills/${b._id}`}
     empty={<EmptyState title="No bills yet" action={<Button onClick={openCreate}>New bill</Button>} />}
   />
 </Card>
 ```
+Tables that open records use `rowLink`, not `onRowClick` + `navigate`; the matching detail page passes `recordNoun` to `DetailPageShell` for Prev/Next.
 Loading → `Spinner`; error → `ErrorMessage onRetry={refetch}`.
 
 **Dashboard** = `PageHeader` + a layout grid (page CSS) of `StatCard`s and `Card`s. Sections are `Card title=… count=… actions=…`; lists inside are `DataTable` in `Card padded={false}`.

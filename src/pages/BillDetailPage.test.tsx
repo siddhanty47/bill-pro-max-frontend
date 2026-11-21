@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import { BillDetailPage } from './BillDetailPage';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
@@ -137,11 +137,22 @@ function capture(method: 'patch' | 'post', path: string) {
   return bodies;
 }
 
+function Where() {
+  const { pathname, state } = useLocation();
+  return (
+    <>
+      <div>elsewhere</div>
+      <div data-testid="where">{pathname}</div>
+      <div data-testid="state">{JSON.stringify(state)}</div>
+    </>
+  );
+}
+
 function renderPage() {
   return renderWithProviders(
     <Routes>
       <Route path="/bills/:billId" element={<BillDetailPage />} />
-      <Route path="*" element={<div>elsewhere</div>} />
+      <Route path="*" element={<Where />} />
     </Routes>,
     { preloadedState: signedIn(), route: '/bills/b1' }
   );
@@ -319,6 +330,19 @@ describe('BillDetailPage', () => {
       '/payments/pay2'
     );
     expect(within(rows[0]).getByText('₹30,000')).toHaveClass('mono');
+  });
+
+  it('opens a payment from its date link with the bill payments as context', async () => {
+    useApi();
+    const { user } = renderPage();
+    await openTab(user, /^Payments/);
+    const table = screen.getByRole('table', { name: 'Payments' });
+    await user.click(within(table).getByRole('link', { name: '5 Nov 2025' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('/payments/pay1');
+    expect(JSON.parse(screen.getByTestId('state').textContent ?? '').recordNav).toEqual({
+      paths: ['/payments/pay2', '/payments/pay1'],
+      index: 1,
+    });
   });
 
   it('shows an empty state when there are no payments', async () => {

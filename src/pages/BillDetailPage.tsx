@@ -382,6 +382,7 @@ export function BillDetailPage() {
 
   return (
     <DetailPageShell
+      recordNoun="bill"
       title={bill?.billNumber || 'Bill'}
       status={status}
       backTo="/bills"
@@ -590,6 +591,7 @@ export function BillDetailPage() {
                 columns={paymentColumns}
                 rows={paymentList}
                 rowKey={p => p._id}
+                rowLink={p => `/payments/${p._id}`}
                 empty={<EmptyState title="No payments recorded for this bill" />}
                 mobile={{
                   title: paymentDate,

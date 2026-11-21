@@ -5,7 +5,6 @@
  *   - Invite: members list, pending invitations, invite modal
  */
 import { useState, useRef, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
 import { shortcutLabel } from '../hooks/usePlatform';
@@ -91,7 +90,6 @@ function salaryCell(e: Employee): ReactNode {
 
 export function TeamPage() {
   const { currentBusiness } = useCurrentBusiness();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('employees');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isEmployeeFormOpen, setIsEmployeeFormOpen] = useState(false);
@@ -313,7 +311,7 @@ export function TeamPage() {
                   columns={employeeColumns}
                   rows={employees}
                   rowKey={e => e._id}
-                  onRowClick={e => navigate(`/team/employees/${e._id}`)}
+                  rowLink={e => `/team/employees/${e._id}`}
                   empty={
                     hasEmployeeFilters ? (
                       <EmptyState title="No employees match these filters" />

@@ -18,6 +18,7 @@ import { AgreementsPage } from './pages/AgreementsPage';
 import { ChallansPage } from './pages/ChallansPage';
 import { BillsPage } from './pages/BillsPage';
 import { PaymentsPage } from './pages/PaymentsPage';
+import { KeyedByParam } from './components/KeyedByParam';
 import { InventoryDetailPage } from './pages/InventoryDetailPage';
 import { PartyDetailPage } from './pages/PartyDetailPage';
 import { AgreementDetailPage } from './pages/AgreementDetailPage';
@@ -120,19 +121,68 @@ function App() {
         <Route index element={<DashboardPage />} />
         <Route path="business" element={<BusinessDetailPage />} />
         <Route path="inventory" element={<InventoryPage />} />
-        <Route path="inventory/:itemId" element={<InventoryDetailPage />} />
+        <Route
+          path="inventory/:itemId"
+          element={
+            <KeyedByParam param="itemId">
+              <InventoryDetailPage />
+            </KeyedByParam>
+          }
+        />
         <Route path="parties" element={<PartiesPage />} />
-        <Route path="parties/:partyId" element={<PartyDetailPage />} />
+        <Route
+          path="parties/:partyId"
+          element={
+            <KeyedByParam param="partyId">
+              <PartyDetailPage />
+            </KeyedByParam>
+          }
+        />
         <Route path="agreements" element={<AgreementsPage />} />
-        <Route path="agreements/:agreementId" element={<AgreementDetailPage />} />
+        <Route
+          path="agreements/:agreementId"
+          element={
+            <KeyedByParam param="agreementId">
+              <AgreementDetailPage />
+            </KeyedByParam>
+          }
+        />
         <Route path="challans" element={<ChallansPage />} />
-        <Route path="challans/:challanId" element={<ChallanDetailPage />} />
+        <Route
+          path="challans/:challanId"
+          element={
+            <KeyedByParam param="challanId">
+              <ChallanDetailPage />
+            </KeyedByParam>
+          }
+        />
         <Route path="bills" element={<BillsPage />} />
-        <Route path="bills/:billId" element={<BillDetailPage />} />
+        <Route
+          path="bills/:billId"
+          element={
+            <KeyedByParam param="billId">
+              <BillDetailPage />
+            </KeyedByParam>
+          }
+        />
         <Route path="payments" element={<PaymentsPage />} />
-        <Route path="payments/:paymentId" element={<PaymentDetailPage />} />
+        <Route
+          path="payments/:paymentId"
+          element={
+            <KeyedByParam param="paymentId">
+              <PaymentDetailPage />
+            </KeyedByParam>
+          }
+        />
         <Route path="team" element={<TeamPage />} />
-        <Route path="team/employees/:employeeId" element={<EmployeeDetailPage />} />
+        <Route
+          path="team/employees/:employeeId"
+          element={
+            <KeyedByParam param="employeeId">
+              <EmployeeDetailPage />
+            </KeyedByParam>
+          }
+        />
       </Route>
 
       {/* Fallback */}

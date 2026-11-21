@@ -79,6 +79,7 @@ export function PaymentDetailPage() {
 
   return (
     <DetailPageShell
+      recordNoun="payment"
       title={payment ? formatMoney(payment.amount) : 'Payment'}
       status={payment?.status}
       backTo="/payments"

@@ -71,7 +71,13 @@ function useApi(bills: Bill[] = defaults) {
 }
 
 function Where() {
-  return <div data-testid="where">{useLocation().pathname}</div>;
+  const { pathname, state } = useLocation();
+  return (
+    <>
+      <div data-testid="where">{pathname}</div>
+      <div data-testid="state">{JSON.stringify(state)}</div>
+    </>
+  );
 }
 
 function renderPage() {
@@ -292,6 +298,21 @@ describe('BillsPage', () => {
     const table = await screen.findByRole('table');
     await user.click(within(table).getByText('Om Constructions'));
     expect(screen.getByTestId('where')).toHaveTextContent('/bills/b2');
+  });
+
+  it('carries the filtered list as navigation context when a row is opened', async () => {
+    useApi();
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'paid');
+    await waitFor(() => expect(screen.getAllByRole('row')).toHaveLength(2));
+    await user.click(within(screen.getByRole('table')).getByText('B-2026-27-0003'));
+    expect(screen.getByTestId('where')).toHaveTextContent('/bills/b3');
+    const { recordNav } = JSON.parse(screen.getByTestId('state').textContent ?? '');
+    expect(recordNav.paths).toEqual(['/bills/b3']);
+    expect(recordNav.server.page).toBe(1);
+    expect(recordNav.server.source.list).toBe('bills');
+    expect(recordNav.server.source.args.status).toBe('paid');
   });
 
   it('opens the generate and bulk generate modals', async () => {

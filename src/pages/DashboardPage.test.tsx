@@ -73,7 +73,13 @@ function useApi({
 }
 
 function Where() {
-  return <div data-testid="where">{useLocation().pathname}</div>;
+  const { pathname, state } = useLocation();
+  return (
+    <>
+      <div data-testid="where">{pathname}</div>
+      <div data-testid="state">{JSON.stringify(state)}</div>
+    </>
+  );
 }
 
 function renderPage(state = signedIn()) {
@@ -136,6 +142,18 @@ describe('DashboardPage', () => {
     expect(within(table).getByText('₹1,84,200')).toBeInTheDocument();
     expect(within(table).getByText('19 days')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /All bills/ })).toHaveAttribute('href', '/bills');
+  });
+
+  it('opens an overdue bill on row click with the overdue list as context', async () => {
+    useApi();
+    const { user } = renderPage();
+    const table = await screen.findByRole('table');
+    await user.click(within(table).getByText('Mehta Builders'));
+    expect(screen.getByTestId('where')).toHaveTextContent('/bills/b1');
+    expect(JSON.parse(screen.getByTestId('state').textContent ?? '').recordNav).toEqual({
+      paths: ['/bills/b1'],
+      index: 0,
+    });
   });
 
   it('counts an overdue bill under 24h as 1 day', async () => {

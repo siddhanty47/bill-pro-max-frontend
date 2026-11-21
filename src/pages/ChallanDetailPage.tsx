@@ -525,6 +525,7 @@ export function ChallanDetailPage() {
 
   return (
     <DetailPageShell
+      recordNoun="challan"
       title={challan?.challanNumber || 'Challan'}
       status={challan?.status}
       backTo="/challans"

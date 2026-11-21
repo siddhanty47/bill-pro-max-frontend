@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactElement } from 'react';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { DataTable, type Column } from './DataTable';
+import { DocNumber } from './DocNumber';
+import type { ServerListSource } from '../../utils/recordNav';
 import { RowActions } from './RowActions';
 
 type Row = { id: string; party: string; amount?: number };
@@ -457,5 +461,155 @@ describe('DataTable paging', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Page 3' }));
     expect(onPageChange).toHaveBeenCalledWith(3);
+  });
+});
+
+describe('DataTable rowLink', () => {
+  type R = { id: string; name: string };
+  const many: R[] = Array.from({ length: 30 }, (_, i) => ({
+    id: `r${i + 1}`,
+    name: `Name ${i + 1}`,
+  }));
+  const link = (r: R) => `/things/${r.id}`;
+  const cols: Column<R>[] = [{ key: 'name', header: 'Name' }];
+  const source: ServerListSource = { list: 'bills', args: { businessId: 'b1', pageSize: 25 } };
+
+  function Probe() {
+    const loc = useLocation();
+    return (
+      <div data-testid="loc">
+        {loc.pathname}|{JSON.stringify(loc.state)}
+      </div>
+    );
+  }
+  function setup(ui: ReactElement) {
+    render(
+      <MemoryRouter initialEntries={['/list']}>
+        <Routes>
+          <Route path="/list" element={ui} />
+          <Route path="*" element={<Probe />} />
+        </Routes>
+      </MemoryRouter>
+    );
+  }
+  const read = () => {
+    const [path, json] = screen.getByTestId('loc').textContent!.split('|');
+    return { path, state: JSON.parse(json) };
+  };
+
+  it('row click navigates with the whole client list', async () => {
+    const user = userEvent.setup();
+    setup(<DataTable columns={cols} rows={many} rowKey={r => r.id} rowLink={link} />);
+    await user.click(screen.getByRole('cell', { name: 'Name 2' }));
+    const { path, state } = read();
+    expect(path).toBe('/things/r2');
+    expect(state.recordNav.paths).toHaveLength(30);
+    expect(state.recordNav.index).toBe(1);
+  });
+
+  it('index accounts for the client page', async () => {
+    const user = userEvent.setup();
+    setup(<DataTable columns={cols} rows={many} rowKey={r => r.id} rowLink={link} />);
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    await user.click(screen.getByRole('cell', { name: 'Name 26' }));
+    expect(read().state.recordNav.index).toBe(25);
+  });
+
+  it('Enter on a row navigates', async () => {
+    const user = userEvent.setup();
+    setup(<DataTable columns={cols} rows={many} rowKey={r => r.id} rowLink={link} />);
+    screen.getAllByRole('row')[1].focus();
+    await user.keyboard('{Enter}');
+    expect(read().path).toBe('/things/r1');
+  });
+
+  it('DocNumber to the row path carries state; other paths do not', async () => {
+    const user = userEvent.setup();
+    const c: Column<R>[] = [
+      { key: 'a', header: 'A', render: r => <DocNumber value={`own-${r.id}`} to={link(r)} /> },
+      { key: 'b', header: 'B', render: r => <DocNumber value={`party-${r.id}`} to="/parties/p" /> },
+    ];
+    setup(<DataTable columns={c} rows={many} rowKey={r => r.id} rowLink={link} />);
+    await user.click(screen.getByRole('link', { name: 'own-r3' }));
+    expect(read().state.recordNav.index).toBe(2);
+  });
+
+  it('DocNumber to a different path carries none', async () => {
+    const user = userEvent.setup();
+    const c: Column<R>[] = [
+      { key: 'b', header: 'B', render: r => <DocNumber value={`party-${r.id}`} to="/parties/p" /> },
+    ];
+    setup(<DataTable columns={c} rows={many} rowKey={r => r.id} rowLink={link} />);
+    await user.click(screen.getByRole('link', { name: 'party-r3' }));
+    expect(read()).toEqual({ path: '/parties/p', state: null });
+  });
+
+  it('server mode with navSource carries page, total and source', async () => {
+    const user = userEvent.setup();
+    const page = many.slice(0, 25);
+    setup(
+      <DataTable
+        columns={cols}
+        rows={page}
+        rowKey={r => r.id}
+        rowLink={link}
+        pagination={{ page: 2, pageSize: 25, total: 60, onPageChange: () => {}, navSource: source }}
+      />
+    );
+    await user.click(screen.getByRole('cell', { name: 'Name 3' }));
+    const { state } = read();
+    expect(state.recordNav.paths).toHaveLength(25);
+    expect(state.recordNav.index).toBe(2);
+    expect(state.recordNav.server).toEqual({ source, page: 2, total: 60 });
+  });
+
+  it('server mode without navSource has no server field', async () => {
+    const user = userEvent.setup();
+    setup(
+      <DataTable
+        columns={cols}
+        rows={many.slice(0, 25)}
+        rowKey={r => r.id}
+        rowLink={link}
+        pagination={{ page: 1, pageSize: 25, total: 60, onPageChange: () => {} }}
+      />
+    );
+    await user.click(screen.getByRole('cell', { name: 'Name 1' }));
+    expect(read().state.recordNav.server).toBeUndefined();
+  });
+
+  it('phone list item carries the same state', async () => {
+    const user = userEvent.setup();
+    setup(
+      <DataTable
+        columns={cols}
+        rows={many}
+        rowKey={r => r.id}
+        rowLink={link}
+        mobile={{ title: r => `Title ${r.name}` }}
+      />
+    );
+    await user.click(screen.getByText('Title Name 4'));
+    const { path, state } = read();
+    expect(path).toBe('/things/r4');
+    expect(state.recordNav.index).toBe(3);
+    expect(state.recordNav.paths).toHaveLength(30);
+  });
+
+  it('rowLink overrides onRowClick', async () => {
+    const user = userEvent.setup();
+    const onRowClick = vi.fn();
+    setup(
+      <DataTable
+        columns={cols}
+        rows={many}
+        rowKey={r => r.id}
+        rowLink={link}
+        onRowClick={onRowClick}
+      />
+    );
+    await user.click(screen.getByRole('cell', { name: 'Name 1' }));
+    expect(onRowClick).not.toHaveBeenCalled();
+    expect(read().path).toBe('/things/r1');
   });
 });

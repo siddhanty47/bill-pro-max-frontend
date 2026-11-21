@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useRowLinkState } from './rowLink';
 import styles from './DocNumber.module.css';
 
 export type DocNumberProps = {
@@ -9,9 +10,10 @@ export type DocNumberProps = {
 };
 
 export function DocNumber({ value, to, wrap = false }: DocNumberProps) {
+  const state = useRowLinkState(to);
   const base = wrap ? `${styles.docno} ${styles.wrap}` : styles.docno;
   return to ? (
-    <Link to={to} className={`${base} ${styles.link}`}>
+    <Link to={to} state={state} className={`${base} ${styles.link}`}>
       {value}
     </Link>
   ) : (

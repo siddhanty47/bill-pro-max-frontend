@@ -1,8 +1,18 @@
-import { Fragment, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import {
+  Fragment,
+  useMemo,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+} from 'react';
 import { EmptyState } from './EmptyState';
 import { Pagination } from './Pagination';
 import { fromInnerControl } from './innerControl';
 import { Table, THead, TBody, Tr, Th, Td } from './Table';
+import { RowLinkContext, type RowLinkValue } from './rowLink';
+import { useNavigate } from 'react-router-dom';
+import { recordNavState, type ServerListSource } from '../../utils/recordNav';
 import styles from './DataTable.module.css';
 
 export type Column<T> = {
@@ -36,6 +46,12 @@ export type DataTableProps<T> = {
   rows: T[];
   rowKey: (row: T) => string;
   onRowClick?: (row: T) => void;
+  /**
+   * Detail path of a row. Makes rows clickable (like `onRowClick`, which it overrides) and
+   * lets the detail page step Prev/Next through this table: links in the row to the same
+   * path (`DocNumber`/`TextLink`) carry the nav state too.
+   */
+  rowLink?: (row: T) => string;
   empty?: ReactNode;
   /** Names the table (and the phone list). */
   'aria-label'?: string;
@@ -56,6 +72,8 @@ export type DataTableProps<T> = {
     pageSize: number;
     total: number;
     onPageChange: (page: number) => void;
+    /** The list args of a server-paged challan/bill table, so Prev/Next can fetch neighbouring pages. */
+    navSource?: ServerListSource;
   };
 };
 
@@ -69,17 +87,19 @@ function MobileList<T>({
   rows,
   rowKey,
   onRowClick,
+  rowState,
   ariaLabel,
 }: {
   spec: DataTableMobile<T>;
   rows: T[];
   rowKey: (row: T) => string;
-  onRowClick?: (row: T) => void;
+  onRowClick?: (row: T, i: number) => void;
+  rowState?: (row: T, i: number) => RowLinkValue | null;
   ariaLabel?: string;
 }) {
   return (
     <ul className={styles.list} aria-label={ariaLabel}>
-      {rows.map(row => {
+      {rows.map((row, i) => {
         const badge = spec.badge?.(row);
         const subtitle = spec.subtitle?.(row);
         const meta = (spec.meta?.(row) ?? []).filter(m => !isEmpty(m));
@@ -89,70 +109,77 @@ function MobileList<T>({
           ? {
               tabIndex: 0,
               onClick: (e: MouseEvent<HTMLLIElement>) => {
-                if (!fromInnerControl(e)) onRowClick(row);
+                if (!fromInnerControl(e)) onRowClick(row, i);
               },
               onKeyDown: (e: KeyboardEvent<HTMLLIElement>) => {
                 if (e.target !== e.currentTarget) return;
                 if (e.key === 'Enter' || e.key === ' ') {
                   // Space would otherwise scroll the page.
                   if (e.key === ' ') e.preventDefault();
-                  onRowClick(row);
+                  onRowClick(row, i);
                 }
               },
             }
           : {};
+        const link = rowState?.(row, i) ?? null;
         return (
-          <li
-            key={rowKey(row)}
-            className={[styles.item, onRowClick ? styles.clickable : ''].filter(Boolean).join(' ')}
-            {...interactive}
-          >
-            <div className={styles.line1}>
-              {spec.leading?.(row)}
-              <span className={styles.title}>{spec.title(row)}</span>
-              {trailing
-                ? (!isEmpty(badge) || !isEmpty(actions)) && (
-                    <span className={styles.end}>
-                      {!isEmpty(badge) && <span className={styles.badge}>{badge}</span>}
-                      {!isEmpty(actions) && <span className={styles.trailing}>{actions}</span>}
-                    </span>
-                  )
-                : !isEmpty(badge) && <span className={styles.badge}>{badge}</span>}
-            </div>
-            {(!isEmpty(subtitle) || meta.length > 0) && (
-              <div className={styles.line2}>
-                {!isEmpty(subtitle) && <span className={styles.subtitle}>{subtitle}</span>}
-                {meta.length > 0 && (
-                  <span className={styles.meta}>
-                    {meta.map((m, i) => (
-                      <Fragment key={i}>
-                        {i > 0 && <span aria-hidden="true"> · </span>}
-                        {m}
-                      </Fragment>
-                    ))}
-                  </span>
-                )}
+          <RowLinkContext.Provider key={rowKey(row)} value={link}>
+            <li
+              className={[styles.item, onRowClick ? styles.clickable : '']
+                .filter(Boolean)
+                .join(' ')}
+              {...interactive}
+            >
+              <div className={styles.line1}>
+                {spec.leading?.(row)}
+                <span className={styles.title}>{spec.title(row)}</span>
+                {trailing
+                  ? (!isEmpty(badge) || !isEmpty(actions)) && (
+                      <span className={styles.end}>
+                        {!isEmpty(badge) && <span className={styles.badge}>{badge}</span>}
+                        {!isEmpty(actions) && <span className={styles.trailing}>{actions}</span>}
+                      </span>
+                    )
+                  : !isEmpty(badge) && <span className={styles.badge}>{badge}</span>}
               </div>
-            )}
-            {!trailing && !isEmpty(actions) && <div className={styles.actions}>{actions}</div>}
-          </li>
+              {(!isEmpty(subtitle) || meta.length > 0) && (
+                <div className={styles.line2}>
+                  {!isEmpty(subtitle) && <span className={styles.subtitle}>{subtitle}</span>}
+                  {meta.length > 0 && (
+                    <span className={styles.meta}>
+                      {meta.map((m, i) => (
+                        <Fragment key={i}>
+                          {i > 0 && <span aria-hidden="true"> · </span>}
+                          {m}
+                        </Fragment>
+                      ))}
+                    </span>
+                  )}
+                </div>
+              )}
+              {!trailing && !isEmpty(actions) && <div className={styles.actions}>{actions}</div>}
+            </li>
+          </RowLinkContext.Provider>
         );
       })}
     </ul>
   );
 }
 
-export function DataTable<T>({
+function DataTableView<T>({
   columns,
   rows,
   rowKey,
   onRowClick,
+  rowLink,
+  navigate,
   empty,
   'aria-label': ariaLabel,
   mobile,
   pageSize = DEFAULT_PAGE_SIZE,
   pagination,
-}: DataTableProps<T>) {
+}: DataTableProps<T> & { navigate?: (to: string, state: RowLinkValue['state']) => void }) {
+  const paths = useMemo(() => (rowLink ? rows.map(rowLink) : []), [rows, rowLink]);
   const [ownPage, setOwnPage] = useState(1);
   // Back to page 1 when the rows change (filter/search) — adjusted during render.
   const signature = `${rows.length}:${rows.length ? rowKey(rows[0]) : ''}`;
@@ -169,6 +196,26 @@ export function DataTable<T>({
   const visible = pagination
     ? rows
     : rows.slice((clientPage - 1) * pageSize, clientPage * pageSize);
+  const offset = pagination ? 0 : (clientPage - 1) * pageSize;
+  const server =
+    pagination?.navSource === undefined
+      ? undefined
+      : { source: pagination.navSource, page: pagination.page, total: pagination.total };
+  const rowState = rowLink
+    ? (_row: T, i: number): RowLinkValue => ({
+        to: paths[offset + i],
+        state: recordNavState({ paths, index: offset + i, ...(server && { server }) }),
+      })
+    : undefined;
+  const activate =
+    rowLink && navigate
+      ? (row: T, i: number) => {
+          const link = rowState!(row, i);
+          navigate(link.to, link.state);
+        }
+      : onRowClick
+        ? (row: T) => onRowClick(row)
+        : undefined;
   const pager = pagination ? (
     <Pagination
       page={pagination.page}
@@ -199,20 +246,22 @@ export function DataTable<T>({
         </Tr>
       </THead>
       <TBody>
-        {visible.map(row => (
-          <Tr key={rowKey(row)} onClick={onRowClick ? () => onRowClick(row) : undefined}>
-            {columns.map(c => (
-              <Td
-                key={c.key}
-                align={c.align}
-                mono={c.mono}
-                hideOnMobile={c.hideOnMobile}
-                nowrap={c.nowrap}
-              >
-                {c.render ? c.render(row) : String((row as Record<string, unknown>)[c.key] ?? '')}
-              </Td>
-            ))}
-          </Tr>
+        {visible.map((row, i) => (
+          <RowLinkContext.Provider key={rowKey(row)} value={rowState?.(row, i) ?? null}>
+            <Tr onClick={activate ? () => activate(row, i) : undefined}>
+              {columns.map(c => (
+                <Td
+                  key={c.key}
+                  align={c.align}
+                  mono={c.mono}
+                  hideOnMobile={c.hideOnMobile}
+                  nowrap={c.nowrap}
+                >
+                  {c.render ? c.render(row) : String((row as Record<string, unknown>)[c.key] ?? '')}
+                </Td>
+              ))}
+            </Tr>
+          </RowLinkContext.Provider>
         ))}
       </TBody>
     </Table>
@@ -233,10 +282,21 @@ export function DataTable<T>({
         spec={mobile}
         rows={visible}
         rowKey={rowKey}
-        onRowClick={onRowClick}
+        onRowClick={activate}
+        rowState={rowState}
         ariaLabel={ariaLabel}
       />
       {pager}
     </>
   );
+}
+
+/** Only mounted when `rowLink` is set, so tables without it keep working outside a router. */
+function LinkedDataTable<T>(props: DataTableProps<T>) {
+  const navigate = useNavigate();
+  return <DataTableView {...props} navigate={(to, state) => navigate(to, { state })} />;
+}
+
+export function DataTable<T>(props: DataTableProps<T>) {
+  return props.rowLink ? <LinkedDataTable {...props} /> : <DataTableView {...props} />;
 }

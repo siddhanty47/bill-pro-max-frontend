@@ -16,6 +16,8 @@ interface ProviderOptions extends Omit<RenderOptions, 'wrapper'> {
   preloadedState?: Partial<RootState>;
   store?: AppStore;
   route?: string;
+  /** Router location.state for the initial entry. */
+  routeState?: unknown;
 }
 
 export function renderWithProviders(
@@ -24,13 +26,26 @@ export function renderWithProviders(
     preloadedState,
     store = setupStore(preloadedState),
     route = '/',
+    routeState,
     ...options
   }: ProviderOptions = {}
 ) {
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <Provider store={store}>
-        <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+        <MemoryRouter
+          initialEntries={[
+            routeState === undefined
+              ? route
+              : {
+                  pathname: route.split('?')[0],
+                  search: route.includes('?') ? `?${route.split('?')[1]}` : '',
+                  state: routeState,
+                },
+          ]}
+        >
+          {children}
+        </MemoryRouter>
       </Provider>
     );
   }

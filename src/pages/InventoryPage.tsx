@@ -2,7 +2,6 @@
  * Inventory management page
  */
 import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
 import { shortcutLabel } from '../hooks/usePlatform';
@@ -37,7 +36,6 @@ import { computeRentedFromHistory, computeAvailable } from '../utils/inventoryUt
 
 export function InventoryPage() {
   const { currentBusinessId } = useCurrentBusiness();
-  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportPresetOpen, setIsImportPresetOpen] = useState(false);
   const [isCreatePresetOpen, setIsCreatePresetOpen] = useState(false);
@@ -223,7 +221,7 @@ export function InventoryPage() {
           columns={columns}
           rows={filteredInventory}
           rowKey={item => item._id}
-          onRowClick={item => navigate(`/inventory/${item._id}`)}
+          rowLink={item => `/inventory/${item._id}`}
           empty={
             (inventory || []).length === 0 ? (
               <EmptyState

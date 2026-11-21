@@ -261,5 +261,6 @@ export const {
   useGetItemsWithPartyQuery,
   useGetChallansByAgreementQuery,
   useLazyGetChallanPdfQuery,
+  useLazyGetChallansPageQuery,
   useExtractChallanFromPhotoMutation,
 } = challanApi;

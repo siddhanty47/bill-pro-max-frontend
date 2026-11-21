@@ -2,7 +2,6 @@
  * Challans management page
  */
 import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
@@ -60,7 +59,6 @@ function TypeDot({ type }: { type: Challan['type'] }) {
 export function ChallansPage() {
   const { currentBusinessId } = useCurrentBusiness();
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalVariant, setModalVariant] = useState<ModalVariant>('delivery');
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,22 +73,21 @@ export function ChallansPage() {
   const [lastTotal, setLastTotal] = useState<number | undefined>(undefined);
   const [page, setPage] = useListPage(filtersKey, lastTotal);
 
+  // The paged query's args minus `page`; also the source detail pages re-fetch from to step.
+  const listArgs = {
+    businessId: currentBusinessId || '',
+    pageSize: LIST_PAGE_SIZE,
+    search: search || undefined,
+    status: statusFilter || undefined,
+    type,
+  };
   const {
     data: pageData,
+    currentData,
     isLoading,
     error,
     refetch,
-  } = useGetChallansPageQuery(
-    {
-      businessId: currentBusinessId || '',
-      page,
-      pageSize: LIST_PAGE_SIZE,
-      search: search || undefined,
-      status: statusFilter || undefined,
-      type,
-    },
-    { skip: !currentBusinessId }
-  );
+  } = useGetChallansPageQuery({ ...listArgs, page }, { skip: !currentBusinessId });
   if (pageData && pageData.total !== lastTotal) setLastTotal(pageData.total);
   const hasFilters = Boolean(search || type || statusFilter);
 
@@ -291,8 +288,10 @@ export function ChallansPage() {
             pageSize: LIST_PAGE_SIZE,
             total: pageData?.total ?? 0,
             onPageChange: setPage,
+            // Only while the rows match these args; stale rows get page-only context.
+            navSource: currentData ? { list: 'challans', args: listArgs } : undefined,
           }}
-          onRowClick={c => navigate(`/challans/${c._id}`)}
+          rowLink={c => `/challans/${c._id}`}
           empty={
             !hasFilters ? (
               <EmptyState

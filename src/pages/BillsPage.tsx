@@ -2,7 +2,6 @@
  * Bills management page
  */
 import { useState, useRef, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
@@ -47,7 +46,6 @@ import styles from './BillsPage.module.css';
 
 export function BillsPage() {
   const { currentBusinessId } = useCurrentBusiness();
-  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,21 +58,20 @@ export function BillsPage() {
   const [lastTotal, setLastTotal] = useState<number | undefined>(undefined);
   const [page, setPage] = useListPage(filtersKey, lastTotal);
 
+  // The paged query's args minus `page`; also the source detail pages re-fetch from to step.
+  const listArgs = {
+    businessId: currentBusinessId || '',
+    pageSize: LIST_PAGE_SIZE,
+    search: search || undefined,
+    status: statusFilter || undefined,
+  };
   const {
     data: pageData,
+    currentData,
     isLoading,
     error,
     refetch,
-  } = useGetBillsPageQuery(
-    {
-      businessId: currentBusinessId || '',
-      page,
-      pageSize: LIST_PAGE_SIZE,
-      search: search || undefined,
-      status: statusFilter || undefined,
-    },
-    { skip: !currentBusinessId }
-  );
+  } = useGetBillsPageQuery({ ...listArgs, page }, { skip: !currentBusinessId });
   if (pageData && pageData.total !== lastTotal) setLastTotal(pageData.total);
   const hasFilters = Boolean(search || statusFilter);
   const bills = pageData?.rows ?? [];
@@ -355,8 +352,10 @@ export function BillsPage() {
             pageSize: LIST_PAGE_SIZE,
             total: pageData?.total ?? 0,
             onPageChange: setPage,
+            // Only while the rows match these args; stale rows get page-only context.
+            navSource: currentData ? { list: 'bills', args: listArgs } : undefined,
           }}
-          onRowClick={bill => navigate(`/bills/${bill._id}`)}
+          rowLink={bill => `/bills/${bill._id}`}
           empty={
             !hasFilters ? (
               <EmptyState
