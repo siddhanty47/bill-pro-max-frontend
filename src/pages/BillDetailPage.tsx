@@ -382,6 +382,7 @@ export function BillDetailPage() {
 
   return (
     <DetailPageShell
+      recordNoun="bill"
       title={bill?.billNumber || 'Bill'}
       status={status}
       backTo="/bills"

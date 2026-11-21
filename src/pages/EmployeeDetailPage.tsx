@@ -196,6 +196,7 @@ export function EmployeeDetailPage() {
 
   return (
     <DetailPageShell
+      recordNoun="employee"
       title={employee?.name || 'Employee'}
       status={employee ? (employee.isActive ? 'active' : 'inactive') : undefined}
       backTo="/team"

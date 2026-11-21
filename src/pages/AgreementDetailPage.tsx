@@ -337,6 +337,7 @@ export function AgreementDetailPage() {
 
   return (
     <DetailPageShell
+      recordNoun="agreement"
       title={agreement?.agreementId || 'Agreement'}
       status={agreement?.status}
       backTo="/agreements"

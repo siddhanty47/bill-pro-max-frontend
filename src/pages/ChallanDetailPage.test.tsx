@@ -128,6 +128,23 @@ function allowBlobInStore() {
 
 afterEach(() => vi.restoreAllMocks());
 
+describe('ChallanDetailPage record navigation', () => {
+  it('steps through the list it was opened from', async () => {
+    useApi();
+    renderWithProviders(
+      <Routes>
+        <Route path="/challans/:challanId" element={<ChallanDetailPage />} />
+      </Routes>,
+      {
+        preloadedState: signedIn(),
+        route: '/challans/c1',
+        routeState: { recordNav: { paths: ['/challans/c1', '/challans/c2'], index: 0 } },
+      }
+    );
+    expect(await screen.findByRole('button', { name: 'Next challan' })).toBeEnabled();
+  });
+});
+
 describe('ChallanDetailPage', () => {
   it('shows a spinner while loading', () => {
     useApi();

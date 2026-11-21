@@ -72,7 +72,13 @@ function useApi(items: Party[] = defaults) {
 }
 
 function Where() {
-  return <div data-testid="where">{useLocation().pathname}</div>;
+  const { pathname, state } = useLocation();
+  return (
+    <>
+      <div data-testid="where">{pathname}</div>
+      <div data-testid="state">{JSON.stringify(state)}</div>
+    </>
+  );
 }
 
 function renderPage() {
@@ -186,6 +192,18 @@ describe('PartiesPage', () => {
     const table = await screen.findByRole('table');
     await user.click(within(table).getByText('Steel Traders'));
     expect(screen.getByTestId('where')).toHaveTextContent('/parties/p2');
+  });
+
+  it('carries the filtered rows as navigation context when a row is opened', async () => {
+    useApi();
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await user.type(screen.getByRole('searchbox', { name: 'Search parties' }), 'in');
+    await waitFor(() => expect(rowCodes()).toHaveLength(2));
+    await user.click(within(screen.getByRole('table')).getByText('Steel Traders'));
+    const { recordNav } = JSON.parse(screen.getByTestId('state').textContent ?? '');
+    expect(recordNav.paths).toHaveLength(2);
+    expect(recordNav.paths).toContain('/parties/p2');
   });
 
   it('opens the add party modal from the button and Alt+N', async () => {

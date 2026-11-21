@@ -3,7 +3,6 @@
  * Lists all agreements across all parties; editing happens on the detail page.
  */
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
 import { useGetAgreementsQuery } from '../api/agreementApi';
@@ -30,7 +29,6 @@ const dateOf = (d: string | undefined) => (d ? formatDate(d) || '—' : '—');
 
 export function AgreementsPage() {
   const { currentBusinessId } = useCurrentBusiness();
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
@@ -147,7 +145,7 @@ export function AgreementsPage() {
           columns={columns}
           rows={filteredAgreements}
           rowKey={a => a.agreementId}
-          onRowClick={a => navigate(`/agreements/${a.agreementId}`)}
+          rowLink={a => `/agreements/${a.agreementId}`}
           empty={
             (agreements || []).length === 0 ? (
               <EmptyState

@@ -351,6 +351,7 @@ export function InventoryDetailPage() {
 
   return (
     <DetailPageShell
+      recordNoun="inventory item"
       title={item?.name || 'Item'}
       status={item ? (item.isActive ? 'active' : 'inactive') : undefined}
       backTo="/inventory"

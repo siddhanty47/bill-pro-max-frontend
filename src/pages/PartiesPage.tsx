@@ -2,7 +2,6 @@
  * Parties management page
  */
 import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
 import { shortcutLabel } from '../hooks/usePlatform';
@@ -40,7 +39,6 @@ import styles from './PartiesPage.module.css';
 
 export function PartiesPage() {
   const { currentBusinessId } = useCurrentBusiness();
-  const navigate = useNavigate();
   const [isPartyModalOpen, setIsPartyModalOpen] = useState(false);
   const [isAgreementModalOpen, setIsAgreementModalOpen] = useState(false);
   const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
@@ -251,7 +249,7 @@ export function PartiesPage() {
           columns={columns}
           rows={filteredParties}
           rowKey={party => party._id}
-          onRowClick={party => navigate(`/parties/${party._id}`)}
+          rowLink={party => `/parties/${party._id}`}
           empty={
             (parties || []).length === 0 ? (
               <EmptyState

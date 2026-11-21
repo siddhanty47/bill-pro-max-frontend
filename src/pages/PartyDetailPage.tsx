@@ -448,6 +448,7 @@ export function PartyDetailPage() {
 
   return (
     <DetailPageShell
+      recordNoun="party"
       title={party?.name || 'Party'}
       status={party ? (party.isActive ? 'active' : 'inactive') : undefined}
       backTo="/parties"

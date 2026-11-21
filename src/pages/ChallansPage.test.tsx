@@ -97,7 +97,13 @@ function useApi(challans: Challan[] = defaults) {
 }
 
 function Where() {
-  return <div data-testid="where">{useLocation().pathname}</div>;
+  const { pathname, state } = useLocation();
+  return (
+    <>
+      <div data-testid="where">{pathname}</div>
+      <div data-testid="state">{JSON.stringify(state)}</div>
+    </>
+  );
 }
 
 function renderPage() {
@@ -258,6 +264,23 @@ describe('ChallansPage', () => {
     const table = await screen.findByRole('table');
     await user.click(within(table).getByText('Om Constructions'));
     expect(screen.getByTestId('where')).toHaveTextContent('/challans/c2');
+  });
+
+  it('carries the filtered list as navigation context when a row is opened', async () => {
+    useApi();
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await user.type(screen.getByRole('searchbox', { name: 'Search challans' }), 'D-');
+    await waitFor(() => expect(rowNumbers()).toEqual(['D-2026-27-0007', 'D-2026-27-0005']));
+    await user.click(within(screen.getByRole('table')).getByText('D-2026-27-0005'));
+    expect(screen.getByTestId('where')).toHaveTextContent('/challans/c3');
+    const { recordNav } = JSON.parse(screen.getByTestId('state').textContent ?? '');
+    expect(recordNav.paths).toEqual(['/challans/c1', '/challans/c3']);
+    expect(recordNav.index).toBe(1);
+    expect(recordNav.server.page).toBe(1);
+    expect(recordNav.server.source.list).toBe('challans');
+    expect(recordNav.server.source.args.search).toBe('D-');
+    expect(recordNav.server.source.args.businessId).toBe('biz-1');
   });
 
   it('opens the delivery and return modals from the header buttons', async () => {
