@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactElement } from 'react';
+import { renderWithProviders } from '../test/render';
 import { DetailField, DetailPageShell, DetailSection } from './DetailPageShell';
 
 const renderInRouter = (ui: ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
@@ -307,5 +308,48 @@ describe('DetailField list context nesting', () => {
     );
     expect(screen.getByText('A').parentElement?.tagName).toBe('DL');
     expect(screen.getByText('B').parentElement?.tagName).toBe('DL');
+  });
+});
+
+describe('DetailPageShell record pager', () => {
+  const nav = { recordNav: { paths: ['/x/1', '/x/2'], index: 0 } };
+
+  it('keeps the back link and pager beside the spinner while loading', () => {
+    renderWithProviders(
+      <DetailPageShell title="T" backTo="/x" backLabel="X" recordNoun="thing" isLoading>
+        body
+      </DetailPageShell>,
+      { route: '/x/1', routeState: nav }
+    );
+    expect(screen.getByRole('link', { name: 'Back to X' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Browse things' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next thing' })).toBeEnabled();
+    expect(screen.getByRole('status')).toBeInTheDocument();
+  });
+
+  it('keeps the back link and pager beside an error', () => {
+    renderWithProviders(
+      <DetailPageShell
+        title="T"
+        backTo="/x"
+        backLabel="X"
+        recordNoun="thing"
+        error={new Error('x')}
+      >
+        body
+      </DetailPageShell>,
+      { route: '/x/1', routeState: nav }
+    );
+    expect(screen.getByRole('link', { name: 'Back to X' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next thing' })).toBeEnabled();
+  });
+
+  it('renders no pager without recordNoun', () => {
+    renderWithProviders(
+      <DetailPageShell title="T" backTo="/x" backLabel="X">
+        body
+      </DetailPageShell>
+    );
+    expect(screen.queryByRole('navigation', { name: /Browse/ })).not.toBeInTheDocument();
   });
 });

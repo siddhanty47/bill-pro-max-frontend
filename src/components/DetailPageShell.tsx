@@ -1,6 +1,6 @@
 /**
  * @fileoverview Detail page building blocks
- * @description `DetailPageShell` (back link, title + status chip, header
+ * @description `DetailPageShell` (back link with optional prev/next record pager, title + status chip, header
  * actions, optional tabs, main column + sidebar), `DetailSection` (a kit Card) and
  * `DetailField` (a label/value row, optionally inline-editable via EditableField).
  * Built on the ui kit; see the "Detail page" recipe in the frontend-design skill.
@@ -29,6 +29,7 @@ import {
 } from './ui';
 import type { Tone } from './ui/status';
 import { EditableField } from './EditableField';
+import { RecordPager } from './RecordPager';
 import styles from './DetailPageShell.module.css';
 
 // ─── DetailPageShell ────────────────────────────────────────────────
@@ -51,6 +52,8 @@ export interface DetailPageShellProps {
   backTo: string;
   /** Label for the back link (e.g. "Inventory") */
   backLabel: string;
+  /** Singular noun (e.g. "challan"). When set, a prev/next RecordPager renders right of the back link. */
+  recordNoun?: string;
   /** Whether data is loading */
   isLoading?: boolean;
   /** Spinner message while loading (default "Loading…") */
@@ -81,6 +84,7 @@ export function DetailPageShell({
   statusTone,
   backTo,
   backLabel,
+  recordNoun,
   isLoading,
   loadingLabel,
   error,
@@ -95,12 +99,32 @@ export function DetailPageShell({
 }: DetailPageShellProps) {
   const [ownTab, setOwnTab] = useState(tabs?.[0]?.id);
 
+  const topRow = (
+    <div className={styles.topRow}>
+      <Link to={backTo} className={styles.back} aria-label={`Back to ${backLabel}`}>
+        <Icon name="arrow-left" size={14} />
+        {backLabel}
+      </Link>
+      {recordNoun && <RecordPager noun={recordNoun} />}
+    </div>
+  );
+
   if (isLoading) {
-    return <Spinner message={loadingLabel} />;
+    return (
+      <div>
+        {topRow}
+        <Spinner message={loadingLabel} />
+      </div>
+    );
   }
 
   if (error) {
-    return <ErrorMessage error={error} onRetry={onRetry} />;
+    return (
+      <div>
+        {topRow}
+        <ErrorMessage error={error} onRetry={onRetry} />
+      </div>
+    );
   }
 
   const currentTab = activeTab ?? (tabs?.some(t => t.id === ownTab) ? ownTab : tabs?.[0]?.id);
@@ -111,10 +135,7 @@ export function DetailPageShell({
 
   return (
     <div>
-      <Link to={backTo} className={styles.back} aria-label={`Back to ${backLabel}`}>
-        <Icon name="arrow-left" size={14} />
-        {backLabel}
-      </Link>
+      {topRow}
 
       <PageHeader
         title={title}
