@@ -7,7 +7,8 @@ import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
 import { DocumentNumberBadge } from '../DocumentNumberBadge';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { Party, GenerateBillInput } from '../../types';
+import type { Party, GenerateBillInput, Agreement } from '../../types';
+import { formatDate } from '../../utils/format';
 import { useCurrentBusiness } from '../../hooks/useCurrentBusiness';
 import { useGetNextBillNumberQuery } from '../../api/billApi';
 import { Button, Field, Input, Select, Textarea } from '../ui';
@@ -30,6 +31,14 @@ const billSchema = z.object({
 });
 
 type FormData = z.infer<typeof billSchema>;
+
+/**
+ * Agreements a bill can be made for: active ones, and one closed by a rate change (for the
+ * days before its successor started).
+ */
+function isBillable(a: Agreement): boolean {
+  return a.status === 'active' || (a.status === 'expired' && Boolean(a.nextAgreementId));
+}
 
 interface BillFormProps {
   parties: Party[];
@@ -69,7 +78,7 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
   const periodStart = useWatch({ control, name: 'periodStart' });
   const taxMode = useWatch({ control, name: 'taxMode' });
   const selectedParty = parties.find(p => p._id === selectedPartyId);
-  const activeAgreements = selectedParty?.agreements?.filter(a => a.status === 'active') || [];
+  const activeAgreements = selectedParty?.agreements?.filter(isBillable) || [];
   const selectedAgreement = activeAgreements.find(a => a.agreementId === agreementId);
 
   // Fetch predicted next bill number
@@ -247,7 +256,11 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
                 <option value="">Select agreement…</option>
                 {activeAgreements.map(agreement => (
                   <option key={agreement.agreementId} value={agreement.agreementId}>
-                    {agreement.agreementId} ({agreement.terms.billingCycle})
+                    {agreement.agreementId} ({agreement.terms.billingCycle}
+                    {agreement.status !== 'active' && agreement.endDate
+                      ? `, until ${formatDate(agreement.endDate, { year: 'always' })}`
+                      : ''}
+                    )
                   </option>
                 ))}
               </Select>

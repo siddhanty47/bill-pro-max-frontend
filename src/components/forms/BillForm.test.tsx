@@ -130,6 +130,45 @@ describe('BillForm', () => {
     expect(screen.queryByRole('option', { name: /AG-0/ })).not.toBeInTheDocument();
   });
 
+  it('also lists an agreement closed by a rate change, with its end date', async () => {
+    const { user } = setup([
+      party({
+        agreements: [
+          {
+            agreementId: 'AG-2',
+            status: 'active',
+            siteCode: 'S1',
+            startDate: '2026-09-01T00:00:00.000Z',
+            previousAgreementId: 'AG-1',
+            terms: { billingCycle: 'monthly' },
+          },
+          {
+            agreementId: 'AG-1',
+            status: 'expired',
+            siteCode: 'S1',
+            endDate: '2026-08-31T00:00:00.000Z',
+            nextAgreementId: 'AG-2',
+            terms: { billingCycle: 'monthly' },
+          },
+          {
+            agreementId: 'AG-0',
+            status: 'expired',
+            siteCode: 'S1',
+            terms: { billingCycle: 'weekly' },
+          },
+        ],
+      } as unknown as Partial<Party>),
+    ]);
+
+    await pickParty(user);
+
+    expect(screen.getByRole('option', { name: /AG-2 \(monthly\)/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: /AG-1 \(monthly, until 31 Aug 2026\)/ })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /AG-0/ })).not.toBeInTheDocument();
+  });
+
   it('shows required messages and does not submit', async () => {
     const { user, onSubmit } = setup();
     await user.click(submit());

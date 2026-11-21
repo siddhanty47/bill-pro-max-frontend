@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { AgreementDetailPage } from './AgreementDetailPage';
@@ -359,5 +359,103 @@ describe('AgreementDetailPage', () => {
     const { user } = renderPage();
     await openTab(user, /Change history/);
     await waitFor(() => expect(historyUrl).toContain('/audit-logs/agreement/AG-001'));
+  });
+});
+
+describe('AgreementDetailPage change rates', () => {
+  it('changes rates from an active agreement and opens the new agreement', async () => {
+    useApi();
+    const bodies: unknown[] = [];
+    server.use(
+      http.post(apiUrl(`${BASE}/change-rates`), async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json(
+          {
+            success: true,
+            data: {
+              previous: makeAgreement({ status: 'expired', nextAgreementId: 'AG-002' }),
+              agreement: makeAgreement({ agreementId: 'AG-002', previousAgreementId: 'AG-001' }),
+            },
+          },
+          { status: 201 }
+        );
+      }),
+      http.get(apiUrl('/businesses/biz-1/agreements/AG-002'), () =>
+        ok(makeAgreement({ agreementId: 'AG-002', previousAgreementId: 'AG-001' }))
+      ),
+      http.get(apiUrl('/businesses/biz-1/agreements/AG-002/rates'), () => ok(rates))
+    );
+    const { user } = renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Change rates' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText(/New rates from/), {
+      target: { value: '2026-09-01' },
+    });
+    await user.clear(within(dialog).getByLabelText('New rate for Ladder 1.5m'));
+    await user.type(within(dialog).getByLabelText('New rate for Ladder 1.5m'), '6');
+    await user.click(within(dialog).getByRole('button', { name: 'Change rates' }));
+
+    // the new agreement's page links back to the one it replaced
+    expect(await screen.findByRole('link', { name: 'AG-001' })).toHaveAttribute(
+      'href',
+      '/agreements/AG-001'
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(bodies).toEqual([
+      { effectiveDate: '2026-09-01', rates: [{ itemId: 'i1', ratePerDay: 6 }] },
+    ]);
+  });
+
+  it("shows the server's reason when the change is refused", async () => {
+    useApi();
+    server.use(
+      http.post(apiUrl(`${BASE}/change-rates`), () =>
+        HttpResponse.json(
+          {
+            success: false,
+            error: { message: 'Delete bill(s) B-9 first: they cover 2026-09-01 or later' },
+          },
+          { status: 409 }
+        )
+      )
+    );
+    const { user } = renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Change rates' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText(/New rates from/), {
+      target: { value: '2026-09-01' },
+    });
+    await user.click(within(dialog).getByRole('button', { name: 'Change rates' }));
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('B-9');
+  });
+
+  it('links an expired agreement to the one that replaced it, without a change rates button', async () => {
+    useApi({
+      agreement: makeAgreement({
+        status: 'expired',
+        endDate: '2026-08-31T00:00:00.000Z',
+        nextAgreementId: 'AG-002',
+      }),
+    });
+    renderPage();
+
+    expect(await screen.findByRole('link', { name: 'AG-002' })).toHaveAttribute(
+      'href',
+      '/agreements/AG-002'
+    );
+    expect(screen.queryByRole('button', { name: 'Change rates' })).not.toBeInTheDocument();
+  });
+
+  it('links a successor to the agreement it replaced', async () => {
+    useApi({ agreement: makeAgreement({ previousAgreementId: 'AG-000' }) });
+    renderPage();
+
+    expect(await screen.findByRole('link', { name: 'AG-000' })).toHaveAttribute(
+      'href',
+      '/agreements/AG-000'
+    );
   });
 });

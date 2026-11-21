@@ -168,6 +168,10 @@ export interface Agreement {
   status: 'active' | 'expired' | 'terminated';
   terms: AgreementTerms;
   rates: AgreementRate[];
+  /** Agreement this one replaced on the same site (rate change) */
+  previousAgreementId?: string;
+  /** Agreement that replaced this one on the same site (rate change) */
+  nextAgreementId?: string;
   createdAt: string;
 }
 
@@ -303,7 +307,18 @@ export interface AgreementWithParty {
   status: 'active' | 'expired' | 'terminated';
   terms: AgreementTerms;
   rates: AgreementRate[];
+  /** Agreement this one replaced on the same site (rate change) */
+  previousAgreementId?: string;
+  /** Agreement that replaced this one on the same site (rate change) */
+  nextAgreementId?: string;
   createdAt: string;
+}
+
+/** POST /agreements/:agreementId/change-rates body; items left out keep their rate */
+export interface ChangeAgreementRatesInput {
+  /** YYYY-MM-DD: first day of the new rates */
+  effectiveDate: string;
+  rates: { itemId: string; ratePerDay: number }[];
 }
 
 export interface AgreementRateWithItem {

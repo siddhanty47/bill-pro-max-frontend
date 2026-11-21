@@ -9,6 +9,7 @@ import type {
   AgreementRateWithItem,
   AddAgreementRateInput,
   UpdateAgreementRateInput,
+  ChangeAgreementRatesInput,
 } from '../types';
 
 export const agreementApi = baseApi.injectEndpoints({
@@ -48,6 +49,32 @@ export const agreementApi = baseApi.injectEndpoints({
         { type: 'Agreement', id: agreementId },
         'Agreement',
         'Party',
+        'AuditLog',
+        'SearchIndex',
+      ],
+    }),
+
+    /**
+     * Change rates: closes the agreement the day before `effectiveDate` and opens a successor
+     * for the same site. Returns both.
+     */
+    changeAgreementRates: builder.mutation<
+      { previous: AgreementWithParty; agreement: AgreementWithParty },
+      { businessId: string; agreementId: string; data: ChangeAgreementRatesInput }
+    >({
+      query: ({ businessId, agreementId, data }) => ({
+        url: `/businesses/${businessId}/agreements/${agreementId}/change-rates`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (
+        response: ApiResponse<{ previous: AgreementWithParty; agreement: AgreementWithParty }>
+      ) => response.data,
+      invalidatesTags: (_result, _error, { agreementId }) => [
+        { type: 'Agreement', id: agreementId },
+        'Agreement',
+        'Party',
+        'Bill',
         'AuditLog',
         'SearchIndex',
       ],
@@ -119,4 +146,5 @@ export const {
   useGetAgreementRatesQuery,
   useAddAgreementRateMutation,
   useUpdateAgreementRateMutation,
+  useChangeAgreementRatesMutation,
 } = agreementApi;
