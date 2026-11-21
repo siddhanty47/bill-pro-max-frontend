@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
 import { Button, Field, Input, Select, Textarea } from '../ui';
 import { formatMoney } from '../../utils/format';
+import { DEFAULT_SITE_LABEL } from '../../utils/sites';
 import styles from './PaymentForm.module.css';
 import type { Party, Bill, CreatePaymentInput } from '../../types';
 
@@ -15,6 +16,8 @@ const paymentSchema = z.object({
   type: z.enum(['receivable', 'payable']),
   partyId: z.string().min(1, 'Select a party'),
   billId: z.string().optional(),
+  /** '' = the default site (party address) */
+  siteCode: z.string().optional(),
   amount: z.number({ error: 'Enter an amount' }).min(0.01, 'Amount must be positive'),
   method: z.enum(['cash', 'bank_transfer', 'upi', 'cheque', 'other']),
   reference: z.string().max(100).optional(),
@@ -23,6 +26,20 @@ const paymentSchema = z.object({
 });
 
 type FormData = z.infer<typeof paymentSchema>;
+
+/**
+ * Site an on-account payment starts on: the only site of a one-site party with no default-site
+ * opening, else the default site ('').
+ */
+function defaultSiteFor(party?: Party): string {
+  const sites = party?.sites ?? [];
+  const rows = party?.openingBalanceSites ?? [];
+  // A legacy total with no rows sits on the default site
+  const hasDefaultOpening = rows.length
+    ? rows.some(r => r.siteCode === null)
+    : !!party?.openingBalance;
+  return sites.length === 1 && !hasDefaultOpening ? sites[0].code : '';
+}
 
 interface PaymentFormProps {
   parties: Party[];
@@ -46,6 +63,7 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
       type: 'receivable',
       method: 'bank_transfer',
       date: new Date().toISOString().split('T')[0],
+      siteCode: '',
     },
   });
 
@@ -76,9 +94,10 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
     (item: AutocompleteItem) => {
       setValue('partyId', item.id);
       setValue('billId', '');
+      setValue('siteCode', defaultSiteFor(parties.find(p => p._id === item.id)));
       setPartySearchValue(item.code);
     },
-    [setValue]
+    [setValue, parties]
   );
 
   // Sync the party search box with the selected party (adjust state during render).
@@ -111,11 +130,28 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
       (b.status === 'sent' || b.status === 'partial' || b.status === 'overdue')
   );
 
+  const selectedParty = parties.find(p => p._id === selectedPartyId);
+  const selectedBillId = useWatch({ control, name: 'billId' });
+  // A bill payment belongs to the bill's site (the server decides; shown here locked)
+  const billSite = (() => {
+    if (!selectedBillId) return undefined;
+    const linked = bills.find(b => b._id === selectedBillId);
+    return (
+      selectedParty?.agreements?.find(a => a.agreementId === linked?.agreementId)?.siteCode ?? ''
+    );
+  })();
+  useEffect(() => {
+    if (billSite !== undefined) setValue('siteCode', billSite);
+  }, [billSite, setValue]);
+
   const handleFormSubmit = async (data: FormData) => {
+    const onAccountSite =
+      data.type === 'receivable' && !data.billId ? { siteCode: data.siteCode || null } : {};
     await onSubmit({
       type: data.type,
       partyId: data.partyId,
       billId: data.billId || undefined,
+      ...onAccountSite,
       amount: data.amount,
       method: data.method,
       reference: data.reference || undefined,
@@ -167,6 +203,19 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
                 {partyBills.map(bill => (
                   <option key={bill._id} value={bill._id}>
                     {bill.billNumber} - {formatMoney(bill.totalAmount - bill.amountPaid)} due
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
+
+          {paymentType === 'receivable' && selectedParty && (
+            <Field label="Site">
+              <Select {...register('siteCode')} disabled={isLoading || billSite !== undefined}>
+                <option value="">{DEFAULT_SITE_LABEL}</option>
+                {(selectedParty.sites ?? []).map(site => (
+                  <option key={site.code} value={site.code}>
+                    {site.code} – {site.address}
                   </option>
                 ))}
               </Select>
