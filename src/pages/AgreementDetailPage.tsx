@@ -5,7 +5,7 @@
  * editing for status, dates, terms, and per-item rate values.
  */
 import { useState, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import styles from './AgreementDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
@@ -13,11 +13,15 @@ import {
   useGetAgreementRatesQuery,
   useUpdateAgreementMutation,
   useUpdateAgreementRateMutation,
+  useChangeAgreementRatesMutation,
 } from '../api/agreementApi';
+import { getErrorMessage } from '../api/baseApi';
+import { ChangeRatesForm } from '../components/forms/ChangeRatesForm';
 import { useGetItemsWithPartyQuery, useGetChallansByAgreementQuery } from '../api/challanApi';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import { EditableField } from '../components/EditableField';
 import {
+  Button,
   Card,
   DataTable,
   DocNumber,
@@ -26,13 +30,20 @@ import {
   Menu,
   MenuItem,
   MenuLabel,
+  Modal,
   StatusChip,
   TextLink,
   type Column,
 } from '../components/ui';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { formatDate, formatMoney } from '../utils/format';
-import type { AgreementRate, AgreementRateWithItem, Challan, ItemWithParty } from '../types';
+import type {
+  AgreementRate,
+  AgreementRateWithItem,
+  ChangeAgreementRatesInput,
+  Challan,
+  ItemWithParty,
+} from '../types';
 
 /** Status options matching EditAgreementForm */
 const STATUS_OPTIONS = [
@@ -95,6 +106,29 @@ export function AgreementDetailPage() {
 
   const [updateAgreement, { isLoading: isSaving }] = useUpdateAgreementMutation();
   const [updateRate] = useUpdateAgreementRateMutation();
+  const [changeRates, { isLoading: isChangingRates }] = useChangeAgreementRatesMutation();
+  const navigate = useNavigate();
+  const [isChangeRatesOpen, setChangeRatesOpen] = useState(false);
+  const [changeRatesError, setChangeRatesError] = useState<string | undefined>();
+
+  /** Close this agreement and open its successor with the new rates, then go there. */
+  const handleChangeRates = useCallback(
+    async (data: ChangeAgreementRatesInput) => {
+      setChangeRatesError(undefined);
+      try {
+        const { agreement: next } = await changeRates({
+          businessId: currentBusinessId!,
+          agreementId: agreementId!,
+          data,
+        }).unwrap();
+        setChangeRatesOpen(false);
+        navigate(`/agreements/${next.agreementId}`);
+      } catch (err) {
+        setChangeRatesError(getErrorMessage(err));
+      }
+    },
+    [changeRates, currentBusinessId, agreementId, navigate]
+  );
 
   /** Tracks which rate row is currently being saved */
   const [savingRateItemId, setSavingRateItemId] = useState<string | null>(null);
@@ -352,14 +386,26 @@ export function AgreementDetailPage() {
       sidebar={sidebar}
       headerActions={
         agreement ? (
-          <Menu trigger={p => <IconButton label="More actions" icon="more" {...p} />}>
-            <MenuLabel>Set status</MenuLabel>
-            {STATUS_OPTIONS.filter(o => o.value !== agreement.status).map(o => (
-              <MenuItem key={o.value} onSelect={() => handleSave('status', o.value)}>
-                {o.label}
-              </MenuItem>
-            ))}
-          </Menu>
+          <>
+            {agreement.status === 'active' && (
+              <Button
+                onClick={() => {
+                  setChangeRatesError(undefined);
+                  setChangeRatesOpen(true);
+                }}
+              >
+                Change rates
+              </Button>
+            )}
+            <Menu trigger={p => <IconButton label="More actions" icon="more" {...p} />}>
+              <MenuLabel>Set status</MenuLabel>
+              {STATUS_OPTIONS.filter(o => o.value !== agreement.status).map(o => (
+                <MenuItem key={o.value} onSelect={() => handleSave('status', o.value)}>
+                  {o.label}
+                </MenuItem>
+              ))}
+            </Menu>
+          </>
         ) : undefined
       }
     >
@@ -388,6 +434,30 @@ export function AgreementDetailPage() {
                     isSaving,
                   }}
                 />
+                {agreement.previousAgreementId && (
+                  <DetailField
+                    label="Previous agreement"
+                    value={
+                      <DocNumber
+                        value={agreement.previousAgreementId}
+                        to={`/agreements/${agreement.previousAgreementId}`}
+                        wrap
+                      />
+                    }
+                  />
+                )}
+                {agreement.nextAgreementId && (
+                  <DetailField
+                    label="Next agreement"
+                    value={
+                      <DocNumber
+                        value={agreement.nextAgreementId}
+                        to={`/agreements/${agreement.nextAgreementId}`}
+                        wrap
+                      />
+                    }
+                  />
+                )}
               </DetailSection>
 
               <DetailSection title="Terms">
@@ -503,6 +573,34 @@ export function AgreementDetailPage() {
             <ChangeHistoryTable documentType="agreement" documentId={agreementId!} />
           )}
         </>
+      )}
+      {agreement && (
+        <Modal
+          isOpen={isChangeRatesOpen}
+          onClose={() => setChangeRatesOpen(false)}
+          title="Change rates"
+          size="form"
+        >
+          <ChangeRatesForm
+            agreementId={agreement.agreementId}
+            startDate={agreement.startDate}
+            rates={
+              rates ??
+              agreement.rates.map(r => ({
+                itemId: r.itemId,
+                itemCode: '',
+                itemName: r.itemId,
+                itemCategory: '',
+                ratePerDay: r.ratePerDay,
+                openingBalance: r.openingBalance ?? 0,
+              }))
+            }
+            onSubmit={handleChangeRates}
+            onCancel={() => setChangeRatesOpen(false)}
+            isLoading={isChangingRates}
+            error={changeRatesError}
+          />
+        </Modal>
       )}
     </DetailPageShell>
   );
