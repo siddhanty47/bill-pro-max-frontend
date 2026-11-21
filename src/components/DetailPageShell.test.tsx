@@ -344,6 +344,24 @@ describe('DetailPageShell record pager', () => {
     expect(screen.getByRole('button', { name: 'Next thing' })).toBeEnabled();
   });
 
+  it('shows the back link and no pager without recordNoun while loading or on error', () => {
+    const { unmount } = renderWithProviders(
+      <DetailPageShell title="T" backTo="/x" backLabel="X" isLoading>
+        body
+      </DetailPageShell>
+    );
+    expect(screen.getByRole('link', { name: 'Back to X' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: /Browse/ })).not.toBeInTheDocument();
+    unmount();
+    renderWithProviders(
+      <DetailPageShell title="T" backTo="/x" backLabel="X" error={new Error('x')}>
+        body
+      </DetailPageShell>
+    );
+    expect(screen.getByRole('link', { name: 'Back to X' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: /Browse/ })).not.toBeInTheDocument();
+  });
+
   it('renders no pager without recordNoun', () => {
     renderWithProviders(
       <DetailPageShell title="T" backTo="/x" backLabel="X">

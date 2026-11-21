@@ -5,7 +5,7 @@
  * list (challans, bills) it fetches the adjacent page. Navigates with `replace` so
  * browser Back returns to the table. Hotkeys: `[` previous, `]` next.
  */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useLazyGetBillsPageQuery } from '../api/billApi';
 import { useLazyGetChallansPageQuery } from '../api/challanApi';
@@ -28,6 +28,14 @@ export function RecordPager({ noun }: { noun: string }) {
   const [fetchChallans] = useLazyGetChallansPageQuery();
   const [fetchBills] = useLazyGetBillsPageQuery();
   const busyRef = useRef(false);
+  // Latest location key, so a fetch that outlives its page (Back, unmount) never navigates.
+  const keyRef = useRef(location.key);
+  useEffect(() => {
+    keyRef.current = location.key;
+    return () => {
+      keyRef.current = '';
+    };
+  }, [location.key]);
   const [busy, setBusy] = useState(false);
 
   const prevStep = nav ? navStep(nav, -1) : null;
@@ -43,6 +51,7 @@ export function RecordPager({ noun }: { noun: string }) {
     }
     const { server } = nav;
     if (!server) return;
+    const startKey = location.key;
     busyRef.current = true;
     setBusy(true);
     try {
@@ -51,6 +60,7 @@ export function RecordPager({ noun }: { noun: string }) {
         source.list === 'challans'
           ? await fetchChallans({ ...source.args, page: s.page }).unwrap()
           : await fetchBills({ ...source.args, page: s.page }).unwrap();
+      if (keyRef.current !== startKey) return;
       const paths = result.rows.map(row => SERVER_ROW_PATH[source.list](row._id));
       const next = navFromPage({ ...server, total: result.total }, s.page, paths, s.land);
       if (next) {

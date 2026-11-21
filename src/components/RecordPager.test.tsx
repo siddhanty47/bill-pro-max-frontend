@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
-import { Route, Routes, useLocation, useNavigationType } from 'react-router-dom';
+import { delay, http, HttpResponse } from 'msw';
+import { Route, Routes, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import { RecordPager } from './RecordPager';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
@@ -202,6 +202,42 @@ describe('RecordPager', () => {
       fireEvent.click(next);
       await waitFor(() => expect(path()).toBe('/challans/c26'));
       expect(hits).toBe(1);
+    });
+
+    it('does not navigate after the user left while the fetch was in flight', async () => {
+      server.use(
+        http.get(apiUrl('/businesses/biz-1/challans'), async ({ request }) => {
+          await delay(80);
+          return pagedOk(rows, request);
+        })
+      );
+      function Leave() {
+        const navigate = useNavigate();
+        return (
+          <button type="button" onClick={() => navigate('/elsewhere')}>
+            leave
+          </button>
+        );
+      }
+      const { user } = renderWithProviders(
+        <Routes>
+          <Route
+            path="*"
+            element={
+              <>
+                <RecordPager noun="challan" />
+                <Leave />
+                <Probe />
+              </>
+            }
+          />
+        </Routes>,
+        { route: '/challans/c25', routeState: serverState(1, 24), preloadedState: signedIn() }
+      );
+      await user.click(screen.getByRole('button', { name: 'Next challan' }));
+      await user.click(screen.getByRole('button', { name: 'leave' }));
+      await new Promise(r => setTimeout(r, 200));
+      expect(path()).toBe('/elsewhere');
     });
 
     it('uses the bills endpoint and paths for a bills source', async () => {
