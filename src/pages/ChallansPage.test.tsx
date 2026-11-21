@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, within, waitFor } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { ChallansPage } from './ChallansPage';
 import { renderWithProviders, signedIn } from '../test/render';
@@ -283,6 +283,27 @@ describe('ChallansPage', () => {
     expect(recordNav.server.source.args.businessId).toBe('biz-1');
   });
 
+  it('gives stale rows page-only context while a new search is in flight', async () => {
+    useApi();
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    let inFlight = false;
+    server.use(
+      http.get(apiUrl('/businesses/biz-1/challans'), async () => {
+        inFlight = true;
+        await delay(400);
+        return pagedOk([], new Request('http://x/?page=1&pageSize=25'));
+      })
+    );
+    await user.type(screen.getByRole('searchbox', { name: 'Search challans' }), 'D');
+    await waitFor(() => expect(inFlight).toBe(true));
+    const table = screen.getByRole('table');
+    await user.click(within(table).getAllByRole('link')[0]);
+    const { recordNav } = JSON.parse(screen.getByTestId('state').textContent ?? '');
+    expect(recordNav.paths.length).toBeGreaterThan(1);
+    expect(recordNav.server).toBeUndefined();
+  });
+
   it('opens the delivery and return modals from the header buttons', async () => {
     useApi();
     const { user } = renderPage();
@@ -358,9 +379,7 @@ describe('ChallansPage', () => {
     await user.click(within(nav).getByRole('button', { name: 'Page 2' }));
     await waitFor(() => expect(rowNumbers()).toHaveLength(5));
     expect(rowNumbers()[0]).toBe('D-2026-27-0005');
-    expect(screen.getByRole('navigation', { name: 'Challans pages' })).toHaveTextContent(
-      'Showing 26–30 of 30'
-    );
+    expect(nav).toHaveTextContent('Showing 26–30 of 30');
 
     // A new filter starts again from page 1.
     await user.selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'confirmed');

@@ -82,13 +82,13 @@ export function ChallansPage() {
     type,
   };
   const {
-    data,
-    currentData: pageData,
+    data: pageData,
+    currentData,
     isLoading,
     error,
     refetch,
   } = useGetChallansPageQuery({ ...listArgs, page }, { skip: !currentBusinessId });
-  if (data && data.total !== lastTotal) setLastTotal(data.total);
+  if (pageData && pageData.total !== lastTotal) setLastTotal(pageData.total);
   const hasFilters = Boolean(search || type || statusFilter);
 
   const { data: parties } = useGetPartiesQuery(currentBusinessId || '', {
@@ -278,46 +278,43 @@ export function ChallansPage() {
       </FilterBar>
 
       <Card padded={false}>
-        {pageData ? (
-          <DataTable
-            aria-label="Challans"
-            columns={columns}
-            rows={challans}
-            rowKey={c => c._id}
-            pagination={{
-              page,
-              pageSize: LIST_PAGE_SIZE,
-              total: pageData?.total ?? 0,
-              onPageChange: setPage,
-              navSource: { list: 'challans', args: listArgs },
-            }}
-            rowLink={c => `/challans/${c._id}`}
-            empty={
-              !hasFilters ? (
-                <EmptyState
-                  title="No challans yet"
-                  action={
-                    <Button variant="primary" icon="plus" onClick={handleCreateDelivery}>
-                      New delivery
-                    </Button>
-                  }
-                />
-              ) : (
-                <EmptyState title="No challans match these filters" />
-              )
-            }
-            mobile={{
-              leading: c => <TypeDot type={c.type} />,
-              title: c => <DocNumber value={c.challanNumber} to={`/challans/${c._id}`} />,
-              badge: c => <StatusChip status={c.status} />,
-              subtitle: c => getPartyName(c.partyId),
-              meta: c => [TYPE_LABEL[c.type], getSiteCode(c), formatDate(c.date), itemsLabel(c)],
-              actions: confirmButton,
-            }}
-          />
-        ) : (
-          <Spinner message="Loading challans…" />
-        )}
+        <DataTable
+          aria-label="Challans"
+          columns={columns}
+          rows={challans}
+          rowKey={c => c._id}
+          pagination={{
+            page,
+            pageSize: LIST_PAGE_SIZE,
+            total: pageData?.total ?? 0,
+            onPageChange: setPage,
+            // Only while the rows match these args; stale rows get page-only context.
+            navSource: currentData ? { list: 'challans', args: listArgs } : undefined,
+          }}
+          rowLink={c => `/challans/${c._id}`}
+          empty={
+            !hasFilters ? (
+              <EmptyState
+                title="No challans yet"
+                action={
+                  <Button variant="primary" icon="plus" onClick={handleCreateDelivery}>
+                    New delivery
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState title="No challans match these filters" />
+            )
+          }
+          mobile={{
+            leading: c => <TypeDot type={c.type} />,
+            title: c => <DocNumber value={c.challanNumber} to={`/challans/${c._id}`} />,
+            badge: c => <StatusChip status={c.status} />,
+            subtitle: c => getPartyName(c.partyId),
+            meta: c => [TYPE_LABEL[c.type], getSiteCode(c), formatDate(c.date), itemsLabel(c)],
+            actions: confirmButton,
+          }}
+        />
       </Card>
 
       <Modal
