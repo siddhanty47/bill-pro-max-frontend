@@ -60,7 +60,41 @@
   margin-top: var(--space-5);
 }
 
+/* Opening balance: one row per site (site, amount, remove) */
+.openingRows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.openingRow {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) auto;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.openingSite {
+  min-width: 0;
+}
+
+.openingRemove {
+  margin-bottom: var(--space-1);
+}
+
+.openingFooter {
+  display: flex;
+}
+
 @media (max-width: 768px) {
+  .openingRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .openingSite {
+    grid-column: 1 / -1;
+  }
+
   .columns,
   .nameCode,
   .pair {
