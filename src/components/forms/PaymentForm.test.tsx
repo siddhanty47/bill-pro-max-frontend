@@ -172,6 +172,16 @@ describe('PaymentForm', () => {
       expect(site).toBeDisabled();
     });
 
+    it('goes back to the default site when the bill is unlinked', async () => {
+      const { user } = setupSites(siteParty());
+      await pick(user, 'KSD');
+      await user.selectOptions(screen.getByLabelText(/link to bill/i), 'b9');
+      await user.selectOptions(screen.getByLabelText(/link to bill/i), '');
+      const site = screen.getByLabelText(/^site/i);
+      expect(site).toHaveValue('');
+      expect(site).not.toBeDisabled();
+    });
+
     it('preselects the only site of a one-site party', async () => {
       const { user, onSubmit } = setupSites(
         siteParty({ sites: [{ code: 'KSDT', address: 'Tower road' }] })

@@ -281,6 +281,23 @@ describe('PartyForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('clears a split that nets to zero when every row is removed', async () => {
+    const { user, onSubmit } = setup(
+      twoSiteParty({
+        openingBalance: 0,
+        openingBalanceSites: [
+          { siteCode: 'A', amount: 500 },
+          { siteCode: null, amount: -500 },
+        ],
+      })
+    );
+    await user.click(screen.getByRole('button', { name: 'Remove opening row 2' }));
+    await user.click(screen.getByRole('button', { name: 'Remove opening row 1' }));
+    await user.click(screen.getByRole('button', { name: /^update party$/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0].openingBalanceSites).toEqual([]);
+  });
+
   it('clears the opening balance when every row is removed while editing', async () => {
     const { user, onSubmit } = setup(
       twoSiteParty({ openingBalance: 900, openingBalanceSites: [{ siteCode: 'B', amount: 900 }] })

@@ -369,7 +369,10 @@ export function PartyForm({ initialData, onSubmit, onCancel, isLoading }: PartyF
       },
       notes: data.notes || undefined,
       // The server derives the total from the rows; clearing every row while editing resets it to 0
-      ...(openingPayload(data.openingRows, !!initialData?.openingBalance) ?? {}),
+      ...(openingPayload(
+        data.openingRows,
+        !!initialData?.openingBalance || !!initialData?.openingBalanceSites?.length
+      ) ?? {}),
       ...(data.openingBalanceDate && { openingBalanceDate: data.openingBalanceDate }),
       initialSite: initialData
         ? { address: '' }

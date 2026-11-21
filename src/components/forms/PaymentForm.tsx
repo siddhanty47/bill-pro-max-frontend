@@ -140,9 +140,17 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
       selectedParty?.agreements?.find(a => a.agreementId === linked?.agreementId)?.siteCode ?? ''
     );
   })();
+  // Unlinking the bill puts the payment back on the party's starting site
+  const hadBillSite = useRef(false);
   useEffect(() => {
-    if (billSite !== undefined) setValue('siteCode', billSite);
-  }, [billSite, setValue]);
+    if (billSite !== undefined) {
+      setValue('siteCode', billSite);
+      hadBillSite.current = true;
+    } else if (hadBillSite.current) {
+      setValue('siteCode', defaultSiteFor(selectedParty));
+      hadBillSite.current = false;
+    }
+  }, [billSite, setValue, selectedParty]);
 
   const handleFormSubmit = async (data: FormData) => {
     const onAccountSite =
