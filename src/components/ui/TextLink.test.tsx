@@ -33,3 +33,32 @@ describe('TextLink', () => {
     expect(css).toMatch(/\.link:hover\s*\{[^}]*color:\s*var\(--accent-hover\)/);
   });
 });
+
+describe('TextLink row state', () => {
+  it('explicit state wins over the row state', async () => {
+    const { RowLinkContext } = await import('./rowLink');
+    const { MemoryRouter, Routes, Route, useLocation } = await import('react-router-dom');
+    const { render, screen } = await import('@testing-library/react');
+    const userEvent = (await import('@testing-library/user-event')).default;
+    const { TextLink } = await import('./TextLink');
+    function Probe() {
+      return <div data-testid="s">{JSON.stringify(useLocation().state)}</div>;
+    }
+    render(
+      <MemoryRouter>
+        <RowLinkContext.Provider
+          value={{ to: '/x', state: { recordNav: { paths: ['/x'], index: 0 } } }}
+        >
+          <TextLink to="/x" state={{ own: 1 }}>
+            go
+          </TextLink>
+        </RowLinkContext.Provider>
+        <Routes>
+          <Route path="/x" element={<Probe />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    await userEvent.click(screen.getByRole('link', { name: 'go' }));
+    expect(screen.getByTestId('s')).toHaveTextContent('{"own":1}');
+  });
+});
