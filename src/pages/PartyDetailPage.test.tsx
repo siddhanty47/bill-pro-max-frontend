@@ -100,6 +100,40 @@ const payments = [
   },
 ] as Payment[];
 
+const BY_SITE = {
+  partyId: 'p1',
+  sites: [
+    {
+      siteCode: null,
+      address: 'Plot 12, Andheri East',
+      isDefault: true,
+      opening: 50,
+      billed: 0,
+      received: 20,
+      outstanding: 30,
+    },
+    {
+      siteCode: 'PLOT',
+      address: 'Plot 12, Andheri',
+      isDefault: false,
+      opening: 1000,
+      billed: 300,
+      received: 100,
+      outstanding: 1200,
+    },
+    {
+      siteCode: 'SECT',
+      address: 'Sector 5, Vashi',
+      isDefault: false,
+      opening: -200,
+      billed: 400,
+      received: 70,
+      outstanding: 130,
+    },
+  ],
+  total: { opening: 850, billed: 700, received: 190, outstanding: 1360 },
+};
+
 const paged = <T,>(data: T[]) =>
   HttpResponse.json({
     success: true,
@@ -114,6 +148,7 @@ function useApi(party: Party = makeParty()) {
     http.get(apiUrl('/businesses/biz-1/inventory'), () => paged([])),
     http.get(apiUrl('/businesses/biz-1/bills'), () => paged(bills)),
     http.get(apiUrl('/businesses/biz-1/payments'), () => paged(payments)),
+    http.get(apiUrl(`${BASE}/outstanding-by-site`), () => ok(BY_SITE)),
     http.get(apiUrl('/businesses/biz-1/parties/outstanding'), () =>
       ok({
         totalOutstanding: 45000,
@@ -405,6 +440,7 @@ describe('PartyDetailPage', () => {
     expect(within(row).getByText('Bank transfer')).toBeInTheDocument();
     expect(within(row).getByText('Completed')).toBeInTheDocument();
     expect(within(row).getByText('5 Oct 2025')).toBeInTheDocument();
+    expect(within(row).getByText('PLOT')).toBeInTheDocument();
     expect(within(row).getByRole('link', { name: 'View bill' })).toHaveAttribute(
       'href',
       '/bills/b1'
@@ -456,7 +492,10 @@ describe('PartyDetailPage', () => {
     await user.selectOptions(screen.getByRole('combobox', { name: 'Type' }), 'bills');
     await user.type(screen.getByLabelText('From'), '2025-09-01');
     await user.type(screen.getByLabelText('To'), '2025-09-30');
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Agreement' }), 'AG-001');
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Site or agreement' }),
+      'agreement:AG-001'
+    );
     expect(screen.queryByText('Pick both dates')).not.toBeInTheDocument();
     expect(preview).not.toHaveAccessibleDescription();
 
@@ -517,5 +556,67 @@ describe('PartyDetailPage', () => {
 
     await openTab(user, /Change history/);
     await waitFor(() => expect(historyUrl).toContain('/audit-logs/party/p1'));
+  });
+
+  it('shows what the party owes per site, default site first, with the total', async () => {
+    useApi();
+    renderPage();
+
+    const table = await screen.findByRole('table', { name: 'Outstanding by site' });
+    const rows = within(table).getAllByRole('row');
+    expect(rows[1]).toHaveTextContent('Default site (party address)');
+    expect(rows[1]).toHaveTextContent('₹30');
+    expect(within(table).getByRole('row', { name: /PLOT/ })).toHaveTextContent('₹1,200');
+    expect(within(table).getByRole('row', { name: /^Total/ })).toHaveTextContent('₹1,360');
+  });
+
+  it('scopes a statement to one site, and to the default site', async () => {
+    useApi();
+    const urls: string[] = [];
+    server.use(
+      http.get(apiUrl(`${BASE}/statements/data`), ({ request }) => {
+        urls.push(request.url);
+        return ok({
+          type: 'bills',
+          business: { name: 'Patel Scaffold' },
+          party: { name: 'Mehta Builders', code: 'MEHT' },
+          period: { from: '2025-09-01', to: '2025-09-30' },
+          bills: [],
+          totals: {},
+          currency: 'INR',
+        });
+      })
+    );
+    const { user } = renderPage();
+    await openTab(user, /Statements/);
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Type' }), 'bills');
+    await user.type(screen.getByLabelText('From'), '2025-09-01');
+    await user.type(screen.getByLabelText('To'), '2025-09-30');
+    const scope = screen.getByRole('combobox', { name: 'Site or agreement' });
+
+    await user.selectOptions(scope, 'site:SECT');
+    await user.click(screen.getByRole('button', { name: 'Preview' }));
+    await waitFor(() => expect(urls).toHaveLength(1));
+    await user.selectOptions(scope, 'site:@default');
+    await user.click(screen.getByRole('button', { name: 'Preview' }));
+    await waitFor(() => expect(urls).toHaveLength(2));
+
+    expect(new URL(urls[0]).searchParams.get('siteCode')).toBe('SECT');
+    expect(new URL(urls[1]).searchParams.get('siteCode')).toBe('@default');
+    expect(new URL(urls[1]).searchParams.get('agreementId')).toBeNull();
+  });
+
+  it('does not offer inline editing of an opening balance split across sites', async () => {
+    useApi(
+      makeParty({
+        openingBalance: 1000,
+        openingBalanceSites: [{ siteCode: 'PLOT', amount: 1000 }],
+      })
+    );
+    renderPage();
+
+    const balance = (await screen.findByRole('heading', { name: 'Balance' })).closest('section')!;
+    expect(within(balance).getByText('₹1,000')).toBeInTheDocument();
+    expect(within(balance).queryByRole('button', { name: /1,000/ })).not.toBeInTheDocument();
   });
 });
