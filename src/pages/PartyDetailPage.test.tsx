@@ -182,7 +182,13 @@ function capturePatch(path: string) {
 }
 
 function Where() {
-  return <div data-testid="where">{useLocation().pathname}</div>;
+  const { pathname, state } = useLocation();
+  return (
+    <>
+      <div data-testid="where">{pathname}</div>
+      <div data-testid="state">{JSON.stringify(state)}</div>
+    </>
+  );
 }
 
 function renderPage() {
@@ -427,6 +433,30 @@ describe('PartyDetailPage', () => {
 
     await user.click(within(table).getByText('₹1,84,200'));
     expect(screen.getByTestId('where')).toHaveTextContent('/bills/b1');
+  });
+
+  it('opens a bill with the party bills as the prev/next context', async () => {
+    useApi();
+    const { user } = renderPage();
+    await openTab(user, /Bills/);
+    const table = await screen.findByRole('table', { name: 'Bills' });
+    await waitFor(() => expect(within(table).getAllByRole('link')).toHaveLength(2));
+    await user.click(within(table).getByRole('row', { name: /B-0001/ }));
+    const { recordNav } = JSON.parse(screen.getByTestId('state').textContent ?? '');
+    expect(recordNav.paths.length).toBe(2);
+    expect(recordNav.paths).toContain('/bills/b1');
+    expect(recordNav.paths[recordNav.index]).toBe('/bills/b1');
+  });
+
+  it('opens a payment with the party payments as record context', async () => {
+    useApi();
+    const { user } = renderPage();
+    await openTab(user, /Payments/);
+    const table = await screen.findByRole('table', { name: 'Payments' });
+    await user.click(await within(table).findByText('UTR123'));
+    expect(JSON.parse(screen.getByTestId('state').textContent ?? '').recordNav.paths).toContain(
+      '/payments/pay1'
+    );
   });
 
   it('lists payments and links to the bill and the payment', async () => {

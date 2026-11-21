@@ -226,6 +226,7 @@ export function DashboardPage() {
             columns={columns}
             rows={overdueRows}
             rowKey={b => b._id}
+            rowLink={b => `/bills/${b._id}`}
             mobile={{
               title: b => <DocNumber value={b.billNumber} to={`/bills/${b._id}`} />,
               badge: b => <StatusChip status="overdue">{overdueLabel(b)}</StatusChip>,

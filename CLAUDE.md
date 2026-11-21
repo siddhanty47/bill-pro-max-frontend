@@ -30,7 +30,7 @@ Each entity has its own API file in `src/api/` that injects endpoints via `baseA
 
 **URL pattern for business-scoped resources:** `/businesses/${businessId}/entities`
 
-**Lists:** whole-list queries use `queryFn` + `fetchAllPages` (`src/api/fetchAllPages.ts`) so they load every backend page (the backend caps `pageSize` at 100). Challans and bills also have server-paged `getChallansPage`/`getBillsPage` (`{ rows, total }`, filters + `search` sent as params via `listParams`) used by their list pages.
+**Lists:** whole-list queries use `queryFn` + `fetchAllPages` (`src/api/fetchAllPages.ts`) so they load every backend page (the backend caps `pageSize` at 100). Challans and bills also have server-paged `getChallansPage`/`getBillsPage` (`{ rows, total }`, filters + `search` sent as params via `listParams`) used by their list pages. Tables that open a record pass `DataTable rowLink`, which carries Prev/Next state (`src/utils/recordNav.ts`) to the detail page (`DetailPageShell recordNoun` → `RecordPager`); server-paged tables also pass `pagination.navSource`.
 
 **Critical:** When adding a new entity API, you MUST add its tag type to the `tagTypes` array in `baseApi.ts`. Missing tags cause stale data after mutations (cache won't invalidate).
 
@@ -80,6 +80,7 @@ Defined in `src/App.tsx`.
 - `Layout.tsx` — App shell with sidebar + header + business switcher
 - `ProtectedRoute.tsx` — Auth guard, redirects to `/login` if unauthenticated
 - `DetailPageShell.tsx` — `DetailPageShell`, `DetailSection`, `DetailField` (detail page layout, built on the kit)
+- `RecordPager.tsx` — Prev/Next (and `[`/`]`) through the table a record was opened from (rendered by `DetailPageShell recordNoun`)
 - `NotificationBell.tsx` — In-app notification dropdown
 - `DocumentNumberBadge.tsx` — Styled document number display
 - `EditableField.tsx` — Inline-editable field component

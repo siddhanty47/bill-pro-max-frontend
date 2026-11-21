@@ -5,7 +5,7 @@
  * editing for status, dates, terms, and per-item rate values.
  */
 import { useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import styles from './AgreementDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
@@ -62,7 +62,6 @@ function toDateInputValue(dateStr: string | undefined): string {
  */
 export function AgreementDetailPage() {
   const { agreementId } = useParams<{ agreementId: string }>();
-  const navigate = useNavigate();
   const { currentBusinessId } = useCurrentBusiness();
 
   const {
@@ -483,7 +482,7 @@ export function AgreementDetailPage() {
                 columns={challanColumns}
                 rows={challans ?? []}
                 rowKey={c => c._id}
-                onRowClick={c => navigate(`/challans/${c._id}`)}
+                rowLink={c => `/challans/${c._id}`}
                 empty={<EmptyState title="No challans yet" />}
                 mobile={{
                   title: challanLink,

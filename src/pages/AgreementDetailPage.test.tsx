@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import { AgreementDetailPage } from './AgreementDetailPage';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
@@ -99,12 +99,22 @@ function capturePatch(path: string) {
   return bodies;
 }
 
+function Where() {
+  const { pathname, state } = useLocation();
+  return (
+    <>
+      <div>challan page</div>
+      <div data-testid="where">{pathname}</div>
+      <div data-testid="state">{JSON.stringify(state)}</div>
+    </>
+  );
+}
+
 function renderPage() {
   return renderWithProviders(
     <Routes>
       <Route path="/agreements/:agreementId" element={<AgreementDetailPage />} />
-      <Route path="/challans/:id" element={<div>challan page</div>} />
-      <Route path="*" element={<div>elsewhere</div>} />
+      <Route path="*" element={<Where />} />
     </Routes>,
     { preloadedState: signedIn(), route: '/agreements/AG-001' }
   );
@@ -317,6 +327,11 @@ describe('AgreementDetailPage', () => {
     );
     await user.click(within(row).getByText('10 Nov 2025'));
     expect(await screen.findByText('challan page')).toBeInTheDocument();
+    expect(screen.getByTestId('where')).toHaveTextContent('/challans/c1');
+    expect(JSON.parse(screen.getByTestId('state').textContent ?? '').recordNav).toEqual({
+      paths: ['/challans/c1', '/challans/c2'],
+      index: 0,
+    });
   });
 
   it('shows empty states for site items and challans', async () => {

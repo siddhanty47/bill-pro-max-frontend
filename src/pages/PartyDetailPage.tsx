@@ -7,7 +7,7 @@
  * DetailField rows + kit Cards holding DataTables.
  */
 import { useCallback, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import styles from './PartyDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
@@ -82,7 +82,6 @@ function scopeParams(scope: string): { agreementId?: string; siteCode?: string }
 export function PartyDetailPage() {
   const { partyId } = useParams<{ partyId: string }>();
   const { currentBusinessId } = useCurrentBusiness();
-  const navigate = useNavigate();
 
   const {
     data: party,
@@ -647,7 +646,7 @@ export function PartyDetailPage() {
                   columns={agreementColumns}
                   rows={agreements}
                   rowKey={a => a.agreementId}
-                  onRowClick={a => navigate(`/agreements/${a.agreementId}`)}
+                  rowLink={a => `/agreements/${a.agreementId}`}
                   empty={<EmptyState title="No agreements yet" />}
                   mobile={{
                     title: agreementLink,
@@ -695,7 +694,7 @@ export function PartyDetailPage() {
                 columns={billColumns}
                 rows={shownBills}
                 rowKey={b => b._id}
-                onRowClick={b => navigate(`/bills/${b._id}`)}
+                rowLink={b => `/bills/${b._id}`}
                 empty={<EmptyState title="No bills yet" />}
                 mobile={{
                   title: billLink,
@@ -718,7 +717,7 @@ export function PartyDetailPage() {
                 columns={paymentColumns}
                 rows={shownPayments}
                 rowKey={p => p._id}
-                onRowClick={p => navigate(`/payments/${p._id}`)}
+                rowLink={p => `/payments/${p._id}`}
                 empty={<EmptyState title="No payments yet" />}
                 mobile={{
                   title: p => <span className="mono">{formatMoney(p.amount)}</span>,
