@@ -16,22 +16,32 @@ import {
   Field,
   Fieldset,
   Input,
+  Notice,
   SearchInput,
   Select,
 } from '../ui';
 import styles from './BulkBillForm.module.css';
+import { isBillableAgreement, monthEndOf, periodProblem } from '../../utils/billingPeriod';
+import { formatDate } from '../../utils/format';
 
-const bulkBillSchema = z.object({
-  billDate: z.string().min(1, 'Bill date is required'),
-  periodStart: z.string().min(1, 'Start date is required'),
-  periodEnd: z.string().min(1, 'End date is required'),
-  taxMode: z.enum(['intra', 'inter']),
-  sgstRate: z.number().min(0).max(100).optional(),
-  cgstRate: z.number().min(0).max(100).optional(),
-  igstRate: z.number().min(0).max(100).optional(),
-  discountRate: z.number().min(0).max(100).optional(),
-  notes: z.string().max(1000).optional(),
-});
+const bulkBillSchema = z
+  .object({
+    billDate: z.string().min(1, 'Bill date is required'),
+    periodStart: z.string().min(1, 'Start date is required'),
+    periodEnd: z.string().min(1, 'End date is required'),
+    taxMode: z.enum(['intra', 'inter']),
+    sgstRate: z.number().min(0).max(100).optional(),
+    cgstRate: z.number().min(0).max(100).optional(),
+    igstRate: z.number().min(0).max(100).optional(),
+    discountRate: z.number().min(0).max(100).optional(),
+    notes: z.string().max(1000).optional(),
+  })
+  .superRefine((data, ctx) => {
+    const problem = periodProblem(data.periodStart, data.periodEnd);
+    if (problem?.level === 'error') {
+      ctx.addIssue({ code: 'custom', path: ['periodEnd'], message: problem.message });
+    }
+  });
 
 type FormData = z.infer<typeof bulkBillSchema>;
 
@@ -70,11 +80,12 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
   });
 
   const taxMode = useWatch({ control, name: 'taxMode' });
+  const periodStart = useWatch({ control, name: 'periodStart' });
+  const periodEnd = useWatch({ control, name: 'periodEnd' });
+  const periodWarning = periodProblem(periodStart ?? '', periodEnd ?? '');
 
-  const activeAgreements = useMemo(
-    () => agreements.filter(a => a.status === 'active'),
-    [agreements]
-  );
+  // agreements a bill can be made for: active ones, and one closed by a rate change
+  const activeAgreements = useMemo(() => agreements.filter(isBillableAgreement), [agreements]);
 
   // Auto-select tax mode based on business and selected agreements' site state codes
   useEffect(() => {
@@ -179,12 +190,24 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
           </Field>
           <div className={styles.pair}>
             <Field label="Period start" required error={errors.periodStart?.message}>
-              <Input type="date" {...register('periodStart')} disabled={isLoading} />
+              <Input
+                type="date"
+                {...register('periodStart', {
+                  onChange: e => {
+                    const end = monthEndOf((e.target as HTMLInputElement).value);
+                    if (end) setValue('periodEnd', end, { shouldValidate: true });
+                  },
+                })}
+                disabled={isLoading}
+              />
             </Field>
             <Field label="Period end" required error={errors.periodEnd?.message}>
               <Input type="date" {...register('periodEnd')} disabled={isLoading} />
             </Field>
           </div>
+          {periodWarning?.level === 'warning' && (
+            <Notice tone="warning">{periodWarning.message}</Notice>
+          )}
         </div>
         <div className={styles.column}>
           <Field label="Tax mode" required>
@@ -290,6 +313,9 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
                   label={
                     <span className={styles.agreementInfo}>
                       <span className="mono">{a.agreementId}</span>
+                      {a.status !== 'active' && a.endDate && (
+                        <span>until {formatDate(a.endDate, { year: 'always' })}</span>
+                      )}
                       <span>{a.partyName}</span>
                       <span>
                         {a.siteCode}

@@ -169,6 +169,14 @@ describe('BillForm', () => {
     expect(screen.queryByRole('option', { name: /AG-0/ })).not.toBeInTheDocument();
   });
 
+  it('fills the period end with the month end and warns about a long period', () => {
+    setup();
+    fireEvent.change(screen.getByLabelText(/period start/i), { target: { value: '2026-06-01' } });
+    expect(screen.getByLabelText(/period end/i)).toHaveValue('2026-06-30');
+    fireEvent.change(screen.getByLabelText(/period end/i), { target: { value: '2026-11-30' } });
+    expect(screen.getByText(/This period covers 6 months \(Jun to Nov\)/)).toBeInTheDocument();
+  });
+
   it('shows required messages and does not submit', async () => {
     const { user, onSubmit } = setup();
     await user.click(submit());
