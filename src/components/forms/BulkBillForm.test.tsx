@@ -74,6 +74,46 @@ describe('BulkBillForm', () => {
     });
   });
 
+  it('fills the period end with the last day of the start month', () => {
+    setup();
+    fireEvent.change(screen.getByLabelText(/period start/i), { target: { value: '2026-06-01' } });
+    expect(screen.getByLabelText(/period end/i)).toHaveValue('2026-06-30');
+  });
+
+  it('warns when the period runs over more than one month', () => {
+    setup();
+    fireEvent.change(screen.getByLabelText(/period start/i), { target: { value: '2026-06-01' } });
+    fireEvent.change(screen.getByLabelText(/period end/i), { target: { value: '2026-11-30' } });
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'This period covers 6 months (Jun to Nov)'
+    );
+  });
+
+  it('refuses an end date before the start', async () => {
+    const { user, onSubmit } = setup();
+    fireEvent.change(screen.getByLabelText(/period start/i), { target: { value: '2026-06-10' } });
+    fireEvent.change(screen.getByLabelText(/period end/i), { target: { value: '2026-06-01' } });
+    await user.click(screen.getByRole('checkbox', { name: /AG-1/ }));
+    await user.click(generate(1));
+    expect(await screen.findByText('End date must be on or after the start')).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('lists an agreement closed by a rate change, with its end date', () => {
+    setup([
+      ...agreements,
+      agr({
+        agreementId: 'AG-OLD',
+        status: 'expired',
+        endDate: '2026-08-31T00:00:00.000Z',
+        nextAgreementId: 'AG-1',
+      } as Partial<AgreementWithParty>),
+      agr({ agreementId: 'AG-GONE', status: 'expired' }),
+    ]);
+    expect(screen.getByRole('checkbox', { name: /AG-OLD.*until 31 Aug 2026/ })).toBeInTheDocument();
+    expect(screen.queryByText('AG-GONE')).not.toBeInTheDocument();
+  });
+
   it('switches to inter-state when a selected site is in another state', async () => {
     const { user, onSubmit } = setup(
       [agr({}), agr({ agreementId: 'AG-2', partyId: 'p2', siteStateCode: '24' })],

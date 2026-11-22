@@ -7,38 +7,38 @@ import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
 import { DocumentNumberBadge } from '../DocumentNumberBadge';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { Party, GenerateBillInput, Agreement } from '../../types';
+import type { Party, GenerateBillInput } from '../../types';
+import { isBillableAgreement, monthEndOf, periodProblem } from '../../utils/billingPeriod';
 import { formatDate } from '../../utils/format';
 import { useCurrentBusiness } from '../../hooks/useCurrentBusiness';
 import { useGetNextBillNumberQuery } from '../../api/billApi';
-import { Button, Field, Input, Select, Textarea } from '../ui';
+import { Button, Field, Input, Notice, Select, Textarea } from '../ui';
 import styles from './BillForm.module.css';
 
-const billSchema = z.object({
-  billDate: z.string().min(1, 'Bill date is required'),
-  partyId: z.string().min(1, 'Select a party'),
-  agreementId: z.string().min(1, 'Select an agreement'),
-  periodStart: z.string().min(1, 'Start date is required'),
-  periodEnd: z.string().min(1, 'End date is required'),
-  billSequence: z.number().int().min(1).max(9999).optional(),
-  taxMode: z.enum(['intra', 'inter']),
-  taxRate: z.number().min(0).max(100).optional(),
-  sgstRate: z.number().min(0).max(100).optional(),
-  cgstRate: z.number().min(0).max(100).optional(),
-  igstRate: z.number().min(0).max(100).optional(),
-  discountRate: z.number().min(0).max(100).optional(),
-  notes: z.string().max(1000).optional(),
-});
+const billSchema = z
+  .object({
+    billDate: z.string().min(1, 'Bill date is required'),
+    partyId: z.string().min(1, 'Select a party'),
+    agreementId: z.string().min(1, 'Select an agreement'),
+    periodStart: z.string().min(1, 'Start date is required'),
+    periodEnd: z.string().min(1, 'End date is required'),
+    billSequence: z.number().int().min(1).max(9999).optional(),
+    taxMode: z.enum(['intra', 'inter']),
+    taxRate: z.number().min(0).max(100).optional(),
+    sgstRate: z.number().min(0).max(100).optional(),
+    cgstRate: z.number().min(0).max(100).optional(),
+    igstRate: z.number().min(0).max(100).optional(),
+    discountRate: z.number().min(0).max(100).optional(),
+    notes: z.string().max(1000).optional(),
+  })
+  .superRefine((data, ctx) => {
+    const problem = periodProblem(data.periodStart, data.periodEnd);
+    if (problem?.level === 'error') {
+      ctx.addIssue({ code: 'custom', path: ['periodEnd'], message: problem.message });
+    }
+  });
 
 type FormData = z.infer<typeof billSchema>;
-
-/**
- * Agreements a bill can be made for: active ones, and one closed by a rate change (for the
- * days before its successor started).
- */
-function isBillable(a: Agreement): boolean {
-  return a.status === 'active' || (a.status === 'expired' && Boolean(a.nextAgreementId));
-}
 
 interface BillFormProps {
   parties: Party[];
@@ -76,9 +76,11 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
   const selectedPartyId = useWatch({ control, name: 'partyId' });
   const agreementId = useWatch({ control, name: 'agreementId' });
   const periodStart = useWatch({ control, name: 'periodStart' });
+  const periodEnd = useWatch({ control, name: 'periodEnd' });
+  const periodWarning = periodProblem(periodStart ?? '', periodEnd ?? '');
   const taxMode = useWatch({ control, name: 'taxMode' });
   const selectedParty = parties.find(p => p._id === selectedPartyId);
-  const activeAgreements = selectedParty?.agreements?.filter(isBillable) || [];
+  const activeAgreements = selectedParty?.agreements?.filter(isBillableAgreement) || [];
   const selectedAgreement = activeAgreements.find(a => a.agreementId === agreementId);
 
   // Fetch predicted next bill number
@@ -268,12 +270,24 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
           </div>
           <div className={styles.pair}>
             <Field label="Period start" required error={errors.periodStart?.message}>
-              <Input type="date" {...register('periodStart')} disabled={isLoading} />
+              <Input
+                type="date"
+                {...register('periodStart', {
+                  onChange: e => {
+                    const end = monthEndOf((e.target as HTMLInputElement).value);
+                    if (end) setValue('periodEnd', end, { shouldValidate: true });
+                  },
+                })}
+                disabled={isLoading}
+              />
             </Field>
             <Field label="Period end" required error={errors.periodEnd?.message}>
               <Input type="date" {...register('periodEnd')} disabled={isLoading} />
             </Field>
           </div>
+          {periodWarning?.level === 'warning' && (
+            <Notice tone="warning">{periodWarning.message}</Notice>
+          )}
         </div>
 
         <div className={styles.column}>

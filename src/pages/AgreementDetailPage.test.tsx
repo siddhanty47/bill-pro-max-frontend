@@ -54,6 +54,7 @@ const itemsAtSite: ItemWithParty[] = [{ itemId: 'i1', itemName: 'Ladder 1.5m', q
 const challans = [
   {
     _id: 'c1',
+    agreementId: 'AG-001',
     challanNumber: 'D-2026-27-0001',
     type: 'delivery',
     date: '2025-11-10T00:00:00.000Z',
@@ -62,6 +63,7 @@ const challans = [
   },
   {
     _id: 'c2',
+    agreementId: 'AG-001',
     challanNumber: 'R-2026-27-0002',
     type: 'return',
     date: '2025-11-12T00:00:00.000Z',
@@ -83,7 +85,8 @@ function useApi(opts: { agreement?: AgreementWithParty; rates?: AgreementRateWit
     http.get(apiUrl(BASE), () => ok(opts.agreement ?? makeAgreement())),
     http.get(apiUrl(`${BASE}/rates`), () => ok(opts.rates ?? rates)),
     http.get(apiUrl('/businesses/biz-1/challans/items-with-party/p1'), () => ok(itemsAtSite)),
-    http.get(apiUrl('/businesses/biz-1/challans'), () => paged(challans))
+    http.get(apiUrl('/businesses/biz-1/challans'), () => paged(challans)),
+    http.get(apiUrl('/businesses/biz-1/agreements'), () => ok([opts.agreement ?? makeAgreement()]))
   );
 }
 
@@ -457,5 +460,82 @@ describe('AgreementDetailPage change rates', () => {
       'href',
       '/agreements/AG-000'
     );
+  });
+});
+
+describe('AgreementDetailPage challans by site', () => {
+  it("shows the site's challans from the agreement's start, including ones still on the old agreement", async () => {
+    const next = makeAgreement({
+      agreementId: 'AG-002',
+      startDate: '2026-09-01T00:00:00.000Z',
+      previousAgreementId: 'AG-001',
+    });
+    const old = makeAgreement({
+      status: 'expired',
+      endDate: '2026-08-31T00:00:00.000Z',
+      nextAgreementId: 'AG-002',
+    });
+    const siteChallans = [
+      {
+        _id: 'a',
+        agreementId: 'AG-001',
+        challanNumber: 'D-2026-27-0010',
+        type: 'delivery',
+        date: '2026-08-20T00:00:00.000Z',
+        items: [{}],
+        status: 'confirmed',
+      },
+      {
+        _id: 'b',
+        agreementId: 'AG-001',
+        challanNumber: 'D-2026-27-0011',
+        type: 'delivery',
+        date: '2026-09-03T00:00:00.000Z',
+        items: [{}],
+        status: 'confirmed',
+      },
+      {
+        _id: 'c',
+        agreementId: 'AG-002',
+        challanNumber: 'R-2026-27-0012',
+        type: 'return',
+        date: '2026-09-10T00:00:00.000Z',
+        items: [{}],
+        status: 'confirmed',
+      },
+      {
+        _id: 'd',
+        agreementId: 'AG-OTHER',
+        challanNumber: 'D-2026-27-0013',
+        type: 'delivery',
+        date: '2026-09-05T00:00:00.000Z',
+        items: [{}],
+        status: 'confirmed',
+      },
+    ] as unknown as Challan[];
+    useApi({ agreement: next });
+    server.use(
+      http.get(apiUrl('/businesses/biz-1/agreements/AG-002'), () => ok(next)),
+      http.get(apiUrl('/businesses/biz-1/agreements/AG-002/rates'), () => ok(rates)),
+      http.get(apiUrl('/businesses/biz-1/challans/items-with-party/p1'), () => ok(itemsAtSite)),
+      http.get(apiUrl('/businesses/biz-1/challans'), () => paged(siteChallans)),
+      http.get(apiUrl('/businesses/biz-1/agreements'), () =>
+        ok([old, next, makeAgreement({ agreementId: 'AG-OTHER', siteCode: 'S2' })])
+      )
+    );
+    const { user } = renderWithProviders(
+      <Routes>
+        <Route path="/agreements/:agreementId" element={<AgreementDetailPage />} />
+      </Routes>,
+      { preloadedState: signedIn(), route: '/agreements/AG-002' }
+    );
+
+    await user.click(await screen.findByRole('tab', { name: /Challans 2/ }));
+
+    const table = screen.getByRole('table', { name: 'Challans' });
+    expect(within(table).getByText('D-2026-27-0011')).toBeInTheDocument();
+    expect(within(table).getByText('R-2026-27-0012')).toBeInTheDocument();
+    expect(within(table).queryByText('D-2026-27-0010')).not.toBeInTheDocument();
+    expect(within(table).queryByText('D-2026-27-0013')).not.toBeInTheDocument();
   });
 });
