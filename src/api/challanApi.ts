@@ -210,6 +210,16 @@ export const challanApi = baseApi.injectEndpoints({
       ],
     }),
 
+    /** Every challan of a party (all sites and agreements). */
+    getChallansByParty: builder.query<Challan[], { businessId: string; partyId: string }>({
+      queryFn: ({ businessId, partyId }, _api, _extra, baseQuery) =>
+        fetchAllPages<Challan>(
+          `/businesses/${businessId}/challans?partyId=${encodeURIComponent(partyId)}`,
+          baseQuery
+        ),
+      providesTags: ['Challan'],
+    }),
+
     getChallansByAgreement: builder.query<Challan[], { businessId: string; agreementId: string }>({
       queryFn: ({ businessId, agreementId }, _api, _extra, baseQuery) =>
         fetchAllPages<Challan>(
@@ -260,6 +270,7 @@ export const {
   useGetNextChallanNumberQuery,
   useGetItemsWithPartyQuery,
   useGetChallansByAgreementQuery,
+  useGetChallansByPartyQuery,
   useLazyGetChallanPdfQuery,
   useLazyGetChallansPageQuery,
   useExtractChallanFromPhotoMutation,

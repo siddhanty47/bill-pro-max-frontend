@@ -4,12 +4,13 @@
  * including rates/items, terms, and period dates. Supports Jira-style inline
  * editing for status, dates, terms, and per-item rate values.
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styles from './AgreementDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
   useGetAgreementQuery,
+  useGetAgreementsQuery,
   useGetAgreementRatesQuery,
   useUpdateAgreementMutation,
   useUpdateAgreementRateMutation,
@@ -17,7 +18,8 @@ import {
 } from '../api/agreementApi';
 import { getErrorMessage } from '../api/baseApi';
 import { ChangeRatesForm } from '../components/forms/ChangeRatesForm';
-import { useGetItemsWithPartyQuery, useGetChallansByAgreementQuery } from '../api/challanApi';
+import { useGetItemsWithPartyQuery, useGetChallansByPartyQuery } from '../api/challanApi';
+import { inAgreementPeriod } from '../utils/billingPeriod';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import { EditableField } from '../components/EditableField';
 import {
@@ -99,10 +101,27 @@ export function AgreementDetailPage() {
     { skip: !currentBusinessId || !agreementId || !agreement?.partyId }
   );
 
-  const { data: challans } = useGetChallansByAgreementQuery(
-    { businessId: currentBusinessId!, agreementId: agreementId! },
-    { skip: !currentBusinessId || !agreementId }
+  // Stock is counted per site, so the tab lists the site's challans (every agreement on it)
+  // that fall in this agreement's days: a rate change splits a site at its date.
+  const { data: allAgreements } = useGetAgreementsQuery(currentBusinessId!, {
+    skip: !currentBusinessId,
+  });
+  const { data: partyChallans } = useGetChallansByPartyQuery(
+    { businessId: currentBusinessId!, partyId: agreement?.partyId ?? '' },
+    { skip: !currentBusinessId || !agreement?.partyId }
   );
+  const challans = useMemo(() => {
+    if (!agreement || !partyChallans || !allAgreements) return undefined;
+    const siteIds = new Set([
+      agreement.agreementId,
+      ...allAgreements
+        .filter(a => a.partyId === agreement.partyId && a.siteCode === agreement.siteCode)
+        .map(a => a.agreementId),
+    ]);
+    return partyChallans.filter(
+      c => siteIds.has(c.agreementId) && inAgreementPeriod(c.date, agreement)
+    );
+  }, [agreement, partyChallans, allAgreements]);
 
   const [updateAgreement, { isLoading: isSaving }] = useUpdateAgreementMutation();
   const [updateRate] = useUpdateAgreementRateMutation();

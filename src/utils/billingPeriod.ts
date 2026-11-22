@@ -39,3 +39,22 @@ export function periodProblem(
 export function isBillableAgreement(a: Pick<Agreement, 'status' | 'nextAgreementId'>): boolean {
   return a.status === 'active' || (a.status === 'expired' && Boolean(a.nextAgreementId));
 }
+
+/**
+ * Whether a challan dated `date` belongs to an agreement's days, by the billing rule: only a
+ * rate change splits a site, so a successor starts on its start date and an agreement closed by
+ * a rate change ends on its end date; any other agreement covers every challan on its site.
+ */
+export function inAgreementPeriod(
+  date: string,
+  agreement: Pick<
+    Agreement,
+    'status' | 'startDate' | 'endDate' | 'previousAgreementId' | 'nextAgreementId'
+  >
+): boolean {
+  const day = date.slice(0, 10);
+  if (agreement.previousAgreementId && day < agreement.startDate.slice(0, 10)) return false;
+  const closed = agreement.nextAgreementId || agreement.status !== 'active';
+  if (closed && agreement.endDate && day > agreement.endDate.slice(0, 10)) return false;
+  return true;
+}
