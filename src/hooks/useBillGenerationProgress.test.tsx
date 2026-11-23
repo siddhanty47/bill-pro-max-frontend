@@ -71,4 +71,42 @@ describe('useBillGenerationProgress', () => {
     expect(invalidated(dispatch)).toEqual([['Bill', 'Dashboard']]);
     expect(hook.result.current.hasActiveJobs).toBe(false);
   });
+
+  it('records failures, ignores unknown batches and dismisses a batch', () => {
+    const { hook, emit } = setup();
+    act(() => hook.result.current.startBatch('b1', 2));
+
+    act(() => {
+      emit('bill:failed', { batchId: 'b1', agreementId: 'a', partyId: 'p', error: 'No rates' });
+      emit('bill:failed', { batchId: 'nope', agreementId: 'a', partyId: 'p', error: 'x' });
+      emit('bill:generated', { batchId: 'nope', billId: 'x', agreementId: 'a', billNumber: '1' });
+    });
+
+    expect(hook.result.current.batches).toEqual([
+      expect.objectContaining({
+        batchId: 'b1',
+        failed: 1,
+        results: [{ agreementId: 'a', error: 'No rates', status: 'failed' }],
+      }),
+    ]);
+    expect(hook.result.current.hasActiveJobs).toBe(true);
+
+    act(() => hook.result.current.dismissBatch('b1'));
+    expect(hook.result.current.batches).toEqual([]);
+  });
+
+  it('stops listening and drops a pending refresh on unmount', () => {
+    vi.useFakeTimers();
+    const { hook, emit, dispatch } = setup();
+    act(() => hook.result.current.startBatch('b1', 1));
+    act(() =>
+      emit('bill:generated', { batchId: 'b1', billId: 'x', agreementId: 'a', billNumber: '1' })
+    );
+
+    hook.unmount();
+    vi.advanceTimersByTime(2000);
+    emit('bill:batch-complete', { batchId: 'b1', total: 1, completed: 1, failed: 0 });
+
+    expect(invalidated(dispatch)).toEqual([]);
+  });
 });
