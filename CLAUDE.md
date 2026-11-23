@@ -78,7 +78,7 @@ Defined in `src/App.tsx`.
 - Forms: `BusinessForm`, `PartyForm`, `InventoryForm`, `AgreementForm`, `ChallanForm`, `BillForm`, `BulkBillForm`, `PaymentForm`
 
 ### Shared Components
-- `src/components/ui/` — the design-system kit (import from `components/ui`; list and props in `src/components/ui/README.md`): `Button`, `IconButton`, `Icon`, `Brand`, `GoogleIcon`, `Avatar`, `Dot`, `NotAdded`, `NavCount`, `TextLink`, `Notice`, `Card`, `StatCard`, `Meter`, `MeterLegend`, `MeterList`, `ChartCard`, `ProgressBar`, `PageHeader`, `EmptyState`, `StatusChip` (+ `status.ts`), `DocNumber`, `DataTable`, `Table`/`THead`/`TBody`/`Tr`/`Th`/`Td`, `Pagination`, `SegmentedControl`, `Field`/`Input`/`Select`/`Textarea`/`Checkbox`/`Fieldset`, `SearchInput`, `FilterBar`, `Menu`/`MenuItem`/`MenuLabel`/`MenuDivider`, `RowActions`, `Modal`, `Tabs`/`TabPanel`, `Spinner`, `ErrorMessage`
+- `src/components/ui/` — the design-system kit (import from `components/ui`; list and props in `src/components/ui/README.md`): `Button`, `IconButton`, `Icon`, `Brand`, `GoogleIcon`, `Avatar`, `Dot`, `NotAdded`, `NavCount`, `TextLink`, `Notice`, `Card`, `StatCard`, `Meter`, `MeterLegend`, `MeterList`, `ChartCard`, `ScrollArea`, `ProgressBar`, `PageHeader`, `EmptyState`, `StatusChip` (+ `status.ts`), `DocNumber`, `DataTable`, `Table`/`THead`/`TBody`/`Tr`/`Th`/`Td`, `Pagination`, `SegmentedControl`, `Field`/`Input`/`Select`/`Textarea`/`Checkbox`/`Fieldset`, `SearchInput`, `FilterBar`, `Menu`/`MenuItem`/`MenuLabel`/`MenuDivider`, `RowActions`, `Modal`, `Tabs`/`TabPanel`, `Spinner`, `ErrorMessage`
 - `Layout.tsx` — App shell with sidebar + header + business switcher
 - `ProtectedRoute.tsx` — Auth guard, redirects to `/login` if unauthenticated
 - `DetailPageShell.tsx` — `DetailPageShell`, `DetailSection`, `DetailField` (detail page layout, built on the kit)
@@ -88,8 +88,8 @@ Defined in `src/App.tsx`.
 - `EditableField.tsx` — Inline-editable field component
 - `ShareLinkManager.tsx` — Share link CRUD (embedded in PartyDetailPage)
 - `ChangeHistoryTable.tsx` — Shared Jira-style audit history table (used in all detail pages)
-- Charts (`src/components/charts/*`, Recharts) are imported only via `React.lazy` so Recharts stays out of the main bundle; colours come from tokens via `useChartTheme`.
-- Formatters: `formatMoney`, `formatDate`, `formatDateTime`, `formatMonth`, `formatMoneyCompact` in `src/utils/format.ts`
+- Charts (`src/components/charts/*`, Recharts) are imported only via `React.lazy` so Recharts stays out of the main bundle; colours come from tokens via `useChartTheme`. `ScrollBarChart` = one fixed-width vertical bar per row that scrolls sideways (kit `ScrollArea`) with a fixed y-axis (dashboard stock, outstanding by party).
+- Formatters: `formatMoney`, `formatDate`, `formatDateTime`, `formatMonth`, `formatMoneyCompact`, `formatCountCompact` in `src/utils/format.ts`
 
 ### Statement Previews
 - Located in `src/components/statements/`

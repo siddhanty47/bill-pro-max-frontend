@@ -52,3 +52,29 @@ export function formatTooltipDate(t: string, bucket: Bucket): string {
   const day = `${p.d} ${MONTHS_SHORT[p.m]} ${p.y}`;
   return bucket === 'week' ? `Week of ${day}` : day;
 }
+
+const MAX_CODE = 8;
+
+/** X label: the code (over 8 characters cut with "…"), else the name's initials. */
+export function barLabel(code: unknown, name: unknown): string {
+  const c = typeof code === 'string' ? code.trim() : '';
+  if (c) return c.length > MAX_CODE ? `${c.slice(0, MAX_CODE - 1)}…` : c;
+  const initials = String(name ?? '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 3)
+    .map(w => w[0].toUpperCase())
+    .join('');
+  return initials || '?';
+}
+
+/** 0 up to a round number at or above `max`, in about four 1/2/5×10ⁿ steps. */
+export function niceTicks(max: number): number[] {
+  if (!(max > 0)) return [0, 1];
+  const raw = max / 4;
+  const pow = 10 ** Math.floor(Math.log10(raw));
+  const step = Math.max(1, ([1, 2, 5, 10].find(m => m * pow >= raw) ?? 10) * pow);
+  const ticks = [0];
+  while (ticks[ticks.length - 1] < max) ticks.push(ticks[ticks.length - 1] + step);
+  return ticks;
+}

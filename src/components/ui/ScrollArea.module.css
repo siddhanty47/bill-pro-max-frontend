@@ -1,0 +1,77 @@
+.root {
+  position: relative;
+  min-width: 0;
+}
+
+.viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-medium) transparent;
+  border-radius: var(--radius-md);
+}
+
+.viewport:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+.inner {
+  width: max-content;
+  min-width: 100%;
+}
+
+/* One small push to the left and back: "there is more this way". */
+.nudge {
+  animation: nudge 0.9s var(--ease-out) 0.3s 1;
+}
+
+@keyframes nudge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  40% {
+    transform: translateX(-24px);
+  }
+}
+
+/* Edge fades over the hidden side (the card surface into transparent). */
+.fade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--space-14);
+  pointer-events: none;
+}
+
+.fadeLeft {
+  left: 0;
+  background: linear-gradient(to right, var(--bg-card), transparent);
+}
+
+.fadeRight {
+  right: 0;
+  background: linear-gradient(to left, var(--bg-card), transparent);
+}
+
+.button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.buttonLeft {
+  left: 0;
+}
+
+.buttonRight {
+  right: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nudge {
+    animation: none;
+  }
+}

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen, within, waitFor } from '@testing-library/react';
+import { fireEvent, screen, within, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { DashboardPage } from './DashboardPage';
@@ -89,15 +89,29 @@ const fullSummary: DashboardSummary = {
     advances: 12000,
   },
   stock: [
-    { itemId: 'i1', name: 'Props 3m', unit: 'pcs', atSites: 248, inYard: 152, damagedLost: 18 },
-    { itemId: 'i2', name: 'Plates', unit: 'pcs', atSites: 100, inYard: 50, damagedLost: 0 },
+    {
+      itemId: 'i1',
+      code: 'PRP3',
+      name: 'Props 3m',
+      unit: 'pcs',
+      atSites: 248,
+      inYard: 152,
+      damagedLost: 18,
+    },
+    {
+      itemId: 'i2',
+      code: 'PLT',
+      name: 'Plates',
+      unit: 'pcs',
+      atSites: 100,
+      inYard: 50,
+      damagedLost: 0,
+    },
   ],
   onRentPct: 63.6,
   activeSites: 7,
   rentPerDay: 12500,
-  parties: [
-    { partyId: 'p1', name: 'Mehta Builders', outstanding: 184200, onSite: 320, damagedLost: 4 },
-  ],
+  parties: [{ partyId: 'p1', code: 'MEH', name: 'Mehta Builders', outstanding: 184200 }],
 };
 
 const emptySummary: DashboardSummary = {
@@ -394,32 +408,23 @@ describe('DashboardPage', () => {
     expect(within(card).getByText('₹12,000 in advances not shown')).toBeInTheDocument();
   });
 
-  it('lists stock and parties with bars and links', async () => {
+  it('charts stock and outstanding by party, a bar opening the party', async () => {
     useApi();
     renderPage();
-    const stock = await screen.findByRole('list', { name: 'Stock' });
-    const [props, plates] = within(stock).getAllByRole('listitem');
-    expect(props).toHaveTextContent('Props 3m');
-    expect(props).toHaveTextContent('248 at sites / 400');
-    expect(props).toHaveTextContent('18 damaged or lost this year');
-    expect(
-      within(props).getByRole('img', { name: 'At sites 248 of 400, In yard 152 of 400' })
-    ).toBeInTheDocument();
-    expect(plates).not.toHaveTextContent('damaged');
+    const stock = await screen.findByRole('region', {
+      name: 'Stock: 2 items, 348 pieces at sites',
+    });
+    expect(within(stock).getByText('PRP3')).toBeInTheDocument();
+    expect(within(stock).getByText('PLT')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /All stock/ })).toHaveAttribute('href', '/inventory');
 
-    const parties = screen.getByRole('list', { name: 'Parties' });
-    const [mehta] = within(parties).getAllByRole('listitem');
-    expect(within(mehta).getByRole('link', { name: 'Mehta Builders' })).toHaveAttribute(
-      'href',
-      '/parties/p1'
-    );
-    expect(mehta).toHaveTextContent('₹1,84,200');
-    expect(mehta).toHaveTextContent('320 on site · 4 damaged or lost');
-    expect(
-      within(mehta).getByRole('img', { name: 'On site 320 of 324, Damaged or lost 4 of 324' })
-    ).toBeInTheDocument();
+    const parties = await screen.findByRole('region', {
+      name: 'Outstanding by party: 1 party, ₹1.8L',
+    });
+    expect(within(parties).getByText('MEH')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /All parties/ })).toHaveAttribute('href', '/parties');
+    fireEvent.click(parties.querySelector('.recharts-bar-rectangle') as Element);
+    expect(await screen.findByTestId('where')).toHaveTextContent('/parties/p1');
   });
 
   it('hides money tiles, the billing chart and aging for a role without bills/payments', async () => {
@@ -429,7 +434,6 @@ describe('DashboardPage', () => {
         onRentPct: 40,
         activeSites: 3,
         rentPerDay: 900,
-        parties: [{ partyId: 'p1', name: 'Mehta Builders', onSite: 10, damagedLost: 0 }],
       },
     });
     renderPage();
@@ -440,9 +444,8 @@ describe('DashboardPage', () => {
     expect(screen.queryByText('Outstanding by age')).not.toBeInTheDocument();
     expect(screen.queryByText('Billed vs collected')).not.toBeInTheDocument();
     expect(await screen.findByText('avg 75% on rent')).toBeInTheDocument();
-    const parties = screen.getByRole('list', { name: 'Parties' });
-    expect(within(parties).getByRole('listitem')).toHaveTextContent('10 on site');
-    expect(within(parties).getByRole('listitem')).not.toHaveTextContent('₹');
+    // outstanding needs bills and payments: the backend leaves the key out
+    expect(screen.queryByText('Outstanding by party')).not.toBeInTheDocument();
     expect(requests.some(r => r.startsWith('billing'))).toBe(false);
   });
 
@@ -458,8 +461,8 @@ describe('DashboardPage', () => {
     renderPage();
     expect(await screen.findByText('Billed this month')).toBeInTheDocument();
     expect(screen.queryByText(/Stock on rent/)).not.toBeInTheDocument();
-    expect(screen.queryByRole('list', { name: 'Stock' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('list', { name: 'Parties' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Stock' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Outstanding by party')).not.toBeInTheDocument();
     expect(await screen.findByText(/6\.0% over 1Y/)).toBeInTheDocument();
     expect(requests.some(r => r.startsWith('utilization'))).toBe(false);
   });
@@ -482,7 +485,7 @@ describe('DashboardPage', () => {
       .closest('section') as HTMLElement;
     expect(aging).toHaveTextContent('₹0 outstanding');
     expect(screen.getByText('No stock yet')).toBeInTheDocument();
-    expect(screen.getByText('No parties on rent yet')).toBeInTheDocument();
+    expect(screen.getByText('Nobody owes you money')).toBeInTheDocument();
     expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
   });
 

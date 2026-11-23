@@ -13,6 +13,8 @@ export type IconName =
   | 'bell'
   | 'chat'
   | 'chevron-down'
+  | 'chevron-left'
+  | 'chevron-right'
   | 'plus'
   | 'close'
   | 'menu'
@@ -97,6 +99,8 @@ const GLYPHS: Record<Exclude<IconName, 'brand'>, ReactNode> = {
   ),
   chat: <path d="M2.5 4h13v8h-7L5 14.8V12H2.5z" />,
   'chevron-down': <path d="m4 7 5 5 5-5" />,
+  'chevron-left': <path d="m11 4-5 5 5 5" />,
+  'chevron-right': <path d="m7 4 5 5-5 5" />,
   plus: <path d="M9 3.5v11M3.5 9h11" />,
   close: <path d="m4.5 4.5 9 9M13.5 4.5l-9 9" />,
   menu: <path d="M3 5h12M3 9h12M3 13h12" />,
