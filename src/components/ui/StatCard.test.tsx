@@ -75,4 +75,16 @@ describe('StatCard value', () => {
     render(<StatCard label="Overdue" value={0} />);
     expect(screen.getByText('0')).toHaveClass('value');
   });
+
+  it('renders a note line, toned when asked, and a note-only card', () => {
+    const { rerender } = render(
+      <StatCard label="Billed" value="₹1,000" note="▲ 12% vs last month" noteTone="positive" />
+    );
+    const note = screen.getByText('▲ 12% vs last month');
+    expect(note).toHaveClass('note');
+    expect(note).toHaveClass('tone-positive');
+    rerender(<StatCard label="Avg days" note="Not enough data" />);
+    expect(screen.getByText('Not enough data')).not.toHaveClass('tone-positive');
+    expect(screen.getByText('Not enough data')).not.toHaveClass('mono');
+  });
 });

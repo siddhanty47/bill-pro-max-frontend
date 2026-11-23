@@ -6,6 +6,28 @@ export type MeterSegment = { value: number; tone: MeterTone; label: string };
 const fmt = (n: number) => n.toLocaleString('en-IN');
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+export type MeterLegendItem = { tone: MeterTone; label: string; value?: number };
+
+/** Swatch + label (+ value) list: a Meter's own legend, or one legend shared by many bars. */
+export function MeterLegend({ items }: { items: MeterLegendItem[] }) {
+  return (
+    <ul className={styles.legend}>
+      {items.map((s, i) => (
+        <li key={i} className={styles.item}>
+          <span className={`${styles.swatch} ${styles[`sw-${s.tone}`]}`} aria-hidden="true" />
+          {s.label}
+          {s.value !== undefined && (
+            <>
+              {' '}
+              <span className="mono">{fmt(s.value)}</span>
+            </>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function Meter({
   segments,
   hideLegend = false,
@@ -54,16 +76,7 @@ export function Meter({
       >
         {rects}
       </svg>
-      {!hideLegend && (
-        <ul className={styles.legend}>
-          {segments.map((s, i) => (
-            <li key={i} className={styles.item}>
-              <span className={`${styles.swatch} ${styles[`sw-${s.tone}`]}`} aria-hidden="true" />
-              {s.label} <span className="mono">{fmt(s.value)}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+      {!hideLegend && <MeterLegend items={segments} />}
     </div>
   );
 }

@@ -7,6 +7,8 @@ import styles from './ChartCard.module.css';
 
 export type ChartCardProps = {
   title: string;
+  /** Muted line under the title (the data source, cadence). */
+  subtitle?: string;
   /** One line above the chart, e.g. the latest value or period total. */
   headline?: ReactNode;
   /** Range options shown under the chart; omit for a chart with no range choice. */
@@ -24,6 +26,7 @@ const rangeLabel = (r: RangeKey) => (r === 'ALL' ? 'All' : r);
 /** A card around one chart: headline, the chart body, and range presets underneath. */
 export function ChartCard({
   title,
+  subtitle,
   headline,
   presets,
   range,
@@ -48,7 +51,7 @@ export function ChartCard({
   }
 
   return (
-    <Card title={title}>
+    <Card title={title} subtitle={subtitle}>
       <div className={styles.stack}>
         {headline != null && headline !== false && (
           <div className={styles.headline}>{headline}</div>

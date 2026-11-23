@@ -16,9 +16,10 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `Brand` | The Bill Pro Max mark + wordmark for headers (`size`: `md` default, `sm`; `collapseName` shows the mark only at ≤480, wordmark stays readable to assistive tech); placement-only `className` |
 | `GoogleIcon` | The Google logo on sign-in buttons (brand colours, token-check allowlisted) |
 | `Card` | Any surface panel or section, with optional title, muted `subtitle` line, count pill and actions |
-| `StatCard` | A single headline number with a label; `tone="highlight"` for the one key stat; `valueTone` (`positive`/`negative`/`warning`) colours the number; `value` optional for a children-only card |
-| `Meter` | A segmented bar with legend (e.g. available vs rented stock); `hideLegend` drops the legend, tone `muted` is a neutral segment |
-| `ChartCard` | A card around one chart: title, headline line, chart body (spinner / empty message) and range presets under it. Chart bodies live in `components/charts/` and are loaded with `React.lazy` |
+| `StatCard` | A single headline number with a label; `tone="highlight"` for the one key stat; `valueTone` (`positive`/`negative`/`warning`) colours the number; `note` (+ `noteTone`) is a short secondary line such as "▲ 12% vs last month"; `value` optional for a children-only card |
+| `Meter` | A segmented bar with legend (e.g. available vs rented stock); `hideLegend` drops the legend, tone `muted` is a neutral segment. `MeterLegend` is the legend on its own (one shared legend for many bars) |
+| `MeterList` | Rows of stacked bars (dashboard stock / parties / outstanding by age): each row a label (text or `TextLink`), right-aligned `detail`, a `hideLegend` Meter and a muted `note`; optional shared `legend`, muted `empty` line and `footnote` |
+| `ChartCard` | A card around one chart: title, optional muted `subtitle` (data source), headline line, chart body (spinner / empty message) and range presets under it. Chart bodies live in `components/charts/` and are loaded with `React.lazy` |
 | `ProgressBar` | A determinate progress bar for a running job (takes the surrounding text colour, e.g. inside a `Notice`) |
 | `PageHeader` | The title row at the top of every page, with optional actions, a `badge` beside the title and a muted `subtitle` under it (only for context shown nowhere else) |
 | `EmptyState` | "Nothing here" states: one short title and at most one action |

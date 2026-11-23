@@ -13,6 +13,10 @@ export type StatCardProps = {
   icon?: IconName;
   to?: string;
   tone?: 'default' | 'highlight';
+  /** Short secondary line under the value (text font), e.g. "▲ 12% vs last month". */
+  note?: ReactNode;
+  /** Colour of the note, like `valueTone`. */
+  noteTone?: ValueTone;
   className?: string;
   children?: ReactNode;
 };
@@ -24,6 +28,8 @@ export function StatCard({
   icon,
   to,
   tone = 'default',
+  note,
+  noteTone,
   className,
   children,
 }: StatCardProps) {
@@ -48,6 +54,15 @@ export function StatCard({
             .join(' ')}
         >
           {value}
+        </div>
+      )}
+      {note != null && note !== '' && (
+        <div
+          className={[styles.note, noteTone ? styles[`tone-${noteTone}`] : '']
+            .filter(Boolean)
+            .join(' ')}
+        >
+          {note}
         </div>
       )}
       {children}

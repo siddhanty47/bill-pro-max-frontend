@@ -13,13 +13,24 @@ export type BarLineChartProps = {
   bucket: Bucket;
   bar: SeriesSpec;
   line: SeriesSpec;
+  /** Axis labels (and the tooltip unless `tooltipFormat` is given). */
   format: (n: number) => string;
+  /** Tooltip values, e.g. full amounts while the axis is compact. */
+  tooltipFormat?: (n: number) => string;
   /** Fixed size instead of filling the wrapper (tests). */
   size?: ChartSize;
 };
 
 /** Bars (e.g. billed) with a line (e.g. collected) over the same axis. Load via React.lazy. */
-export function BarLineChart({ data, bucket, bar, line, format, size }: BarLineChartProps) {
+export function BarLineChart({
+  data,
+  bucket,
+  bar,
+  line,
+  format,
+  tooltipFormat,
+  size,
+}: BarLineChartProps) {
   const theme = useChartTheme();
   return (
     <ChartFrame size={size}>
@@ -43,7 +54,9 @@ export function BarLineChart({ data, bucket, bar, line, format, size }: BarLineC
         />
         <Tooltip
           cursor={{ stroke: theme.grid }}
-          content={props => <ChartTooltip {...props} bucket={bucket} format={format} />}
+          content={props => (
+            <ChartTooltip {...props} bucket={bucket} format={tooltipFormat ?? format} />
+          )}
         />
         <Legend
           verticalAlign="top"

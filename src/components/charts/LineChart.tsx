@@ -19,13 +19,24 @@ export type LineChartProps = {
   y: SeriesSpec;
   /** Fixed y range, e.g. [0, 100] for a percentage. */
   domain?: [number, number];
+  /** Axis labels (and the tooltip unless `tooltipFormat` is given). */
   format: (n: number) => string;
+  /** Tooltip values, e.g. full amounts while the axis is compact. */
+  tooltipFormat?: (n: number) => string;
   /** Fixed size instead of filling the wrapper (tests). */
   size?: ChartSize;
 };
 
 /** A single line over time (utilization, steel index). Load via React.lazy. */
-export function LineChart({ data, bucket, y, domain, format, size }: LineChartProps) {
+export function LineChart({
+  data,
+  bucket,
+  y,
+  domain,
+  format,
+  tooltipFormat,
+  size,
+}: LineChartProps) {
   const theme = useChartTheme();
   return (
     <ChartFrame size={size}>
@@ -50,7 +61,9 @@ export function LineChart({ data, bucket, y, domain, format, size }: LineChartPr
         />
         <Tooltip
           cursor={{ stroke: theme.grid }}
-          content={props => <ChartTooltip {...props} bucket={bucket} format={format} />}
+          content={props => (
+            <ChartTooltip {...props} bucket={bucket} format={tooltipFormat ?? format} />
+          )}
         />
         <Line
           dataKey={y.key}

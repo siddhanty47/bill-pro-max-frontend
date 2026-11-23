@@ -78,4 +78,13 @@ describe('ChartCard', () => {
     );
     expect(screen.queryByText('0')).not.toBeInTheDocument();
   });
+
+  it('renders an optional subtitle under the title', () => {
+    render(
+      <ChartCard title="Steel price index" subtitle="Govt WPI · monthly">
+        <div />
+      </ChartCard>
+    );
+    expect(screen.getByText('Govt WPI · monthly')).toBeInTheDocument();
+  });
 });

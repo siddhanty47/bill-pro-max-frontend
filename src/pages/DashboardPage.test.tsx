@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, within, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
@@ -6,7 +6,47 @@ import { DashboardPage } from './DashboardPage';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
 import { apiUrl, ok } from '../test/msw/handlers';
-import type { Bill, Business, Party } from '../types';
+import type {
+  Bill,
+  Business,
+  DashboardMetric,
+  DashboardSummary,
+  Party,
+  SeriesPoint,
+  SeriesResponse,
+} from '../types';
+
+// Recharts needs layout jsdom lacks: stand in a plain list of the values each chart gets.
+vi.mock('../components/charts/BarLineChart', () => ({
+  default: ({
+    data,
+    format,
+    tooltipFormat,
+  }: {
+    data: SeriesPoint[];
+    format: (n: number) => string;
+    tooltipFormat?: (n: number) => string;
+  }) => (
+    <div data-testid="billing-chart">
+      {data
+        .map(p => `${format(Number(p.billed))}|${tooltipFormat?.(Number(p.collected))}`)
+        .join(',')}
+    </div>
+  ),
+}));
+vi.mock('../components/charts/LineChart', () => ({
+  default: ({
+    data,
+    y,
+    format,
+  }: {
+    data: SeriesPoint[];
+    y: { key: string };
+    format: (n: number) => string;
+  }) => (
+    <div data-testid={`line-${y.key}`}>{data.map(p => format(Number(p[y.key]))).join(',')}</div>
+  ),
+}));
 
 const business = { _id: 'biz-1', name: 'Patel Scaffold Co.' } as Business;
 
@@ -27,50 +67,120 @@ const bill = (over: Partial<Bill>) =>
     ...over,
   }) as Bill;
 
-const stats = {
-  totalItems: 42,
-  totalQuantity: 14820,
-  availableQuantity: 5632,
-  rentedQuantity: 9188,
-  categories: [],
+const fullSummary: DashboardSummary = {
+  billedThisMonth: { value: 420000, previous: 375000 },
+  collectedThisMonth: { value: 300000, previous: 312500 },
+  avgDaysToPay: 18.4,
+  aging: {
+    buckets: [
+      { key: '0-30', amount: 120000 },
+      { key: '31-60', amount: 60000 },
+      { key: '61-90', amount: 30000 },
+      { key: '90+', amount: 90000 },
+    ],
+    total: 300000,
+    advances: 12000,
+  },
+  stock: [
+    { itemId: 'i1', name: 'Props 3m', unit: 'pcs', atSites: 248, inYard: 152, damagedLost: 18 },
+    { itemId: 'i2', name: 'Plates', unit: 'pcs', atSites: 100, inYard: 50, damagedLost: 0 },
+  ],
+  onRentPct: 63.6,
+  activeSites: 7,
+  rentPerDay: 12500,
+  parties: [
+    { partyId: 'p1', name: 'Mehta Builders', outstanding: 184200, onSite: 320, damagedLost: 4 },
+  ],
 };
+
+const emptySummary: DashboardSummary = {
+  billedThisMonth: { value: 0, previous: 0 },
+  collectedThisMonth: { value: 0, previous: 0 },
+  avgDaysToPay: null,
+  aging: {
+    buckets: [
+      { key: '0-30', amount: 0 },
+      { key: '31-60', amount: 0 },
+      { key: '61-90', amount: 0 },
+      { key: '90+', amount: 0 },
+    ],
+    total: 0,
+    advances: 0,
+  },
+  stock: [],
+  onRentPct: 0,
+  activeSites: 0,
+  rentPerDay: 0,
+  parties: [],
+};
+
+const fullSeries: Record<DashboardMetric, Partial<SeriesResponse>> = {
+  billing: {
+    bucket: 'month',
+    points: [
+      { t: '2026-10-01', billed: 1840000, collected: 1600000 },
+      { t: '2026-11-01', billed: 2000000, collected: 1790000 },
+    ],
+  },
+  utilization: {
+    bucket: 'week',
+    points: [
+      { t: '2026-11-09', pct: 50, atSites: 50, total: 100 },
+      { t: '2026-11-16', pct: 130, atSites: 130, total: 100 },
+    ],
+  },
+  steel: {
+    bucket: 'month',
+    points: [
+      { t: '2025-11-01', index: 100, provisional: false },
+      { t: '2026-10-01', index: 106, provisional: true },
+    ],
+    changePct: 6,
+  },
+};
+
+type SeriesReply = (metric: DashboardMetric, range: string) => Response | undefined;
 
 function useApi({
   businesses = [business],
   parties = [party({}), party({ _id: 'p2', name: 'Old Co', isActive: false })],
-  bills = [
-    bill({}),
-    bill({
-      _id: 'b2',
-      billNumber: 'BL-0251',
-      status: 'partial',
-      totalAmount: 100000,
-      amountPaid: 40000,
-    }),
-    bill({ _id: 'b3', billNumber: 'BL-0300', status: 'paid', totalAmount: 5000, amountPaid: 5000 }),
-  ],
   overdue = [bill({})],
-  totalOutstanding = 344200,
+  summary = fullSummary,
+  series,
 }: {
   businesses?: Business[];
   parties?: Party[];
-  bills?: Bill[];
   overdue?: Bill[];
-  totalOutstanding?: number;
+  summary?: DashboardSummary;
+  series?: SeriesReply;
 } = {}) {
+  const requests: string[] = [];
   server.use(
     http.get(apiUrl('/businesses'), () => ok(businesses)),
-    http.get(apiUrl('/businesses/biz-1/inventory/stats'), () => ok(stats)),
     http.get(apiUrl('/businesses/biz-1/parties'), () => ok(parties)),
-    http.get(apiUrl('/businesses/biz-1/parties/outstanding'), () =>
-      ok({ totalOutstanding, parties: [], currency: 'INR' })
-    ),
     http.get(apiUrl('/businesses/biz-1/bills/overdue'), () => ok(overdue)),
-    http.get(apiUrl('/businesses/biz-1/bills'), () =>
-      HttpResponse.json({ success: true, data: bills })
-    )
+    http.get(apiUrl('/businesses/biz-1/dashboard/summary'), () => ok(summary)),
+    http.get(apiUrl('/businesses/biz-1/dashboard/series'), ({ request }) => {
+      const q = new URL(request.url).searchParams;
+      const metric = q.get('metric') as DashboardMetric;
+      const range = q.get('range') ?? '';
+      requests.push(`${metric}:${range}`);
+      const custom = series?.(metric, range);
+      if (custom) return custom;
+      return ok({ metric, range, bucket: 'month', points: [], ...fullSeries[metric] });
+    })
   );
+  return requests;
 }
+
+const emptySeries: SeriesReply = (metric, range) =>
+  ok({
+    metric,
+    range,
+    bucket: 'month',
+    points: metric === 'utilization' ? [{ t: '2026-11-01', pct: 0, atSites: 0, total: 0 }] : [],
+    changePct: null,
+  });
 
 function Where() {
   const { pathname, state } = useLocation();
@@ -92,6 +202,7 @@ function renderPage(state = signedIn()) {
   );
 }
 
+beforeEach(() => localStorage.clear());
 afterEach(() => vi.restoreAllMocks());
 
 describe('DashboardPage', () => {
@@ -110,24 +221,221 @@ describe('DashboardPage', () => {
     expect(screen.queryByRole('heading', { level: 1, name: 'Dashboard' })).not.toBeInTheDocument();
     expect(screen.queryByText(/Welcome to/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Add business/ })).toBeInTheDocument();
-    // from the outstanding summary (opening balances + bills - payments), not the bill list
-    expect(await screen.findByText('₹3,44,200')).toBeInTheDocument();
-    expect(screen.getByText('Stock · 14,820 pcs')).toBeInTheDocument();
-    expect(screen.getByText('42')).toBeInTheDocument();
-    const parties = screen.getByText('Active parties').parentElement as HTMLElement;
-    expect(within(parties).getByText('1')).toBeInTheDocument();
-    const pending = screen.getByText('Pending bills').parentElement as HTMLElement;
-    expect(within(pending).getByText('2')).toBeInTheDocument();
   });
 
-  it('describes stock split in the meter', async () => {
+  it('shows six KPI tiles with values and month-on-month trends', async () => {
     useApi();
     renderPage();
+    const tile = async (label: string) =>
+      (await screen.findByText(label)).parentElement as HTMLElement;
+    const billed = await tile('Billed this month');
+    expect(within(billed).getByText('₹4,20,000')).toBeInTheDocument();
+    expect(within(billed).getByText('▲ 12% vs last month')).toHaveClass('tone-positive');
+    const collected = await tile('Collected this month');
+    expect(within(collected).getByText('₹3,00,000')).toBeInTheDocument();
+    expect(within(collected).getByText('▼ 4% vs last month')).toHaveClass('tone-negative');
+    expect(within(await tile('Avg days to get paid')).getByText('18')).toBeInTheDocument();
+    expect(within(await tile('Stock on rent')).getByText('64%')).toBeInTheDocument();
+    expect(within(await tile('Active sites')).getByText('7')).toBeInTheDocument();
+    expect(within(await tile('Rent per day')).getByText('₹12,500')).toBeInTheDocument();
+  });
+
+  it('shows the three charts with range presets and range headlines', async () => {
+    const requests = useApi();
+    renderPage();
+    expect(await screen.findByRole('heading', { name: 'Billed vs collected' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Stock on rent %' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Steel price index' })).toBeInTheDocument();
+    expect(screen.getByText('Govt WPI · mild steel bars & rods · monthly')).toBeInTheDocument();
+    expect(await screen.findByText('₹38.4L billed · ₹33.9L collected (88%)')).toBeInTheDocument();
+    expect(await screen.findByText('avg 75% on rent')).toBeInTheDocument();
+    expect(await screen.findByText('▲ 6.0% over 1Y')).toBeInTheDocument();
+    const groups = screen.getAllByRole('radiogroup', { name: 'Chart range' });
+    expect(groups).toHaveLength(3);
+    expect(within(groups[0]).getByRole('radio', { name: '1Y' })).toHaveAttribute(
+      'aria-checked',
+      'true'
+    );
+    expect(within(groups[1]).getByRole('radio', { name: '6M' })).toHaveAttribute(
+      'aria-checked',
+      'true'
+    );
+    expect(within(groups[1]).getAllByRole('radio')).toHaveLength(6);
     expect(
-      await screen.findByRole('img', {
-        name: /Available 5,632 of 14,820, Rented out 9,188 of 14,820/,
-      })
+      within(groups[2])
+        .getAllByRole('radio')
+        .map(r => r.textContent)
+    ).toEqual(['1Y', '3Y', 'All']);
+    // axes compact, tooltips full; utilization clamped to 0–100
+    expect(await screen.findByTestId('billing-chart')).toHaveTextContent(
+      '₹18.4L|₹16,00,000,₹20L|₹17,90,000'
+    );
+    expect(await screen.findByTestId('line-pct')).toHaveTextContent('50%,100%');
+    expect(await screen.findByTestId('line-index')).toHaveTextContent('100,106');
+    expect(requests).toEqual(expect.arrayContaining(['billing:1Y', 'utilization:6M', 'steel:1Y']));
+  });
+
+  it('requests the new range when a preset is picked', async () => {
+    const requests = useApi();
+    const { user } = renderPage();
+    const groups = await screen.findAllByRole('radiogroup', { name: 'Chart range' });
+    await user.click(within(groups[0]).getByRole('radio', { name: '3M' }));
+    await waitFor(() => expect(requests).toContain('billing:3M'));
+    await user.click(within(groups[2]).getByRole('radio', { name: 'All' }));
+    expect(await screen.findByText('▲ 6.0% over all time')).toBeInTheDocument();
+  });
+
+  it('shows a falling steel index and no headline without a change', async () => {
+    let change: number | null = -2.14;
+    useApi({
+      series: (metric, range) =>
+        metric === 'steel'
+          ? ok({ ...fullSeries.steel, metric, range, changePct: change })
+          : undefined,
+    });
+    const { user } = renderPage();
+    const groups = await screen.findAllByRole('radiogroup', { name: 'Chart range' });
+    await user.click(within(groups[2]).getByRole('radio', { name: '3Y' }));
+    expect(await screen.findByText('▼ 2.1% over 3Y')).toBeInTheDocument();
+    change = null;
+    await user.click(within(groups[2]).getByRole('radio', { name: 'All' }));
+    await waitFor(() => expect(screen.queryByText(/over/)).not.toBeInTheDocument());
+  });
+
+  it('shows outstanding by age with the advances footnote', async () => {
+    useApi();
+    renderPage();
+    const card = (await screen.findByRole('heading', { name: 'Outstanding by age' })).closest(
+      'section'
+    ) as HTMLElement;
+    expect(within(card).getByText('90+ days')).toBeInTheDocument();
+    expect(within(card).getByText('₹90,000')).toBeInTheDocument();
+    expect(within(card).getByText('₹3,00,000 outstanding')).toBeInTheDocument();
+    expect(within(card).getByText('₹12,000 in advances not shown')).toBeInTheDocument();
+  });
+
+  it('lists stock and parties with bars and links', async () => {
+    useApi();
+    renderPage();
+    const stock = await screen.findByRole('list', { name: 'Stock' });
+    const [props, plates] = within(stock).getAllByRole('listitem');
+    expect(props).toHaveTextContent('Props 3m');
+    expect(props).toHaveTextContent('248 at sites / 400');
+    expect(props).toHaveTextContent('18 damaged or lost this year');
+    expect(
+      within(props).getByRole('img', { name: 'At sites 248 of 400, In yard 152 of 400' })
     ).toBeInTheDocument();
+    expect(plates).not.toHaveTextContent('damaged');
+    expect(screen.getByRole('link', { name: /All stock/ })).toHaveAttribute('href', '/inventory');
+
+    const parties = screen.getByRole('list', { name: 'Parties' });
+    const [mehta] = within(parties).getAllByRole('listitem');
+    expect(within(mehta).getByRole('link', { name: 'Mehta Builders' })).toHaveAttribute(
+      'href',
+      '/parties/p1'
+    );
+    expect(mehta).toHaveTextContent('₹1,84,200');
+    expect(mehta).toHaveTextContent('320 on site · 4 damaged or lost');
+    expect(
+      within(mehta).getByRole('img', { name: 'On site 320 of 324, Damaged or lost 4 of 324' })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /All parties/ })).toHaveAttribute('href', '/parties');
+  });
+
+  it('hides money tiles, the billing chart and aging for a role without bills/payments', async () => {
+    const requests = useApi({
+      summary: {
+        stock: fullSummary.stock,
+        onRentPct: 40,
+        activeSites: 3,
+        rentPerDay: 900,
+        parties: [{ partyId: 'p1', name: 'Mehta Builders', onSite: 10, damagedLost: 0 }],
+      },
+    });
+    renderPage();
+    expect(await screen.findByText('Active sites')).toBeInTheDocument();
+    expect(screen.queryByText('Billed this month')).not.toBeInTheDocument();
+    expect(screen.queryByText('Collected this month')).not.toBeInTheDocument();
+    expect(screen.queryByText('Avg days to get paid')).not.toBeInTheDocument();
+    expect(screen.queryByText('Outstanding by age')).not.toBeInTheDocument();
+    expect(screen.queryByText('Billed vs collected')).not.toBeInTheDocument();
+    expect(await screen.findByText('avg 75% on rent')).toBeInTheDocument();
+    const parties = screen.getByRole('list', { name: 'Parties' });
+    expect(within(parties).getByRole('listitem')).toHaveTextContent('10 on site');
+    expect(within(parties).getByRole('listitem')).not.toHaveTextContent('₹');
+    expect(requests.some(r => r.startsWith('billing'))).toBe(false);
+  });
+
+  it('hides stock sections and skips utilization without inventory access', async () => {
+    const requests = useApi({
+      summary: {
+        billedThisMonth: fullSummary.billedThisMonth,
+        collectedThisMonth: fullSummary.collectedThisMonth,
+        avgDaysToPay: 10,
+        aging: fullSummary.aging,
+      },
+    });
+    renderPage();
+    expect(await screen.findByText('Billed this month')).toBeInTheDocument();
+    expect(screen.queryByText(/Stock on rent/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Stock' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Parties' })).not.toBeInTheDocument();
+    expect(await screen.findByText('▲ 6.0% over 1Y')).toBeInTheDocument();
+    expect(requests.some(r => r.startsWith('utilization'))).toBe(false);
+  });
+
+  it('shows zeros and empty states for a brand-new business', async () => {
+    useApi({ summary: emptySummary, overdue: [], series: emptySeries });
+    renderPage();
+    const billed = (await screen.findByText('Billed this month')).parentElement as HTMLElement;
+    expect(within(billed).getByText('₹0')).toBeInTheDocument();
+    expect(within(billed).queryByText(/vs last month/)).not.toBeInTheDocument();
+    expect(screen.getByText('Not enough data')).toBeInTheDocument();
+    expect(screen.getByText('0%')).toBeInTheDocument();
+    expect(await screen.findAllByText('No data yet')).toHaveLength(2);
+    expect(await screen.findByText('Steel index not available')).toBeInTheDocument();
+    expect(screen.getByText('Nothing outstanding')).toBeInTheDocument();
+    expect(screen.getByText('No stock yet')).toBeInTheDocument();
+    expect(screen.getByText('No parties on rent yet')).toBeInTheDocument();
+    expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
+  });
+
+  it('keeps the page when the steel or billing series fails', async () => {
+    useApi({
+      series: metric =>
+        metric === 'steel'
+          ? HttpResponse.json({ success: false, message: 'boom' }, { status: 500 })
+          : metric === 'billing'
+            ? HttpResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
+            : undefined,
+    });
+    renderPage();
+    expect(await screen.findByText('Steel index not available')).toBeInTheDocument();
+    expect(await screen.findByText('Not available')).toBeInTheDocument();
+    expect(await screen.findByText('avg 75% on rent')).toBeInTheDocument();
+    expect(screen.getByText('Billed this month')).toBeInTheDocument();
+    expect(await screen.findByRole('table')).toBeInTheDocument();
+  });
+
+  it('shows a flat month as 0% without a direction', async () => {
+    useApi({
+      summary: { billedThisMonth: { value: 500, previous: 500 } },
+    });
+    renderPage();
+    expect(await screen.findByText('0% vs last month')).toBeInTheDocument();
+  });
+
+  it('shows an error with retry when the summary fails, keeping the overdue table', async () => {
+    useApi();
+    server.use(
+      http.get(apiUrl('/businesses/biz-1/dashboard/summary'), () =>
+        HttpResponse.json({ success: false, message: 'Summary down' }, { status: 500 })
+      )
+    );
+    renderPage();
+    expect(await screen.findByText('Summary down')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Try again/ })).toBeInTheDocument();
+    expect(await screen.findByRole('table')).toBeInTheDocument();
   });
 
   it('lists overdue bills with party, days and links to the bill', async () => {
@@ -177,7 +485,7 @@ describe('DashboardPage', () => {
   it('omits the overdue card when nothing is overdue', async () => {
     useApi({ overdue: [] });
     renderPage();
-    await screen.findByText('Active parties');
+    await screen.findByText('Active sites');
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
     expect(screen.queryByText('Overdue bills')).not.toBeInTheDocument();
   });
