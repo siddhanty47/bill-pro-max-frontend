@@ -29,6 +29,7 @@ export function ScrollArea({ label, className, onScroll, children }: ScrollAreaP
   const inner = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ left: false, right: false });
   const [nudge, setNudge] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
 
   const measure = useCallback(() => {
     const el = viewport.current;
@@ -41,6 +42,14 @@ export function ScrollArea({ label, className, onScroll, children }: ScrollAreaP
   useLayoutEffect(() => {
     measure();
   });
+
+  // A button that just reached its end goes inert: hand its focus to the region.
+  useLayoutEffect(() => {
+    const active = document.activeElement;
+    if (active instanceof HTMLButtonElement && active.disabled && root.current?.contains(active)) {
+      viewport.current?.focus({ preventScroll: true });
+    }
+  }, [edges]);
 
   useEffect(() => {
     const el = viewport.current;
@@ -82,7 +91,7 @@ export function ScrollArea({ label, className, onScroll, children }: ScrollAreaP
   };
 
   return (
-    <div className={[styles.root, className ?? ''].filter(Boolean).join(' ')}>
+    <div ref={root} className={[styles.root, className ?? ''].filter(Boolean).join(' ')}>
       <div
         ref={viewport}
         className={styles.viewport}
@@ -102,28 +111,27 @@ export function ScrollArea({ label, className, onScroll, children }: ScrollAreaP
           {children}
         </div>
       </div>
-      {edges.left && (
-        <>
-          <span className={`${styles.fade} ${styles.fadeLeft}`} aria-hidden="true" />
-          <IconButton
-            className={`${styles.button} ${styles.buttonLeft}`}
-            label="Scroll left"
-            icon="chevron-left"
-            onClick={() => scroll(-1)}
-          />
-        </>
-      )}
-      {edges.right && (
-        <>
-          <span className={`${styles.fade} ${styles.fadeRight}`} aria-hidden="true" />
-          <IconButton
-            className={`${styles.button} ${styles.buttonRight}`}
-            label="Scroll right"
-            icon="chevron-right"
-            onClick={() => scroll(1)}
-          />
-        </>
-      )}
+      {edges.left && <span className={`${styles.fade} ${styles.fadeLeft}`} aria-hidden="true" />}
+      {edges.right && <span className={`${styles.fade} ${styles.fadeRight}`} aria-hidden="true" />}
+      {/* Both buttons stay mounted (hidden and inert at their end) so focus is never dropped. */}
+      <IconButton
+        className={`${styles.button} ${styles.buttonLeft}${edges.left ? '' : ` ${styles.off}`}`}
+        label="Scroll left"
+        icon="chevron-left"
+        disabled={!edges.left}
+        aria-hidden={!edges.left || undefined}
+        tabIndex={edges.left ? undefined : -1}
+        onClick={() => scroll(-1)}
+      />
+      <IconButton
+        className={`${styles.button} ${styles.buttonRight}${edges.right ? '' : ` ${styles.off}`}`}
+        label="Scroll right"
+        icon="chevron-right"
+        disabled={!edges.right}
+        aria-hidden={!edges.right || undefined}
+        tabIndex={edges.right ? undefined : -1}
+        onClick={() => scroll(1)}
+      />
     </div>
   );
 }

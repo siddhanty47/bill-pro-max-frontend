@@ -70,6 +70,12 @@
   right: 0;
 }
 
+/* At its end: still mounted (keeps focus handling simple), but invisible and inert. */
+.off {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .nudge {
     animation: none;

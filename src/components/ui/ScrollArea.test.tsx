@@ -211,4 +211,34 @@ describe('ScrollArea', () => {
       /prefers-reduced-motion: reduce\)\s*\{[^@]*\.nudge\s*\{[^}]*animation:\s*none/
     );
   });
+
+  it('keeps both buttons mounted, inert at their end, and hands focus to the region', () => {
+    renderArea();
+    const region = screen.getByRole('region');
+    setSize(region, { scrollWidth: 1000, clientWidth: 300, scrollLeft: 300 });
+    fireEvent.scroll(region);
+    const right = screen.getByRole('button', { name: 'Scroll right' });
+    right.focus();
+    expect(right).toHaveFocus();
+
+    setSize(region, { scrollWidth: 1000, clientWidth: 300, scrollLeft: 700 });
+    fireEvent.scroll(region);
+    // the same element, now hidden from the accessibility tree and not tabbable
+    const hidden = screen.getByLabelText('Scroll right');
+    expect(hidden).toBe(right);
+    expect(hidden).toBeDisabled();
+    expect(hidden).toHaveAttribute('aria-hidden', 'true');
+    expect(hidden).toHaveAttribute('tabindex', '-1');
+    expect(hidden).toHaveClass('off');
+    expect(region).toHaveFocus();
+
+    const left = screen.getByRole('button', { name: 'Scroll left' });
+    expect(left).toBeEnabled();
+    expect(left).not.toHaveAttribute('aria-hidden');
+  });
+
+  it('hides an ended button without taking it out of the page (CSS)', async () => {
+    const css = await readCss('src/components/ui/ScrollArea.module.css');
+    expect(css).toMatch(/\.off\s*\{[^}]*visibility:\s*hidden[^}]*pointer-events:\s*none/);
+  });
 });
