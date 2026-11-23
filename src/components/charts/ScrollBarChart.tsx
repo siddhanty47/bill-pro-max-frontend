@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -115,43 +115,57 @@ export function ScrollBarChart<T extends object>({
   const card = useRef<HTMLDivElement>(null);
   const plotRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState<number | null>(null);
-  const [scrollLeft, setScrollLeft] = useState(0);
-
-  const value = (row: T, key: string) => Number((row as Record<string, unknown>)[key]) || 0;
-  const total = (row: T) => stacks.reduce((s, st) => s + value(row, st.key), 0);
-  const plotted: Plotted<T>[] = data.map((row, i) => ({
-    ...(row as Record<string, unknown>),
-    __i: i,
-    __total: total(row),
-    __label: barLabel(
-      (row as Record<string, unknown>)[xKey],
-      (row as Record<string, unknown>)[nameKey]
-    ),
-    __row: row,
-  }));
-  const max = plotted.reduce((m, p) => Math.max(m, p.__total), 0);
-  const ticks = niceTicks(max);
-  const domain: [number, number] = [0, ticks[ticks.length - 1]];
-  // the top non-zero segment of each bar gets the rounded end
-  const topStack = data.map(row => {
-    for (let s = stacks.length - 1; s >= 0; s--) if (value(row, stacks[s].key) > 0) return s;
-    return -1;
+  // Scrolling must not re-render the charts (hundreds of cells): the offset lives in a ref
+  // and only moves the card, which is placed outside React.
+  const scrollLeft = useRef(0);
+  // latest values for the memoised chart handlers
+  const activeRef = useRef(active);
+  const onBarClickRef = useRef(onBarClick);
+  useLayoutEffect(() => {
+    activeRef.current = active;
+    onBarClickRef.current = onBarClick;
   });
+
+  const { plotted, ticks, topStack } = useMemo(() => {
+    const value = (row: T, key: string) => Number((row as Record<string, unknown>)[key]) || 0;
+    const rows: Plotted<T>[] = data.map((row, i) => ({
+      ...(row as Record<string, unknown>),
+      __i: i,
+      __total: stacks.reduce((s, st) => s + value(row, st.key), 0),
+      __label: barLabel(
+        (row as Record<string, unknown>)[xKey],
+        (row as Record<string, unknown>)[nameKey]
+      ),
+      __row: row,
+    }));
+    return {
+      plotted: rows,
+      ticks: niceTicks(rows.reduce((m, p) => Math.max(m, p.__total), 0)),
+      // the top non-zero segment of each bar gets the rounded end
+      topStack: data.map(row => {
+        for (let s = stacks.length - 1; s >= 0; s--) if (value(row, stacks[s].key) > 0) return s;
+        return -1;
+      }),
+    };
+  }, [data, stacks, xKey, nameKey]);
   const plotWidth = Math.max(frameWidth - AXIS_WIDTH, data.length * slotWidth, slotWidth);
   const activeRow = active !== null ? data[active] : undefined;
-  // bar centre in frame coordinates (the plot's category bands span its whole width)
-  const barX =
-    active !== null && data.length > 0
-      ? AXIS_WIDTH + ((active + 0.5) * plotWidth) / data.length - scrollLeft
-      : 0;
 
-  // Position the card from its measured width (a CSS variable set on the element: no inline
-  // style attribute). Runs after every render so a new bar or scroll moves it.
-  useLayoutEffect(() => {
+  // Place the card from its measured width and the bar's centre in frame coordinates (the
+  // plot's category bands span its whole width). Inline styles are banned; the one exception
+  // is this CSS variable, set with style.setProperty and read by `.floatingTip`.
+  const placeCard = useCallback(() => {
     const el = card.current;
-    if (!el) return;
+    const i = activeRef.current;
+    if (!el || i === null || data.length === 0) return;
+    const barX = AXIS_WIDTH + ((i + 0.5) * plotWidth) / data.length - scrollLeft.current;
     const width = frameWidth || el.parentElement?.clientWidth || 0;
     el.style.setProperty('--tip-left', `${tipLeft(barX, el.offsetWidth, width)}px`);
+  }, [data.length, plotWidth, frameWidth]);
+
+  // after every render: a new bar or new content changes the card's width
+  useLayoutEffect(() => {
+    placeCard();
   });
 
   // A tapped card stays until the next tap: a tap outside the plot dismisses it.
@@ -164,118 +178,151 @@ export function ScrollBarChart<T extends object>({
     return () => document.removeEventListener('pointerdown', dismiss);
   }, [active]);
 
-  // The slot under the pointer, from the click position (Recharts reports the last hovered
-  // index, which a tap may not have set yet).
-  const slotAt = (clientX: number | undefined): number | null => {
-    const el = plotRef.current;
-    if (!el || clientX === undefined || data.length === 0) return null;
-    const i = Math.floor((clientX - el.getBoundingClientRect().left) / (plotWidth / data.length));
-    return i >= 0 && i < data.length ? i : null;
-  };
-
-  const handleClick = (state: MouseHandlerDataParam, event?: { clientX?: number }) => {
-    const i = slotAt(event?.clientX) ?? indexOf(state);
-    if (i === null || !data[i]) return;
-    if (isTouch()) {
-      if (active === i && onBarClick) onBarClick(data[i]);
-      else setActive(i);
-      return;
-    }
-    onBarClick?.(data[i]);
-  };
-
   const tip = activeRow ? tooltip(activeRow) : undefined;
   const hint = tip && (onBarClick && isTouch() ? TAP_HINT : tip.hint);
+  const clickable = Boolean(onBarClick);
 
-  const axisProps = {
-    stroke: theme.grid,
-    tick: { fill: theme.axis },
-    tickLine: false,
-  } as const;
+  // The charts are memoised on their data and size, so a hover, tap or scroll re-renders
+  // only the card.
+  const charts = useMemo(() => {
+    const domain: [number, number] = [0, ticks[ticks.length - 1]];
+    const axisProps = {
+      stroke: theme.grid,
+      tick: { fill: theme.axis },
+      tickLine: false,
+    } as const;
+
+    // The slot under the pointer, from the click position (Recharts reports the last hovered
+    // index, which a tap may not have set yet).
+    const slotAt = (clientX: number | undefined): number | null => {
+      const el = plotRef.current;
+      if (!el || clientX === undefined || data.length === 0) return null;
+      const i = Math.floor((clientX - el.getBoundingClientRect().left) / (plotWidth / data.length));
+      return i >= 0 && i < data.length ? i : null;
+    };
+
+    const handleClick = (state: MouseHandlerDataParam, event?: { clientX?: number }) => {
+      const i = slotAt(event?.clientX) ?? indexOf(state);
+      if (i === null || !data[i]) return;
+      const open = onBarClickRef.current;
+      if (isTouch()) {
+        if (activeRef.current === i && open) open(data[i]);
+        else setActive(i);
+        return;
+      }
+      open?.(data[i]);
+    };
+
+    const axis = (
+      <BarChart
+        width={AXIS_WIDTH}
+        height={height}
+        data={plotted}
+        margin={MARGIN}
+        accessibilityLayer={false}
+      >
+        <XAxis dataKey="__i" height={X_AXIS_HEIGHT} tick={false} axisLine={false} />
+        <YAxis
+          {...axisProps}
+          width={AXIS_WIDTH}
+          domain={domain}
+          ticks={ticks}
+          interval={0}
+          axisLine={false}
+          tickFormatter={(n: number) => format(n)}
+        />
+        {/* Recharts lays out an axis only for a chart with a series; this one draws nothing */}
+        <Bar dataKey="__total" fill="none" isAnimationActive={false} />
+      </BarChart>
+    );
+
+    const plot = (
+      <BarChart
+        width={plotWidth}
+        height={height}
+        data={plotted}
+        margin={MARGIN}
+        barCategoryGap="28%"
+        accessibilityLayer={false}
+        className={clickable ? styles.clickable : undefined}
+        onMouseEnter={state => {
+          if (!isTouch()) setActive(indexOf(state));
+        }}
+        onMouseMove={state => {
+          if (!isTouch()) setActive(indexOf(state));
+        }}
+        onMouseLeave={() => {
+          if (!isTouch()) setActive(null);
+        }}
+        onClick={handleClick}
+      >
+        <CartesianGrid vertical={false} stroke={theme.grid} />
+        <XAxis
+          {...axisProps}
+          dataKey="__i"
+          height={X_AXIS_HEIGHT}
+          interval={0}
+          tickFormatter={(i: number) => plotted[i]?.__label ?? ''}
+        />
+        <YAxis hide domain={domain} ticks={ticks} />
+        {/* the hover band only; the card is drawn over the frame below */}
+        <Tooltip cursor={{ fill: theme.grid }} isAnimationActive={false} content={() => null} />
+        {stacks.map((stack, s) => (
+          <Bar
+            key={stack.key}
+            dataKey={stack.key as string}
+            name={stack.label}
+            stackId="bars"
+            fill={toneColor(theme, stack.tone)}
+            maxBarSize={36}
+            minPointSize={stacks.length === 1 ? MIN_POINT : 0}
+            isAnimationActive={false}
+          >
+            {plotted.map((p, i) => (
+              <Cell key={p.__i} {...(topStack[i] === s ? ROUND_TOP : {})} />
+            ))}
+          </Bar>
+        ))}
+      </BarChart>
+    );
+    return { axis, plot };
+  }, [data, plotted, ticks, topStack, stacks, plotWidth, height, theme, format, clickable]);
+
+  // Bars are drawn, not focusable: screen readers get the same facts as a list.
+  const srRows = useMemo(
+    () =>
+      data.map(row => {
+        const t = tooltip(row);
+        return [t.title, ...t.rows.map(r => `${r.label}: ${r.value}`)].join(', ');
+      }),
+    [data, tooltip]
+  );
 
   return (
     <div ref={frame} className={styles.scrollFrame}>
       <div className={styles.scrollAxis} aria-hidden="true">
-        <BarChart
-          width={AXIS_WIDTH}
-          height={height}
-          data={plotted}
-          margin={MARGIN}
-          accessibilityLayer={false}
-        >
-          <XAxis dataKey="__i" height={X_AXIS_HEIGHT} tick={false} axisLine={false} />
-          <YAxis
-            {...axisProps}
-            width={AXIS_WIDTH}
-            domain={domain}
-            ticks={ticks}
-            interval={0}
-            axisLine={false}
-            tickFormatter={(n: number) => format(n)}
-          />
-          {/* Recharts lays out an axis only for a chart with a series; this one draws nothing */}
-          <Bar dataKey="__total" fill="none" isAnimationActive={false} />
-        </BarChart>
+        {charts.axis}
       </div>
       <ScrollArea
         label={`${title}, scrollable`}
         className={styles.scrollPlot}
         onScroll={left => {
-          setScrollLeft(left);
-          // a tapped bar may have scrolled out of view: drop its card
+          scrollLeft.current = left;
+          if (activeRef.current === null) return;
+          // a tapped bar may have scrolled out of view: drop its card; a hovered one follows
           if (isTouch()) setActive(null);
+          else placeCard();
         }}
       >
         <div ref={plotRef} role="img" aria-label={ariaLabel}>
-          <BarChart
-            width={plotWidth}
-            height={height}
-            data={plotted}
-            margin={MARGIN}
-            barCategoryGap="28%"
-            accessibilityLayer={false}
-            className={onBarClick ? styles.clickable : undefined}
-            onMouseEnter={state => {
-              if (!isTouch()) setActive(indexOf(state));
-            }}
-            onMouseMove={state => {
-              if (!isTouch()) setActive(indexOf(state));
-            }}
-            onMouseLeave={() => {
-              if (!isTouch()) setActive(null);
-            }}
-            onClick={handleClick}
-          >
-            <CartesianGrid vertical={false} stroke={theme.grid} />
-            <XAxis
-              {...axisProps}
-              dataKey="__i"
-              height={X_AXIS_HEIGHT}
-              interval={0}
-              tickFormatter={(i: number) => plotted[i]?.__label ?? ''}
-            />
-            <YAxis hide domain={domain} ticks={ticks} />
-            {/* the hover band only; the card is drawn over the frame below */}
-            <Tooltip cursor={{ fill: theme.grid }} isAnimationActive={false} content={() => null} />
-            {stacks.map((stack, s) => (
-              <Bar
-                key={stack.key}
-                dataKey={stack.key as string}
-                name={stack.label}
-                stackId="bars"
-                fill={toneColor(theme, stack.tone)}
-                maxBarSize={36}
-                minPointSize={stacks.length === 1 ? MIN_POINT : 0}
-                isAnimationActive={false}
-              >
-                {plotted.map((p, i) => (
-                  <Cell key={p.__i} {...(topStack[i] === s ? ROUND_TOP : {})} />
-                ))}
-              </Bar>
-            ))}
-          </BarChart>
+          {charts.plot}
         </div>
       </ScrollArea>
+      <ul className={styles.srOnly} aria-label={title}>
+        {srRows.map((text, i) => (
+          <li key={i}>{text}</li>
+        ))}
+      </ul>
       {tip && (
         <div ref={card} className={`${styles.tooltip} ${styles.floatingTip}`}>
           <p className={styles.tooltipTitle}>{tip.title}</p>
