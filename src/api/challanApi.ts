@@ -47,7 +47,7 @@ export const challanApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Challan>) => response.data,
-      invalidatesTags: ['Challan', 'Inventory', 'AuditLog'],
+      invalidatesTags: ['Challan', 'Inventory', 'AuditLog', 'Dashboard'],
     }),
 
     confirmChallan: builder.mutation<
@@ -65,6 +65,7 @@ export const challanApi = baseApi.injectEndpoints({
         'Challan',
         'Inventory',
         'AuditLog',
+        'Dashboard',
       ],
     }),
 
@@ -83,6 +84,7 @@ export const challanApi = baseApi.injectEndpoints({
         'Challan',
         'Bill',
         'AuditLog',
+        'Dashboard',
       ],
     }),
 
@@ -111,6 +113,7 @@ export const challanApi = baseApi.injectEndpoints({
         'Challan',
         'Bill',
         'AuditLog',
+        'Dashboard',
       ],
     }),
 
@@ -155,6 +158,7 @@ export const challanApi = baseApi.injectEndpoints({
         'Challan',
         'Bill',
         'AuditLog',
+        'Dashboard',
       ],
     }),
 
@@ -172,6 +176,7 @@ export const challanApi = baseApi.injectEndpoints({
         'Challan',
         'Bill',
         'AuditLog',
+        'Dashboard',
       ],
     }),
 
@@ -189,6 +194,7 @@ export const challanApi = baseApi.injectEndpoints({
         { type: 'Challan', id: challanId },
         'Challan',
         'Bill',
+        'Dashboard',
       ],
     }),
 
@@ -207,6 +213,7 @@ export const challanApi = baseApi.injectEndpoints({
         'Challan',
         'Bill',
         'AuditLog',
+        'Dashboard',
       ],
     }),
 

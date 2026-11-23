@@ -1400,3 +1400,80 @@ export interface DocumentSearchResponse {
   bills: BillSearchHit[];
   challans: ChallanSearchHit[];
 }
+
+// ============ Dashboard ============
+
+/** Sidebar badge counts; a key is absent when the caller cannot read it. */
+export interface NavCounts {
+  inventory?: number;
+  parties?: number;
+  agreements?: number;
+  draftChallans?: number;
+  overdueBills?: number;
+}
+
+/** Current vs previous value; the % change is computed on the client. */
+export interface Trend {
+  value: number;
+  previous: number;
+}
+
+export type AgingKey = '0-30' | '31-60' | '61-90' | '90+';
+
+export interface Aging {
+  buckets: Array<{ key: AgingKey; amount: number }>;
+  total: number;
+  advances: number;
+}
+
+export interface StockRow {
+  itemId: string;
+  name: string;
+  unit: string;
+  atSites: number;
+  inYard: number;
+  damagedLost: number;
+}
+
+export interface PartyRow {
+  partyId: string;
+  name: string;
+  outstanding?: number;
+  onSite: number;
+  damagedLost: number;
+}
+
+/** Dashboard summary; a key is absent when the caller cannot read what it needs. */
+export interface DashboardSummary {
+  billedThisMonth?: Trend;
+  collectedThisMonth?: Trend;
+  avgDaysToPay?: number | null;
+  aging?: Aging;
+  stock?: StockRow[];
+  onRentPct?: number;
+  activeSites?: number;
+  rentPerDay?: number;
+  parties?: PartyRow[];
+}
+
+export type DashboardMetric = 'billing' | 'utilization' | 'steel';
+export type RangeKey = '1M' | '3M' | '6M' | '1Y' | '3Y' | 'ALL';
+export type Bucket = 'day' | 'week' | 'month';
+
+/**
+ * One chart point. billing: { t, billed, collected }; utilization: { t, pct, atSites, total };
+ * steel: { t, index, provisional }.
+ */
+export interface SeriesPoint {
+  t: string;
+  [k: string]: number | string | boolean;
+}
+
+export interface SeriesResponse {
+  metric: DashboardMetric;
+  range: RangeKey;
+  bucket: Bucket;
+  points: SeriesPoint[];
+  /** steel only: change over the points in %, 1 dp; null when fewer than 2 points */
+  changePct?: number | null;
+}

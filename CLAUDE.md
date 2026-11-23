@@ -24,7 +24,7 @@ React SPA for scaffolding rental business management. See README.md for setup. T
 - Auto-logout on 401 responses
 - Tag types for cache invalidation
 
-**Tag types:** `Business`, `Party`, `Inventory`, `Challan`, `Bill`, `Payment`, `Agreement`, `Member`, `Invitation`, `Notification`, `Employee`, `Attendance`, `ShareLink`, `Preset`, `AuditLog`, `Assistant`, `SearchIndex`
+**Tag types:** `Business`, `Party`, `Inventory`, `Challan`, `Bill`, `Payment`, `Agreement`, `Member`, `Invitation`, `Notification`, `Employee`, `Attendance`, `ShareLink`, `Preset`, `AuditLog`, `Assistant`, `SearchIndex`, `Dashboard`
 
 Each entity has its own API file in `src/api/` that injects endpoints via `baseApi.injectEndpoints()`. Follow the pattern in `partyApi.ts` when creating new ones.
 

@@ -14,6 +14,17 @@ export const ok = <T>(data: T) =>
 export const handlers = [
   http.get(apiUrl('/notifications/unread-count'), () => ok({ count: 0 })),
   http.get(apiUrl('/notifications'), () => ok([])),
+  http.get(apiUrl('/businesses/:businessId/dashboard/nav-counts'), () => ok({})),
+  http.get(apiUrl('/businesses/:businessId/dashboard/summary'), () => ok({})),
+  http.get(apiUrl('/businesses/:businessId/dashboard/series'), ({ request }) => {
+    const query = new URL(request.url).searchParams;
+    return ok({
+      metric: query.get('metric') ?? 'billing',
+      range: query.get('range') ?? '1Y',
+      bucket: 'month',
+      points: [],
+    });
+  }),
 ];
 
 /**

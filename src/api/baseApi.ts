@@ -73,6 +73,7 @@ export const baseApi = createApi({
     'AuditLog',
     'Assistant',
     'SearchIndex',
+    'Dashboard',
   ],
   endpoints: () => ({}),
 });

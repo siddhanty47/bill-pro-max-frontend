@@ -52,7 +52,7 @@ export const partyApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Party>) => response.data,
-      invalidatesTags: ['Party', 'AuditLog', 'SearchIndex'],
+      invalidatesTags: ['Party', 'AuditLog', 'SearchIndex', 'Dashboard'],
     }),
 
     updateParty: builder.mutation<
@@ -70,6 +70,7 @@ export const partyApi = baseApi.injectEndpoints({
         'Party',
         'AuditLog',
         'SearchIndex',
+        'Dashboard',
       ],
     }),
 
@@ -78,7 +79,7 @@ export const partyApi = baseApi.injectEndpoints({
         url: `/businesses/${businessId}/parties/${partyId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['Party', 'AuditLog', 'SearchIndex'],
+      invalidatesTags: ['Party', 'AuditLog', 'SearchIndex', 'Dashboard'],
     }),
 
     createAgreement: builder.mutation<
@@ -95,6 +96,7 @@ export const partyApi = baseApi.injectEndpoints({
         { type: 'Party', id: partyId },
         'Party',
         'SearchIndex',
+        'Dashboard',
       ],
     }),
 
@@ -122,6 +124,7 @@ export const partyApi = baseApi.injectEndpoints({
         'Party',
         'AuditLog',
         'SearchIndex',
+        'Dashboard',
       ],
     }),
 
@@ -140,6 +143,7 @@ export const partyApi = baseApi.injectEndpoints({
         'Party',
         'AuditLog',
         'SearchIndex',
+        'Dashboard',
       ],
     }),
   }),
