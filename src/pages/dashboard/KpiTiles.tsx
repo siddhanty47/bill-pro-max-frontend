@@ -1,10 +1,10 @@
 import { StatCard } from '../../components/ui';
 import { formatMoney } from '../../utils/format';
 import type { DashboardSummary } from '../../types';
-import { fmtCount, trendNote } from './dashboardFormat';
+import { clampPct, fmtCount, trendNote } from './dashboardFormat';
 import styles from './Dashboard.module.css';
 
-/** The KPI row; a tile is left out when its summary key is (the role can't read it). */
+/** The KPI row; a tile is left out when its summary key is absent (the role can't read it). */
 export function KpiTiles({ summary }: { summary: DashboardSummary }) {
   const { billedThisMonth, collectedThisMonth, avgDaysToPay, onRentPct, activeSites, rentPerDay } =
     summary;
@@ -33,7 +33,7 @@ export function KpiTiles({ summary }: { summary: DashboardSummary }) {
           <StatCard label="Avg days to get paid" value={fmtCount(Math.round(avgDaysToPay))} />
         ))}
       {onRentPct !== undefined && (
-        <StatCard label="Stock on rent" value={`${Math.round(onRentPct)}%`} />
+        <StatCard label="Stock on rent" value={`${Math.round(clampPct(onRentPct))}%`} />
       )}
       {activeSites !== undefined && <StatCard label="Active sites" value={fmtCount(activeSites)} />}
       {rentPerDay !== undefined && (

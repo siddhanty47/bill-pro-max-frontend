@@ -23,7 +23,9 @@ export function DashboardInsights({
   return (
     <div className={styles.sections}>
       <KpiTiles summary={summary} />
-      <div className={[styles.charts, hasMain ? '' : styles.chartsSingle].join(' ')}>
+      <div
+        className={[styles.charts, hasMain ? '' : styles.chartsSingle].filter(Boolean).join(' ')}
+      >
         {hasMain && (
           <div className={styles.column}>
             {showBilling && <BillingChart businessId={businessId} />}

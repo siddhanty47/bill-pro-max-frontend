@@ -50,8 +50,13 @@
 }
 
 @media (max-width: 768px) {
-  /* a linked label (party name) keeps a 44px tap target */
   .head {
+    align-items: center;
+  }
+
+  /* a linked label (party name) is itself a 44px tap target */
+  .label > a {
+    display: inline-flex;
     align-items: center;
     min-height: 44px;
   }

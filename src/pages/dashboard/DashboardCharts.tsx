@@ -107,7 +107,11 @@ export function UtilizationChart({ businessId }: { businessId: string }) {
   const raw = series?.points ?? [];
   const points = raw.map(p => ({ ...p, pct: clampPct(num(p, 'pct')) }));
   const hasData = raw.some(p => num(p, 'total') > 0 || num(p, 'pct') > 0);
-  const avg = points.length ? Math.round(points.reduce((s, p) => s + p.pct, 0) / points.length) : 0;
+  // average only buckets with stock: buckets before the first stock would pull it down
+  const stocked = points.filter(p => num(p, 'total') > 0);
+  const avg = stocked.length
+    ? Math.round(stocked.reduce((s, p) => s + p.pct, 0) / stocked.length)
+    : 0;
   return (
     <LazyChartCard
       title="Stock on rent %"

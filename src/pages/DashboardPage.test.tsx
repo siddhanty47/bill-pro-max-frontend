@@ -125,6 +125,8 @@ const fullSeries: Record<DashboardMetric, Partial<SeriesResponse>> = {
   utilization: {
     bucket: 'week',
     points: [
+      // before any stock: left out of the average
+      { t: '2026-11-02', pct: 0, atSites: 0, total: 0 },
       { t: '2026-11-09', pct: 50, atSites: 50, total: 100 },
       { t: '2026-11-16', pct: 130, atSites: 130, total: 100 },
     ],
@@ -270,7 +272,7 @@ describe('DashboardPage', () => {
     expect(await screen.findByTestId('billing-chart')).toHaveTextContent(
       '₹18.4L|₹16,00,000,₹20L|₹17,90,000'
     );
-    expect(await screen.findByTestId('line-pct')).toHaveTextContent('50%,100%');
+    expect(await screen.findByTestId('line-pct')).toHaveTextContent('0%,50%,100%');
     expect(await screen.findByTestId('line-index')).toHaveTextContent('100,106');
     expect(requests).toEqual(expect.arrayContaining(['billing:1Y', 'utilization:6M', 'steel:1Y']));
   });
@@ -310,7 +312,9 @@ describe('DashboardPage', () => {
     ) as HTMLElement;
     expect(within(card).getByText('90+ days')).toBeInTheDocument();
     expect(within(card).getByText('₹90,000')).toBeInTheDocument();
-    expect(within(card).getByText('₹3,00,000 outstanding')).toBeInTheDocument();
+    // the total is the card's headline, in full
+    expect(within(card).getByText('₹3,00,000')).toHaveClass('mono');
+    expect(card).toHaveTextContent('₹3,00,000 outstanding');
     expect(within(card).getByText('₹12,000 in advances not shown')).toBeInTheDocument();
   });
 
@@ -395,6 +399,10 @@ describe('DashboardPage', () => {
     expect(await screen.findAllByText('No data yet')).toHaveLength(2);
     expect(await screen.findByText('Steel index not available')).toBeInTheDocument();
     expect(screen.getByText('Nothing outstanding')).toBeInTheDocument();
+    const aging = screen
+      .getByRole('heading', { name: 'Outstanding by age' })
+      .closest('section') as HTMLElement;
+    expect(aging).toHaveTextContent('₹0 outstanding');
     expect(screen.getByText('No stock yet')).toBeInTheDocument();
     expect(screen.getByText('No parties on rent yet')).toBeInTheDocument();
     expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
@@ -415,6 +423,13 @@ describe('DashboardPage', () => {
     expect(await screen.findByText('avg 75% on rent')).toBeInTheDocument();
     expect(screen.getByText('Billed this month')).toBeInTheDocument();
     expect(await screen.findByRole('table')).toBeInTheDocument();
+  });
+
+  it('clamps the stock on rent tile to 100% like the chart', async () => {
+    useApi({ summary: { ...fullSummary, onRentPct: 130 } });
+    renderPage();
+    const tile = (await screen.findByText('Stock on rent')).parentElement as HTMLElement;
+    expect(within(tile).getByText('100%')).toBeInTheDocument();
   });
 
   it('shows a flat month as 0% without a direction', async () => {

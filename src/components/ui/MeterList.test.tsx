@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import { MeterList } from './MeterList';
 import { MeterLegend } from './Meter';
+import { readCss } from '../../test/readCss';
 
 const rows = [
   {
@@ -63,6 +64,14 @@ describe('MeterList', () => {
     expect(screen.getByText('Nothing outstanding')).toBeInTheDocument();
     expect(screen.getByText('₹500 in advances not shown')).toBeInTheDocument();
     expect(screen.queryByText('X')).not.toBeInTheDocument();
+  });
+});
+
+describe('MeterList CSS', () => {
+  it('makes a linked label a 44px tap target on phones', async () => {
+    const css = await readCss('src/components/ui/MeterList.module.css');
+    const mobile = css.slice(css.indexOf('@media (max-width: 768px)'));
+    expect(mobile).toMatch(/\.label > a\s*\{[^}]*display:\s*inline-flex[^}]*min-height:\s*44px/);
   });
 });
 
