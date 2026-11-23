@@ -96,6 +96,8 @@ describe('Layout', () => {
     // offset parent, or they sit below the page and add a second scrollbar.
     const css = await readCss('src/components/Layout.module.css');
     expect(css).toMatch(/\.content\s*\{[^}]*position:\s*relative/);
+    // and the shell itself, so nothing escapes to the body even outside main
+    expect(css).toMatch(/\.layout\s*\{[^}]*position:\s*relative/);
   });
 
   it('groups navigation under Yard, Paperwork and Business', () => {

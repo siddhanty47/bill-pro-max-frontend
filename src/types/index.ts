@@ -1437,7 +1437,7 @@ export interface StockRow {
   damagedLost: number;
 }
 
-/** One item currently at a party's sites (or damaged or lost there this year). */
+/** One item currently at a party's sites (or damaged or lost there in the last 12 months). */
 export interface PartyStockRow {
   itemId: string;
   code: string;

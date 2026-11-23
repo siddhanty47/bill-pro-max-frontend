@@ -49,7 +49,7 @@ export function StockPanel({ stock }: { stock: StockRow[] }) {
             { label: 'In yard', value: fmtCount(s.inYard) },
             { label: 'Total', value: fmtCount(s.atSites + s.inYard) },
             ...(s.damagedLost > 0
-              ? [{ label: 'Damaged or lost this year', value: fmtCount(s.damagedLost) }]
+              ? [{ label: 'Damaged or lost in the last 12 months', value: fmtCount(s.damagedLost) }]
               : []),
           ],
         })}

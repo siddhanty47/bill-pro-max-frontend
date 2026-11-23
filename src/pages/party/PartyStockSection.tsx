@@ -17,34 +17,22 @@ const TITLE = 'Stock on site';
 const CHART_MIN_ROWS = 3;
 
 const count = (n: number) => n.toLocaleString('en-IN');
+const LOST = 'Damaged or lost in the last 12 months';
 
-type TableRow = PartyStockRow & { isTotal?: boolean };
-
-const COLUMNS: Column<TableRow>[] = [
-  {
-    key: 'code',
-    header: 'Code',
-    mono: true,
-    render: r => (r.isTotal ? <strong>Total</strong> : r.code),
-  },
-  { key: 'name', header: 'Item', render: r => (r.isTotal ? '' : r.name) },
-  {
-    key: 'onSite',
-    header: 'On site',
-    align: 'right',
-    mono: true,
-    render: r => (r.isTotal ? <strong>{count(r.onSite)}</strong> : count(r.onSite)),
-  },
+const COLUMNS: Column<PartyStockRow>[] = [
+  { key: 'code', header: 'Code', mono: true },
+  { key: 'name', header: 'Item' },
+  { key: 'onSite', header: 'On site', align: 'right', mono: true, render: r => count(r.onSite) },
   {
     key: 'damagedLost',
-    header: 'Damaged or lost (this year)',
+    header: LOST,
     align: 'right',
     mono: true,
-    render: r => (r.isTotal ? <strong>{count(r.damagedLost)}</strong> : count(r.damagedLost)),
+    render: r => count(r.damagedLost),
   },
 ];
 
-/** What this party holds at its sites now, and what it damaged or lost this year. */
+/** What this party holds at its sites now, and what it damaged or lost in the last 12 months. */
 export function PartyStockSection({
   businessId,
   partyId,
@@ -80,14 +68,9 @@ export function PartyStockSection({
       </div>
     );
   } else {
-    const total: TableRow = {
-      itemId: '__total',
-      code: '',
-      name: '',
-      unit: '',
+    const total = {
       onSite: data.reduce((s, r) => s + r.onSite, 0),
       damagedLost: data.reduce((s, r) => s + r.damagedLost, 0),
-      isTotal: true,
     };
     const summary = `${count(data.length)} items, ${count(total.onSite)} pieces on site`;
     body = (
@@ -96,8 +79,8 @@ export function PartyStockSection({
           <div className={styles.chart}>
             <MeterLegend
               items={[
-                { tone: 'info', label: 'On site' },
-                { tone: 'danger', label: 'Damaged or lost this year' },
+                { tone: 'accent', label: 'On site' },
+                { tone: 'danger', label: LOST },
               ]}
             />
             <Suspense fallback={<Spinner message="" />}>
@@ -106,15 +89,15 @@ export function PartyStockSection({
                 xKey="code"
                 nameKey="name"
                 stacks={[
-                  { key: 'onSite', label: 'On site', tone: 'info' },
-                  { key: 'damagedLost', label: 'Damaged or lost this year', tone: 'danger' },
+                  { key: 'onSite', label: 'On site', tone: 'accent' },
+                  { key: 'damagedLost', label: LOST, tone: 'danger' },
                 ]}
                 format={formatCountCompact}
                 tooltip={r => ({
                   title: r.code ? `${r.name} (${r.code})` : r.name,
                   rows: [
                     { label: 'On site', value: count(r.onSite) },
-                    { label: 'Damaged or lost this year', value: count(r.damagedLost) },
+                    { label: LOST, value: count(r.damagedLost) },
                     { label: 'Unit', value: r.unit },
                   ],
                 })}
@@ -124,25 +107,34 @@ export function PartyStockSection({
             </Suspense>
           </div>
         )}
-        <DataTable<TableRow>
+        <DataTable<PartyStockRow>
           aria-label={TITLE}
           columns={COLUMNS}
-          rows={[...data, total]}
+          rows={data}
           rowKey={r => r.itemId}
-          pageSize={data.length + 1}
+          pageSize={data.length}
           mobile={{
-            title: r => (r.isTotal ? 'Total' : r.name),
-            subtitle: r => (r.isTotal ? undefined : r.code),
+            title: r => r.name,
+            subtitle: r => r.code,
             meta: r => [
-              <span key="on" className="mono">
-                On site {count(r.onSite)}
+              <span key="on">
+                On site <span className="mono">{count(r.onSite)}</span>
               </span>,
-              <span key="dl" className="mono">
-                Damaged or lost {count(r.damagedLost)}
+              <span key="dl">
+                {LOST} <span className="mono">{count(r.damagedLost)}</span>
               </span>,
             ],
           }}
         />
+        <div className={styles.total}>
+          <span className={styles.totalLabel}>Total</span>
+          <MeterLegend
+            items={[
+              { tone: 'accent', label: 'On site', value: total.onSite },
+              { tone: 'danger', label: LOST, value: total.damagedLost },
+            ]}
+          />
+        </div>
       </>
     );
   }

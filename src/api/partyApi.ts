@@ -48,6 +48,8 @@ export const partyApi = baseApi.injectEndpoints({
         { type: 'Party', id: partyId },
         'Challan',
         'Inventory',
+        // opening balances on agreement rates count as on site
+        'Agreement',
       ],
     }),
 
