@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { readCss } from '../../test/readCss';
 import { SegmentedControl, type SegmentedOption } from './SegmentedControl';
 
 type V = 'all' | 'delivery' | 'return';
@@ -114,5 +115,11 @@ describe('SegmentedControl', () => {
       <SegmentedControl label="Type" options={OPTIONS} value="all" onChange={vi.fn()} size="sm" />
     );
     expect(screen.getByRole('radiogroup')).toHaveClass('sm');
+  });
+
+  it('keeps 44px touch targets at <=768 for size="sm" too', async () => {
+    const css = await readCss('src/components/ui/SegmentedControl.module.css');
+    const mobile = css.slice(css.indexOf('@media (max-width: 768px)'));
+    expect(mobile).toMatch(/\.sm \.option\s*\{\s*height:\s*44px/);
   });
 });

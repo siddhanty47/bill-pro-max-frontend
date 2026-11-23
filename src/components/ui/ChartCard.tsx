@@ -50,7 +50,9 @@ export function ChartCard({
   return (
     <Card title={title}>
       <div className={styles.stack}>
-        {headline && <div className={styles.headline}>{headline}</div>}
+        {headline != null && headline !== false && (
+          <div className={styles.headline}>{headline}</div>
+        )}
         <div className={styles.body}>{body}</div>
         {presets && range && onRangeChange && (
           <div className={styles.presets}>

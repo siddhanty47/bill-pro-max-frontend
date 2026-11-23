@@ -36,8 +36,4 @@
   .placeholder {
     min-height: 180px;
   }
-
-  .presets {
-    justify-content: stretch;
-  }
 }

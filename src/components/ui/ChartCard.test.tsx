@@ -63,4 +63,19 @@ describe('ChartCard', () => {
     expect(screen.getByText('No bills in this range')).toBeInTheDocument();
     expect(screen.queryByText('chart body')).not.toBeInTheDocument();
   });
+
+  it('renders a numeric 0 headline but not a missing one', () => {
+    const { rerender } = render(
+      <ChartCard title="Billing" headline={0}>
+        <div />
+      </ChartCard>
+    );
+    expect(screen.getByText('0')).toBeInTheDocument();
+    rerender(
+      <ChartCard title="Billing">
+        <div />
+      </ChartCard>
+    );
+    expect(screen.queryByText('0')).not.toBeInTheDocument();
+  });
 });
