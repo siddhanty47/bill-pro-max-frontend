@@ -31,12 +31,16 @@ function makeBusiness(id: string, name: string): Business {
 }
 
 function setup({
+  counts,
   businesses = [
     makeBusiness('biz-1', 'Sharma Scaffolding'),
     makeBusiness('biz-2', 'Gupta Rentals'),
   ],
   route = '/',
-}: { businesses?: Business[]; route?: string } = {}) {
+}: { businesses?: Business[]; route?: string; counts?: Record<string, number> } = {}) {
+  if (counts) {
+    server.use(http.get(apiUrl('/businesses/:businessId/dashboard/nav-counts'), () => ok(counts)));
+  }
   server.use(
     http.get(apiUrl('/businesses'), () => ok(businesses)),
     http.get(apiUrl('/businesses/:businessId/search/index'), () =>
@@ -107,6 +111,26 @@ describe('Layout', () => {
       'Team',
     ]);
     expect(within(nav).getByRole('link', { name: 'Bills' })).toHaveAttribute('href', '/bills');
+  });
+
+  it('shows sidebar count badges with accessible names', async () => {
+    setup({ counts: { inventory: 142, draftChallans: 3, overdueBills: 7 } });
+    const nav = screen.getByRole('navigation', { name: 'Main' });
+    expect(await within(nav).findByRole('link', { name: 'Inventory, 142' })).toBeInTheDocument();
+    const challans = within(nav).getByRole('link', { name: 'Challans, 3 draft challans' });
+    expect(challans.querySelector('[aria-hidden="true"]:not(svg)')?.textContent).toBe('3 draft');
+    const bills = within(nav).getByRole('link', { name: 'Bills, 7 overdue bills' });
+    const pill = bills.querySelector('[aria-hidden="true"]:not(svg)');
+    expect(pill?.textContent).toBe('7 overdue');
+    expect(pill).toHaveClass('danger');
+  });
+
+  it('omits badges for missing keys and zero counts', async () => {
+    setup({ counts: { inventory: 0, draftChallans: 3 } });
+    const nav = screen.getByRole('navigation', { name: 'Main' });
+    await within(nav).findByRole('link', { name: 'Challans, 3 draft challans' });
+    expect(within(nav).getByRole('link', { name: 'Bills' })).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: 'Inventory' })).toBeInTheDocument();
   });
 
   it('marks the current route active', () => {

@@ -8,6 +8,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { NotificationBell } from './NotificationBell';
 import { WebSocketProvider } from '../context/WebSocketContext';
+import { useGetNavCountsQuery } from '../api/dashboardApi';
+import type { NavCounts } from '../types';
 import { useSearchIndexSync } from '../hooks/useSearchIndexSync';
 import AssistantPanel from './assistant/AssistantPanel';
 import { GlobalSearch } from './GlobalSearch/GlobalSearch';
@@ -21,11 +23,24 @@ import {
   MenuDivider,
   MenuItem,
   MenuLabel,
+  NavCount,
   type IconName,
 } from './ui';
 import styles from './Layout.module.css';
 
-type NavGroup = { label?: string; items: { path: string; label: string; icon: IconName }[] };
+type NavCountSpec = {
+  value?: number;
+  label?: string;
+  tone?: 'neutral' | 'danger';
+  description?: string;
+};
+type NavItem = {
+  path: string;
+  label: string;
+  icon: IconName;
+  count?: (c: NavCounts) => NavCountSpec | undefined;
+};
+type NavGroup = { label?: string; items: NavItem[] };
 
 /** Sidebar navigation. Add a page here (and its route in App.tsx). */
 const navGroups: NavGroup[] = [
@@ -33,16 +48,41 @@ const navGroups: NavGroup[] = [
   {
     label: 'Yard',
     items: [
-      { path: '/inventory', label: 'Inventory', icon: 'inventory' },
-      { path: '/parties', label: 'Parties', icon: 'parties' },
-      { path: '/agreements', label: 'Agreements', icon: 'agreements' },
+      {
+        path: '/inventory',
+        label: 'Inventory',
+        icon: 'inventory',
+        count: c => ({ value: c.inventory }),
+      },
+      { path: '/parties', label: 'Parties', icon: 'parties', count: c => ({ value: c.parties }) },
+      {
+        path: '/agreements',
+        label: 'Agreements',
+        icon: 'agreements',
+        count: c => ({ value: c.agreements }),
+      },
     ],
   },
   {
     label: 'Paperwork',
     items: [
-      { path: '/challans', label: 'Challans', icon: 'challans' },
-      { path: '/bills', label: 'Bills', icon: 'bills' },
+      {
+        path: '/challans',
+        label: 'Challans',
+        icon: 'challans',
+        count: c => ({ value: c.draftChallans, label: 'draft', description: 'draft challans' }),
+      },
+      {
+        path: '/bills',
+        label: 'Bills',
+        icon: 'bills',
+        count: c => ({
+          value: c.overdueBills,
+          label: 'overdue',
+          tone: 'danger',
+          description: 'overdue bills',
+        }),
+      },
       { path: '/payments', label: 'Payments', icon: 'payments' },
     ],
   },
@@ -58,8 +98,11 @@ function SearchIndexSync() {
 export function Layout() {
   const location = useLocation();
   const { user, logout } = useAuth();
-  const { businesses, currentBusiness, selectBusiness, hasMultipleBusinesses } =
+  const { businesses, currentBusiness, currentBusinessId, selectBusiness, hasMultipleBusinesses } =
     useCurrentBusiness();
+  const { data: navCounts } = useGetNavCountsQuery(currentBusinessId ?? '', {
+    skip: !currentBusinessId,
+  });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
@@ -205,6 +248,7 @@ export function Layout() {
                               className={isActive ? styles.navIconActive : undefined}
                             />
                             {item.label}
+                            {navCounts && item.count && <NavCount {...item.count(navCounts)} />}
                           </>
                         )}
                       </NavLink>

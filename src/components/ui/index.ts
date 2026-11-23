@@ -10,6 +10,7 @@ export { GoogleIcon, type GoogleIconProps } from './GoogleIcon';
 export { Avatar, type AvatarProps } from './Avatar';
 export { Dot, type DotTone } from './Dot';
 export { NotAdded } from './NotAdded';
+export { NavCount, type NavCountProps, type NavCountTone } from './NavCount';
 export { TextLink, type TextLinkProps } from './TextLink';
 export { Notice, type NoticeProps, type NoticeTone } from './Notice';
 export { Card, type CardProps } from './Card';

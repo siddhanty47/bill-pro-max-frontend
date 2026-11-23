@@ -12,6 +12,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `NotAdded` | The muted "Not added" placeholder for an empty value in a table cell or custom row (`DetailField` uses it for empty values); always the text font, even in a mono cell |
 | `TextLink` | An in-content router link (party name in a detail field, payment date in a table): accent, medium weight, explicit hover colour; not for buttons (`Button to`) or document numbers (`DocNumber to`) |
 | `Dot` | An 8px decorative status-tone dot (challan type in a cell or phone-list `leading`; used by `Button dot` and `SegmentedControl`) |
+| `NavCount` | Right-aligned count pill at the end of a sidebar nav link (`value`, `label?` suffix, `tone` neutral/danger, `description?` for the hidden screen-reader text); renders nothing for 0/undefined, caps at "999+" |
 | `Brand` | The Bill Pro Max mark + wordmark for headers (`size`: `md` default, `sm`; `collapseName` shows the mark only at ≤480, wordmark stays readable to assistive tech); placement-only `className` |
 | `GoogleIcon` | The Google logo on sign-in buttons (brand colours, token-check allowlisted) |
 | `Card` | Any surface panel or section, with optional title, muted `subtitle` line, count pill and actions |
