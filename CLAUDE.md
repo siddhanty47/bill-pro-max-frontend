@@ -30,6 +30,8 @@ Each entity has its own API file in `src/api/` that injects endpoints via `baseA
 
 **Dashboard:** `src/api/dashboardApi.ts` has `nav-counts` (sidebar counts), `summary` and `series` queries; keys are absent from the response when the role can't read them, so the UI must treat each as optional. The `Dashboard` tag is invalidated by bill/payment/challan/inventory/party/agreement mutations.
 
+**Party stock:** `partyApi.getPartyStock` (`GET /businesses/:id/parties/:partyId/stock`, rows `PartyStockRow`: on site now + damaged/lost last 12 months) powers the "Stock on site" section of the party About tab (`pages/party/PartyStockSection.tsx`). It provides `Party`/`Challan`/`Inventory` tags so challan mutations refresh it; a 403 hides the section.
+
 **URL pattern for business-scoped resources:** `/businesses/${businessId}/entities`
 
 **Lists:** whole-list queries use `queryFn` + `fetchAllPages` (`src/api/fetchAllPages.ts`) so they load every backend page (the backend caps `pageSize` at 100). Challans and bills also have server-paged `getChallansPage`/`getBillsPage` (`{ rows, total }`, filters + `search` sent as params via `listParams`) used by their list pages. Tables that open a record pass `DataTable rowLink`, which carries Prev/Next state (`src/utils/recordNav.ts`) to the detail page (`DetailPageShell recordNoun` → `RecordPager`); server-paged tables also pass `pagination.navSource`.

@@ -1437,6 +1437,16 @@ export interface StockRow {
   damagedLost: number;
 }
 
+/** One item currently at a party's sites (or damaged or lost there this year). */
+export interface PartyStockRow {
+  itemId: string;
+  code: string;
+  name: string;
+  unit: string;
+  onSite: number;
+  damagedLost: number;
+}
+
 /** A party that owes money (outstanding > 0, gross as in aging), highest first. */
 export interface PartyRow {
   partyId: string;
