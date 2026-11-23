@@ -71,7 +71,7 @@ describe('StockPanel', () => {
     expect(card).toHaveTextContent('At sites248');
     expect(card).toHaveTextContent('In yard152');
     expect(card).toHaveTextContent('Total400');
-    expect(card).toHaveTextContent('Damaged or lost this year18');
+    expect(card).toHaveTextContent('Damaged or lost in the last 12 months18');
 
     hoverSlot(region, 1);
     const plates = (await screen.findByText('Plates (PLT)')).parentElement as HTMLElement;
