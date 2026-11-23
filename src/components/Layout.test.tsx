@@ -91,6 +91,13 @@ describe('Layout', () => {
     expect(block).toMatch(/\.profileControl\s*\{[^}]*margin-left:\s*0/);
   });
 
+  it('contains absolutely positioned content inside the scroll area', async () => {
+    // Visually hidden spans (position: absolute) inside main must not take the body as their
+    // offset parent, or they sit below the page and add a second scrollbar.
+    const css = await readCss('src/components/Layout.module.css');
+    expect(css).toMatch(/\.content\s*\{[^}]*position:\s*relative/);
+  });
+
   it('groups navigation under Yard, Paperwork and Business', () => {
     setup();
     const nav = screen.getByRole('navigation', { name: 'Main' });
