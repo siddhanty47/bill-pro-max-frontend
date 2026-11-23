@@ -40,6 +40,12 @@
   color: var(--text-heading);
 }
 
+.sm .option {
+  height: 26px;
+  padding: 0 var(--space-2);
+  font-size: var(--text-xs);
+}
+
 @media (max-width: 768px) {
   .seg {
     display: flex;
@@ -49,6 +55,10 @@
 
   .option {
     flex: 1;
+    height: 44px;
+  }
+
+  .sm .option {
     height: 44px;
   }
 }

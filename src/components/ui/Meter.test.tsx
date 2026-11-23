@@ -70,4 +70,18 @@ describe('Meter', () => {
     expect(container.querySelectorAll('li')).toHaveLength(2);
     expect(errSpy).not.toHaveBeenCalled();
   });
+  it('hideLegend drops the list but keeps the bar and its label', () => {
+    const { container } = render(<Meter segments={segments} hideLegend />);
+    expect(container.querySelector('ul')).toBeNull();
+    expect(container.querySelectorAll('rect')).toHaveLength(2);
+    expect(screen.getByRole('img')).toHaveAttribute('aria-label');
+  });
+
+  it('supports the muted tone for rects and swatches', () => {
+    const { container } = render(
+      <Meter segments={[{ value: 1, tone: 'muted', label: 'Other' }]} />
+    );
+    expect(container.querySelector('rect')).toHaveClass('muted');
+    expect(container.querySelector('.sw-muted')).not.toBeNull();
+  });
 });

@@ -14,6 +14,8 @@ describe('ui barrel', () => {
     'Card',
     'StatCard',
     'Meter',
+    'ChartCard',
+    'TrendLabel',
     'ProgressBar',
     'PageHeader',
     'EmptyState',
@@ -44,6 +46,7 @@ describe('ui barrel', () => {
     'TabPanel',
     'Spinner',
     'NotAdded',
+    'NavCount',
     'TextLink',
     'ErrorMessage',
   ])('exports %s', name => {

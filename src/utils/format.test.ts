@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FULL_DATE, formatDateTime, formatDate, formatMoney, formatMonth } from './format';
+import {
+  FULL_DATE,
+  formatDateTime,
+  formatDate,
+  formatMoney,
+  formatMoneyCompact,
+  formatMonth,
+} from './format';
 
 describe('formatMoney', () => {
   it('uses Indian grouping with a rupee sign and no decimals for integers', () => {
@@ -91,5 +98,29 @@ describe('formatDateTime', () => {
   it('appends a 12-hour time to the date', () => {
     expect(formatDateTime(new Date('2020-03-05T15:05:00'))).toBe('5 Mar 2020, 3:05 pm');
     expect(formatDateTime(new Date('2020-03-05T00:07:00'))).toBe('5 Mar 2020, 12:07 am');
+  });
+});
+
+describe('formatMoneyCompact', () => {
+  it('uses k / L / Cr with one decimal, dropping a trailing .0', () => {
+    expect(formatMoneyCompact(45000)).toBe('₹45k');
+    expect(formatMoneyCompact(4500)).toBe('₹4.5k');
+    expect(formatMoneyCompact(3840000)).toBe('₹38.4L');
+    expect(formatMoneyCompact(1000000)).toBe('₹10L');
+    expect(formatMoneyCompact(12000000)).toBe('₹1.2Cr');
+    expect(formatMoneyCompact(2500000000)).toBe('₹250Cr');
+  });
+
+  it('keeps small amounts whole and handles zero and negatives', () => {
+    expect(formatMoneyCompact(0)).toBe('₹0');
+    expect(formatMoneyCompact(950)).toBe('₹950');
+    expect(formatMoneyCompact(99.6)).toBe('₹100');
+    expect(formatMoneyCompact(-45000)).toBe('-₹45k');
+  });
+
+  it('moves up a unit when rounding reaches the next one', () => {
+    expect(formatMoneyCompact(99960)).toBe('₹1L');
+    expect(formatMoneyCompact(9996000)).toBe('₹1Cr');
+    expect(formatMoneyCompact(999.7)).toBe('₹1k');
   });
 });

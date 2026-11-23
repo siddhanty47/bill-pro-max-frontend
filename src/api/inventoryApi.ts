@@ -51,7 +51,7 @@ export const inventoryApi = baseApi.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<Inventory>) => response.data,
-      invalidatesTags: ['Inventory', 'AuditLog', 'SearchIndex'],
+      invalidatesTags: ['Inventory', 'AuditLog', 'SearchIndex', 'Dashboard'],
     }),
 
     updateInventory: builder.mutation<
@@ -69,6 +69,7 @@ export const inventoryApi = baseApi.injectEndpoints({
         'Inventory',
         'AuditLog',
         'SearchIndex',
+        'Dashboard',
       ],
     }),
 
@@ -86,6 +87,7 @@ export const inventoryApi = baseApi.injectEndpoints({
         { type: 'Inventory', id: itemId },
         'Inventory',
         'AuditLog',
+        'Dashboard',
       ],
     }),
 
@@ -111,6 +113,7 @@ export const inventoryApi = baseApi.injectEndpoints({
         'Inventory',
         'AuditLog',
         'SearchIndex',
+        'Dashboard',
       ],
     }),
   }),

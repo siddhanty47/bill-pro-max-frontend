@@ -12,11 +12,15 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `NotAdded` | The muted "Not added" placeholder for an empty value in a table cell or custom row (`DetailField` uses it for empty values); always the text font, even in a mono cell |
 | `TextLink` | An in-content router link (party name in a detail field, payment date in a table): accent, medium weight, explicit hover colour; not for buttons (`Button to`) or document numbers (`DocNumber to`) |
 | `Dot` | An 8px decorative status-tone dot (challan type in a cell or phone-list `leading`; used by `Button dot` and `SegmentedControl`) |
+| `NavCount` | Right-aligned count pill at the end of a sidebar nav link (`value`, `label?` suffix, `tone` neutral/danger, `description?` for the hidden screen-reader text); renders nothing for 0/undefined, caps at "999+" |
 | `Brand` | The Bill Pro Max mark + wordmark for headers (`size`: `md` default, `sm`; `collapseName` shows the mark only at ≤480, wordmark stays readable to assistive tech); placement-only `className` |
 | `GoogleIcon` | The Google logo on sign-in buttons (brand colours, token-check allowlisted) |
 | `Card` | Any surface panel or section, with optional title, muted `subtitle` line, count pill and actions |
-| `StatCard` | A single headline number with a label; `tone="highlight"` for the one key stat; `valueTone` (`positive`/`negative`/`warning`) colours the number; `value` optional for a children-only card |
-| `Meter` | A segmented bar with legend (e.g. available vs rented stock) |
+| `StatCard` | A single headline number with a label; `tone="highlight"` for the one key stat; `valueTone` (`positive`/`negative`/`warning`) colours the number; `note` (+ `noteTone`) is a short secondary line such as `<TrendLabel direction="up">12% vs last month</TrendLabel>`; `value` optional for a children-only card |
+| `Meter` | A segmented bar with legend (e.g. available vs rented stock); `hideLegend` drops the legend, tone `muted` is a neutral segment. `MeterLegend` is the legend on its own (one shared legend for many bars) |
+| `MeterList` | Rows of stacked bars (dashboard stock / parties / outstanding by age): each row a label (text or `TextLink`), right-aligned `detail`, a `hideLegend` Meter and a muted `note`; optional shared `legend`, muted `empty` line and `footnote` |
+| `TrendLabel` | A change with a ▲/▼ arrow (`direction` `up`/`down`, children = the change text): the arrow is `aria-hidden` and screen readers hear "up"/"down". Use it for trends in `StatCard` notes and `ChartCard` headlines |
+| `ChartCard` | A card around one chart: title, optional muted `subtitle` (data source), headline line, chart body (spinner / empty message) and range presets under it; `fitContent` for a non-chart (list) body that should not keep the chart height. Chart bodies live in `components/charts/` and are loaded with `React.lazy` |
 | `ProgressBar` | A determinate progress bar for a running job (takes the surrounding text colour, e.g. inside a `Notice`) |
 | `PageHeader` | The title row at the top of every page, with optional actions, a `badge` beside the title and a muted `subtitle` under it (only for context shown nowhere else) |
 | `EmptyState` | "Nothing here" states: one short title and at most one action |
@@ -31,7 +35,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `Fieldset` | A titled group of related fields or checkboxes |
 | `SearchInput` | The search box of a list page (icon, optional shortcut hint such as `/`); forwards its ref; content-sized outside a `FilterBar` (no fixed flex basis) |
 | `FilterBar` | The wrapping row of search and filter controls above a list |
-| `SegmentedControl` | A 2–4 option single-choice filter shown inline (All / Delivery / Return); radio group |
+| `SegmentedControl` | A 2–6 option single-choice filter shown inline (All / Delivery / Return); radio group; `size="sm"` for a compact control under a chart |
 | `RowActions` | A table/phone row's actions: one primary `Button` + a "More actions" menu for the rest (danger items supported; an item's `hint` shows a muted line under its label, e.g. why it's disabled); clicks never open the row |
 | `Menu`, `MenuItem`, `MenuLabel`, `MenuDivider` | Dropdown menus (business switcher, profile, row actions, notifications; `Menu width="wide"` for notifications; `MenuItem unread` tints new items, `MenuItem tone="danger"` for Delete) |
 | `Modal` | Dialogs; full-screen on phones |
@@ -49,4 +53,4 @@ Detail pages are composed from `components/DetailPageShell` (`DetailPageShell`, 
 </DetailPageShell>
 ```
 
-Formatters for amounts and dates live in `src/utils/format.ts` (`formatMoney`, `formatDate`, `formatDateTime`, `formatMonth`), not in the kit. The muted "Not added" placeholder for a table cell is the kit `NotAdded`.
+Formatters for amounts and dates live in `src/utils/format.ts` (`formatMoney`, `formatDate`, `formatDateTime`, `formatMonth`, `formatMoneyCompact`), not in the kit. The muted "Not added" placeholder for a table cell is the kit `NotAdded`.

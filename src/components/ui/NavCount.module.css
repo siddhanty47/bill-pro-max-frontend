@@ -1,0 +1,39 @@
+.pill {
+  display: inline-flex;
+  align-items: baseline;
+  /* the number–label space: a leading text space collapses inside inline-flex */
+  gap: var(--space-1);
+  margin-left: auto;
+  padding: 1px var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.neutral {
+  color: var(--text-secondary);
+}
+
+.danger {
+  color: var(--status-danger-text);
+  background: var(--status-danger-bg);
+  border-color: var(--status-danger-border);
+}
+
+.value {
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

@@ -1,11 +1,11 @@
 /**
- * Dashboard page with summary stats
+ * Dashboard: KPI tiles, charts, stock and party panels (dashboard/*), then overdue bills.
  */
 import { useState } from 'react';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
-import { useGetInventoryStatsQuery } from '../api/inventoryApi';
-import { useGetOutstandingSummaryQuery, useGetPartiesQuery } from '../api/partyApi';
-import { useGetBillsQuery, useGetOverdueBillsQuery } from '../api/billApi';
+import { useGetPartiesQuery } from '../api/partyApi';
+import { useGetOverdueBillsQuery } from '../api/billApi';
+import { useGetDashboardSummaryQuery } from '../api/dashboardApi';
 import { useCreateBusinessMutation } from '../api/businessApi';
 import {
   Button,
@@ -13,11 +13,10 @@ import {
   DataTable,
   DocNumber,
   EmptyState,
-  Meter,
+  ErrorMessage,
   Modal,
   PageHeader,
   Spinner,
-  StatCard,
   StatusChip,
   type Column,
 } from '../components/ui';
@@ -25,6 +24,7 @@ import { BusinessForm } from '../components/forms/BusinessForm';
 import { getErrorMessage } from '../api/baseApi';
 import { formatDate, formatMoney } from '../utils/format';
 import type { Bill, CreateBusinessInput } from '../types';
+import { DashboardInsights } from './dashboard/DashboardInsights';
 import styles from './DashboardPage.module.css';
 
 const MAX_OVERDUE_ROWS = 5;
@@ -54,21 +54,14 @@ export function DashboardPage() {
 
   const [createBusiness, { isLoading: isCreating }] = useCreateBusinessMutation();
 
-  const { data: inventoryStats, isLoading: statsLoading } = useGetInventoryStatsQuery(
-    currentBusinessId || '',
-    { skip: !currentBusinessId }
-  );
+  const {
+    data: summary,
+    isLoading: summaryLoading,
+    error: summaryError,
+    refetch: refetchSummary,
+  } = useGetDashboardSummaryQuery(currentBusinessId || '', { skip: !currentBusinessId });
 
   const { data: parties } = useGetPartiesQuery(currentBusinessId || '', {
-    skip: !currentBusinessId,
-  });
-
-  const { data: bills } = useGetBillsQuery(currentBusinessId || '', {
-    skip: !currentBusinessId,
-  });
-
-  // Opening balances + bills - all payments (incl. on-account), so migrated parties add up
-  const { data: outstanding } = useGetOutstandingSummaryQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
   });
 
@@ -102,7 +95,7 @@ export function DashboardPage() {
     </Modal>
   );
 
-  if (businessLoading || statsLoading) {
+  if (businessLoading || summaryLoading) {
     return <Spinner message="Loading dashboard…" />;
   }
 
@@ -126,13 +119,6 @@ export function DashboardPage() {
   if (!currentBusinessId) {
     return <EmptyState title="Select a business from the menu above" />;
   }
-
-  const activeParties = parties?.filter(p => p.isActive).length || 0;
-  const pendingBills =
-    bills?.filter(b => b.status === 'sent' || b.status === 'partial').length || 0;
-  const totalOutstanding = outstanding?.totalOutstanding ?? 0;
-  const available = inventoryStats?.availableQuantity || 0;
-  const rented = inventoryStats?.rentedQuantity || 0;
 
   const partyNames = new Map((parties ?? []).map(p => [p._id, p.name]));
   const overdueRows = (overdueBills ?? []).slice(0, MAX_OVERDUE_ROWS);
@@ -181,66 +167,46 @@ export function DashboardPage() {
         }
       />
 
-      <div className={styles.stats}>
-        <StatCard
-          className={styles.wide}
-          tone="highlight"
-          label="Outstanding amount"
-          value={formatMoney(totalOutstanding)}
-        />
-        <StatCard
-          className={styles.wide}
-          label={`Stock · ${(available + rented).toLocaleString('en-IN')} pcs`}
-          value=""
-        >
-          <Meter
-            segments={[
-              { value: available, tone: 'accent', label: 'Available' },
-              { value: rented, tone: 'info', label: 'Rented out' },
-            ]}
-          />
-        </StatCard>
-        <StatCard
-          className={styles.small}
-          label="Inventory items"
-          value={inventoryStats?.totalItems || 0}
-        />
-        <StatCard className={styles.small} label="Active parties" value={activeParties} />
-        <StatCard className={styles.small} label="Pending bills" value={pendingBills} />
-      </div>
+      <div className={styles.page}>
+        {summaryError ? (
+          <ErrorMessage error={summaryError} onRetry={refetchSummary} />
+        ) : (
+          summary && <DashboardInsights businessId={currentBusinessId} summary={summary} />
+        )}
 
-      {overdueRows.length > 0 && (
-        <Card
-          padded={false}
-          title="Overdue bills"
-          count={overdueBills?.length}
-          countTone="danger"
-          actions={
-            <Button variant="ghost" size="sm" to="/bills">
-              All bills →
-            </Button>
-          }
-        >
-          <DataTable
-            aria-label="Overdue bills"
-            columns={columns}
-            rows={overdueRows}
-            rowKey={b => b._id}
-            rowLink={b => `/bills/${b._id}`}
-            mobile={{
-              title: b => <DocNumber value={b.billNumber} to={`/bills/${b._id}`} />,
-              badge: b => <StatusChip status="overdue">{overdueLabel(b)}</StatusChip>,
-              subtitle: b => partyNames.get(b.partyId),
-              meta: b => [
-                `Due ${formatDate(b.dueDate)}`,
-                <span key="amt" className="mono">
-                  {formatMoney(b.totalAmount)}
-                </span>,
-              ],
-            }}
-          />
-        </Card>
-      )}
+        {overdueRows.length > 0 && (
+          <Card
+            padded={false}
+            title="Overdue bills"
+            count={overdueBills?.length}
+            countTone="danger"
+            actions={
+              <Button variant="ghost" size="sm" to="/bills">
+                All bills →
+              </Button>
+            }
+          >
+            <DataTable
+              aria-label="Overdue bills"
+              columns={columns}
+              rows={overdueRows}
+              rowKey={b => b._id}
+              rowLink={b => `/bills/${b._id}`}
+              mobile={{
+                title: b => <DocNumber value={b.billNumber} to={`/bills/${b._id}`} />,
+                badge: b => <StatusChip status="overdue">{overdueLabel(b)}</StatusChip>,
+                subtitle: b => partyNames.get(b.partyId),
+                meta: b => [
+                  `Due ${formatDate(b.dueDate)}`,
+                  <span key="amt" className="mono">
+                    {formatMoney(b.totalAmount)}
+                  </span>,
+                ],
+              }}
+            />
+          </Card>
+        )}
+      </div>
 
       {businessModal}
     </div>

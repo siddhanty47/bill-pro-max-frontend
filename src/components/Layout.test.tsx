@@ -31,12 +31,16 @@ function makeBusiness(id: string, name: string): Business {
 }
 
 function setup({
+  counts,
   businesses = [
     makeBusiness('biz-1', 'Sharma Scaffolding'),
     makeBusiness('biz-2', 'Gupta Rentals'),
   ],
   route = '/',
-}: { businesses?: Business[]; route?: string } = {}) {
+}: { businesses?: Business[]; route?: string; counts?: Record<string, number> } = {}) {
+  if (counts) {
+    server.use(http.get(apiUrl('/businesses/:businessId/dashboard/nav-counts'), () => ok(counts)));
+  }
   server.use(
     http.get(apiUrl('/businesses'), () => ok(businesses)),
     http.get(apiUrl('/businesses/:businessId/search/index'), () =>
@@ -107,6 +111,51 @@ describe('Layout', () => {
       'Team',
     ]);
     expect(within(nav).getByRole('link', { name: 'Bills' })).toHaveAttribute('href', '/bills');
+  });
+
+  it('shows sidebar count badges with accessible names', async () => {
+    setup({ counts: { inventory: 142, draftChallans: 3, overdueBills: 7 } });
+    const nav = screen.getByRole('navigation', { name: 'Main' });
+    expect(await within(nav).findByRole('link', { name: 'Inventory, 142' })).toBeInTheDocument();
+    const challans = within(nav).getByRole('link', { name: 'Challans, 3 draft challans' });
+    const draftPill = challans.querySelector('[aria-hidden="true"]:not(svg)') as HTMLElement;
+    expect([...draftPill.children].map(c => c.textContent)).toEqual(['3', 'draft']);
+    const bills = within(nav).getByRole('link', { name: 'Bills, 7 overdue bills' });
+    const pill = bills.querySelector('[aria-hidden="true"]:not(svg)');
+    expect([...(pill?.children ?? [])].map(c => c.textContent)).toEqual(['7', 'overdue']);
+    expect(pill).toHaveClass('danger');
+  });
+
+  it('polls nav counts every 5 minutes', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      let overdue = 1;
+      setup();
+      server.use(
+        http.get(apiUrl('/businesses/:businessId/dashboard/nav-counts'), () =>
+          ok({ overdueBills: overdue })
+        )
+      );
+      const nav = screen.getByRole('navigation', { name: 'Main' });
+      await within(nav).findByRole('link', { name: 'Bills, 1 overdue bills' });
+
+      overdue = 4;
+      await vi.advanceTimersByTimeAsync(5 * 60_000);
+
+      expect(
+        await within(nav).findByRole('link', { name: 'Bills, 4 overdue bills' })
+      ).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('omits badges for missing keys and zero counts', async () => {
+    setup({ counts: { inventory: 0, draftChallans: 3 } });
+    const nav = screen.getByRole('navigation', { name: 'Main' });
+    await within(nav).findByRole('link', { name: 'Challans, 3 draft challans' });
+    expect(within(nav).getByRole('link', { name: 'Bills' })).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: 'Inventory' })).toBeInTheDocument();
   });
 
   it('marks the current route active', () => {

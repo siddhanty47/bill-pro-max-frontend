@@ -65,7 +65,13 @@
   color: var(--text-heading);
 }
 
-/* Value tones (after .value so they win at equal specificity) */
+.note {
+  margin-top: calc(-1 * var(--space-1));
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* Value / note tones (after .value and .note so they win at equal specificity) */
 .tone-positive {
   color: var(--status-success-text);
 }

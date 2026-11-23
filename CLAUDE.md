@@ -24,9 +24,11 @@ React SPA for scaffolding rental business management. See README.md for setup. T
 - Auto-logout on 401 responses
 - Tag types for cache invalidation
 
-**Tag types:** `Business`, `Party`, `Inventory`, `Challan`, `Bill`, `Payment`, `Agreement`, `Member`, `Invitation`, `Notification`, `Employee`, `Attendance`, `ShareLink`, `Preset`, `AuditLog`, `Assistant`, `SearchIndex`
+**Tag types:** `Business`, `Party`, `Inventory`, `Challan`, `Bill`, `Payment`, `Agreement`, `Member`, `Invitation`, `Notification`, `Employee`, `Attendance`, `ShareLink`, `Preset`, `AuditLog`, `Assistant`, `SearchIndex`, `Dashboard`
 
 Each entity has its own API file in `src/api/` that injects endpoints via `baseApi.injectEndpoints()`. Follow the pattern in `partyApi.ts` when creating new ones.
+
+**Dashboard:** `src/api/dashboardApi.ts` has `nav-counts` (sidebar counts), `summary` and `series` queries; keys are absent from the response when the role can't read them, so the UI must treat each as optional. The `Dashboard` tag is invalidated by bill/payment/challan/inventory/party/agreement mutations.
 
 **URL pattern for business-scoped resources:** `/businesses/${businessId}/entities`
 
@@ -76,7 +78,7 @@ Defined in `src/App.tsx`.
 - Forms: `BusinessForm`, `PartyForm`, `InventoryForm`, `AgreementForm`, `ChallanForm`, `BillForm`, `BulkBillForm`, `PaymentForm`
 
 ### Shared Components
-- `src/components/ui/` — the design-system kit (import from `components/ui`; list and props in `src/components/ui/README.md`): `Button`, `IconButton`, `Icon`, `Brand`, `GoogleIcon`, `Avatar`, `Dot`, `NotAdded`, `TextLink`, `Notice`, `Card`, `StatCard`, `Meter`, `ProgressBar`, `PageHeader`, `EmptyState`, `StatusChip` (+ `status.ts`), `DocNumber`, `DataTable`, `Table`/`THead`/`TBody`/`Tr`/`Th`/`Td`, `Pagination`, `SegmentedControl`, `Field`/`Input`/`Select`/`Textarea`/`Checkbox`/`Fieldset`, `SearchInput`, `FilterBar`, `Menu`/`MenuItem`/`MenuLabel`/`MenuDivider`, `RowActions`, `Modal`, `Tabs`/`TabPanel`, `Spinner`, `ErrorMessage`
+- `src/components/ui/` — the design-system kit (import from `components/ui`; list and props in `src/components/ui/README.md`): `Button`, `IconButton`, `Icon`, `Brand`, `GoogleIcon`, `Avatar`, `Dot`, `NotAdded`, `NavCount`, `TextLink`, `Notice`, `Card`, `StatCard`, `Meter`, `MeterLegend`, `MeterList`, `ChartCard`, `ProgressBar`, `PageHeader`, `EmptyState`, `StatusChip` (+ `status.ts`), `DocNumber`, `DataTable`, `Table`/`THead`/`TBody`/`Tr`/`Th`/`Td`, `Pagination`, `SegmentedControl`, `Field`/`Input`/`Select`/`Textarea`/`Checkbox`/`Fieldset`, `SearchInput`, `FilterBar`, `Menu`/`MenuItem`/`MenuLabel`/`MenuDivider`, `RowActions`, `Modal`, `Tabs`/`TabPanel`, `Spinner`, `ErrorMessage`
 - `Layout.tsx` — App shell with sidebar + header + business switcher
 - `ProtectedRoute.tsx` — Auth guard, redirects to `/login` if unauthenticated
 - `DetailPageShell.tsx` — `DetailPageShell`, `DetailSection`, `DetailField` (detail page layout, built on the kit)
@@ -86,7 +88,8 @@ Defined in `src/App.tsx`.
 - `EditableField.tsx` — Inline-editable field component
 - `ShareLinkManager.tsx` — Share link CRUD (embedded in PartyDetailPage)
 - `ChangeHistoryTable.tsx` — Shared Jira-style audit history table (used in all detail pages)
-- Formatters: `formatMoney`, `formatDate`, `formatDateTime`, `formatMonth` in `src/utils/format.ts`
+- Charts (`src/components/charts/*`, Recharts) are imported only via `React.lazy` so Recharts stays out of the main bundle; colours come from tokens via `useChartTheme`.
+- Formatters: `formatMoney`, `formatDate`, `formatDateTime`, `formatMonth`, `formatMoneyCompact` in `src/utils/format.ts`
 
 ### Statement Previews
 - Located in `src/components/statements/`
@@ -121,6 +124,7 @@ Defined in `src/App.tsx`.
 | `useWebSocket` | `src/hooks/useWebSocket.ts` | Socket.IO event subscription |
 | `useBillGenerationProgress` | `src/hooks/useBillGenerationProgress.ts` | Real-time bill generation tracking |
 | `useHotkey` | `src/hooks/useHotkey.ts` | Keyboard shortcut binding |
+| `useRangePreset` | `src/hooks/useRangePreset.ts` | Selected chart range preset, remembered per chart id in localStorage |
 | `usePlatform` | `src/hooks/usePlatform.ts` | OS detection (macOS vs others) |
 
 ## Adding a New Entity

@@ -1,12 +1,41 @@
 import styles from './Meter.module.css';
 
-export type MeterTone = 'accent' | 'info' | 'warning' | 'danger';
+export type MeterTone = 'accent' | 'info' | 'warning' | 'danger' | 'muted';
 export type MeterSegment = { value: number; tone: MeterTone; label: string };
 
 const fmt = (n: number) => n.toLocaleString('en-IN');
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
-export function Meter({ segments }: { segments: MeterSegment[] }) {
+export type MeterLegendItem = { tone: MeterTone; label: string; value?: number };
+
+/** Swatch + label (+ value) list: a Meter's own legend, or one legend shared by many bars. */
+export function MeterLegend({ items }: { items: MeterLegendItem[] }) {
+  return (
+    <ul className={styles.legend}>
+      {items.map((s, i) => (
+        <li key={i} className={styles.item}>
+          <span className={`${styles.swatch} ${styles[`sw-${s.tone}`]}`} aria-hidden="true" />
+          {s.label}
+          {s.value !== undefined && (
+            <>
+              {' '}
+              <span className="mono">{fmt(s.value)}</span>
+            </>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function Meter({
+  segments,
+  hideLegend = false,
+}: {
+  segments: MeterSegment[];
+  /** Drop the legend list (the bar keeps its aria-label) when labels sit elsewhere. */
+  hideLegend?: boolean;
+}) {
   const total = segments.reduce((sum, s) => sum + s.value, 0);
   const ariaLabel = segments.map(s => `${s.label} ${fmt(s.value)} of ${fmt(total)}`).join(', ');
 
@@ -47,14 +76,7 @@ export function Meter({ segments }: { segments: MeterSegment[] }) {
       >
         {rects}
       </svg>
-      <ul className={styles.legend}>
-        {segments.map((s, i) => (
-          <li key={i} className={styles.item}>
-            <span className={`${styles.swatch} ${styles[`sw-${s.tone}`]}`} aria-hidden="true" />
-            {s.label} <span className="mono">{fmt(s.value)}</span>
-          </li>
-        ))}
-      </ul>
+      {!hideLegend && <MeterLegend items={segments} />}
     </div>
   );
 }

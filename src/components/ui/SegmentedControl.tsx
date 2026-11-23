@@ -17,6 +17,8 @@ export type SegmentedControlProps<V extends string> = {
   onChange: (value: V) => void;
   /** Accessible name of the group, e.g. "Type". */
   label: string;
+  /** `sm` is a compact control for use under a chart. */
+  size?: 'md' | 'sm';
 };
 
 const NEXT: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
@@ -27,6 +29,7 @@ export function SegmentedControl<V extends string>({
   value,
   onChange,
   label,
+  size = 'md',
 }: SegmentedControlProps<V>) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -46,7 +49,11 @@ export function SegmentedControl<V extends string>({
   };
 
   return (
-    <div className={styles.seg} role="radiogroup" aria-label={label}>
+    <div
+      className={[styles.seg, size === 'sm' ? styles.sm : ''].filter(Boolean).join(' ')}
+      role="radiogroup"
+      aria-label={label}
+    >
       {options.map((o, i) => {
         const checked = o.value === value;
         return (
