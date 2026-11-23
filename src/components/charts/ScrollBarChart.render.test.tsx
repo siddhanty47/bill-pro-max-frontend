@@ -4,11 +4,11 @@ import type { ComponentProps } from 'react';
 import { ScrollBarChart } from './ScrollBarChart';
 
 // Count BarChart renders: scrolling or hovering must not re-render the (large) charts.
-const renders = vi.hoisted(() => ({ count: 0 }));
+const rendered = vi.hoisted(() => vi.fn());
 vi.mock('recharts', async importOriginal => {
   const actual = await importOriginal<typeof import('recharts')>();
   function BarChart(props: ComponentProps<typeof actual.BarChart>) {
-    renders.count += 1;
+    rendered();
     return <actual.BarChart {...props} />;
   }
   return { ...actual, BarChart };
@@ -42,13 +42,13 @@ describe('ScrollBarChart rendering', () => {
   it('does not re-render the charts on scroll', () => {
     renderChart();
     const region = screen.getByRole('region');
-    const before = renders.count;
+    const before = rendered.mock.calls.length;
     expect(before).toBeGreaterThan(0);
     for (let left = 50; left <= 500; left += 50) {
       region.scrollLeft = left;
       fireEvent.scroll(region);
     }
-    expect(renders.count).toBe(before);
+    expect(rendered.mock.calls.length).toBe(before);
   });
 
   it('moves a hovered card on scroll without re-rendering the charts', async () => {
@@ -58,11 +58,11 @@ describe('ScrollBarChart rendering', () => {
     fireEvent.mouseMove(plot, { clientX: 56 + 28, clientY: 100 });
     const card = (await screen.findByText('Item 1', { selector: '.tooltipTitle' }))
       .parentElement as HTMLElement;
-    const before = renders.count;
+    const before = rendered.mock.calls.length;
     const left = card.style.getPropertyValue('--tip-left');
     region.scrollLeft = 100;
     fireEvent.scroll(region);
     expect(card.style.getPropertyValue('--tip-left')).not.toBe(left);
-    expect(renders.count).toBe(before);
+    expect(rendered.mock.calls.length).toBe(before);
   });
 });
