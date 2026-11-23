@@ -25,6 +25,7 @@ export {
   type MeterTone,
 } from './Meter';
 export { MeterList, type MeterListProps, type MeterListRow } from './MeterList';
+export { ScrollArea, type ScrollAreaProps } from './ScrollArea';
 export { ProgressBar, type ProgressBarProps } from './ProgressBar';
 export { PageHeader, type PageHeaderProps } from './PageHeader';
 export { EmptyState, type EmptyStateProps } from './EmptyState';

@@ -26,12 +26,8 @@ const COMPACT_UNITS: Array<[number, string]> = [
 /** One decimal, dropping a trailing `.0`. */
 const oneDp = (n: number) => String(Math.round(n * 10) / 10);
 
-/**
- * Short Indian amount for chart axes and headlines: `₹45k`, `₹4.5k`, `₹38.4L`, `₹1.2Cr`;
- * under ₹1,000 a whole rupee amount (`₹950`). A value that rounds up to the next unit uses it
- * (`₹99,960` → `₹1L`). Tooltips and tables use `formatMoney`.
- */
-export function formatMoneyCompact(n: number): string {
+/** Compact Indian number with an optional prefix (`₹`): see `formatMoneyCompact`. */
+function compactIndian(n: number, prefix: string): string {
   const abs = Math.abs(n);
   const sign = n < 0 ? '-' : '';
   for (let i = 0; i < COMPACT_UNITS.length; i++) {
@@ -39,11 +35,25 @@ export function formatMoneyCompact(n: number): string {
     // a value that rounds to 1,000 of the unit below (e.g. 999.96 → 1000) reads as this unit
     const next = COMPACT_UNITS[i + 1];
     if (abs >= size || (next && Number(oneDp(abs / next[0])) >= size / next[0])) {
-      return `${sign}₹${oneDp(abs / size)}${suffix}`;
+      return `${sign}${prefix}${oneDp(abs / size)}${suffix}`;
     }
   }
-  if (Math.round(abs) >= 1000) return `${sign}₹1k`;
-  return Math.round(abs) === 0 ? '₹0' : `${sign}₹${Math.round(abs)}`;
+  if (Math.round(abs) >= 1000) return `${sign}${prefix}1k`;
+  return Math.round(abs) === 0 ? `${prefix}0` : `${sign}${prefix}${Math.round(abs)}`;
+}
+
+/**
+ * Short Indian amount for chart axes and headlines: `₹45k`, `₹4.5k`, `₹38.4L`, `₹1.2Cr`;
+ * under ₹1,000 a whole rupee amount (`₹950`). A value that rounds up to the next unit uses it
+ * (`₹99,960` → `₹1L`). Tooltips and tables use `formatMoney`.
+ */
+export function formatMoneyCompact(n: number): string {
+  return compactIndian(n, '₹');
+}
+
+/** Short Indian count for chart axes: `950`, `4.5k`, `1.2L`, `3Cr`. */
+export function formatCountCompact(n: number): string {
+  return compactIndian(n, '');
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

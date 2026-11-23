@@ -15,6 +15,7 @@ describe('ui barrel', () => {
     'StatCard',
     'Meter',
     'ChartCard',
+    'ScrollArea',
     'TrendLabel',
     'ProgressBar',
     'PageHeader',

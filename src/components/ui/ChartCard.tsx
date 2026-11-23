@@ -18,6 +18,8 @@ export type ChartCardProps = {
   /** Muted message shown in place of the chart (no data). */
   empty?: string;
   loading?: boolean;
+  /** Header actions, e.g. an "All stock →" link button. */
+  actions?: ReactNode;
   /** Body takes its content's height instead of the chart height (a list, not a chart). */
   fitContent?: boolean;
   children: ReactNode;
@@ -36,6 +38,7 @@ export function ChartCard({
   empty,
   loading,
   fitContent,
+  actions,
   children,
 }: ChartCardProps) {
   let body: ReactNode = children;
@@ -54,7 +57,7 @@ export function ChartCard({
   }
 
   return (
-    <Card title={title} subtitle={subtitle}>
+    <Card title={title} subtitle={subtitle} actions={actions}>
       <div className={styles.stack}>
         {headline != null && headline !== false && (
           <div className={styles.headline}>{headline}</div>
