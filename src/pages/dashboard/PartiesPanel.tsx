@@ -38,6 +38,7 @@ export function PartiesPanel({ parties }: { parties: PartyRow[] }) {
           hint: 'Open party →',
         })}
         onBarClick={p => navigate(`/parties/${p.partyId}`)}
+        title={TITLE}
         ariaLabel={chartLabel(TITLE, summary)}
       />
     </LazyChartCard>

@@ -53,9 +53,10 @@ export function formatTooltipDate(t: string, bucket: Bucket): string {
   return bucket === 'week' ? `Week of ${day}` : day;
 }
 
-const MAX_CODE = 8;
+/** Longest x label in characters: 7 glyphs fit a 56px slot at the axis font size. */
+const MAX_CODE = 7;
 
-/** X label: the code (over 8 characters cut with "…"), else the name's initials. */
+/** X label: the code (over 7 characters cut to 6 + "…"), else the name's initials. */
 export function barLabel(code: unknown, name: unknown): string {
   const c = typeof code === 'string' ? code.trim() : '';
   if (c) return c.length > MAX_CODE ? `${c.slice(0, MAX_CODE - 1)}…` : c;
@@ -77,4 +78,17 @@ export function niceTicks(max: number): number[] {
   const ticks = [0];
   while (ticks[ticks.length - 1] < max) ticks.push(ticks[ticks.length - 1] + step);
   return ticks;
+}
+
+/** Gap between a bar and its hover card. */
+const TIP_GAP = 12;
+
+/**
+ * Where the card goes inside the frame: right of the bar when it fits, else left of it, else
+ * pinned to the frame's right edge. `x` is the bar centre in frame coordinates.
+ */
+export function tipLeft(x: number, cardWidth: number, frameWidth: number): number {
+  if (x + TIP_GAP + cardWidth <= frameWidth) return x + TIP_GAP;
+  if (x - TIP_GAP - cardWidth >= 0) return x - TIP_GAP - cardWidth;
+  return Math.max(0, frameWidth - cardWidth);
 }

@@ -6,6 +6,8 @@ export type ScrollAreaProps = {
   /** Accessible name of the scroll region. */
   label: string;
   className?: string;
+  /** Called after the region scrolls (the affordance is updated first). */
+  onScroll?: (scrollLeft: number) => void;
   children: ReactNode;
 };
 
@@ -22,7 +24,7 @@ const reducedMotion = () =>
  * (skipped under reduced motion or when everything fits). The region is focusable, so arrow
  * keys scroll it natively.
  */
-export function ScrollArea({ label, className, children }: ScrollAreaProps) {
+export function ScrollArea({ label, className, onScroll, children }: ScrollAreaProps) {
   const viewport = useRef<HTMLDivElement>(null);
   const inner = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ left: false, right: false });
@@ -87,7 +89,10 @@ export function ScrollArea({ label, className, children }: ScrollAreaProps) {
         role="region"
         aria-label={label}
         tabIndex={0}
-        onScroll={measure}
+        onScroll={e => {
+          measure();
+          onScroll?.(e.currentTarget.scrollLeft);
+        }}
       >
         <div
           ref={inner}

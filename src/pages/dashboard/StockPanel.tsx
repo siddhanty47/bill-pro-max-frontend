@@ -53,6 +53,7 @@ export function StockPanel({ stock }: { stock: StockRow[] }) {
               : []),
           ],
         })}
+        title={TITLE}
         ariaLabel={chartLabel(TITLE, summary)}
       />
     </LazyChartCard>
