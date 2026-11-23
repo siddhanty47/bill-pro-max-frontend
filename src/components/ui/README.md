@@ -17,7 +17,8 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `GoogleIcon` | The Google logo on sign-in buttons (brand colours, token-check allowlisted) |
 | `Card` | Any surface panel or section, with optional title, muted `subtitle` line, count pill and actions |
 | `StatCard` | A single headline number with a label; `tone="highlight"` for the one key stat; `valueTone` (`positive`/`negative`/`warning`) colours the number; `value` optional for a children-only card |
-| `Meter` | A segmented bar with legend (e.g. available vs rented stock) |
+| `Meter` | A segmented bar with legend (e.g. available vs rented stock); `hideLegend` drops the legend, tone `muted` is a neutral segment |
+| `ChartCard` | A card around one chart: title, headline line, chart body (spinner / empty message) and range presets under it. Chart bodies live in `components/charts/` and are loaded with `React.lazy` |
 | `ProgressBar` | A determinate progress bar for a running job (takes the surrounding text colour, e.g. inside a `Notice`) |
 | `PageHeader` | The title row at the top of every page, with optional actions, a `badge` beside the title and a muted `subtitle` under it (only for context shown nowhere else) |
 | `EmptyState` | "Nothing here" states: one short title and at most one action |
@@ -32,7 +33,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `Fieldset` | A titled group of related fields or checkboxes |
 | `SearchInput` | The search box of a list page (icon, optional shortcut hint such as `/`); forwards its ref; content-sized outside a `FilterBar` (no fixed flex basis) |
 | `FilterBar` | The wrapping row of search and filter controls above a list |
-| `SegmentedControl` | A 2–4 option single-choice filter shown inline (All / Delivery / Return); radio group |
+| `SegmentedControl` | A 2–6 option single-choice filter shown inline (All / Delivery / Return); radio group; `size="sm"` for a compact control under a chart |
 | `RowActions` | A table/phone row's actions: one primary `Button` + a "More actions" menu for the rest (danger items supported; an item's `hint` shows a muted line under its label, e.g. why it's disabled); clicks never open the row |
 | `Menu`, `MenuItem`, `MenuLabel`, `MenuDivider` | Dropdown menus (business switcher, profile, row actions, notifications; `Menu width="wide"` for notifications; `MenuItem unread` tints new items, `MenuItem tone="danger"` for Delete) |
 | `Modal` | Dialogs; full-screen on phones |

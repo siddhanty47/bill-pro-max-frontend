@@ -14,6 +14,7 @@ describe('ui barrel', () => {
     'Card',
     'StatCard',
     'Meter',
+    'ChartCard',
     'ProgressBar',
     'PageHeader',
     'EmptyState',

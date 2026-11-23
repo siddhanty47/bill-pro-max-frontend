@@ -87,4 +87,32 @@ describe('SegmentedControl', () => {
     await user.keyboard('a');
     expect(onChange).toHaveBeenCalledTimes(calls);
   });
+  it('navigates six options with arrow keys, wrapping at the ends', async () => {
+    const user = userEvent.setup();
+    const six = ['1M', '3M', '6M', '1Y', '3Y', 'ALL'].map(v => ({ value: v, label: v }));
+    function Six() {
+      const [v, setV] = useState('1M');
+      return <SegmentedControl label="Range" options={six} value={v} onChange={setV} />;
+    }
+    render(<Six />);
+    expect(screen.getAllByRole('radio')).toHaveLength(6);
+    screen.getByRole('radio', { name: '1M' }).focus();
+    await user.keyboard('{ArrowRight}{ArrowRight}');
+    expect(screen.getByRole('radio', { name: '6M' })).toHaveAttribute('aria-checked', 'true');
+    await user.keyboard('{End}');
+    expect(screen.getByRole('radio', { name: 'ALL' })).toHaveAttribute('aria-checked', 'true');
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByRole('radio', { name: '1M' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('applies the compact class only for size="sm"', () => {
+    const { rerender } = render(
+      <SegmentedControl label="Type" options={OPTIONS} value="all" onChange={vi.fn()} />
+    );
+    expect(screen.getByRole('radiogroup')).not.toHaveClass('sm');
+    rerender(
+      <SegmentedControl label="Type" options={OPTIONS} value="all" onChange={vi.fn()} size="sm" />
+    );
+    expect(screen.getByRole('radiogroup')).toHaveClass('sm');
+  });
 });

@@ -23,6 +23,9 @@
 .danger {
   fill: var(--status-danger-text);
 }
+.muted {
+  fill: var(--border-medium);
+}
 
 .legend {
   display: flex;
@@ -59,4 +62,7 @@
 }
 .sw-danger {
   background: var(--status-danger-text);
+}
+.sw-muted {
+  background: var(--border-medium);
 }

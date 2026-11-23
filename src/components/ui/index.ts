@@ -15,6 +15,7 @@ export { TextLink, type TextLinkProps } from './TextLink';
 export { Notice, type NoticeProps, type NoticeTone } from './Notice';
 export { Card, type CardProps } from './Card';
 export { StatCard, type StatCardProps } from './StatCard';
+export { ChartCard, type ChartCardProps } from './ChartCard';
 export { Meter, type MeterSegment, type MeterTone } from './Meter';
 export { ProgressBar, type ProgressBarProps } from './ProgressBar';
 export { PageHeader, type PageHeaderProps } from './PageHeader';
