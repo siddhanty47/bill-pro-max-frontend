@@ -45,7 +45,8 @@ describe('StockPanel', () => {
   it('draws one bar per item with codes under the bars', async () => {
     const stock = Array.from({ length: 10 }, (_, i) => item(i));
     renderAt(<StockPanel stock={stock} />);
-    const region = await screen.findByRole('region', { name: /^Stock: 10 items/ });
+    await screen.findByRole('img', { name: /^Stock: 10 items/ });
+    const region = screen.getByRole('region', { name: 'Stock, scrollable' });
     expect(firstStackBars(region)).toHaveLength(10);
     expect(within(region).getByText('IT0')).toBeInTheDocument();
     expect(within(region).getByText('IT9')).toBeInTheDocument();
@@ -63,7 +64,7 @@ describe('StockPanel', () => {
         ]}
       />
     );
-    const region = await screen.findByRole('region', { name: /^Stock/ });
+    const region = await screen.findByRole('region', { name: 'Stock, scrollable' });
     hoverSlot(region, 0);
     const tip = await screen.findByText('Coupler (CPL)');
     const card = tip.parentElement as HTMLElement;
@@ -79,7 +80,8 @@ describe('StockPanel', () => {
 
   it('labels a bar by name initials when the code is missing', async () => {
     renderAt(<StockPanel stock={[item(1, { code: '', name: 'Steel props' })]} />);
-    const region = await screen.findByRole('region', { name: /^Stock: 1 item,/ });
+    await screen.findByRole('img', { name: /^Stock: 1 item,/ });
+    const region = screen.getByRole('region', { name: 'Stock, scrollable' });
     expect(within(region).getByText('SP')).toBeInTheDocument();
     hoverSlot(region, 0);
     expect(await screen.findByText('Steel props')).toBeInTheDocument();
@@ -102,9 +104,8 @@ describe('PartiesPanel', () => {
     renderAt(<PartiesPanel parties={parties} />);
     expect(screen.getByRole('heading', { name: 'Outstanding by party' })).toBeInTheDocument();
     expect(screen.getByText('Parties that owe you, highest first')).toBeInTheDocument();
-    const region = await screen.findByRole('region', {
-      name: 'Outstanding by party: 2 parties, ₹1.9L',
-    });
+    await screen.findByRole('img', { name: 'Outstanding by party: 2 parties, ₹1.9L' });
+    const region = screen.getByRole('region', { name: 'Outstanding by party, scrollable' });
     expect(firstStackBars(region)).toHaveLength(2);
     const ticks = [...region.querySelectorAll('.recharts-xAxis-tick-labels tspan')].map(
       t => t.textContent
@@ -115,13 +116,16 @@ describe('PartiesPanel', () => {
 
   it('shows the full amount on hover and opens the party on click', async () => {
     renderAt(<PartiesPanel parties={parties} />);
-    const region = await screen.findByRole('region', { name: /^Outstanding by party/ });
+    const region = await screen.findByRole('region', { name: 'Outstanding by party, scrollable' });
     hoverSlot(region, 1);
     const card = (await screen.findByText('Shah & Sons (SHA)')).parentElement as HTMLElement;
     expect(card).toHaveTextContent('Outstanding₹5,000.50');
     expect(card).toHaveTextContent('Open party →');
 
-    fireEvent.click(firstStackBars(region)[0]);
+    fireEvent.click(region.querySelector('.recharts-wrapper') as Element, {
+      clientX: 28,
+      clientY: 100,
+    });
     expect(await screen.findByTestId('where')).toHaveTextContent('/parties/p1');
   });
 

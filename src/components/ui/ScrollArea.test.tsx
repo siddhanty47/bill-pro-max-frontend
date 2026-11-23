@@ -74,6 +74,19 @@ describe('ScrollArea', () => {
     expect(region).toHaveTextContent('bars');
   });
 
+  it('reports the scroll position', () => {
+    const onScroll = vi.fn();
+    render(
+      <ScrollArea label="Chart" onScroll={onScroll}>
+        <div />
+      </ScrollArea>
+    );
+    const region = screen.getByRole('region');
+    setSize(region, { scrollWidth: 1000, clientWidth: 300, scrollLeft: 120 });
+    fireEvent.scroll(region);
+    expect(onScroll).toHaveBeenCalledWith(120);
+  });
+
   it('shows no buttons when everything fits', () => {
     renderArea();
     const region = screen.getByRole('region');

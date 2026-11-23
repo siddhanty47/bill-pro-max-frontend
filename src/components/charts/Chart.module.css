@@ -55,6 +55,7 @@
 
 /* ScrollBarChart: a fixed y-axis beside the scrolling plot. */
 .scrollFrame {
+  position: relative;
   display: flex;
   align-items: flex-start;
   min-width: 0;
@@ -83,4 +84,14 @@
   margin: var(--space-2) 0 0;
   font-size: var(--text-xs);
   color: var(--accent);
+}
+
+/* ScrollBarChart card: over the frame (not clipped by the scroll viewport), placed from JS. */
+.floatingTip {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--tip-left, 0);
+  z-index: var(--z-popover);
+  max-width: 260px;
+  pointer-events: none;
 }

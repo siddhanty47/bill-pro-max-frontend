@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import ScrollBarChartDefault, { ScrollBarChart, type ScrollBarChartProps } from './ScrollBarChart';
-import { barLabel, niceTicks } from './chartFormat';
+import { barLabel, niceTicks, tipLeft } from './chartFormat';
 
 type Row = { id: string; code: string; name: string; a: number; b: number };
 
@@ -26,6 +26,7 @@ function renderChart(props: Partial<ScrollBarChartProps<Row>> = {}) {
       ]}
       format={n => String(n)}
       tooltip={r => ({ title: `${r.name} (${r.code})`, rows: [{ label: 'At sites', value: '1' }] })}
+      title="Stock"
       ariaLabel="Stock: 3 items"
       {...props}
     />
@@ -34,14 +35,44 @@ function renderChart(props: Partial<ScrollBarChartProps<Row>> = {}) {
 
 const plotBars = () => screen.getByRole('region').querySelectorAll('.recharts-bar-rectangle');
 
+/** Recharts maps the pointer to a slot from clientX (jsdom has no layout offsets). */
+const pointAt = (slot: number) => ({ clientX: slot * 56 + 28, clientY: 100 });
+const plot = () => screen.getByRole('region').querySelector('.recharts-wrapper') as Element;
+
+/** `(hover: none)` = a touch screen. */
+function stubTouch(touch: boolean) {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn((query: string) => ({
+      matches: touch && query === '(hover: none)',
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+  );
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 describe('barLabel', () => {
   it('keeps short codes, truncates long ones and falls back to name initials', () => {
     expect(barLabel('CPL', 'Coupler')).toBe('CPL');
-    expect(barLabel('ABCDEFGH', 'x')).toBe('ABCDEFGH');
-    expect(barLabel('ABCDEFGHIJ', 'x')).toBe('ABCDEFG…');
+    expect(barLabel('ABCDEFG', 'x')).toBe('ABCDEFG');
+    expect(barLabel('ABCDEFGH', 'x')).toBe('ABCDEF…');
     expect(barLabel('', 'mehta builders pvt ltd')).toBe('MBP');
     expect(barLabel(undefined, 'Props')).toBe('P');
     expect(barLabel('  ', '')).toBe('?');
+  });
+});
+
+describe('tipLeft', () => {
+  it('puts the card right of the bar, else left of it, else against the right edge', () => {
+    expect(tipLeft(100, 150, 375)).toBe(112);
+    expect(tipLeft(300, 150, 375)).toBe(138);
+    expect(tipLeft(100, 300, 320)).toBe(20);
+    expect(tipLeft(100, 400, 320)).toBe(0);
   });
 });
 
@@ -62,8 +93,9 @@ describe('ScrollBarChart', () => {
 
   it('renders one stacked bar per row with code ticks inside a named scroll region', () => {
     renderChart({ data: rows(10) });
-    const region = screen.getByRole('region', { name: 'Stock: 3 items' });
-    expect(screen.getByRole('img', { name: 'Stock: 3 items' })).toBeInTheDocument();
+    // the region and the image carry different names (no double announcement)
+    const region = screen.getByRole('region', { name: 'Stock, scrollable' });
+    expect(within(region).getByRole('img', { name: 'Stock: 3 items' })).toBeInTheDocument();
     // two stacks × 10 rows
     expect(plotBars()).toHaveLength(20);
     // (Recharts also leaves a text-measuring span in the body, so look inside the region)
@@ -93,12 +125,82 @@ describe('ScrollBarChart', () => {
     expect(screen.getByRole('region')).toBeInTheDocument();
   });
 
-  it('calls onBarClick with the row', () => {
+  it('shows the card for the hovered slot and hides it on leave', async () => {
+    stubTouch(false);
+    renderChart();
+    fireEvent.mouseMove(plot(), pointAt(1));
+    // Recharts throttles mouse moves to an animation frame
+    const title = await screen.findByText('Item 1 (C1)');
+    // drawn over the frame, outside the clipping scroll viewport
+    expect(screen.getByRole('region').contains(title)).toBe(false);
+    fireEvent.mouseLeave(plot());
+    expect(screen.queryByText('Item 1 (C1)')).not.toBeInTheDocument();
+  });
+
+  it('opens a bar on click anywhere in its slot with a mouse', async () => {
+    stubTouch(false);
     const onBarClick = vi.fn();
     const data = rows(2);
-    renderChart({ data, onBarClick });
-    fireEvent.click(plotBars()[1]);
+    renderChart({ data, onBarClick, tooltip: r => ({ title: r.name, rows: [], hint: 'Open →' }) });
+    fireEvent.mouseMove(plot(), pointAt(1));
+    expect(await screen.findByText('Open →')).toBeInTheDocument();
+    fireEvent.click(plot(), pointAt(1));
+    expect(onBarClick).toHaveBeenCalledTimes(1);
     expect(onBarClick).toHaveBeenCalledWith(data[1]);
+  });
+
+  it('previews on the first tap and opens on a second tap of the same bar (touch)', async () => {
+    stubTouch(true);
+    const onBarClick = vi.fn();
+    const data = rows(3);
+    renderChart({ data, onBarClick, tooltip: r => ({ title: r.name, rows: [], hint: 'Open →' }) });
+    // a tap also emits a mouse move: it must not count as the first tap
+    fireEvent.mouseMove(plot(), pointAt(1));
+    fireEvent.click(plot(), pointAt(1));
+    expect(onBarClick).not.toHaveBeenCalled();
+    expect(await screen.findByText('Item 1')).toBeInTheDocument();
+    expect(screen.getByText('Tap again to open')).toBeInTheDocument();
+    expect(screen.queryByText('Open →')).not.toBeInTheDocument();
+    // a tap on another bar moves the preview
+    fireEvent.click(plot(), pointAt(2));
+    expect(onBarClick).not.toHaveBeenCalled();
+    expect(await screen.findByText('Item 2')).toBeInTheDocument();
+    fireEvent.click(plot(), pointAt(2));
+    expect(onBarClick).toHaveBeenCalledWith(data[2]);
+  });
+
+  it('drops a tapped card on a tap outside the plot (touch)', async () => {
+    stubTouch(true);
+    renderChart({ onBarClick: vi.fn() });
+    fireEvent.click(plot(), pointAt(0));
+    expect(await screen.findByText('Item 0 (C0)')).toBeInTheDocument();
+    fireEvent.pointerDown(plot().querySelector('svg') as Element);
+    expect(screen.getByText('Item 0 (C0)')).toBeInTheDocument();
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByText('Item 0 (C0)')).not.toBeInTheDocument();
+  });
+
+  it('drops a tapped card when the plot scrolls (touch)', () => {
+    stubTouch(true);
+    renderChart({ onBarClick: vi.fn() });
+    fireEvent.click(plot(), pointAt(0));
+    expect(screen.getByText('Item 0 (C0)')).toBeInTheDocument();
+    fireEvent.scroll(screen.getByRole('region'));
+    expect(screen.queryByText('Item 0 (C0)')).not.toBeInTheDocument();
+  });
+
+  it('keeps tiny values visible on a single series', () => {
+    renderChart({
+      data: [
+        { id: 'big', code: 'B', name: 'Big', a: 1800000, b: 0 },
+        { id: 'small', code: 'S', name: 'Small', a: 500, b: 0 },
+      ],
+      stacks: [{ key: 'a', label: 'Outstanding', tone: 'info' }],
+    });
+    const heights = [...plotBars()].map(b =>
+      Number(b.querySelector('path')?.getAttribute('height') ?? 0)
+    );
+    expect(Math.min(...heights)).toBeGreaterThanOrEqual(3);
   });
 
   it('rounds only the top segment of each bar', () => {

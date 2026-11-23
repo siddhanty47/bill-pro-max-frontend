@@ -411,19 +411,20 @@ describe('DashboardPage', () => {
   it('charts stock and outstanding by party, a bar opening the party', async () => {
     useApi();
     renderPage();
-    const stock = await screen.findByRole('region', {
-      name: 'Stock: 2 items, 348 pieces at sites',
-    });
+    await screen.findByRole('img', { name: 'Stock: 2 items, 348 pieces at sites' });
+    const stock = screen.getByRole('region', { name: 'Stock, scrollable' });
     expect(within(stock).getByText('PRP3')).toBeInTheDocument();
     expect(within(stock).getByText('PLT')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /All stock/ })).toHaveAttribute('href', '/inventory');
 
-    const parties = await screen.findByRole('region', {
-      name: 'Outstanding by party: 1 party, ₹1.8L',
-    });
+    await screen.findByRole('img', { name: 'Outstanding by party: 1 party, ₹1.8L' });
+    const parties = screen.getByRole('region', { name: 'Outstanding by party, scrollable' });
     expect(within(parties).getByText('MEH')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /All parties/ })).toHaveAttribute('href', '/parties');
-    fireEvent.click(parties.querySelector('.recharts-bar-rectangle') as Element);
+    fireEvent.click(parties.querySelector('.recharts-wrapper') as Element, {
+      clientX: 28,
+      clientY: 100,
+    });
     expect(await screen.findByTestId('where')).toHaveTextContent('/parties/p1');
   });
 
