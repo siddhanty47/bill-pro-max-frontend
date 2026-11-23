@@ -43,6 +43,9 @@ type NavItem = {
 type NavGroup = { label?: string; items: NavItem[] };
 
 /** Sidebar navigation. Add a page here (and its route in App.tsx). */
+/** Sidebar badge refresh interval. */
+const NAV_COUNTS_POLL_MS = 5 * 60_000;
+
 const navGroups: NavGroup[] = [
   { items: [{ path: '/', label: 'Dashboard', icon: 'dashboard' }] },
   {
@@ -100,8 +103,10 @@ export function Layout() {
   const { user, logout } = useAuth();
   const { businesses, currentBusiness, currentBusinessId, selectBusiness, hasMultipleBusinesses } =
     useCurrentBusiness();
+  // Polls so badges catch up with other members' changes (no refetch-on-focus listeners).
   const { data: navCounts } = useGetNavCountsQuery(currentBusinessId ?? '', {
     skip: !currentBusinessId,
+    pollingInterval: NAV_COUNTS_POLL_MS,
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);

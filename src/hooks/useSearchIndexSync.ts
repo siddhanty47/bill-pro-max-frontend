@@ -1,7 +1,8 @@
 /**
  * @file Search index sync hook
- * @description Refetches the local global-search index when another member
- * edits parties/sites/agreements/inventory in the current business.
+ * @description Refetches the local global-search index (and the dashboard, whose counts
+ * and stock depend on the same data) when another member edits
+ * parties/sites/agreements/inventory in the current business.
  */
 
 import { useEffect } from 'react';
@@ -21,7 +22,7 @@ export function useSearchIndexSync(): void {
 
     const handleIndexChanged = (payload: { businessId?: string }) => {
       if (payload?.businessId === currentBusinessId) {
-        dispatch(baseApi.util.invalidateTags(['SearchIndex']));
+        dispatch(baseApi.util.invalidateTags(['SearchIndex', 'Dashboard']));
       }
     };
 

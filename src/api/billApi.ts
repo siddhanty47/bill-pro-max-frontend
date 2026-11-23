@@ -135,7 +135,11 @@ export const billApi = baseApi.injectEndpoints({
         url: `/businesses/${businessId}/bills/${billId}/send`,
         method: 'POST',
       }),
-      invalidatesTags: (_result, _error, { billId }) => [{ type: 'Bill', id: billId }, 'Bill'],
+      invalidatesTags: (_result, _error, { billId }) => [
+        { type: 'Bill', id: billId },
+        'Bill',
+        'Dashboard',
+      ],
     }),
 
     /** Download bill invoice PDF */

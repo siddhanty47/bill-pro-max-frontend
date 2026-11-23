@@ -41,7 +41,7 @@ export function useBillGenerationProgress() {
     if (pendingInvalidation.current) return;
     pendingInvalidation.current = true;
     invalidationTimer.current = setTimeout(() => {
-      dispatch(baseApi.util.invalidateTags(['Bill']));
+      dispatch(baseApi.util.invalidateTags(['Bill', 'Dashboard']));
       pendingInvalidation.current = false;
     }, INVALIDATION_THROTTLE_MS);
   }, [dispatch]);
@@ -151,7 +151,7 @@ export function useBillGenerationProgress() {
       // Final invalidation to ensure list is fully up to date
       if (invalidationTimer.current) clearTimeout(invalidationTimer.current);
       pendingInvalidation.current = false;
-      dispatch(baseApi.util.invalidateTags(['Bill']));
+      dispatch(baseApi.util.invalidateTags(['Bill', 'Dashboard']));
     };
 
     socket.on('bill:generated', handleGenerated);

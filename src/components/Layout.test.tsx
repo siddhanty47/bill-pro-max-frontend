@@ -125,6 +125,30 @@ describe('Layout', () => {
     expect(pill).toHaveClass('danger');
   });
 
+  it('polls nav counts every 5 minutes', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      let overdue = 1;
+      setup();
+      server.use(
+        http.get(apiUrl('/businesses/:businessId/dashboard/nav-counts'), () =>
+          ok({ overdueBills: overdue })
+        )
+      );
+      const nav = screen.getByRole('navigation', { name: 'Main' });
+      await within(nav).findByRole('link', { name: 'Bills, 1 overdue bills' });
+
+      overdue = 4;
+      await vi.advanceTimersByTimeAsync(5 * 60_000);
+
+      expect(
+        await within(nav).findByRole('link', { name: 'Bills, 4 overdue bills' })
+      ).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('omits badges for missing keys and zero counts', async () => {
     setup({ counts: { inventory: 0, draftChallans: 3 } });
     const nav = screen.getByRole('navigation', { name: 'Main' });
