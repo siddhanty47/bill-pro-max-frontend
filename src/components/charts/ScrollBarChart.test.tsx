@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import ScrollBarChartDefault, { ScrollBarChart, type ScrollBarChartProps } from './ScrollBarChart';
 import { barLabel, niceTicks, tipLeft } from './chartFormat';
+import { readCss } from '../../test/readCss';
 
 type Row = { id: string; code: string; name: string; a: number; b: number };
 
@@ -158,13 +159,13 @@ describe('ScrollBarChart', () => {
     fireEvent.mouseMove(plot(), pointAt(1));
     fireEvent.click(plot(), pointAt(1));
     expect(onBarClick).not.toHaveBeenCalled();
-    expect(await screen.findByText('Item 1')).toBeInTheDocument();
+    expect(await screen.findByText('Item 1', { selector: '.tooltipTitle' })).toBeInTheDocument();
     expect(screen.getByText('Tap again to open')).toBeInTheDocument();
     expect(screen.queryByText('Open →')).not.toBeInTheDocument();
     // a tap on another bar moves the preview
     fireEvent.click(plot(), pointAt(2));
     expect(onBarClick).not.toHaveBeenCalled();
-    expect(await screen.findByText('Item 2')).toBeInTheDocument();
+    expect(await screen.findByText('Item 2', { selector: '.tooltipTitle' })).toBeInTheDocument();
     fireEvent.click(plot(), pointAt(2));
     expect(onBarClick).toHaveBeenCalledWith(data[2]);
   });
@@ -215,5 +216,29 @@ describe('ScrollBarChart', () => {
     // a (x: bottom, square) · a (y: top since b is 0, rounded) · b (x: top, rounded)
     const rounded = paths.filter(d => d.includes('A'));
     expect(rounded).toHaveLength(2);
+  });
+
+  it('lists every bar for screen readers with the tooltip facts', () => {
+    renderChart({
+      tooltip: r => ({
+        title: `${r.name} (${r.code})`,
+        rows: [{ label: 'At sites', value: String(r.a) }],
+      }),
+    });
+    const list = screen.getByRole('list', { name: 'Stock' });
+    const items = within(list).getAllByRole('listitem');
+    expect(items).toHaveLength(3);
+    expect(items[1]).toHaveTextContent('Item 1 (C1), At sites: 20');
+    // outside the image (whose children are presentational) and visually hidden
+    expect(screen.getByRole('img').contains(list)).toBe(false);
+    expect(list).toHaveClass('srOnly');
+  });
+
+  it('draws axis ticks small and hides the screen-reader list (CSS)', async () => {
+    const css = await readCss('src/components/charts/Chart.module.css');
+    expect(css).toMatch(
+      /\.scrollFrame :global\(\.recharts-cartesian-axis-tick-value\)\s*\{[^}]*font-size:\s*var\(--text-xs\)/
+    );
+    expect(css).toMatch(/\.srOnly\s*\{[^}]*clip: rect\(0 0 0 0\)/);
   });
 });

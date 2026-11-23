@@ -61,8 +61,24 @@
   min-width: 0;
 }
 
+.scrollFrame :global(.recharts-cartesian-axis-tick-value) {
+  font-size: var(--text-xs);
+}
+
 .scrollAxis {
   flex: none;
+}
+
+/* The bars as a list, for screen readers only. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .scrollPlot {
