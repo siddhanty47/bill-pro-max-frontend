@@ -118,10 +118,11 @@ describe('Layout', () => {
     const nav = screen.getByRole('navigation', { name: 'Main' });
     expect(await within(nav).findByRole('link', { name: 'Inventory, 142' })).toBeInTheDocument();
     const challans = within(nav).getByRole('link', { name: 'Challans, 3 draft challans' });
-    expect(challans.querySelector('[aria-hidden="true"]:not(svg)')?.textContent).toBe('3 draft');
+    const draftPill = challans.querySelector('[aria-hidden="true"]:not(svg)') as HTMLElement;
+    expect([...draftPill.children].map(c => c.textContent)).toEqual(['3', 'draft']);
     const bills = within(nav).getByRole('link', { name: 'Bills, 7 overdue bills' });
     const pill = bills.querySelector('[aria-hidden="true"]:not(svg)');
-    expect(pill?.textContent).toBe('7 overdue');
+    expect([...(pill?.children ?? [])].map(c => c.textContent)).toEqual(['7', 'overdue']);
     expect(pill).toHaveClass('danger');
   });
 

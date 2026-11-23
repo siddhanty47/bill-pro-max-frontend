@@ -20,7 +20,7 @@ One component per UI pattern. Import from `components/ui` (status helpers from `
 | `Meter` | A segmented bar with legend (e.g. available vs rented stock); `hideLegend` drops the legend, tone `muted` is a neutral segment. `MeterLegend` is the legend on its own (one shared legend for many bars) |
 | `MeterList` | Rows of stacked bars (dashboard stock / parties / outstanding by age): each row a label (text or `TextLink`), right-aligned `detail`, a `hideLegend` Meter and a muted `note`; optional shared `legend`, muted `empty` line and `footnote` |
 | `TrendLabel` | A change with a ▲/▼ arrow (`direction` `up`/`down`, children = the change text): the arrow is `aria-hidden` and screen readers hear "up"/"down". Use it for trends in `StatCard` notes and `ChartCard` headlines |
-| `ChartCard` | A card around one chart: title, optional muted `subtitle` (data source), headline line, chart body (spinner / empty message) and range presets under it. Chart bodies live in `components/charts/` and are loaded with `React.lazy` |
+| `ChartCard` | A card around one chart: title, optional muted `subtitle` (data source), headline line, chart body (spinner / empty message) and range presets under it; `fitContent` for a non-chart (list) body that should not keep the chart height. Chart bodies live in `components/charts/` and are loaded with `React.lazy` |
 | `ProgressBar` | A determinate progress bar for a running job (takes the surrounding text colour, e.g. inside a `Notice`) |
 | `PageHeader` | The title row at the top of every page, with optional actions, a `badge` beside the title and a muted `subtitle` under it (only for context shown nowhere else) |
 | `EmptyState` | "Nothing here" states: one short title and at most one action |

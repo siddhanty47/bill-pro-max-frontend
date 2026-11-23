@@ -31,18 +31,26 @@
 }
 
 @media (max-width: 768px) {
+  /*
+   * Wrapping row instead of a grid, so no cell is ever left empty: every tile takes a full
+   * row (full amounts need it) except the stock pair, which shares one; a pair tile whose
+   * partner is hidden by permissions grows to the full row.
+   */
   .tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .tiles > * {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .tiles > .pairTile {
+    flex-basis: calc((100% - var(--space-3)) / 2);
   }
 
   .charts {
     grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 480px) {
-  /* a full amount needs the whole row on a narrow phone */
-  .moneyTile {
-    grid-column: 1 / -1;
   }
 }

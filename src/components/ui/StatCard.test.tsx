@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { StatCard } from './StatCard';
+import { TrendLabel } from './TrendLabel';
 
 describe('StatCard', () => {
   it('shows label and value', () => {
@@ -78,9 +79,15 @@ describe('StatCard value', () => {
 
   it('renders a note line, toned when asked, and a note-only card', () => {
     const { rerender } = render(
-      <StatCard label="Billed" value="₹1,000" note="▲ 12% vs last month" noteTone="positive" />
+      <StatCard
+        label="Billed"
+        value="₹1,000"
+        note={<TrendLabel direction="up">12% vs last month</TrendLabel>}
+        noteTone="positive"
+      />
     );
-    const note = screen.getByText('▲ 12% vs last month');
+    const note = screen.getByText(/12% vs last month/).closest('.note') as HTMLElement;
+    expect(note).toHaveTextContent('▲ up 12% vs last month');
     expect(note).toHaveClass('note');
     expect(note).toHaveClass('tone-positive');
     rerender(<StatCard label="Avg days" note="Not enough data" />);

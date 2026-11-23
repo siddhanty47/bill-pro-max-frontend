@@ -42,10 +42,10 @@ type NavItem = {
 };
 type NavGroup = { label?: string; items: NavItem[] };
 
-/** Sidebar navigation. Add a page here (and its route in App.tsx). */
 /** Sidebar badge refresh interval. */
 const NAV_COUNTS_POLL_MS = 5 * 60_000;
 
+/** Sidebar navigation. Add a page here (and its route in App.tsx). */
 const navGroups: NavGroup[] = [
   { items: [{ path: '/', label: 'Dashboard', icon: 'dashboard' }] },
   {

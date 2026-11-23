@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { readCss } from '../../test/readCss';
 import { ChartCard } from './ChartCard';
 
 describe('ChartCard', () => {
@@ -13,6 +14,23 @@ describe('ChartCard', () => {
     expect(screen.getByRole('heading', { name: 'Billing' })).toBeInTheDocument();
     expect(screen.getByText('₹1,000')).toBeInTheDocument();
     expect(screen.getByText('chart body')).toBeInTheDocument();
+  });
+
+  it('keeps the chart height by default; fitContent sizes a non-chart body to its content', async () => {
+    const { rerender } = render(
+      <ChartCard title="Billing">
+        <div>chart body</div>
+      </ChartCard>
+    );
+    expect(screen.getByText('chart body').parentElement).not.toHaveClass('fit');
+    rerender(
+      <ChartCard title="Aging" fitContent>
+        <p>Nothing outstanding</p>
+      </ChartCard>
+    );
+    expect(screen.getByText('Nothing outstanding').parentElement).toHaveClass('body', 'fit');
+    const css = await readCss('src/components/ui/ChartCard.module.css');
+    expect(css).toMatch(/\.body\.fit \{[^}]*min-height: 0;/);
   });
 
   it('renders presets as radios, labels ALL as "All", and reports a change', async () => {

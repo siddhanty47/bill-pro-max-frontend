@@ -37,3 +37,8 @@
     min-height: 180px;
   }
 }
+
+/* After the media query: a non-chart body (fitContent) never keeps the chart height. */
+.body.fit {
+  min-height: 0;
+}

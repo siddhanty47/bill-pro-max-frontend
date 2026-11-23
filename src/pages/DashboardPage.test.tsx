@@ -6,6 +6,7 @@ import { DashboardPage } from './DashboardPage';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
 import { apiUrl, ok } from '../test/msw/handlers';
+import { readCss } from '../test/readCss';
 import type {
   Bill,
   Business,
@@ -231,6 +232,36 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('button', { name: /Add business/ })).toBeInTheDocument();
   });
 
+  it('orders the tiles money first, then the stock pair, then days to pay (no orphan on a phone)', async () => {
+    useApi();
+    renderPage();
+    const first = await screen.findByText('Billed this month');
+    const grid = first.closest('.tiles') as HTMLElement;
+    const labels = [...grid.children].map(t => t.querySelector('.label')?.textContent);
+    expect(labels).toEqual([
+      'Billed this month',
+      'Collected this month',
+      'Rent per day',
+      'Stock on rent',
+      'Active sites',
+      'Avg days to get paid',
+    ]);
+    const pair = [...grid.children].filter(t => t.classList.contains('pairTile'));
+    expect(pair.map(t => t.querySelector('.label')?.textContent)).toEqual([
+      'Stock on rent',
+      'Active sites',
+    ]);
+    // phone: a wrapping row; every tile full width except the pair, which grows to fill
+    // the row when its partner is hidden by permissions
+    const css = await readCss('src/pages/dashboard/Dashboard.module.css');
+    const phone = css.slice(css.indexOf('@media (max-width: 768px)'));
+    expect(phone).toMatch(/\.tiles \{[^}]*display: flex;[^}]*flex-wrap: wrap;/);
+    expect(phone).toMatch(/\.tiles > \* \{[^}]*flex: 1 1 100%;/);
+    expect(phone).toMatch(
+      /\.tiles > \.pairTile \{[^}]*flex-basis: calc\(\(100% - var\(--space-3\)\) \/ 2\);/
+    );
+  });
+
   it('shows six KPI tiles with values and month-on-month trends', async () => {
     useApi();
     renderPage();
@@ -336,6 +367,19 @@ describe('DashboardPage', () => {
     await waitFor(() => expect(screen.queryByText(/over/)).not.toBeInTheDocument());
   });
 
+  it('shows a flat steel index as a neutral change with no arrow', async () => {
+    useApi({
+      series: (metric, range) =>
+        metric === 'steel' ? ok({ ...fullSeries.steel, metric, range, changePct: 0 }) : undefined,
+    });
+    renderPage();
+    const headline = await screen.findByText(/0\.0% over 1Y/);
+    expect(headline).toHaveTextContent(/^0\.0% over 1Y$/);
+    expect(
+      screen.getByRole('img', { name: 'Steel price index: 0.0% over 1Y' })
+    ).toBeInTheDocument();
+  });
+
   it('shows outstanding by age with the advances footnote', async () => {
     useApi();
     renderPage();
@@ -431,6 +475,8 @@ describe('DashboardPage', () => {
     expect(await screen.findAllByText('No data yet')).toHaveLength(2);
     expect(await screen.findByText('Steel index not available')).toBeInTheDocument();
     expect(screen.getByText('Nothing outstanding')).toBeInTheDocument();
+    // a list, not a chart: the empty card collapses to its content height
+    expect(screen.getByText('Nothing outstanding').closest('.body')).toHaveClass('fit');
     const aging = screen
       .getByRole('heading', { name: 'Outstanding by age' })
       .closest('section') as HTMLElement;

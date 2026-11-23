@@ -30,7 +30,7 @@ export function NavCount({ value, label, tone = 'neutral', description }: NavCou
       </span>
       <span className={`${styles.pill} ${styles[tone]}`} aria-hidden="true">
         <span className={styles.value}>{shown}</span>
-        {label && <span>{` ${label}`}</span>}
+        {label && <span>{label}</span>}
       </span>
     </>
   );

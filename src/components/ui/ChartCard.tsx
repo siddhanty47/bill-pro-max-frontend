@@ -18,6 +18,8 @@ export type ChartCardProps = {
   /** Muted message shown in place of the chart (no data). */
   empty?: string;
   loading?: boolean;
+  /** Body takes its content's height instead of the chart height (a list, not a chart). */
+  fitContent?: boolean;
   children: ReactNode;
 };
 
@@ -33,6 +35,7 @@ export function ChartCard({
   onRangeChange,
   empty,
   loading,
+  fitContent,
   children,
 }: ChartCardProps) {
   let body: ReactNode = children;
@@ -56,7 +59,7 @@ export function ChartCard({
         {headline != null && headline !== false && (
           <div className={styles.headline}>{headline}</div>
         )}
-        <div className={styles.body}>{body}</div>
+        <div className={fitContent ? `${styles.body} ${styles.fit}` : styles.body}>{body}</div>
         {presets && range && onRangeChange && (
           <div className={styles.presets}>
             <SegmentedControl

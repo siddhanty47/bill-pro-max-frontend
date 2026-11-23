@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render } from '@testing-library/react';
+import { readCss } from '../../test/readCss';
 import { NavCount } from './NavCount';
 
 describe('NavCount', () => {
@@ -14,7 +15,7 @@ describe('NavCount', () => {
     );
     const pill = container.querySelector('[aria-hidden="true"]') as HTMLElement;
     expect(pill).toHaveClass('pill', 'danger');
-    expect(pill.textContent).toBe('7 overdue');
+    expect([...pill.children].map(c => c.textContent)).toEqual(['7', 'overdue']);
     expect(container.textContent).toContain(', 7 overdue bills');
   });
 
@@ -29,5 +30,10 @@ describe('NavCount', () => {
     const big = render(<NavCount value={1000} />).container;
     expect(big.querySelector('[aria-hidden="true"]')?.textContent).toBe('999+');
     expect(big.textContent).toContain(', 1,000');
+  });
+
+  it('spaces the number and label with a gap (a leading space collapses in inline-flex)', async () => {
+    const css = await readCss('src/components/ui/NavCount.module.css');
+    expect(css).toMatch(/\.pill \{[^}]*gap: var\(--space-1\);/);
   });
 });

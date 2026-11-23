@@ -38,16 +38,16 @@ export const clampPct = (n: number): number => Math.min(100, Math.max(0, Number(
 export const overRange = (range: RangeKey): string =>
   range === 'ALL' ? 'over all time' : `over ${range}`;
 
-/** "▲ 6.0% over 1Y" / "▼ 2.1% over 3Y"; null change → no headline. */
+/** "▲ 6.0% over 1Y" / "▼ 2.1% over 3Y" / "0.0% over 1Y" (no arrow); null change → no headline. */
 export function steelChange(
   changePct: number | null | undefined,
   range: RangeKey
 ): Change | undefined {
   if (changePct == null) return undefined;
-  return {
-    direction: changePct < 0 ? 'down' : 'up',
-    text: `${Math.abs(changePct).toFixed(1)}% ${overRange(range)}`,
-  };
+  const shown = Math.abs(changePct).toFixed(1);
+  const text = `${shown}% ${overRange(range)}`;
+  if (Number(shown) === 0) return { text };
+  return { direction: changePct < 0 ? 'down' : 'up', text };
 }
 
 /** Accessible name of a chart: its title, then the headline when there is one. */

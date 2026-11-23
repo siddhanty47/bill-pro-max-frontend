@@ -27,6 +27,7 @@ export function AgingCard({ aging }: { aging: Aging }) {
   return (
     <ChartCard
       title="Outstanding by age"
+      fitContent
       headline={
         <>
           <span className="mono">{formatMoney(Math.max(0, total))}</span> outstanding

@@ -11,7 +11,11 @@ function trendNote(trend: Trend) {
   return { note: change && <ChangeText change={change} />, noteTone: tone };
 }
 
-/** The KPI row; a tile is left out when its summary key is absent (the role can't read it). */
+/**
+ * The KPI row; a tile is left out when its summary key is absent (the role can't read it).
+ * Order: money (billed, collected, rent per day), the stock pair, then days to pay. On a
+ * phone money and days-to-pay tiles take a full row and the pair shares one.
+ */
 export function KpiTiles({ summary }: { summary: DashboardSummary }) {
   const { billedThisMonth, collectedThisMonth, avgDaysToPay, onRentPct, activeSites, rentPerDay } =
     summary;
@@ -19,7 +23,6 @@ export function KpiTiles({ summary }: { summary: DashboardSummary }) {
     <div className={styles.tiles}>
       {billedThisMonth && (
         <StatCard
-          className={styles.moneyTile}
           label="Billed this month"
           value={formatMoney(billedThisMonth.value)}
           {...trendNote(billedThisMonth)}
@@ -27,11 +30,23 @@ export function KpiTiles({ summary }: { summary: DashboardSummary }) {
       )}
       {collectedThisMonth && (
         <StatCard
-          className={styles.moneyTile}
           label="Collected this month"
           value={formatMoney(collectedThisMonth.value)}
           {...trendNote(collectedThisMonth)}
         />
+      )}
+      {rentPerDay !== undefined && (
+        <StatCard label="Rent per day" value={formatMoney(rentPerDay)} />
+      )}
+      {onRentPct !== undefined && (
+        <StatCard
+          className={styles.pairTile}
+          label="Stock on rent"
+          value={`${Math.round(clampPct(onRentPct))}%`}
+        />
+      )}
+      {activeSites !== undefined && (
+        <StatCard className={styles.pairTile} label="Active sites" value={fmtCount(activeSites)} />
       )}
       {avgDaysToPay !== undefined &&
         (avgDaysToPay === null ? (
@@ -39,17 +54,6 @@ export function KpiTiles({ summary }: { summary: DashboardSummary }) {
         ) : (
           <StatCard label="Avg days to get paid" value={fmtCount(Math.round(avgDaysToPay))} />
         ))}
-      {onRentPct !== undefined && (
-        <StatCard label="Stock on rent" value={`${Math.round(clampPct(onRentPct))}%`} />
-      )}
-      {activeSites !== undefined && <StatCard label="Active sites" value={fmtCount(activeSites)} />}
-      {rentPerDay !== undefined && (
-        <StatCard
-          className={styles.moneyTile}
-          label="Rent per day"
-          value={formatMoney(rentPerDay)}
-        />
-      )}
     </div>
   );
 }
