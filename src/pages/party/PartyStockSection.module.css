@@ -1,0 +1,17 @@
+/* Party stock: layout only. Card, table, legend and chart are kit components. */
+.pad {
+  padding: var(--space-5);
+}
+
+.empty {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+}
