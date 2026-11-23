@@ -25,6 +25,8 @@ export type LineChartProps = {
   tooltipFormat?: (n: number) => string;
   /** Fixed size instead of filling the wrapper (tests). */
   size?: ChartSize;
+  /** Accessible name of the chart image: title plus headline, plain text. */
+  ariaLabel: string;
 };
 
 /** A single line over time (utilization, steel index). Load via React.lazy. */
@@ -36,10 +38,11 @@ export function LineChart({
   format,
   tooltipFormat,
   size,
+  ariaLabel,
 }: LineChartProps) {
   const theme = useChartTheme();
   return (
-    <ChartFrame size={size}>
+    <ChartFrame size={size} ariaLabel={ariaLabel}>
       <RechartsLineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
         <CartesianGrid vertical={false} stroke={theme.grid} />
         <XAxis

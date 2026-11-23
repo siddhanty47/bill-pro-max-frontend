@@ -27,8 +27,12 @@ describe('BarLineChart', () => {
         bar={{ key: 'billed', label: 'Billed' }}
         line={{ key: 'collected', label: 'Collected' }}
         format={money}
+        ariaLabel="Billed vs collected: ₹600 billed"
       />
     );
+    expect(
+      screen.getByRole('img', { name: 'Billed vs collected: ₹600 billed' })
+    ).toBeInTheDocument();
     expect(container.querySelectorAll('.recharts-bar-rectangle')).toHaveLength(3);
     expect(screen.getByText('Billed')).toBeInTheDocument();
     expect(screen.getByText('Collected')).toBeInTheDocument();
@@ -53,8 +57,10 @@ describe('LineChart', () => {
         y={{ key: 'pct', label: 'Utilization' }}
         domain={[0, 100]}
         format={n => `${n}%`}
+        ariaLabel="Stock on rent %"
       />
     );
+    expect(screen.getByRole('img', { name: 'Stock on rent %' })).toBeInTheDocument();
     expect(container.querySelector('.recharts-line-curve')).not.toBeNull();
     expect(screen.getByText('23 Nov')).toBeInTheDocument();
     expect(screen.getByText('100%')).toBeInTheDocument();

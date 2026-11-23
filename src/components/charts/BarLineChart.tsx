@@ -19,6 +19,8 @@ export type BarLineChartProps = {
   tooltipFormat?: (n: number) => string;
   /** Fixed size instead of filling the wrapper (tests). */
   size?: ChartSize;
+  /** Accessible name of the chart image: title plus headline, plain text. */
+  ariaLabel: string;
 };
 
 /** Bars (e.g. billed) with a line (e.g. collected) over the same axis. Load via React.lazy. */
@@ -30,10 +32,11 @@ export function BarLineChart({
   format,
   tooltipFormat,
   size,
+  ariaLabel,
 }: BarLineChartProps) {
   const theme = useChartTheme();
   return (
-    <ChartFrame size={size}>
+    <ChartFrame size={size} ariaLabel={ariaLabel}>
       <ComposedChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
         <CartesianGrid vertical={false} stroke={theme.grid} />
         <XAxis

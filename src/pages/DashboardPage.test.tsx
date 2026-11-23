@@ -22,12 +22,14 @@ vi.mock('../components/charts/BarLineChart', () => ({
     data,
     format,
     tooltipFormat,
+    ariaLabel,
   }: {
     data: SeriesPoint[];
     format: (n: number) => string;
     tooltipFormat?: (n: number) => string;
+    ariaLabel: string;
   }) => (
-    <div data-testid="billing-chart">
+    <div data-testid="billing-chart" role="img" aria-label={ariaLabel}>
       {data
         .map(p => `${format(Number(p.billed))}|${tooltipFormat?.(Number(p.collected))}`)
         .join(',')}
@@ -39,12 +41,16 @@ vi.mock('../components/charts/LineChart', () => ({
     data,
     y,
     format,
+    ariaLabel,
   }: {
     data: SeriesPoint[];
     y: { key: string };
     format: (n: number) => string;
+    ariaLabel: string;
   }) => (
-    <div data-testid={`line-${y.key}`}>{data.map(p => format(Number(p[y.key]))).join(',')}</div>
+    <div data-testid={`line-${y.key}`} role="img" aria-label={ariaLabel}>
+      {data.map(p => format(Number(p[y.key]))).join(',')}
+    </div>
   ),
 }));
 
@@ -232,10 +238,19 @@ describe('DashboardPage', () => {
       (await screen.findByText(label)).parentElement as HTMLElement;
     const billed = await tile('Billed this month');
     expect(within(billed).getByText('₹4,20,000')).toBeInTheDocument();
-    expect(within(billed).getByText('▲ 12% vs last month')).toHaveClass('tone-positive');
+    const billedNote = within(billed)
+      .getByText(/12% vs last month/)
+      .closest('.note');
+    expect(billedNote).toHaveTextContent('▲ up 12% vs last month');
+    expect(billedNote).toHaveClass('tone-positive');
+    expect(within(billed).getByText('▲', { exact: false })).toHaveAttribute('aria-hidden', 'true');
     const collected = await tile('Collected this month');
     expect(within(collected).getByText('₹3,00,000')).toBeInTheDocument();
-    expect(within(collected).getByText('▼ 4% vs last month')).toHaveClass('tone-negative');
+    const collectedNote = within(collected)
+      .getByText(/4% vs last month/)
+      .closest('.note');
+    expect(collectedNote).toHaveTextContent('▼ down 4% vs last month');
+    expect(collectedNote).toHaveClass('tone-negative');
     expect(within(await tile('Avg days to get paid')).getByText('18')).toBeInTheDocument();
     expect(within(await tile('Stock on rent')).getByText('64%')).toBeInTheDocument();
     expect(within(await tile('Active sites')).getByText('7')).toBeInTheDocument();
@@ -251,7 +266,19 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Govt WPI · mild steel bars & rods · monthly')).toBeInTheDocument();
     expect(await screen.findByText('₹38.4L billed · ₹33.9L collected (88%)')).toBeInTheDocument();
     expect(await screen.findByText('avg 75% on rent')).toBeInTheDocument();
-    expect(await screen.findByText('▲ 6.0% over 1Y')).toBeInTheDocument();
+    expect(await screen.findByText(/6\.0% over 1Y/)).toHaveTextContent('▲ up 6.0% over 1Y');
+    // each chart is one image named by its title and headline (plain text, "up" not ▲)
+    expect(
+      await screen.findByRole('img', {
+        name: 'Billed vs collected: ₹38.4L billed · ₹33.9L collected (88%)',
+      })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'Stock on rent %: avg 75% on rent' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'Steel price index: up 6.0% over 1Y' })
+    ).toBeInTheDocument();
     const groups = screen.getAllByRole('radiogroup', { name: 'Chart range' });
     expect(groups).toHaveLength(3);
     expect(within(groups[0]).getByRole('radio', { name: '1Y' })).toHaveAttribute(
@@ -284,7 +311,9 @@ describe('DashboardPage', () => {
     await user.click(within(groups[0]).getByRole('radio', { name: '3M' }));
     await waitFor(() => expect(requests).toContain('billing:3M'));
     await user.click(within(groups[2]).getByRole('radio', { name: 'All' }));
-    expect(await screen.findByText('▲ 6.0% over all time')).toBeInTheDocument();
+    expect(await screen.findByText(/6\.0% over all time/)).toHaveTextContent(
+      '▲ up 6.0% over all time'
+    );
   });
 
   it('shows a falling steel index and no headline without a change', async () => {
@@ -298,7 +327,10 @@ describe('DashboardPage', () => {
     const { user } = renderPage();
     const groups = await screen.findAllByRole('radiogroup', { name: 'Chart range' });
     await user.click(within(groups[2]).getByRole('radio', { name: '3Y' }));
-    expect(await screen.findByText('▼ 2.1% over 3Y')).toBeInTheDocument();
+    expect(await screen.findByText(/2\.1% over 3Y/)).toHaveTextContent('▼ down 2.1% over 3Y');
+    expect(
+      screen.getByRole('img', { name: 'Steel price index: down 2.1% over 3Y' })
+    ).toBeInTheDocument();
     change = null;
     await user.click(within(groups[2]).getByRole('radio', { name: 'All' }));
     await waitFor(() => expect(screen.queryByText(/over/)).not.toBeInTheDocument());
@@ -384,7 +416,7 @@ describe('DashboardPage', () => {
     expect(screen.queryByText(/Stock on rent/)).not.toBeInTheDocument();
     expect(screen.queryByRole('list', { name: 'Stock' })).not.toBeInTheDocument();
     expect(screen.queryByRole('list', { name: 'Parties' })).not.toBeInTheDocument();
-    expect(await screen.findByText('▲ 6.0% over 1Y')).toBeInTheDocument();
+    expect(await screen.findByText(/6\.0% over 1Y/)).toBeInTheDocument();
     expect(requests.some(r => r.startsWith('utilization'))).toBe(false);
   });
 

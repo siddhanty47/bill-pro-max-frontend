@@ -1,8 +1,15 @@
 import { StatCard } from '../../components/ui';
 import { formatMoney } from '../../utils/format';
-import type { DashboardSummary } from '../../types';
-import { clampPct, fmtCount, trendNote } from './dashboardFormat';
+import type { DashboardSummary, Trend } from '../../types';
+import { clampPct, fmtCount, monthChange } from './dashboardFormat';
+import { ChangeText } from './ChangeText';
 import styles from './Dashboard.module.css';
+
+/** StatCard note + tone for a month-on-month trend. */
+function trendNote(trend: Trend) {
+  const { change, tone } = monthChange(trend);
+  return { note: change && <ChangeText change={change} />, noteTone: tone };
+}
 
 /** The KPI row; a tile is left out when its summary key is absent (the role can't read it). */
 export function KpiTiles({ summary }: { summary: DashboardSummary }) {

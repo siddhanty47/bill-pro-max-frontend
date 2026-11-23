@@ -16,6 +16,7 @@ export { Notice, type NoticeProps, type NoticeTone } from './Notice';
 export { Card, type CardProps } from './Card';
 export { StatCard, type StatCardProps } from './StatCard';
 export { ChartCard, type ChartCardProps } from './ChartCard';
+export { TrendLabel, type TrendLabelProps, type TrendDirection } from './TrendLabel';
 export {
   Meter,
   MeterLegend,

@@ -13,7 +13,7 @@ export type StatCardProps = {
   icon?: IconName;
   to?: string;
   tone?: 'default' | 'highlight';
-  /** Short secondary line under the value (text font), e.g. "▲ 12% vs last month". */
+  /** Short secondary line under the value (text font), e.g. a `TrendLabel` "▲ 12% vs last month". */
   note?: ReactNode;
   /** Colour of the note, like `valueTone`. */
   noteTone?: ValueTone;

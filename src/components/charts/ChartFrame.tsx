@@ -6,17 +6,20 @@ export type ChartSize = { width: number; height: number };
 
 /**
  * Sizes a chart to its wrapper (fixed token-based height in CSS). `size` forces fixed
- * dimensions instead, which is how tests render a chart (jsdom has no layout).
+ * dimensions instead, which is how tests render a chart (jsdom has no layout). The frame is
+ * one image to assistive tech, named by `ariaLabel` (chart title + headline, plain text).
  */
 export function ChartFrame({
   size,
+  ariaLabel,
   children,
 }: {
   size?: ChartSize;
+  ariaLabel: string;
   children: ReactElement<Partial<ChartSize>>;
 }) {
   return (
-    <div className={styles.frame}>
+    <div className={styles.frame} role="img" aria-label={ariaLabel}>
       {size ? (
         cloneElement(children, size)
       ) : (

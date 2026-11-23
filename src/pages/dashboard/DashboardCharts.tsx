@@ -4,7 +4,8 @@ import { useGetDashboardSeriesQuery } from '../../api/dashboardApi';
 import { useRangePreset } from '../../hooks/useRangePreset';
 import { formatMoney, formatMoneyCompact } from '../../utils/format';
 import type { DashboardMetric, RangeKey, SeriesPoint } from '../../types';
-import { clampPct, steelHeadline } from './dashboardFormat';
+import { changeText, chartLabel, clampPct, steelChange } from './dashboardFormat';
+import { ChangeText } from './ChangeText';
 
 // recharts stays out of the main bundle: the chart bodies load on first render.
 const BarLineChart = lazy(() => import('../../components/charts/BarLineChart'));
@@ -69,14 +70,14 @@ export function BillingChart({ businessId }: { businessId: string }) {
   const collected = points.reduce((s, p) => s + num(p, 'collected'), 0);
   const hasData = billed > 0 || collected > 0;
   const share = billed > 0 ? ` (${Math.round((collected / billed) * 100)}%)` : '';
+  const title = 'Billed vs collected';
+  const headline = hasData
+    ? `${formatMoneyCompact(billed)} billed · ${formatMoneyCompact(collected)} collected${share}`
+    : undefined;
   return (
     <LazyChartCard
-      title="Billed vs collected"
-      headline={
-        hasData
-          ? `${formatMoneyCompact(billed)} billed · ${formatMoneyCompact(collected)} collected${share}`
-          : undefined
-      }
+      title={title}
+      headline={headline}
       presets={BILLING_PRESETS}
       range={range}
       onRangeChange={setRange}
@@ -91,6 +92,7 @@ export function BillingChart({ businessId }: { businessId: string }) {
           line={{ key: 'collected', label: 'Collected' }}
           format={formatMoneyCompact}
           tooltipFormat={formatMoney}
+          ariaLabel={chartLabel(title, headline)}
         />
       )}
     </LazyChartCard>
@@ -112,10 +114,12 @@ export function UtilizationChart({ businessId }: { businessId: string }) {
   const avg = stocked.length
     ? Math.round(stocked.reduce((s, p) => s + p.pct, 0) / stocked.length)
     : 0;
+  const title = 'Stock on rent %';
+  const headline = hasData ? `avg ${avg}% on rent` : undefined;
   return (
     <LazyChartCard
-      title="Stock on rent %"
-      headline={hasData ? `avg ${avg}% on rent` : undefined}
+      title={title}
+      headline={headline}
       presets={UTILIZATION_PRESETS}
       range={range}
       onRangeChange={setRange}
@@ -129,6 +133,7 @@ export function UtilizationChart({ businessId }: { businessId: string }) {
           y={{ key: 'pct', label: 'On rent' }}
           domain={[0, 100]}
           format={pctLabel}
+          ariaLabel={chartLabel(title, headline)}
         />
       )}
     </LazyChartCard>
@@ -144,11 +149,13 @@ export function SteelChart({ businessId }: { businessId: string }) {
   );
   const points = series?.points ?? [];
   const hasData = !error && points.length > 0;
+  const title = 'Steel price index';
+  const change = hasData ? steelChange(series?.changePct, range) : undefined;
   return (
     <LazyChartCard
-      title="Steel price index"
+      title={title}
       subtitle="Govt WPI · mild steel bars & rods · monthly"
-      headline={hasData ? steelHeadline(series?.changePct, range) : undefined}
+      headline={change && <ChangeText change={change} />}
       presets={STEEL_PRESETS}
       range={range}
       onRangeChange={setRange}
@@ -161,6 +168,7 @@ export function SteelChart({ businessId }: { businessId: string }) {
           bucket={series.bucket}
           y={{ key: 'index', label: 'Index' }}
           format={indexLabel}
+          ariaLabel={chartLabel(title, change && changeText(change))}
         />
       )}
     </LazyChartCard>
