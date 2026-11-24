@@ -2,7 +2,7 @@
  * Party API endpoints
  */
 import { baseApi } from './baseApi';
-import { withGate, unwrapGated } from './changeGate';
+import { withGate, unwrapGated, gatedTags } from './changeGate';
 import { fetchAllPages } from './fetchAllPages';
 import type {
   Party,
@@ -109,13 +109,13 @@ export const partyApi = baseApi.injectEndpoints({
         ...withGate(gate, data),
       }),
       transformResponse: unwrapGated<Party>,
-      invalidatesTags: (_result, _error, { partyId }) => [
+      invalidatesTags: gatedTags(({ partyId }) => [
         { type: 'Party', id: partyId },
         'Party',
         'Bill',
         'SearchIndex',
         'Dashboard',
-      ],
+      ]),
     }),
 
     generatePartyCode: builder.query<string, { businessId: string; name: string }>({

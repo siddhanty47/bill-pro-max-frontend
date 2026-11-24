@@ -193,6 +193,65 @@ describe('bill integrity API', () => {
   });
 });
 
+describe('gated mutation invalidation', () => {
+  it('a dry run leaves a subscribed bill alone, a real write and an agreement edit refetch it', async () => {
+    const store = setupStore();
+    let gets = 0;
+    server.use(
+      http.get(apiUrl('/businesses/b1/bills/bill1'), () => {
+        gets += 1;
+        return ok({ _id: 'bill1' });
+      }),
+      http.patch(apiUrl('/businesses/b1/challans/c1/date'), ({ request }) =>
+        new URL(request.url).searchParams.get('dryRun')
+          ? ok({ dryRun: true, report })
+          : ok({ _id: 'c1' })
+      ),
+      http.patch(apiUrl('/businesses/b1/agreements/a1'), () => ok({ _id: 'a1' })),
+      http.post(apiUrl('/businesses/b1/agreements/a1/rates'), () => ok({ _id: 'a1' })),
+      http.patch(apiUrl('/businesses/b1/agreements/a1/rates/i1'), () => ok({ _id: 'a1' }))
+    );
+    const sub = store.dispatch(
+      billApi.endpoints.getBill.initiate({ businessId: 'b1', billId: 'bill1' })
+    );
+    await sub;
+    const settle = () => new Promise(r => setTimeout(r, 60));
+    const date = { businessId: 'b1', challanId: 'c1', date: '2026-01-05' };
+
+    await store.dispatch(
+      challanApi.endpoints.updateChallanDate.initiate({ ...date, dryRun: true })
+    );
+    await settle();
+    expect(gets).toBe(1);
+
+    await store.dispatch(challanApi.endpoints.updateChallanDate.initiate(date));
+    await settle();
+    expect(gets).toBe(2);
+
+    const ag = { businessId: 'b1', agreementId: 'a1' };
+    await store.dispatch(
+      agreementApi.endpoints.updateAgreement.initiate({ ...ag, data: {} as never })
+    );
+    await settle();
+    expect(gets).toBe(3);
+    await store.dispatch(
+      agreementApi.endpoints.addAgreementRate.initiate({ ...ag, data: {} as never })
+    );
+    await settle();
+    expect(gets).toBe(4);
+    await store.dispatch(
+      agreementApi.endpoints.updateAgreementRate.initiate({
+        ...ag,
+        itemId: 'i1',
+        data: {} as never,
+      })
+    );
+    await settle();
+    expect(gets).toBe(5);
+    sub.unsubscribe();
+  });
+});
+
 describe('getApiError', () => {
   it('reads code and details from a backend error response', async () => {
     const store = setupStore();

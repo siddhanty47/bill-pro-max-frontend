@@ -3,7 +3,7 @@
  */
 import { baseApi } from './baseApi';
 import { fetchAllPages } from './fetchAllPages';
-import { withGate, unwrapGated } from './changeGate';
+import { withGate, unwrapGated, gatedTags } from './changeGate';
 import { listParams, toPagedList } from './listPage';
 import type {
   Challan,
@@ -63,14 +63,14 @@ export const challanApi = baseApi.injectEndpoints({
         ...withGate(gate, { confirmedBy }),
       }),
       transformResponse: unwrapGated<Challan>,
-      invalidatesTags: (_result, _error, { challanId }) => [
+      invalidatesTags: gatedTags(({ challanId }) => [
         { type: 'Challan', id: challanId },
         'Challan',
         'Bill',
         'Inventory',
         'AuditLog',
         'Dashboard',
-      ],
+      ]),
     }),
 
     updateChallanItem: builder.mutation<
@@ -83,13 +83,13 @@ export const challanApi = baseApi.injectEndpoints({
         ...withGate(gate, { quantity }),
       }),
       transformResponse: unwrapGated<Challan>,
-      invalidatesTags: (_result, _error, { challanId }) => [
+      invalidatesTags: gatedTags(({ challanId }) => [
         { type: 'Challan', id: challanId },
         'Challan',
         'Bill',
         'AuditLog',
         'Dashboard',
-      ],
+      ]),
     }),
 
     updateChallanTransportation: builder.mutation<
@@ -112,13 +112,13 @@ export const challanApi = baseApi.injectEndpoints({
         ...withGate(gate, data),
       }),
       transformResponse: unwrapGated<Challan>,
-      invalidatesTags: (_result, _error, { challanId }) => [
+      invalidatesTags: gatedTags(({ challanId }) => [
         { type: 'Challan', id: challanId },
         'Challan',
         'Bill',
         'AuditLog',
         'Dashboard',
-      ],
+      ]),
     }),
 
     getNextChallanNumber: builder.query<
@@ -157,13 +157,13 @@ export const challanApi = baseApi.injectEndpoints({
         ...withGate(gate, data),
       }),
       transformResponse: unwrapGated<Challan>,
-      invalidatesTags: (_result, _error, { challanId }) => [
+      invalidatesTags: gatedTags(({ challanId }) => [
         { type: 'Challan', id: challanId },
         'Challan',
         'Bill',
         'AuditLog',
         'Dashboard',
-      ],
+      ]),
     }),
 
     deleteChallanItem: builder.mutation<
@@ -176,13 +176,13 @@ export const challanApi = baseApi.injectEndpoints({
         ...withGate(gate),
       }),
       transformResponse: unwrapGated<Challan>,
-      invalidatesTags: (_result, _error, { challanId }) => [
+      invalidatesTags: gatedTags(({ challanId }) => [
         { type: 'Challan', id: challanId },
         'Challan',
         'Bill',
         'AuditLog',
         'Dashboard',
-      ],
+      ]),
     }),
 
     updateChallanDamagedItems: builder.mutation<
@@ -195,12 +195,12 @@ export const challanApi = baseApi.injectEndpoints({
         ...withGate(gate, { damagedItems }),
       }),
       transformResponse: unwrapGated<Challan>,
-      invalidatesTags: (_result, _error, { challanId }) => [
+      invalidatesTags: gatedTags(({ challanId }) => [
         { type: 'Challan', id: challanId },
         'Challan',
         'Bill',
         'Dashboard',
-      ],
+      ]),
     }),
 
     updateChallanDate: builder.mutation<
@@ -213,13 +213,13 @@ export const challanApi = baseApi.injectEndpoints({
         ...withGate(gate, { date }),
       }),
       transformResponse: unwrapGated<Challan>,
-      invalidatesTags: (_result, _error, { challanId }) => [
+      invalidatesTags: gatedTags(({ challanId }) => [
         { type: 'Challan', id: challanId },
         'Challan',
         'Bill',
         'AuditLog',
         'Dashboard',
-      ],
+      ]),
     }),
 
     /** Every challan of a party (all sites and agreements). */

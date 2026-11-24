@@ -2,7 +2,7 @@
  * Agreement API endpoints
  */
 import { baseApi } from './baseApi';
-import { withGate, unwrapGated } from './changeGate';
+import { withGate, unwrapGated, gatedTags } from './changeGate';
 import type {
   AgreementWithParty,
   UpdateAgreementInput,
@@ -48,14 +48,15 @@ export const agreementApi = baseApi.injectEndpoints({
         ...withGate(gate, data),
       }),
       transformResponse: unwrapGated<AgreementWithParty>,
-      invalidatesTags: (_result, _error, { agreementId }) => [
+      invalidatesTags: gatedTags(({ agreementId }) => [
         { type: 'Agreement', id: agreementId },
         'Agreement',
         'Party',
+        'Bill',
         'AuditLog',
         'SearchIndex',
         'Dashboard',
-      ],
+      ]),
     }),
 
     /**
@@ -75,7 +76,7 @@ export const agreementApi = baseApi.injectEndpoints({
         previous: AgreementWithParty;
         agreement: AgreementWithParty;
       }>,
-      invalidatesTags: (_result, _error, { agreementId }) => [
+      invalidatesTags: gatedTags(({ agreementId }) => [
         { type: 'Agreement', id: agreementId },
         'Agreement',
         'Party',
@@ -83,7 +84,7 @@ export const agreementApi = baseApi.injectEndpoints({
         'AuditLog',
         'SearchIndex',
         'Dashboard',
-      ],
+      ]),
     }),
 
     /**
@@ -114,13 +115,14 @@ export const agreementApi = baseApi.injectEndpoints({
         ...withGate(gate, data),
       }),
       transformResponse: unwrapGated<AgreementWithParty>,
-      invalidatesTags: (_result, _error, { agreementId }) => [
+      invalidatesTags: gatedTags(({ agreementId }) => [
         { type: 'Agreement', id: agreementId },
         { type: 'Agreement', id: `${agreementId}-rates` },
         'Agreement',
+        'Bill',
         'AuditLog',
         'Dashboard',
-      ],
+      ]),
     }),
 
     /**
@@ -141,13 +143,14 @@ export const agreementApi = baseApi.injectEndpoints({
         ...withGate(gate, data),
       }),
       transformResponse: unwrapGated<AgreementWithParty>,
-      invalidatesTags: (_result, _error, { agreementId }) => [
+      invalidatesTags: gatedTags(({ agreementId }) => [
         { type: 'Agreement', id: agreementId },
         { type: 'Agreement', id: `${agreementId}-rates` },
         'Agreement',
+        'Bill',
         'AuditLog',
         'Dashboard',
-      ],
+      ]),
     }),
   }),
 });
