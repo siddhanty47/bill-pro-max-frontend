@@ -131,6 +131,16 @@ Defined in `src/App.tsx`.
 | `useRangePreset` | `src/hooks/useRangePreset.ts` | Selected chart range preset, remembered per chart id in localStorage |
 | `usePlatform` | `src/hooks/usePlatform.ts` | OS detection (macOS vs others) |
 
+## Bill Integrity
+
+- Issued bills (status not `draft`/`cancelled`) are frozen in the UI: no delete / regenerate / refresh.
+- Drafts show "Out of date" (from `bill.drift`) with Refresh (`useRefreshBillMutation`); issued bills show "Pending adjustment" (`bill.pendingAdjustment`); `negativeStock` renders a notice (`components/BillIntegrity.tsx`: `BillIntegrityNotices`, `NegativeStockList`).
+- Issuing goes through `useBillIssueGate` (`hooks/useBillIssueGate.tsx`): blocks out-of-date drafts, confirms negative stock and retries with `acknowledgeNegative`.
+- Challan/agreement mutations the backend gates must be called through `useChangeGate` (`hooks/useChangeGate.tsx`): dry-run preview -> `ChangeImpactDialog` (`components/billing/`) -> reason / `confirmNegative`. Body/params built by `withGate` in `api/changeGate.ts`.
+- Gated mutations use `gatedTags` for `invalidatesTags` so dry runs invalidate nothing.
+- Read error codes with `getApiError` / `hasApiErrorCode` (`src/utils/apiError.ts`), never by string-matching messages.
+- Rule: a new gated backend mutation needs its frontend call site wrapped in `useChangeGate` (and its endpoint using `withGate` + `gatedTags`).
+
 ## Adding a New Entity
 
 1. Add TypeScript types to `src/types/index.ts`
