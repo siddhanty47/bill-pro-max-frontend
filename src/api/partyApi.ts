@@ -2,6 +2,7 @@
  * Party API endpoints
  */
 import { baseApi } from './baseApi';
+import { withGate, unwrapGated } from './changeGate';
 import { fetchAllPages } from './fetchAllPages';
 import type {
   Party,
@@ -13,6 +14,8 @@ import type {
   ApiResponse,
   OutstandingSummary,
   PartyStockRow,
+  GateArgs,
+  DryRunResult,
 } from '../types';
 
 export const partyApi = baseApi.injectEndpoints({
@@ -97,18 +100,19 @@ export const partyApi = baseApi.injectEndpoints({
     }),
 
     createAgreement: builder.mutation<
-      Party,
-      { businessId: string; partyId: string; data: CreateAgreementInput }
+      Party | DryRunResult,
+      { businessId: string; partyId: string; data: CreateAgreementInput } & GateArgs
     >({
-      query: ({ businessId, partyId, data }) => ({
+      query: ({ businessId, partyId, data, ...gate }) => ({
         url: `/businesses/${businessId}/parties/${partyId}/agreements`,
         method: 'POST',
-        body: data,
+        ...withGate(gate, data),
       }),
-      transformResponse: (response: ApiResponse<Party>) => response.data,
+      transformResponse: unwrapGated<Party>,
       invalidatesTags: (_result, _error, { partyId }) => [
         { type: 'Party', id: partyId },
         'Party',
+        'Bill',
         'SearchIndex',
         'Dashboard',
       ],

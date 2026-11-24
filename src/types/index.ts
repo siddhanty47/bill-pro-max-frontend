@@ -626,9 +626,107 @@ export interface Bill {
   damageItems?: DamageBillItem[];
   damageCharges?: number;
   transportationBreakup?: TransportationBreakupItem[];
-  isStale?: boolean;
+  /** Hash of the inputs the bill was priced from */
+  inputHash?: string;
+  /** Pricing rules version the bill was priced with */
+  calcVersion?: number;
+  /** When the bill left draft */
+  issuedAt?: string;
+  /** Current data prices differently from this bill (a draft with drift is out of date) */
+  drift?: BillDrift | null;
+  /** Adjustment owed on a later bill because this issued bill drifted */
+  pendingAdjustment?: BillPendingAdjustment | null;
+  /** Spans where stock was negative when the bill was generated */
+  negativeStock?: NegativeSpan[];
   createdAt: string;
   updatedAt: string;
+}
+
+/** Money difference between a bill and what current data would price it at */
+export interface PriceDelta {
+  total: number;
+  subtotal: number;
+  taxAmount: number;
+  items: Array<{ itemId: string; itemName: string; amount: number }>;
+  transport: number;
+  damage: number;
+}
+
+/** A challan or agreement change that caused a bill's drift */
+export interface BillChangeCause {
+  /** 'system': raised by a migration or check, cleared only by a refresh */
+  kind: 'challan' | 'agreement' | 'system';
+  id: string;
+  label: string;
+  reason?: string;
+  at: string;
+}
+
+export interface BillDrift {
+  delta: PriceDelta;
+  detectedAt: string;
+  causes: BillChangeCause[];
+}
+
+export interface BillPendingAdjustment extends BillDrift {
+  amount: number;
+}
+
+/** A run of days where an item's stock was below zero */
+export interface NegativeSpan {
+  itemId: string;
+  itemName: string;
+  from: string;
+  to: string;
+  /** Lowest running quantity within the span */
+  minQty: number;
+}
+
+/** Drafts that drifted and issued bills needing an adjustment, after a change */
+export interface ImpactReport {
+  drafts: Array<{ billId: string; billNumber: string; delta: number }>;
+  issued: Array<{ billId: string; billNumber: string; amount: number }>;
+}
+
+export interface GateAffectedBill {
+  billId: string;
+  billNumber: string;
+  status: Bill['status'];
+  issued: boolean;
+}
+
+export interface GateNegativeSpan {
+  itemId: string;
+  itemName: string;
+  from: string;
+  minQty: number;
+  firstCause?: string;
+}
+
+/** What a challan / agreement change would touch (from `?dryRun=true`) */
+export interface GateReport {
+  affected: GateAffectedBill[];
+  negative: GateNegativeSpan[];
+  /** An issued bill is touched, or stock goes newly / further below zero */
+  requiresReason: boolean;
+  /** 'role' when the caller may not change a billed month at all */
+  blocked: 'role' | null;
+}
+
+/** Response of a gated mutation sent with `?dryRun=true`: nothing was written */
+export interface DryRunResult {
+  dryRun: true;
+  report: GateReport;
+}
+
+/** Optional args on challan / agreement mutations that can touch billed months */
+export interface GateArgs {
+  /** Why a billed month or negative stock is being changed */
+  reason?: string;
+  /** The caller saw the negative stock and wants to save anyway */
+  confirmNegative?: boolean;
+  /** Report what would be touched and write nothing */
+  dryRun?: boolean;
 }
 
 export interface GenerateBillInput {

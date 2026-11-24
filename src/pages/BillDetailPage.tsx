@@ -149,7 +149,6 @@ export function BillDetailPage() {
       await deleteBill({
         businessId: currentBusinessId,
         billId: bill._id,
-        force: true,
       }).unwrap();
 
       await generateBill({
@@ -427,7 +426,7 @@ export function BillDetailPage() {
     >
       {bill && (
         <>
-          {bill.isStale && (
+          {bill.drift != null && (
             <Notice tone="warning" title="Stale bill">
               <span className={styles.stale}>
                 Underlying challan data has changed since this bill was generated.

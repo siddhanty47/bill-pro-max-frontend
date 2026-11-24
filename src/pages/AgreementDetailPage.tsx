@@ -48,6 +48,7 @@ import type {
 } from '../types';
 import { NegativeStockNotice } from '../components/stock/NegativeStockNotice';
 import { stockTone } from '../utils/stock';
+import { isDryRunResult } from '../api/changeGate';
 
 /** Status options matching EditAgreementForm */
 const STATUS_OPTIONS = [
@@ -137,13 +138,14 @@ export function AgreementDetailPage() {
     async (data: ChangeAgreementRatesInput) => {
       setChangeRatesError(undefined);
       try {
-        const { agreement: next } = await changeRates({
+        const result = await changeRates({
           businessId: currentBusinessId!,
           agreementId: agreementId!,
           data,
         }).unwrap();
+        if (isDryRunResult(result)) return;
         setChangeRatesOpen(false);
-        navigate(`/agreements/${next.agreementId}`);
+        navigate(`/agreements/${result.agreement.agreementId}`);
       } catch (err) {
         setChangeRatesError(getErrorMessage(err));
       }

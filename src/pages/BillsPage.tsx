@@ -186,7 +186,6 @@ export function BillsPage() {
       await deleteBill({
         businessId: currentBusinessId!,
         billId: bill._id,
-        force: !isDraftOrCancelled,
       }).unwrap();
     } catch (err) {
       alert(getErrorMessage(err));
@@ -204,7 +203,7 @@ export function BillsPage() {
   const statusCell = (bill: Bill) => (
     <span className={styles.status}>
       <StatusChip status={bill.status} />
-      {bill.isStale && (
+      {bill.drift != null && (
         <StatusChip status="stale" tone="warning" title="Stale — underlying challan data changed">
           Stale
         </StatusChip>

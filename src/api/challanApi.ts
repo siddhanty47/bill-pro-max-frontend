@@ -3,6 +3,7 @@
  */
 import { baseApi } from './baseApi';
 import { fetchAllPages } from './fetchAllPages';
+import { withGate, unwrapGated } from './changeGate';
 import { listParams, toPagedList } from './listPage';
 import type {
   Challan,
@@ -10,6 +11,8 @@ import type {
   DamagedItem,
   ItemWithParty,
   ExtractedChallanData,
+  GateArgs,
+  DryRunResult,
   ApiResponse,
   PaginatedResponse,
   PagedList,
@@ -51,18 +54,19 @@ export const challanApi = baseApi.injectEndpoints({
     }),
 
     confirmChallan: builder.mutation<
-      Challan,
-      { businessId: string; challanId: string; confirmedBy: string }
+      Challan | DryRunResult,
+      { businessId: string; challanId: string; confirmedBy: string } & GateArgs
     >({
-      query: ({ businessId, challanId, confirmedBy }) => ({
+      query: ({ businessId, challanId, confirmedBy, ...gate }) => ({
         url: `/businesses/${businessId}/challans/${challanId}/confirm`,
         method: 'POST',
-        body: { confirmedBy },
+        ...withGate(gate, { confirmedBy }),
       }),
-      transformResponse: (response: ApiResponse<Challan>) => response.data,
+      transformResponse: unwrapGated<Challan>,
       invalidatesTags: (_result, _error, { challanId }) => [
         { type: 'Challan', id: challanId },
         'Challan',
+        'Bill',
         'Inventory',
         'AuditLog',
         'Dashboard',
@@ -70,15 +74,15 @@ export const challanApi = baseApi.injectEndpoints({
     }),
 
     updateChallanItem: builder.mutation<
-      Challan,
-      { businessId: string; challanId: string; itemId: string; quantity: number }
+      Challan | DryRunResult,
+      { businessId: string; challanId: string; itemId: string; quantity: number } & GateArgs
     >({
-      query: ({ businessId, challanId, itemId, quantity }) => ({
+      query: ({ businessId, challanId, itemId, quantity, ...gate }) => ({
         url: `/businesses/${businessId}/challans/${challanId}/items/${itemId}`,
         method: 'PATCH',
-        body: { quantity },
+        ...withGate(gate, { quantity }),
       }),
-      transformResponse: (response: ApiResponse<Challan>) => response.data,
+      transformResponse: unwrapGated<Challan>,
       invalidatesTags: (_result, _error, { challanId }) => [
         { type: 'Challan', id: challanId },
         'Challan',
@@ -89,7 +93,7 @@ export const challanApi = baseApi.injectEndpoints({
     }),
 
     updateChallanTransportation: builder.mutation<
-      Challan,
+      Challan | DryRunResult,
       {
         businessId: string;
         challanId: string;
@@ -100,14 +104,14 @@ export const challanApi = baseApi.injectEndpoints({
           loadingCharge?: number;
           unloadingCharge?: number;
         };
-      }
+      } & GateArgs
     >({
-      query: ({ businessId, challanId, data }) => ({
+      query: ({ businessId, challanId, data, ...gate }) => ({
         url: `/businesses/${businessId}/challans/${challanId}/transportation`,
         method: 'PATCH',
-        body: data,
+        ...withGate(gate, data),
       }),
-      transformResponse: (response: ApiResponse<Challan>) => response.data,
+      transformResponse: unwrapGated<Challan>,
       invalidatesTags: (_result, _error, { challanId }) => [
         { type: 'Challan', id: challanId },
         'Challan',
@@ -140,19 +144,19 @@ export const challanApi = baseApi.injectEndpoints({
     }),
 
     addChallanItem: builder.mutation<
-      Challan,
+      Challan | DryRunResult,
       {
         businessId: string;
         challanId: string;
         data: { itemId: string; itemName: string; quantity: number };
-      }
+      } & GateArgs
     >({
-      query: ({ businessId, challanId, data }) => ({
+      query: ({ businessId, challanId, data, ...gate }) => ({
         url: `/businesses/${businessId}/challans/${challanId}/items`,
         method: 'POST',
-        body: data,
+        ...withGate(gate, data),
       }),
-      transformResponse: (response: ApiResponse<Challan>) => response.data,
+      transformResponse: unwrapGated<Challan>,
       invalidatesTags: (_result, _error, { challanId }) => [
         { type: 'Challan', id: challanId },
         'Challan',
@@ -163,14 +167,15 @@ export const challanApi = baseApi.injectEndpoints({
     }),
 
     deleteChallanItem: builder.mutation<
-      Challan,
-      { businessId: string; challanId: string; itemId: string }
+      Challan | DryRunResult,
+      { businessId: string; challanId: string; itemId: string } & GateArgs
     >({
-      query: ({ businessId, challanId, itemId }) => ({
+      query: ({ businessId, challanId, itemId, ...gate }) => ({
         url: `/businesses/${businessId}/challans/${challanId}/items/${itemId}`,
         method: 'DELETE',
+        ...withGate(gate),
       }),
-      transformResponse: (response: ApiResponse<Challan>) => response.data,
+      transformResponse: unwrapGated<Challan>,
       invalidatesTags: (_result, _error, { challanId }) => [
         { type: 'Challan', id: challanId },
         'Challan',
@@ -181,15 +186,15 @@ export const challanApi = baseApi.injectEndpoints({
     }),
 
     updateChallanDamagedItems: builder.mutation<
-      Challan,
-      { businessId: string; challanId: string; damagedItems: DamagedItem[] }
+      Challan | DryRunResult,
+      { businessId: string; challanId: string; damagedItems: DamagedItem[] } & GateArgs
     >({
-      query: ({ businessId, challanId, damagedItems }) => ({
+      query: ({ businessId, challanId, damagedItems, ...gate }) => ({
         url: `/businesses/${businessId}/challans/${challanId}/damaged-items`,
         method: 'PUT',
-        body: { damagedItems },
+        ...withGate(gate, { damagedItems }),
       }),
-      transformResponse: (response: ApiResponse<Challan>) => response.data,
+      transformResponse: unwrapGated<Challan>,
       invalidatesTags: (_result, _error, { challanId }) => [
         { type: 'Challan', id: challanId },
         'Challan',
@@ -199,15 +204,15 @@ export const challanApi = baseApi.injectEndpoints({
     }),
 
     updateChallanDate: builder.mutation<
-      Challan,
-      { businessId: string; challanId: string; date: string }
+      Challan | DryRunResult,
+      { businessId: string; challanId: string; date: string } & GateArgs
     >({
-      query: ({ businessId, challanId, date }) => ({
+      query: ({ businessId, challanId, date, ...gate }) => ({
         url: `/businesses/${businessId}/challans/${challanId}/date`,
         method: 'PATCH',
-        body: { date },
+        ...withGate(gate, { date }),
       }),
-      transformResponse: (response: ApiResponse<Challan>) => response.data,
+      transformResponse: unwrapGated<Challan>,
       invalidatesTags: (_result, _error, { challanId }) => [
         { type: 'Challan', id: challanId },
         'Challan',

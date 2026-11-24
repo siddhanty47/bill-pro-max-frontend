@@ -2,6 +2,7 @@
  * Agreement API endpoints
  */
 import { baseApi } from './baseApi';
+import { withGate, unwrapGated } from './changeGate';
 import type {
   AgreementWithParty,
   UpdateAgreementInput,
@@ -10,6 +11,8 @@ import type {
   AddAgreementRateInput,
   UpdateAgreementRateInput,
   ChangeAgreementRatesInput,
+  GateArgs,
+  DryRunResult,
 } from '../types';
 
 export const agreementApi = baseApi.injectEndpoints({
@@ -36,15 +39,15 @@ export const agreementApi = baseApi.injectEndpoints({
      * Update an agreement
      */
     updateAgreement: builder.mutation<
-      AgreementWithParty,
-      { businessId: string; agreementId: string; data: UpdateAgreementInput }
+      AgreementWithParty | DryRunResult,
+      { businessId: string; agreementId: string; data: UpdateAgreementInput } & GateArgs
     >({
-      query: ({ businessId, agreementId, data }) => ({
+      query: ({ businessId, agreementId, data, ...gate }) => ({
         url: `/businesses/${businessId}/agreements/${agreementId}`,
         method: 'PATCH',
-        body: data,
+        ...withGate(gate, data),
       }),
-      transformResponse: (response: ApiResponse<AgreementWithParty>) => response.data,
+      transformResponse: unwrapGated<AgreementWithParty>,
       invalidatesTags: (_result, _error, { agreementId }) => [
         { type: 'Agreement', id: agreementId },
         'Agreement',
@@ -60,17 +63,18 @@ export const agreementApi = baseApi.injectEndpoints({
      * for the same site. Returns both.
      */
     changeAgreementRates: builder.mutation<
-      { previous: AgreementWithParty; agreement: AgreementWithParty },
-      { businessId: string; agreementId: string; data: ChangeAgreementRatesInput }
+      { previous: AgreementWithParty; agreement: AgreementWithParty } | DryRunResult,
+      { businessId: string; agreementId: string; data: ChangeAgreementRatesInput } & GateArgs
     >({
-      query: ({ businessId, agreementId, data }) => ({
+      query: ({ businessId, agreementId, data, ...gate }) => ({
         url: `/businesses/${businessId}/agreements/${agreementId}/change-rates`,
         method: 'POST',
-        body: data,
+        ...withGate(gate, data),
       }),
-      transformResponse: (
-        response: ApiResponse<{ previous: AgreementWithParty; agreement: AgreementWithParty }>
-      ) => response.data,
+      transformResponse: unwrapGated<{
+        previous: AgreementWithParty;
+        agreement: AgreementWithParty;
+      }>,
       invalidatesTags: (_result, _error, { agreementId }) => [
         { type: 'Agreement', id: agreementId },
         'Agreement',
@@ -101,15 +105,15 @@ export const agreementApi = baseApi.injectEndpoints({
      * Add an item/rate to an agreement
      */
     addAgreementRate: builder.mutation<
-      AgreementWithParty,
-      { businessId: string; agreementId: string; data: AddAgreementRateInput }
+      AgreementWithParty | DryRunResult,
+      { businessId: string; agreementId: string; data: AddAgreementRateInput } & GateArgs
     >({
-      query: ({ businessId, agreementId, data }) => ({
+      query: ({ businessId, agreementId, data, ...gate }) => ({
         url: `/businesses/${businessId}/agreements/${agreementId}/rates`,
         method: 'POST',
-        body: data,
+        ...withGate(gate, data),
       }),
-      transformResponse: (response: ApiResponse<AgreementWithParty>) => response.data,
+      transformResponse: unwrapGated<AgreementWithParty>,
       invalidatesTags: (_result, _error, { agreementId }) => [
         { type: 'Agreement', id: agreementId },
         { type: 'Agreement', id: `${agreementId}-rates` },
@@ -123,15 +127,20 @@ export const agreementApi = baseApi.injectEndpoints({
      * Update a rate in an agreement
      */
     updateAgreementRate: builder.mutation<
-      AgreementWithParty,
-      { businessId: string; agreementId: string; itemId: string; data: UpdateAgreementRateInput }
+      AgreementWithParty | DryRunResult,
+      {
+        businessId: string;
+        agreementId: string;
+        itemId: string;
+        data: UpdateAgreementRateInput;
+      } & GateArgs
     >({
-      query: ({ businessId, agreementId, itemId, data }) => ({
+      query: ({ businessId, agreementId, itemId, data, ...gate }) => ({
         url: `/businesses/${businessId}/agreements/${agreementId}/rates/${itemId}`,
         method: 'PATCH',
-        body: data,
+        ...withGate(gate, data),
       }),
-      transformResponse: (response: ApiResponse<AgreementWithParty>) => response.data,
+      transformResponse: unwrapGated<AgreementWithParty>,
       invalidatesTags: (_result, _error, { agreementId }) => [
         { type: 'Agreement', id: agreementId },
         { type: 'Agreement', id: `${agreementId}-rates` },

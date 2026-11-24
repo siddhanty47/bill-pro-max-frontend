@@ -458,8 +458,14 @@ describe('BillDetailPage', () => {
     await waitFor(() => expect(alert).toHaveBeenCalledWith(expect.any(String)));
   });
 
-  it('regenerates a stale bill: force-delete, generate with the same inputs, back to the list', async () => {
-    useApi(makeBill({ isStale: true, taxRate: 18, notes: 'Pay by cheque' }));
+  it('regenerates a stale bill: delete, generate with the same inputs, back to the list', async () => {
+    useApi(
+      makeBill({
+        drift: { delta: {} as never, detectedAt: '2026-01-01', causes: [] },
+        taxRate: 18,
+        notes: 'Pay by cheque',
+      })
+    );
     let deleteUrl = '';
     server.use(
       http.delete(apiUrl(BASE), ({ request }) => {
@@ -473,7 +479,7 @@ describe('BillDetailPage', () => {
     expect(await screen.findByText('Stale bill')).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Regenerate bill' }));
     await waitFor(() => expect(bodies).toHaveLength(1));
-    expect(deleteUrl).toContain('force=true');
+    expect(deleteUrl).not.toContain('force');
     expect(bodies[0]).toMatchObject({
       billDate: '2025-11-01T00:00:00.000Z',
       partyId: 'p1',
@@ -489,7 +495,7 @@ describe('BillDetailPage', () => {
   });
 
   it('keeps the stale banner usable when regeneration fails', async () => {
-    useApi(makeBill({ isStale: true }));
+    useApi(makeBill({ drift: { delta: {} as never, detectedAt: '2026-01-01', causes: [] } }));
     server.use(
       http.delete(apiUrl(BASE), () =>
         HttpResponse.json({ success: false, error: { message: 'No' } }, { status: 500 })

@@ -31,7 +31,7 @@ const defaults = [
     totalAmount: 99.5,
     amountPaid: 0,
     status: 'sent',
-    isStale: true,
+    drift: { delta: {} as never, detectedAt: '2026-01-01', causes: [] },
   }),
   bill({ _id: 'b3', billNumber: 'B-2026-27-0003', status: 'paid' }),
   bill({ _id: 'b4', billNumber: 'B-2026-27-0004', status: 'cancelled' }),
@@ -233,7 +233,7 @@ describe('BillsPage', () => {
     await waitFor(() => expect(body).toEqual({ status: 'paid' }));
   });
 
-  it('deletes a draft after confirming, and force-deletes others', async () => {
+  it('deletes a draft after confirming, and deletes others without force (replaced in Task 12)', async () => {
     useApi();
     const urls: string[] = [];
     server.use(
@@ -254,7 +254,7 @@ describe('BillsPage', () => {
     expect(confirmSpy).toHaveBeenLastCalledWith(
       'Bill "B-2026-27-0002" has status "sent". Force delete anyway? This cannot be undone.'
     );
-    await waitFor(() => expect(urls).toEqual(['', '?force=true']));
+    await waitFor(() => expect(urls).toEqual(['', '']));
   });
 
   it('does not delete when declined', async () => {
