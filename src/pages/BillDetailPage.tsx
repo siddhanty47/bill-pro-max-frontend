@@ -43,11 +43,11 @@ import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { BillIntegrityNotices } from '../components/BillIntegrity';
 import { useBillIssueGate } from '../hooks/useBillIssueGate';
 import { formatDate, formatMoney } from '../utils/format';
+import { canChangeStatus } from '../utils/billStatus';
 import type { Bill, BillItem, DamageBillItem, Payment, TransportationBreakupItem } from '../types';
 
-/** Bill statuses a bill can be moved to from the header menu */
+/** Bill statuses a bill can be moved to from the header menu (filtered by canChangeStatus) */
 const BILL_STATUSES: { value: Bill['status']; label: string }[] = [
-  { value: 'draft', label: 'Draft' },
   { value: 'sent', label: 'Sent' },
   { value: 'paid', label: 'Paid' },
   { value: 'partial', label: 'Partial' },
@@ -330,8 +330,12 @@ export function BillDetailPage() {
 
   const status = bill?.status;
   const canEmail = status !== undefined && status !== 'cancelled' && status !== 'paid';
+  const statusOptions = bill
+    ? BILL_STATUSES.filter(o => canChangeStatus(bill.status, o.value))
+    : [];
   const primary: 'send' | 'paid' | 'download' =
     status === 'draft' ? 'send' : status === 'sent' || status === 'partial' ? 'paid' : 'download';
+  const menuEmail = canEmail && primary !== 'send';
   const emailButton = (variant: 'primary' | 'secondary') => (
     <Button variant={variant} onClick={handleSendEmail} loading={isSending}>
       Send email
@@ -373,17 +377,17 @@ export function BillDetailPage() {
               </Button>
             )}
             {primary === 'download' ? downloadButton('primary') : downloadButton('secondary')}
-            <Menu trigger={p => <IconButton label="More actions" icon="more" {...p} />}>
-              {canEmail && primary !== 'send' && (
-                <MenuItem onSelect={handleSendEmail}>Send email</MenuItem>
-              )}
-              <MenuLabel>Set status</MenuLabel>
-              {BILL_STATUSES.filter(o => o.value !== bill.status).map(o => (
-                <MenuItem key={o.value} onSelect={() => handleStatusChange(o.value)}>
-                  {o.label}
-                </MenuItem>
-              ))}
-            </Menu>
+            {(menuEmail || statusOptions.length > 0) && (
+              <Menu trigger={p => <IconButton label="More actions" icon="more" {...p} />}>
+                {menuEmail && <MenuItem onSelect={handleSendEmail}>Send email</MenuItem>}
+                {statusOptions.length > 0 && <MenuLabel>Set status</MenuLabel>}
+                {statusOptions.map(o => (
+                  <MenuItem key={o.value} onSelect={() => handleStatusChange(o.value)}>
+                    {o.label}
+                  </MenuItem>
+                ))}
+              </Menu>
+            )}
           </>
         ) : undefined
       }

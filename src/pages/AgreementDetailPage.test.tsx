@@ -263,7 +263,7 @@ describe('AgreementDetailPage', () => {
     await user.clear(input);
     await user.type(input, '8{Enter}');
 
-    expect(await screen.findByText('Will be marked out of date')).toBeInTheDocument();
+    expect(await screen.findByText('May be marked out of date')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Save anyway' }));
     await waitFor(() => expect(calls).toHaveLength(2));
     expect(calls[1]).toEqual({ dryRun: false, body: { ratePerDay: 8 } });

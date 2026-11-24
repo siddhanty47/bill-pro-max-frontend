@@ -90,8 +90,10 @@ describe('useChangeGate', () => {
     const { user, onDone } = setup(call);
     await user.click(screen.getByRole('button', { name: 'Go' }));
 
-    expect(await screen.findByText('Will be marked out of date')).toBeInTheDocument();
-    expect(screen.getByText('Already sent — a correction will be needed')).toBeInTheDocument();
+    expect(await screen.findByText('May be marked out of date')).toBeInTheDocument();
+    expect(
+      screen.getByText('Already sent — will be rechecked; a correction may be needed')
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'INV-1' })).toHaveAttribute('href', '/bills/b1');
     expect(screen.getByRole('link', { name: 'INV-2' })).toHaveAttribute('href', '/bills/b2');
     expect(screen.getByText('Exact amounts appear on the bills after you save.')).toBeVisible();
@@ -164,6 +166,37 @@ describe('useChangeGate', () => {
     await user.click(screen.getByRole('button', { name: 'Save anyway' }));
     await waitFor(() => expect(onDone).toHaveBeenCalledWith(true));
     expect(gates).toEqual([{ dryRun: true }, {}, { confirmNegative: true }]);
+  });
+
+  it('confirms negative stock when the server asks without sending spans', async () => {
+    let attempt = 0;
+    const { call, gates } = makeCall(clean, () => {
+      attempt += 1;
+      if (attempt === 1) throw apiError(409, 'NEGATIVE_STOCK_CONFIRM_REQUIRED');
+      return { ok: true };
+    });
+    const { user, onDone } = setup(call);
+    await user.click(screen.getByRole('button', { name: 'Go' }));
+
+    await user.click(await screen.findByRole('button', { name: 'Save anyway' }));
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith(true));
+    expect(gates).toEqual([{ dryRun: true }, {}, { confirmNegative: true }]);
+  });
+
+  it('disables Cancel while the save is in flight', async () => {
+    let finish: (v: unknown) => void = () => {};
+    const { call } = makeCall(draftAndIssued, () => new Promise(resolve => (finish = resolve)));
+    const { user, onDone } = setup(call);
+    await user.click(screen.getByRole('button', { name: 'Go' }));
+    await user.type(await screen.findByLabelText(/Reason/), 'Fix');
+    await user.click(screen.getByRole('button', { name: 'Save anyway' }));
+
+    const cancel = screen.getByRole('button', { name: 'Cancel' });
+    await waitFor(() => expect(cancel).toBeDisabled());
+    await user.keyboard('{Escape}');
+    expect(onDone).not.toHaveBeenCalled();
+    finish({ ok: true });
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith(true));
   });
 
   it('asks for a reason when the server requires one', async () => {

@@ -34,7 +34,7 @@ export function ChangeImpactDialog({ report, busy, onCancel, onConfirm }: Props)
       )}
       {drafts.length > 0 && (
         <div className={styles.section}>
-          <h3 className={styles.heading}>Will be marked out of date</h3>
+          <h3 className={styles.heading}>May be marked out of date</h3>
           <ul className={styles.list}>
             {drafts.map(b => (
               <li key={b.billId}>
@@ -46,7 +46,9 @@ export function ChangeImpactDialog({ report, busy, onCancel, onConfirm }: Props)
       )}
       {issued.length > 0 && (
         <div className={styles.section}>
-          <h3 className={styles.heading}>Already sent — a correction will be needed</h3>
+          <h3 className={styles.heading}>
+            Already sent — will be rechecked; a correction may be needed
+          </h3>
           <ul className={styles.list}>
             {issued.map(b => (
               <li key={b.billId}>
@@ -73,7 +75,9 @@ export function ChangeImpactDialog({ report, busy, onCancel, onConfirm }: Props)
         </div>
       )}
       <div className={styles.actions}>
-        <Button onClick={onCancel}>Cancel</Button>
+        <Button onClick={onCancel} disabled={busy}>
+          Cancel
+        </Button>
         <Button
           variant="primary"
           loading={busy}

@@ -399,12 +399,12 @@ describe('BillDetailPage', () => {
     expect(screen.queryByRole('menuitem', { name: 'Send email' })).not.toBeInTheDocument();
   });
 
-  it('changes status from the menu, excluding the current status, and alerts on failure', async () => {
+  it('changes status from the menu, offering only moves the server allows, and alerts on failure', async () => {
     useApi();
     const bodies = capture('patch', `${BASE}/status`);
     const { user } = renderPage();
     await user.click(await screen.findByRole('button', { name: 'More actions' }));
-    expect(screen.queryByRole('menuitem', { name: 'Draft' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Sent', 'Cancelled']);
     await user.click(screen.getByRole('menuitem', { name: 'Cancelled' }));
     await waitFor(() => expect(bodies).toEqual([{ status: 'cancelled' }]));
 
@@ -415,8 +415,27 @@ describe('BillDetailPage', () => {
     );
     const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
     await user.click(screen.getByRole('button', { name: 'More actions' }));
-    await user.click(screen.getByRole('menuitem', { name: 'Overdue' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Sent' }));
     await waitFor(() => expect(alert).toHaveBeenCalledWith(expect.stringContaining('Not allowed')));
+  });
+
+  it('never offers draft or cancelled for an issued bill', async () => {
+    useApi(makeBill({ status: 'overdue' }));
+    const { user } = renderPage();
+    await user.click(await screen.findByRole('button', { name: 'More actions' }));
+    expect(screen.getAllByRole('menuitem').map(i => i.textContent)).toEqual([
+      'Send email',
+      'Sent',
+      'Paid',
+      'Partial',
+    ]);
+  });
+
+  it('hides the actions menu on a cancelled bill', async () => {
+    useApi(makeBill({ status: 'cancelled' }));
+    renderPage();
+    expect(await screen.findByRole('button', { name: 'Download invoice' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'More actions' })).not.toBeInTheDocument();
   });
 
   it('downloads the PDF with the invoice filename', async () => {

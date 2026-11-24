@@ -16,6 +16,8 @@ export type GatedCall = (gate: GateArgs) => Promise<unknown>;
 interface Pending {
   call: GatedCall;
   report: GateReport;
+  /** The server asked to confirm negative stock (even when it sent no spans) */
+  confirmNegative?: boolean;
   resolve: (saved: boolean) => void;
   reject: (error: unknown) => void;
 }
@@ -59,7 +61,9 @@ export function useChangeGate() {
       } catch (err) {
         const report = reportFromError(err, p.report);
         if (report) {
-          show({ ...p, report });
+          const confirmNegative =
+            p.confirmNegative || getApiError(err).code === 'NEGATIVE_STOCK_CONFIRM_REQUIRED';
+          show({ ...p, report, confirmNegative });
         } else {
           show(null);
           p.reject(err);
@@ -87,6 +91,8 @@ export function useChangeGate() {
   );
 
   const cancel = () => {
+    // A save in flight settles the promise itself
+    if (busy) return;
     active.current?.resolve(false);
     show(null);
   };
@@ -96,7 +102,9 @@ export function useChangeGate() {
     setBusy(true);
     await commit(pending, {
       ...(reason ? { reason } : {}),
-      ...(pending.report.negative.length > 0 ? { confirmNegative: true } : {}),
+      ...(pending.confirmNegative || pending.report.negative.length > 0
+        ? { confirmNegative: true }
+        : {}),
     });
     setBusy(false);
   };
