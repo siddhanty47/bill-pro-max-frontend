@@ -6,10 +6,15 @@ import { formatMoney, formatMoneyCompact } from '../../utils/format';
 import type { DashboardMetric, RangeKey, SeriesPoint } from '../../types';
 import { changeText, chartLabel, clampPct, steelChange } from './dashboardFormat';
 import { ChangeText } from './ChangeText';
+import type { ScrollBarChart as ScrollBarChartComponent } from '../../components/charts/ScrollBarChart';
 
 // recharts stays out of the main bundle: the chart bodies load on first render.
 const BarLineChart = lazy(() => import('../../components/charts/BarLineChart'));
 const LineChart = lazy(() => import('../../components/charts/LineChart'));
+/** Typed as the generic component (a type-only import: no Recharts in this chunk). */
+export const ScrollBarChart = lazy(
+  () => import('../../components/charts/ScrollBarChart')
+) as unknown as typeof ScrollBarChartComponent;
 
 const BILLING_PRESETS: RangeKey[] = ['3M', '6M', '1Y', '3Y', 'ALL'];
 const UTILIZATION_PRESETS: RangeKey[] = ['1M', '3M', '6M', '1Y', '3Y', 'ALL'];
@@ -41,7 +46,7 @@ function useSeries(
 }
 
 /** ChartCard whose body is a lazy chart: the card shows its spinner until the chunk arrives. */
-function LazyChartCard({
+export function LazyChartCard({
   children,
   ...card
 }: Omit<ChartCardProps, 'children'> & { children: ReactNode }) {

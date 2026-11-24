@@ -13,6 +13,7 @@ describe('chartTheme', () => {
     expect(theme.accent).toBe('var(--accent)');
     expect(theme.info).toBe('var(--status-info-text)');
     expect(theme.grid).toBe('var(--border-default)');
+    expect(theme.muted).toBe('var(--border-medium)');
   });
 
   it('reads the token value when it resolves', () => {

@@ -1,51 +1,46 @@
-import { Button, Card, MeterList, TextLink, type MeterListRow } from '../../components/ui';
-import { formatMoney } from '../../utils/format';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '../../components/ui';
+import { formatMoney, formatMoneyCompact } from '../../utils/format';
 import type { PartyRow } from '../../types';
-import { fmtCount } from './dashboardFormat';
+import { LazyChartCard, ScrollBarChart } from './DashboardCharts';
+import { chartLabel, fmtCount } from './dashboardFormat';
 
-/** Top parties by outstanding: pieces on site with damaged or lost (12 months) as a danger segment. */
+const TITLE = 'Outstanding by party';
+
+/** Every party that owes money as a bar, highest first; a bar opens the party. */
 export function PartiesPanel({ parties }: { parties: PartyRow[] }) {
-  const rows: MeterListRow[] = parties.map(p => ({
-    key: p.partyId,
-    label: <TextLink to={`/parties/${p.partyId}`}>{p.name}</TextLink>,
-    detail:
-      p.outstanding !== undefined ? (
-        <span className="mono">{formatMoney(p.outstanding)}</span>
-      ) : undefined,
-    segments: [
-      { value: p.onSite, tone: 'info', label: 'On site' },
-      { value: p.damagedLost, tone: 'danger', label: 'Damaged or lost' },
-    ],
-    note: (
-      <>
-        <span className="mono">{fmtCount(p.onSite)}</span> on site
-        {p.damagedLost > 0 && (
-          <>
-            {' · '}
-            <span className="mono">{fmtCount(p.damagedLost)}</span> damaged or lost
-          </>
-        )}
-      </>
-    ),
-  }));
+  const navigate = useNavigate();
+  const total = parties.reduce((s, p) => s + p.outstanding, 0);
+  const summary =
+    parties.length > 0
+      ? `${fmtCount(parties.length)} ${parties.length === 1 ? 'party' : 'parties'}, ${formatMoneyCompact(total)}`
+      : undefined;
   return (
-    <Card
-      title="Parties"
+    <LazyChartCard
+      title={TITLE}
+      subtitle="Parties that owe you, highest first"
       actions={
         <Button variant="ghost" size="sm" to="/parties">
           All parties →
         </Button>
       }
+      empty={parties.length === 0 ? 'Nobody owes you money' : undefined}
     >
-      <MeterList
-        aria-label="Parties"
-        rows={rows}
-        empty="No parties on rent yet"
-        legend={[
-          { tone: 'info', label: 'On site' },
-          { tone: 'danger', label: 'Damaged or lost' },
-        ]}
+      <ScrollBarChart<PartyRow>
+        data={parties}
+        xKey="code"
+        nameKey="name"
+        stacks={[{ key: 'outstanding', label: 'Outstanding', tone: 'info' }]}
+        format={formatMoneyCompact}
+        tooltip={p => ({
+          title: p.code ? `${p.name} (${p.code})` : p.name,
+          rows: [{ label: 'Outstanding', value: formatMoney(p.outstanding) }],
+          hint: 'Open party →',
+        })}
+        onBarClick={p => navigate(`/parties/${p.partyId}`)}
+        title={TITLE}
+        ariaLabel={chartLabel(TITLE, summary)}
       />
-    </Card>
+    </LazyChartCard>
   );
 }

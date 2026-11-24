@@ -5,6 +5,7 @@ import {
   formatDate,
   formatMoney,
   formatMoneyCompact,
+  formatCountCompact,
   formatMonth,
 } from './format';
 
@@ -98,6 +99,16 @@ describe('formatDateTime', () => {
   it('appends a 12-hour time to the date', () => {
     expect(formatDateTime(new Date('2020-03-05T15:05:00'))).toBe('5 Mar 2020, 3:05 pm');
     expect(formatDateTime(new Date('2020-03-05T00:07:00'))).toBe('5 Mar 2020, 12:07 am');
+  });
+});
+
+describe('formatCountCompact', () => {
+  it('shortens counts like money, without the rupee sign', () => {
+    expect(formatCountCompact(0)).toBe('0');
+    expect(formatCountCompact(950)).toBe('950');
+    expect(formatCountCompact(4500)).toBe('4.5k');
+    expect(formatCountCompact(120000)).toBe('1.2L');
+    expect(formatCountCompact(-2000)).toBe('-2k');
   });
 });
 

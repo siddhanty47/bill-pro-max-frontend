@@ -1,0 +1,33 @@
+/* Party stock: layout only. Card, table, legend and chart are kit components. */
+.pad {
+  padding: var(--space-5);
+}
+
+.empty {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+}
+
+/* Totals under the table: a summary line (kit legend with values), not a table row. */
+.total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.totalLabel {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-heading);
+}

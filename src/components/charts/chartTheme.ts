@@ -6,6 +6,8 @@ export type ChartTheme = {
   /** Secondary series (line). */
   info: string;
   danger: string;
+  /** Neutral series, e.g. stock in the yard beside stock at sites. */
+  muted: string;
   grid: string;
   axis: string;
   text: string;
@@ -17,6 +19,7 @@ const TOKENS: Record<keyof ChartTheme, string> = {
   accent: '--accent',
   info: '--status-info-text',
   danger: '--status-danger-text',
+  muted: '--border-medium',
   grid: '--border-default',
   axis: '--text-secondary',
   text: '--text-primary',

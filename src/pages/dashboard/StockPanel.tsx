@@ -1,47 +1,61 @@
-import { Button, Card, MeterList, type MeterListRow } from '../../components/ui';
+import { Button, MeterLegend } from '../../components/ui';
+import { formatCountCompact } from '../../utils/format';
 import type { StockRow } from '../../types';
-import { fmtCount } from './dashboardFormat';
+import { LazyChartCard, ScrollBarChart } from './DashboardCharts';
+import { chartLabel, fmtCount } from './dashboardFormat';
 
-/** Top items by pieces at sites: at sites / in yard bar, damaged or lost (12 months) as text. */
+const TITLE = 'Stock';
+
+/** Every item as a bar: pieces at sites stacked on pieces in the yard; scrolls sideways. */
 export function StockPanel({ stock }: { stock: StockRow[] }) {
-  const rows: MeterListRow[] = stock.map(s => ({
-    key: s.itemId,
-    label: s.name,
-    detail: (
-      <>
-        <span className="mono">{fmtCount(s.atSites)}</span> at sites /{' '}
-        <span className="mono">{fmtCount(s.atSites + s.inYard)}</span>
-      </>
-    ),
-    segments: [
-      { value: s.atSites, tone: 'accent', label: 'At sites' },
-      { value: s.inYard, tone: 'muted', label: 'In yard' },
-    ],
-    note:
-      s.damagedLost > 0 ? (
-        <>
-          <span className="mono">{fmtCount(s.damagedLost)}</span> damaged or lost this year
-        </>
-      ) : undefined,
-  }));
+  const atSites = stock.reduce((s, r) => s + r.atSites, 0);
+  const summary =
+    stock.length > 0
+      ? `${fmtCount(stock.length)} ${stock.length === 1 ? 'item' : 'items'}, ${fmtCount(atSites)} pieces at sites`
+      : undefined;
   return (
-    <Card
-      title="Stock"
+    <LazyChartCard
+      title={TITLE}
+      headline={
+        stock.length > 0 ? (
+          <MeterLegend
+            items={[
+              { tone: 'accent', label: 'At sites' },
+              { tone: 'muted', label: 'In yard' },
+            ]}
+          />
+        ) : undefined
+      }
       actions={
         <Button variant="ghost" size="sm" to="/inventory">
           All stock →
         </Button>
       }
+      empty={stock.length === 0 ? 'No stock yet' : undefined}
     >
-      <MeterList
-        aria-label="Stock"
-        rows={rows}
-        empty="No stock yet"
-        legend={[
-          { tone: 'accent', label: 'At sites' },
-          { tone: 'muted', label: 'In yard' },
+      <ScrollBarChart<StockRow>
+        data={stock}
+        xKey="code"
+        nameKey="name"
+        stacks={[
+          { key: 'atSites', label: 'At sites', tone: 'accent' },
+          { key: 'inYard', label: 'In yard', tone: 'muted' },
         ]}
+        format={formatCountCompact}
+        tooltip={s => ({
+          title: s.code ? `${s.name} (${s.code})` : s.name,
+          rows: [
+            { label: 'At sites', value: fmtCount(s.atSites) },
+            { label: 'In yard', value: fmtCount(s.inYard) },
+            { label: 'Total', value: fmtCount(s.atSites + s.inYard) },
+            ...(s.damagedLost > 0
+              ? [{ label: 'Damaged or lost in the last 12 months', value: fmtCount(s.damagedLost) }]
+              : []),
+          ],
+        })}
+        title={TITLE}
+        ariaLabel={chartLabel(TITLE, summary)}
       />
-    </Card>
+    </LazyChartCard>
   );
 }

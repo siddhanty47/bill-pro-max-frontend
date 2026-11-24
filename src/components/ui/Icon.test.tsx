@@ -15,6 +15,8 @@ const names: IconName[] = [
   'bell',
   'chat',
   'chevron-down',
+  'chevron-left',
+  'chevron-right',
   'plus',
   'close',
   'menu',

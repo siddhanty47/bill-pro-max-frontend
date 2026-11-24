@@ -13,7 +13,7 @@ const rows = [
       { value: 152, tone: 'muted' as const, label: 'In yard' },
     ],
     detail: '248 / 400',
-    note: '18 damaged or lost this year',
+    note: '18 damaged or lost in the last 12 months',
   },
   {
     key: 'b',
@@ -30,7 +30,9 @@ describe('MeterList', () => {
     expect(items).toHaveLength(2);
     expect(within(items[0]).getByText('Props 3m')).toBeInTheDocument();
     expect(within(items[0]).getByText('248 / 400')).toBeInTheDocument();
-    expect(within(items[0]).getByText('18 damaged or lost this year')).toBeInTheDocument();
+    expect(
+      within(items[0]).getByText('18 damaged or lost in the last 12 months')
+    ).toBeInTheDocument();
     expect(
       within(items[0]).getByRole('img', { name: 'At sites 248 of 400, In yard 152 of 400' })
     ).toBeInTheDocument();

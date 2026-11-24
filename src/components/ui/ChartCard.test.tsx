@@ -105,4 +105,13 @@ describe('ChartCard', () => {
     );
     expect(screen.getByText('Govt WPI · monthly')).toBeInTheDocument();
   });
+
+  it('renders header actions beside the title', () => {
+    render(
+      <ChartCard title="Stock" actions={<button type="button">All stock</button>}>
+        <div />
+      </ChartCard>
+    );
+    expect(screen.getByRole('button', { name: 'All stock' })).toBeInTheDocument();
+  });
 });

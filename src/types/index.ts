@@ -1426,8 +1426,10 @@ export interface Aging {
   advances: number;
 }
 
+/** One active inventory item (all of them), sorted by pieces at sites, then code. */
 export interface StockRow {
   itemId: string;
+  code: string;
   name: string;
   unit: string;
   atSites: number;
@@ -1435,12 +1437,22 @@ export interface StockRow {
   damagedLost: number;
 }
 
-export interface PartyRow {
-  partyId: string;
+/** One item currently at a party's sites (or damaged or lost there in the last 12 months). */
+export interface PartyStockRow {
+  itemId: string;
+  code: string;
   name: string;
-  outstanding?: number;
+  unit: string;
   onSite: number;
   damagedLost: number;
+}
+
+/** A party that owes money (outstanding > 0, gross as in aging), highest first. */
+export interface PartyRow {
+  partyId: string;
+  code: string;
+  name: string;
+  outstanding: number;
 }
 
 /** Dashboard summary; a key is absent when the caller cannot read what it needs. */
@@ -1453,6 +1465,7 @@ export interface DashboardSummary {
   onRentPct?: number;
   activeSites?: number;
   rentPerDay?: number;
+  /** Present only with party, bill and payment read. */
   parties?: PartyRow[];
 }
 

@@ -1,4 +1,5 @@
 .layout {
+  position: relative;
   height: 100vh;
   height: 100dvh;
   display: flex;
@@ -165,6 +166,7 @@
 }
 
 .content {
+  position: relative;
   flex: 1;
   min-width: 0;
   padding: 36px var(--page-pad) var(--space-14);

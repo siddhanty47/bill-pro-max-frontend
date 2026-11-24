@@ -12,6 +12,7 @@ import type {
   UpdateSiteInput,
   ApiResponse,
   OutstandingSummary,
+  PartyStockRow,
 } from '../types';
 
 export const partyApi = baseApi.injectEndpoints({
@@ -37,6 +38,19 @@ export const partyApi = baseApi.injectEndpoints({
         `/businesses/${businessId}/parties/${partyId}/outstanding-by-site`,
       transformResponse: (response: ApiResponse<PartyOutstandingBySite>) => response.data,
       providesTags: ['Party', 'Bill', 'Payment'],
+    }),
+
+    /** Items on this party's sites now, plus damaged or lost in the last 12 months */
+    getPartyStock: builder.query<PartyStockRow[], { businessId: string; partyId: string }>({
+      query: ({ businessId, partyId }) => `/businesses/${businessId}/parties/${partyId}/stock`,
+      transformResponse: (response: ApiResponse<PartyStockRow[]>) => response.data,
+      providesTags: (_result, _error, { partyId }) => [
+        { type: 'Party', id: partyId },
+        'Challan',
+        'Inventory',
+        // opening balances on agreement rates count as on site
+        'Agreement',
+      ],
     }),
 
     getParty: builder.query<Party, { businessId: string; partyId: string }>({
@@ -152,6 +166,7 @@ export const partyApi = baseApi.injectEndpoints({
 export const {
   useGetPartiesQuery,
   useGetPartyQuery,
+  useGetPartyStockQuery,
   useGetOutstandingSummaryQuery,
   useGetPartyOutstandingBySiteQuery,
   useCreatePartyMutation,
