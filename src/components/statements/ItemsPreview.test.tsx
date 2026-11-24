@@ -50,6 +50,7 @@ const base: ItemStatementData = {
     },
   ],
   grandTotals: {
+    totalOpening: 10,
     totalDelivered: 40,
     totalReturned: 15,
     netHeld: 25,
@@ -74,15 +75,63 @@ describe('ItemsPreview', () => {
     ]);
     expect(tableRows(1)[3]).toEqual(['Summary', '0', '0', 'Damaged 0 · Short 0']);
     expect(screen.getByRole('link', { name: 'CH-2' })).toHaveAttribute('href', '/challans/c2');
+    expect(screen.queryByText('Some counts are below zero')).not.toBeInTheDocument();
     for (const [label, value] of [
+      ['Opening stock', '10'],
       ['Total delivered', '40'],
       ['Total returned', '15'],
-      ['Net held', '25'],
+      ['Held at end', '25'],
       ['Total damaged', '2'],
       ['Total short', '3'],
     ]) {
       expect(screen.getByText(label).nextSibling).toHaveTextContent(value);
     }
+  });
+
+  it('shows opening stock as a row without a challan link, and flags a negative count', () => {
+    renderWithProviders(
+      <ItemsPreview
+        data={{
+          ...base,
+          items: [
+            {
+              itemName: 'Inner 2 mtr',
+              itemId: 'i3',
+              openingQty: 0,
+              events: [
+                {
+                  date: '2024-01-05',
+                  challanNumber: 'Opening stock',
+                  challanId: '',
+                  type: 'opening',
+                  quantity: 5,
+                  runningQty: 5,
+                },
+                {
+                  date: '2024-01-20',
+                  challanNumber: 'CH-9',
+                  challanId: 'c9',
+                  type: 'return',
+                  quantity: 23,
+                  runningQty: -18,
+                },
+              ],
+              totalDelivered: 0,
+              totalReturned: 23,
+              closingQty: -18,
+              damages: { damaged: 0, short: 0, needRepair: 0 },
+            },
+          ],
+          grandTotals: { ...base.grandTotals, netHeld: -18 },
+        }}
+      />
+    );
+    expect(tableRows(0).slice(2, 4)).toEqual([
+      ['5 Jan 2024', 'Opening stock', '5', '-', '5'],
+      ['20 Jan 2024', 'CH-9', '-', '23', '-18'],
+    ]);
+    expect(screen.queryByRole('link', { name: 'Opening stock' })).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Some counts are below zero');
   });
 
   it('shows a notice for an empty period', () => {

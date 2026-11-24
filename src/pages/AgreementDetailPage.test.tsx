@@ -314,6 +314,20 @@ describe('AgreementDetailPage', () => {
     expect(within(row).getByText('24').closest('td')).toHaveClass('mono', 'right');
   });
 
+  it('flags a negative count at the site', async () => {
+    useApi();
+    server.use(
+      http.get(apiUrl('/businesses/biz-1/challans/items-with-party/p1'), () =>
+        ok([{ itemId: 'i9', itemName: 'Inner 2 mtr', quantity: -18 }])
+      )
+    );
+    const { user } = renderPage();
+    await openTab(user, /^Site items/);
+    const table = await screen.findByRole('table', { name: 'Items at site' });
+    expect(within(table).getByText('-18').closest('td')).toHaveClass('tone-negative');
+    expect(screen.getByText('Some counts are below zero')).toBeInTheDocument();
+  });
+
   it('lists challans and opens one on row click', async () => {
     useApi();
     const { user } = renderPage();

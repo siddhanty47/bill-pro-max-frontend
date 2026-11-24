@@ -6,6 +6,8 @@ import { formatCountCompact } from '../../utils/format';
 import type { PartyStockRow } from '../../types';
 import type { ScrollBarChart as ScrollBarChartComponent } from '../../components/charts/ScrollBarChart';
 import styles from './PartyStockSection.module.css';
+import { NegativeStockNotice } from '../../components/stock/NegativeStockNotice';
+import { stockTone } from '../../utils/stock';
 
 // recharts stays out of the main bundle: the chart loads on first render.
 const ScrollBarChart = lazy(
@@ -22,7 +24,14 @@ const LOST = 'Damaged or lost in the last 12 months';
 const COLUMNS: Column<PartyStockRow>[] = [
   { key: 'code', header: 'Code', mono: true },
   { key: 'name', header: 'Item' },
-  { key: 'onSite', header: 'On site', align: 'right', mono: true, render: r => count(r.onSite) },
+  {
+    key: 'onSite',
+    header: 'On site',
+    align: 'right',
+    mono: true,
+    render: r => count(r.onSite),
+    tone: r => stockTone(r.onSite),
+  },
   {
     key: 'damagedLost',
     header: LOST,
@@ -31,6 +40,9 @@ const COLUMNS: Column<PartyStockRow>[] = [
     render: r => count(r.damagedLost),
   },
 ];
+
+/** A row with its bar height: a negative count draws no bar (the table and tooltip show it). */
+type ChartRow = PartyStockRow & { onSiteBar: number };
 
 /** What this party holds at its sites now, and what it damaged or lost in the last 12 months. */
 export function PartyStockSection({
@@ -73,8 +85,10 @@ export function PartyStockSection({
       damagedLost: data.reduce((s, r) => s + r.damagedLost, 0),
     };
     const summary = `${count(data.length)} items, ${count(total.onSite)} pieces on site`;
+    const chartRows: ChartRow[] = data.map(r => ({ ...r, onSiteBar: Math.max(0, r.onSite) }));
     body = (
       <>
+        <NegativeStockNotice quantities={data.map(r => r.onSite)} className={styles.notice} />
         {data.length >= CHART_MIN_ROWS && (
           <div className={styles.chart}>
             <MeterLegend
@@ -84,12 +98,12 @@ export function PartyStockSection({
               ]}
             />
             <Suspense fallback={<Spinner message="" />}>
-              <ScrollBarChart<PartyStockRow>
-                data={data}
+              <ScrollBarChart<ChartRow>
+                data={chartRows}
                 xKey="code"
                 nameKey="name"
                 stacks={[
-                  { key: 'onSite', label: 'On site', tone: 'accent' },
+                  { key: 'onSiteBar', label: 'On site', tone: 'accent' },
                   { key: 'damagedLost', label: LOST, tone: 'danger' },
                 ]}
                 format={formatCountCompact}

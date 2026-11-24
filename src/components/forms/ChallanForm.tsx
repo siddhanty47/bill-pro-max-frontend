@@ -75,33 +75,6 @@ function predictChallanNumberLocally(
   return `${prefix}-${fy}-${String(count + 1).padStart(4, '0')}`;
 }
 
-/**
- * Compute net item quantities currently with a party for a given agreement
- * from the client-side challans list. Mirrors the backend aggregation:
- * sum confirmed delivery quantities minus confirmed return quantities per item.
- */
-function computeItemsWithPartyLocally(
-  challans: Challan[],
-  partyId: string,
-  agreementId: string
-): Map<string, number> {
-  const qtyMap = new Map<string, number>();
-
-  const relevant = challans.filter(
-    c => c.partyId === partyId && c.agreementId === agreementId && c.status === 'confirmed'
-  );
-
-  for (const challan of relevant) {
-    for (const item of challan.items) {
-      const current = qtyMap.get(item.itemId) ?? 0;
-      const delta = challan.type === 'delivery' ? item.quantity : -item.quantity;
-      qtyMap.set(item.itemId, current + delta);
-    }
-  }
-
-  return qtyMap;
-}
-
 const challanSchema = z.object({
   type: z.enum(['delivery', 'return']),
   partyId: z.string().min(1, 'Select a party'),
@@ -344,40 +317,23 @@ export function ChallanForm({
   }, [defaultSequence, setValue]);
 
   /**
-   * Fetch items currently with the selected party for the chosen agreement.
-   * Falls back to client-side computation from the loaded challans list
-   * when the API endpoint is unavailable.
+   * Items with the selected party at the chosen agreement's site, counted by the backend's
+   * shared party-stock rules (opening stock + challans), so the form shows the same number
+   * as the statement and the share link.
    */
   const { data: apiItemsWithParty, isError: isItemsWithPartyError } = useGetItemsWithPartyQuery(
     { businessId, partyId: selectedPartyId, agreementId: selectedAgreementId },
     { skip: !businessId || !selectedPartyId || !selectedAgreementId }
   );
 
-  const localItemsMap = useMemo(() => {
-    if (!selectedPartyId || !selectedAgreementId) return new Map<string, number>();
-    const map = computeItemsWithPartyLocally(challans, selectedPartyId, selectedAgreementId);
-    // Merge opening balances from agreement rates
-    if (selectedAgreement) {
-      for (const rate of selectedAgreement.rates) {
-        const openingBal = rate.openingBalance ?? 0;
-        if (openingBal > 0) {
-          map.set(rate.itemId, (map.get(rate.itemId) ?? 0) + openingBal);
-        }
-      }
-    }
-    return map;
-  }, [challans, selectedPartyId, selectedAgreementId, selectedAgreement]);
-
-  /** Look up the running quantity for a given itemId, preferring API data. */
+  /** Running quantity for an item, or null while it can't be known (no data or a failed load). */
   const getRunningQty = useCallback(
-    (itemId: string): number => {
+    (itemId: string): number | null => {
       if (!itemId) return 0;
-      if (apiItemsWithParty && !isItemsWithPartyError) {
-        return apiItemsWithParty.find(i => i.itemId === itemId)?.quantity ?? 0;
-      }
-      return localItemsMap.get(itemId) ?? 0;
+      if (!apiItemsWithParty || isItemsWithPartyError) return null;
+      return apiItemsWithParty.find(i => i.itemId === itemId)?.quantity ?? 0;
     },
-    [apiItemsWithParty, isItemsWithPartyError, localItemsMap]
+    [apiItemsWithParty, isItemsWithPartyError]
   );
 
   const partyAutocompleteItems: AutocompleteItem[] = useMemo(() => {
@@ -718,7 +674,7 @@ export function ChallanForm({
                   <Td align="right" className={styles.colRunning}>
                     <PhoneLabel>Running</PhoneLabel>
                     <StatusChip status="running" tone="neutral" title="With the party now">
-                      <span className="mono">{runningQty}</span>
+                      <span className="mono">{runningQty ?? '–'}</span>
                     </StatusChip>
                   </Td>
                   <Td align="right" className={styles.colAction}>

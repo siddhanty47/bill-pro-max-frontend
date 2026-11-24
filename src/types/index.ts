@@ -1142,11 +1142,14 @@ export interface BillStatementData {
   currency: string;
 }
 
+/** One row of an item statement. 'opening' = agreement opening stock (no challan). */
 export interface ItemEvent {
   date: string;
+  /** 'Opening stock' for an opening row */
   challanNumber: string;
+  /** Empty for an opening row */
   challanId: string;
-  type: 'delivery' | 'return';
+  type: 'opening' | 'delivery' | 'return';
   quantity: number;
   runningQty: number;
 }
@@ -1175,8 +1178,11 @@ export interface ItemStatementData {
   period: StatementPeriod;
   items: ItemStatementItem[];
   grandTotals: {
+    /** Opening quantities plus opening stock that starts inside the period */
+    totalOpening: number;
     totalDelivered: number;
     totalReturned: number;
+    /** Σ closingQty: pieces with the party at the end of the period */
     netHeld: number;
     totalDamaged: number;
     totalShort: number;

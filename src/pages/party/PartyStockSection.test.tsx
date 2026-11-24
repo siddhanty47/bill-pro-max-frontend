@@ -68,6 +68,21 @@ describe('PartyStockSection', () => {
     expect(onSite.querySelector('[class*="sw-accent"]')).not.toBeNull();
   });
 
+  it('flags a negative count in the table and draws no bar below zero', async () => {
+    server.use(
+      http.get(apiUrl(PATH), () =>
+        ok([...ROWS, row({ itemId: 'i4', code: 'INR', name: 'Inner 2 mtr', onSite: -18 })])
+      )
+    );
+    renderSection();
+    const table = await screen.findByRole('table', { name: 'Stock on site' });
+    expect(within(table).getByText('-18').closest('td')).toHaveClass('tone-negative');
+    expect(screen.getByRole('status')).toHaveTextContent('Some counts are below zero');
+    expect(
+      await screen.findByRole('region', { name: 'Stock on site, scrollable' })
+    ).toBeInTheDocument();
+  });
+
   it('shows no chart for two rows or fewer', async () => {
     server.use(http.get(apiUrl(PATH), () => ok(ROWS.slice(0, 2))));
     renderSection();
