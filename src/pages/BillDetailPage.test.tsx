@@ -458,55 +458,189 @@ describe('BillDetailPage', () => {
     await waitFor(() => expect(alert).toHaveBeenCalledWith(expect.any(String)));
   });
 
-  it('regenerates a stale bill: delete, generate with the same inputs, back to the list', async () => {
-    useApi(
-      makeBill({
-        drift: { delta: {} as never, detectedAt: '2026-01-01', causes: [] },
-        taxRate: 18,
-        notes: 'Pay by cheque',
-      })
-    );
-    let deleteUrl = '';
-    server.use(
-      http.delete(apiUrl(BASE), ({ request }) => {
-        deleteUrl = request.url;
-        return ok(null);
-      })
-    );
-    const bodies = capture('post', '/businesses/biz-1/bills/generate');
+  const driftOf = (over: Partial<NonNullable<Bill['drift']>> = {}): NonNullable<Bill['drift']> => ({
+    delta: { total: 500, subtotal: 400, taxAmount: 100, items: [], transport: 0, damage: 0 },
+    detectedAt: '2026-01-01T00:00:00.000Z',
+    causes: [
+      {
+        kind: 'challan',
+        id: 'c1',
+        label: 'Challan D-0001',
+        reason: 'Quantity fixed',
+        at: '2026-01-02T00:00:00.000Z',
+      },
+    ],
+    ...over,
+  });
+  const spans = [
+    {
+      itemId: 'i1',
+      itemName: 'Ladder 1.5m',
+      from: '2025-10-03T00:00:00.000Z',
+      to: '2025-10-05T00:00:00.000Z',
+      minQty: -2,
+    },
+  ];
+
+  it('shows an out of date notice on a draft and refreshes it', async () => {
+    useApi(makeBill({ drift: driftOf() }));
+    const bodies = capture('post', `${BASE}/refresh`);
     const { user } = renderPage();
 
-    expect(await screen.findByText('Stale bill')).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Regenerate bill' }));
+    expect(await screen.findByText('Out of date')).toBeVisible();
+    expect(screen.getByText(/The total changes by \+₹500 since this bill was made/)).toBeVisible();
+    expect(screen.getByText(/Challan D-0001: Quantity fixed/)).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Regenerate bill' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Refresh bill' }));
     await waitFor(() => expect(bodies).toHaveLength(1));
-    expect(deleteUrl).not.toContain('force');
-    expect(bodies[0]).toMatchObject({
-      billDate: '2025-11-01T00:00:00.000Z',
-      partyId: 'p1',
-      agreementId: 'AG-001',
-      billingPeriod: { start: '2025-10-01T00:00:00.000Z', end: '2025-10-31T00:00:00.000Z' },
-      taxMode: 'intra',
-      sgstRate: 9,
-      cgstRate: 9,
-      discountRate: 5,
-      notes: 'Pay by cheque',
-    });
-    expect(await screen.findByText('elsewhere')).toBeInTheDocument();
   });
 
-  it('keeps the stale banner usable when regeneration fails', async () => {
-    useApi(makeBill({ drift: { delta: {} as never, detectedAt: '2026-01-01', causes: [] } }));
+  it('shows a negative change with its sign', async () => {
+    useApi(makeBill({ drift: driftOf({ delta: { ...driftOf().delta, total: -250 } }) }));
+    renderPage();
+    expect(await screen.findByText(/changes by -₹250/)).toBeVisible();
+  });
+
+  it('shows the message when the period has nothing left to bill', async () => {
+    useApi(makeBill({ drift: driftOf() }));
     server.use(
-      http.delete(apiUrl(BASE), () =>
-        HttpResponse.json({ success: false, error: { message: 'No' } }, { status: 500 })
+      http.post(apiUrl(`${BASE}/refresh`), () =>
+        HttpResponse.json(
+          {
+            success: false,
+            error: { code: 'BILL_PERIOD_EMPTY', message: 'Nothing to bill in this period.' },
+          },
+          { status: 400 }
+        )
       )
     );
     const { user } = renderPage();
-    await user.click(await screen.findByRole('button', { name: 'Regenerate bill' }));
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Regenerate bill' })).toBeEnabled()
+    await user.click(await screen.findByRole('button', { name: 'Refresh bill' }));
+    expect(await screen.findByText('Nothing to bill in this period.')).toBeVisible();
+  });
+
+  it('shows a pending adjustment on an issued bill with no delete or refresh', async () => {
+    useApi(
+      makeBill({
+        status: 'sent',
+        pendingAdjustment: { ...driftOf(), amount: -300 },
+      })
     );
-    expect(screen.queryByText('elsewhere')).not.toBeInTheDocument();
+    const { user } = renderPage();
+    expect(await screen.findByText('Pending adjustment -₹300')).toBeVisible();
+    expect(
+      screen.getByText(/credit or debit note for this amount comes in the next release/)
+    ).toBeVisible();
+    expect(screen.getByText(/Challan D-0001/)).toBeVisible();
+    expect(screen.queryByText('Out of date')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Refresh bill|Regenerate/ })
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    expect(screen.queryByRole('menuitem', { name: /Delete|Regenerate/ })).not.toBeInTheDocument();
+  });
+
+  it('lists negative stock on any bill', async () => {
+    useApi(makeBill({ status: 'paid', negativeStock: spans }));
+    renderPage();
+    expect(await screen.findByText('Stock went below zero')).toBeVisible();
+    expect(screen.getByText(/billed as 0 on these days/)).toBeVisible();
+    expect(screen.getByText(/Ladder 1.5m: 3 Oct 2025 – 5 Oct 2025, lowest count -2/)).toBeVisible();
+  });
+
+  it('blocks sending an out of date draft without calling the API', async () => {
+    useApi(makeBill({ drift: driftOf() }));
+    const sends = capture('post', `${BASE}/send`);
+    const refreshes = capture('post', `${BASE}/refresh`);
+    const { user } = renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Send email' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/out of date/i, { selector: 'p' })).toBeVisible();
+    expect(sends).toHaveLength(0);
+    await user.click(within(dialog).getByRole('button', { name: 'Refresh bill' }));
+    await waitFor(() => expect(refreshes).toHaveLength(1));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('asks before sending a draft with negative stock, then acknowledges', async () => {
+    useApi(makeBill({ negativeStock: spans }));
+    const bodies = capture('post', `${BASE}/send`);
+    const { user } = renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Send email' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/Ladder 1.5m/)).toBeVisible();
+    expect(bodies).toHaveLength(0);
+    await user.click(within(dialog).getByRole('button', { name: 'Send anyway' }));
+    await waitFor(() => expect(bodies).toEqual([{ acknowledgeNegative: true }]));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('can back out of the negative stock dialog', async () => {
+    useApi(makeBill({ negativeStock: spans }));
+    const bodies = capture('post', `${BASE}/send`);
+    const { user } = renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Send email' }));
+    await user.click(await screen.findByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(bodies).toHaveLength(0);
+  });
+
+  it('opens the negative stock dialog from a 409 and sends the acknowledgement', async () => {
+    useApi();
+    const bodies: unknown[] = [];
+    server.use(
+      http.post(apiUrl(`${BASE}/send`), async ({ request }) => {
+        const body = await request.json().catch(() => null);
+        bodies.push(body);
+        if (body) return ok(makeBill());
+        return HttpResponse.json(
+          {
+            success: false,
+            error: { code: 'NEGATIVE_STOCK_ACK_REQUIRED', details: { negativeStock: spans } },
+          },
+          { status: 409 }
+        );
+      })
+    );
+    const { user } = renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Send email' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/Ladder 1.5m/)).toBeVisible();
+    await user.click(within(dialog).getByRole('button', { name: 'Send anyway' }));
+    await waitFor(() => expect(bodies).toEqual([null, { acknowledgeNegative: true }]));
+  });
+
+  it('opens the out of date dialog from a 409', async () => {
+    useApi();
+    server.use(
+      http.post(apiUrl(`${BASE}/send`), () =>
+        HttpResponse.json(
+          {
+            success: false,
+            error: { code: 'BILL_OUT_OF_DATE', message: 'Refresh this bill first.' },
+          },
+          { status: 409 }
+        )
+      )
+    );
+    const { user } = renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Send email' }));
+    expect(await screen.findByText('Refresh this bill first.')).toBeVisible();
+  });
+
+  it('gates marking a draft as sent, but not cancelling it', async () => {
+    useApi(makeBill({ negativeStock: spans }));
+    const bodies = capture('patch', `${BASE}/status`);
+    const { user } = renderPage();
+    await user.click(await screen.findByRole('button', { name: 'More actions' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Cancelled' }));
+    await waitFor(() => expect(bodies).toEqual([{ status: 'cancelled' }]));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Sent' }));
+    await user.click(await screen.findByRole('button', { name: 'Send anyway' }));
+    await waitFor(() => expect(bodies[1]).toEqual({ status: 'sent', acknowledgeNegative: true }));
   });
 
   it('loads the change history for the bill', async () => {

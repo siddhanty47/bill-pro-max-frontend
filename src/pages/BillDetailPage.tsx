@@ -2,18 +2,16 @@
  * @fileoverview Bill detail view page
  * @description Detail page for a single bill: billing period, summary and notes,
  * line/damage/transportation tables, payments and change history. Header actions
- * (send email, mark paid, download PDF, status changes) and stale-bill
- * regeneration. Built on the kit's detail recipe.
+ * (send email, mark paid, download PDF, status changes) and the out-of-date,
+ * pending adjustment and negative stock notices. Built on the kit's detail recipe.
  */
 import { useCallback, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import styles from './BillDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
   useGetBillQuery,
   useUpdateBillStatusMutation,
-  useDeleteBillMutation,
-  useGenerateBillMutation,
   useSendBillEmailMutation,
   useLazyGetBillPdfQuery,
 } from '../api/billApi';
@@ -31,7 +29,6 @@ import {
   MenuItem,
   MenuLabel,
   NotAdded,
-  Notice,
   StatusChip,
   Table,
   TBody,
@@ -43,6 +40,8 @@ import {
 import type { ValueTone } from '../components/ui/status';
 import { getErrorMessage } from '../api/baseApi';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
+import { BillIntegrityNotices } from '../components/BillIntegrity';
+import { useBillIssueGate } from '../hooks/useBillIssueGate';
 import { formatDate, formatMoney } from '../utils/format';
 import type { Bill, BillItem, DamageBillItem, Payment, TransportationBreakupItem } from '../types';
 
@@ -78,7 +77,6 @@ const notAdded = <NotAdded />;
 export function BillDetailPage() {
   const { billId } = useParams<{ billId: string }>();
   const { currentBusinessId } = useCurrentBusiness();
-  const navigate = useNavigate();
 
   const {
     data: bill,
@@ -100,11 +98,9 @@ export function BillDetailPage() {
   );
 
   const [updateBillStatus, { isLoading: isSaving }] = useUpdateBillStatusMutation();
-  const [deleteBill] = useDeleteBillMutation();
-  const [generateBill] = useGenerateBillMutation();
   const [downloadPdf, { isLoading: isDownloading }] = useLazyGetBillPdfQuery();
   const [sendBillEmail, { isLoading: isSending }] = useSendBillEmailMutation();
-  const [isRegenerating, setIsRegenerating] = useState(false);
+  const gate = useBillIssueGate(currentBusinessId);
   const [activeTab, setActiveTab] = useState('about');
 
   const partyName = parties?.find(p => p._id === bill?.partyId)?.name || bill?.partyId || '';
@@ -129,62 +125,30 @@ export function BillDetailPage() {
   /** Move the bill to another status (same mutation the inline status edit used) */
   const handleStatusChange = useCallback(
     async (status: Bill['status']) => {
-      try {
-        await updateBillStatus({
+      if (!bill) return;
+      const run = (acknowledgeNegative?: boolean) =>
+        updateBillStatus({
           businessId: currentBusinessId!,
           billId: billId!,
           status,
+          acknowledgeNegative,
         }).unwrap();
-      } catch (err) {
-        alert(getErrorMessage(err));
-      }
+      // Moving a draft to anything but cancelled issues it
+      await gate.attempt(bill, run, bill.status === 'draft' && status !== 'cancelled');
     },
-    [currentBusinessId, billId, updateBillStatus]
+    [bill, currentBusinessId, billId, updateBillStatus, gate]
   );
-
-  const handleRegenerate = useCallback(async () => {
-    if (!bill || !currentBusinessId) return;
-    setIsRegenerating(true);
-    try {
-      await deleteBill({
-        businessId: currentBusinessId,
-        billId: bill._id,
-      }).unwrap();
-
-      await generateBill({
-        businessId: currentBusinessId,
-        data: {
-          billDate: bill.billDate || bill.billingPeriod.end || bill.createdAt,
-          partyId: bill.partyId,
-          agreementId: bill.agreementId,
-          billingPeriod: bill.billingPeriod,
-          taxMode: bill.taxMode,
-          taxRate: bill.taxRate,
-          sgstRate: bill.sgstRate,
-          cgstRate: bill.cgstRate,
-          igstRate: bill.igstRate,
-          discountRate: bill.discountRate,
-          notes: bill.notes,
-        },
-      }).unwrap();
-
-      navigate('/bills', { replace: true });
-    } catch {
-      setIsRegenerating(false);
-    }
-  }, [bill, currentBusinessId, deleteBill, generateBill, navigate]);
 
   const handleSendEmail = useCallback(async () => {
     if (!bill || !currentBusinessId) return;
-    try {
-      await sendBillEmail({
+    await gate.attempt(bill, acknowledgeNegative =>
+      sendBillEmail({
         businessId: currentBusinessId,
         billId: bill._id,
-      }).unwrap();
-    } catch (err) {
-      alert(getErrorMessage(err));
-    }
-  }, [bill, currentBusinessId, sendBillEmail]);
+        acknowledgeNegative,
+      }).unwrap()
+    );
+  }, [bill, currentBusinessId, sendBillEmail, gate]);
 
   const handleDownloadPdf = useCallback(async () => {
     if (!bill || !currentBusinessId) return;
@@ -426,16 +390,12 @@ export function BillDetailPage() {
     >
       {bill && (
         <>
-          {bill.drift != null && (
-            <Notice tone="warning" title="Stale bill">
-              <span className={styles.stale}>
-                Underlying challan data has changed since this bill was generated.
-                <Button variant="primary" onClick={handleRegenerate} loading={isRegenerating}>
-                  Regenerate bill
-                </Button>
-              </span>
-            </Notice>
-          )}
+          <BillIntegrityNotices
+            bill={bill}
+            onRefresh={() => gate.refresh(bill)}
+            refreshing={gate.refreshing}
+            refreshError={gate.refreshError}
+          />
 
           {activeTab === 'about' && (
             <>
@@ -612,6 +572,7 @@ export function BillDetailPage() {
           )}
         </>
       )}
+      {gate.dialog}
     </DetailPageShell>
   );
 }

@@ -22,6 +22,8 @@ const bill = (over: Partial<Bill>) =>
     ...over,
   }) as unknown as Bill;
 
+const DRIFT = { delta: {} as never, detectedAt: '2026-01-01', causes: [] };
+
 const defaults = [
   bill({}),
   bill({
@@ -31,7 +33,7 @@ const defaults = [
     totalAmount: 99.5,
     amountPaid: 0,
     status: 'sent',
-    drift: { delta: {} as never, detectedAt: '2026-01-01', causes: [] },
+    pendingAdjustment: { amount: 40, delta: {} as never, detectedAt: '2026-01-01', causes: [] },
   }),
   bill({ _id: 'b3', billNumber: 'B-2026-27-0003', status: 'paid' }),
   bill({ _id: 'b4', billNumber: 'B-2026-27-0004', status: 'cancelled' }),
@@ -132,9 +134,26 @@ describe('BillsPage', () => {
     expect(within(row).getByText('₹1,84,200')).toBeInTheDocument();
     expect(within(row).getByText('₹50,000')).toBeInTheDocument();
     expect(within(row).getByText('Draft')).toBeInTheDocument();
-    const stale = within(table).getByRole('row', { name: /B-2026-27-0002/ });
-    expect(within(stale).getByText('₹99.50')).toBeInTheDocument();
-    expect(within(stale).getByText('Stale')).toBeInTheDocument();
+    const issued = within(table).getByRole('row', { name: /B-2026-27-0002/ });
+    expect(within(issued).getByText('₹99.50')).toBeInTheDocument();
+    expect(within(issued).getByText('Pending adj.')).toBeInTheDocument();
+    expect(within(issued).queryByText('Out of date')).not.toBeInTheDocument();
+    expect(screen.queryByText('Stale')).not.toBeInTheDocument();
+    expect(screen.queryByText('Out of date')).not.toBeInTheDocument();
+  });
+
+  it('flags a draft that is out of date', async () => {
+    useApi([
+      bill({ drift: DRIFT }),
+      bill({ _id: 'b6', billNumber: 'B-6', status: 'paid', drift: DRIFT }),
+    ]);
+    renderPage();
+    const table = await screen.findByRole('table');
+    const row = within(table).getByRole('row', { name: /B-2026-27-0001/ });
+    expect(within(row).getByText('Out of date')).toBeInTheDocument();
+    expect(within(row).queryByText('Pending adj.')).not.toBeInTheDocument();
+    const issued = within(table).getByRole('row', { name: /B-6/ });
+    expect(within(issued).queryByText('Out of date')).not.toBeInTheDocument();
   });
 
   it('offers Send on drafts and Mark paid on sent bills only, rest in the menu', async () => {
@@ -233,12 +252,12 @@ describe('BillsPage', () => {
     await waitFor(() => expect(body).toEqual({ status: 'paid' }));
   });
 
-  it('deletes a draft after confirming, and deletes others without force (replaced in Task 12)', async () => {
+  it('deletes drafts and cancelled bills after confirming; issued bills have no delete', async () => {
     useApi();
     const urls: string[] = [];
     server.use(
       http.delete(apiUrl('/businesses/biz-1/bills/:id'), ({ request }) => {
-        urls.push(new URL(request.url).search);
+        urls.push(new URL(request.url).pathname);
         return ok({});
       })
     );
@@ -250,11 +269,74 @@ describe('BillsPage', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
     expect(confirmSpy).toHaveBeenLastCalledWith('Delete bill "B-2026-27-0001"?');
     await user.click(menus[1]);
-    await user.click(screen.getByRole('menuitem', { name: 'Force delete' }));
-    expect(confirmSpy).toHaveBeenLastCalledWith(
-      'Bill "B-2026-27-0002" has status "sent". Force delete anyway? This cannot be undone.'
+    expect(screen.queryByRole('menuitem', { name: /Delete/ })).not.toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    await user.click(menus[3]);
+    await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    await waitFor(() => expect(urls).toHaveLength(2));
+    expect(urls[0]).toMatch(/\/b1$/);
+  });
+
+  it('blocks sending an out of date draft and offers a refresh', async () => {
+    useApi([bill({ drift: DRIFT })]);
+    let sent = false;
+    let refreshed = false;
+    server.use(
+      http.post(apiUrl('/businesses/biz-1/bills/b1/send'), () => {
+        sent = true;
+        return ok(bill({}));
+      }),
+      http.post(apiUrl('/businesses/biz-1/bills/b1/refresh'), () => {
+        refreshed = true;
+        return ok(bill({}));
+      })
     );
-    await waitFor(() => expect(urls).toEqual(['', '']));
+    const { user } = renderPage();
+    const table = await screen.findByRole('table');
+    await user.click(within(table).getByRole('button', { name: 'Send' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Refresh bill' }));
+    await waitFor(() => expect(refreshed).toBe(true));
+    expect(sent).toBe(false);
+  });
+
+  it('asks before sending a draft the server says has negative stock', async () => {
+    useApi([bill({})]);
+    const bodies: unknown[] = [];
+    server.use(
+      http.post(apiUrl('/businesses/biz-1/bills/b1/send'), async ({ request }) => {
+        const body = await request.json().catch(() => null);
+        bodies.push(body);
+        if (body) return ok(bill({}));
+        return HttpResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'NEGATIVE_STOCK_ACK_REQUIRED',
+              details: {
+                negativeStock: [
+                  {
+                    itemId: 'i1',
+                    itemName: 'Prop 3m',
+                    from: '2026-10-03T00:00:00.000Z',
+                    to: '2026-10-03T00:00:00.000Z',
+                    minQty: -1,
+                  },
+                ],
+              },
+            },
+          },
+          { status: 409 }
+        );
+      })
+    );
+    const { user } = renderPage();
+    const table = await screen.findByRole('table');
+    await user.click(within(table).getByRole('button', { name: 'Send' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/Prop 3m: 3 Oct, lowest count -1/)).toBeVisible();
+    await user.click(within(dialog).getByRole('button', { name: 'Send anyway' }));
+    await waitFor(() => expect(bodies).toEqual([null, { acknowledgeNegative: true }]));
   });
 
   it('does not delete when declined', async () => {

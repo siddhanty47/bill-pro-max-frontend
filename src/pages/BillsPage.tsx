@@ -38,6 +38,8 @@ import {
 } from '../components/ui';
 import { BillForm } from '../components/forms/BillForm';
 import { BulkBillForm } from '../components/forms/BulkBillForm';
+import { isIssued } from '../utils/billStatus';
+import { useBillIssueGate } from '../hooks/useBillIssueGate';
 import { BulkBillProgress } from '../components/BulkBillProgress';
 import { getErrorMessage } from '../api/baseApi';
 import { formatDate, formatMoney } from '../utils/format';
@@ -90,6 +92,8 @@ export function BillsPage() {
   const [deleteBill] = useDeleteBillMutation();
   const [sendBillEmail] = useSendBillEmailMutation();
   const [downloadPdf, { isLoading: isDownloading }] = useLazyGetBillPdfQuery();
+
+  const gate = useBillIssueGate(currentBusinessId);
 
   const { batches, startBatch, dismissBatch } = useBillGenerationProgress();
 
@@ -146,14 +150,13 @@ export function BillsPage() {
 
   const handleSendEmail = async (bill: Bill) => {
     if (!currentBusinessId) return;
-    try {
-      await sendBillEmail({
+    await gate.attempt(bill, acknowledgeNegative =>
+      sendBillEmail({
         businessId: currentBusinessId,
         billId: bill._id,
-      }).unwrap();
-    } catch (err) {
-      alert(getErrorMessage(err));
-    }
+        acknowledgeNegative,
+      }).unwrap()
+    );
   };
 
   const handleDownloadPdf = async (bill: Bill) => {
@@ -175,12 +178,7 @@ export function BillsPage() {
   };
 
   const handleDelete = async (bill: Bill) => {
-    const isDraftOrCancelled = bill.status === 'draft' || bill.status === 'cancelled';
-    const message = isDraftOrCancelled
-      ? `Delete bill "${bill.billNumber}"?`
-      : `Bill "${bill.billNumber}" has status "${bill.status}". Force delete anyway? This cannot be undone.`;
-
-    if (!confirm(message)) return;
+    if (!confirm(`Delete bill "${bill.billNumber}"?`)) return;
 
     try {
       await deleteBill({
@@ -203,16 +201,29 @@ export function BillsPage() {
   const statusCell = (bill: Bill) => (
     <span className={styles.status}>
       <StatusChip status={bill.status} />
-      {bill.drift != null && (
-        <StatusChip status="stale" tone="warning" title="Stale — underlying challan data changed">
-          Stale
+      {!isIssued(bill) && bill.drift != null && (
+        <StatusChip
+          status="out-of-date"
+          tone="warning"
+          title="The total has changed since this bill was made"
+        >
+          Out of date
+        </StatusChip>
+      )}
+      {isIssued(bill) && bill.pendingAdjustment != null && (
+        <StatusChip
+          status="pending-adjustment"
+          tone="info"
+          title="A credit or debit note is pending"
+        >
+          Pending adj.
         </StatusChip>
       )}
     </span>
   );
 
   const rowActions = (bill: Bill) => {
-    const removable = bill.status === 'draft' || bill.status === 'cancelled';
+    const removable = !isIssued(bill);
     let primary: ReactNode = null;
     if (bill.status === 'draft') {
       primary = (
@@ -236,11 +247,9 @@ export function BillsPage() {
             onClick: () => handleDownloadPdf(bill),
             disabled: isDownloading,
           },
-          {
-            label: removable ? 'Delete' : 'Force delete',
-            onClick: () => handleDelete(bill),
-            tone: 'danger',
-          },
+          ...(removable
+            ? [{ label: 'Delete', onClick: () => handleDelete(bill), tone: 'danger' as const }]
+            : []),
         ]}
       />
     );
@@ -418,6 +427,8 @@ export function BillsPage() {
           isLoading={isBulkGenerating}
         />
       </Modal>
+
+      {gate.dialog}
     </div>
   );
 }
