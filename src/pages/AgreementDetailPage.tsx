@@ -8,6 +8,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styles from './AgreementDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
+import { useChangeGate } from '../hooks/useChangeGate';
 import {
   useGetAgreementQuery,
   useGetAgreementsQuery,
@@ -130,6 +131,7 @@ export function AgreementDetailPage() {
   const [updateRate] = useUpdateAgreementRateMutation();
   const [changeRates, { isLoading: isChangingRates }] = useChangeAgreementRatesMutation();
   const navigate = useNavigate();
+  const { run: runGated, dialog: changeDialog } = useChangeGate();
   const [isChangeRatesOpen, setChangeRatesOpen] = useState(false);
   const [changeRatesError, setChangeRatesError] = useState<string | undefined>();
 
@@ -138,19 +140,25 @@ export function AgreementDetailPage() {
     async (data: ChangeAgreementRatesInput) => {
       setChangeRatesError(undefined);
       try {
-        const result = await changeRates({
-          businessId: currentBusinessId!,
-          agreementId: agreementId!,
-          data,
-        }).unwrap();
-        if (isDryRunResult(result)) return;
+        let created: string | undefined;
+        const saved = await runGated(async gate => {
+          const result = await changeRates({
+            businessId: currentBusinessId!,
+            agreementId: agreementId!,
+            data,
+            ...gate,
+          }).unwrap();
+          if (!isDryRunResult(result)) created = result.agreement.agreementId;
+          return result;
+        });
+        if (!saved) return;
         setChangeRatesOpen(false);
-        navigate(`/agreements/${result.agreement.agreementId}`);
+        if (created) navigate(`/agreements/${created}`);
       } catch (err) {
         setChangeRatesError(getErrorMessage(err));
       }
     },
-    [changeRates, currentBusinessId, agreementId, navigate]
+    [changeRates, currentBusinessId, agreementId, navigate, runGated]
   );
 
   /** Tracks which rate row is currently being saved */
@@ -163,13 +171,16 @@ export function AgreementDetailPage() {
    */
   const handleSave = useCallback(
     async (field: string, newValue: string | number) => {
-      await updateAgreement({
-        businessId: currentBusinessId!,
-        agreementId: agreementId!,
-        data: { [field]: newValue || undefined },
-      }).unwrap();
+      await runGated(gate =>
+        updateAgreement({
+          businessId: currentBusinessId!,
+          agreementId: agreementId!,
+          data: { [field]: newValue || undefined },
+          ...gate,
+        }).unwrap()
+      );
     },
-    [currentBusinessId, agreementId, updateAgreement]
+    [currentBusinessId, agreementId, updateAgreement, runGated]
   );
 
   /**
@@ -178,13 +189,16 @@ export function AgreementDetailPage() {
    */
   const handleTermsSave = useCallback(
     async (field: string, newValue: string | number) => {
-      await updateAgreement({
-        businessId: currentBusinessId!,
-        agreementId: agreementId!,
-        data: { terms: { [field]: newValue } },
-      }).unwrap();
+      await runGated(gate =>
+        updateAgreement({
+          businessId: currentBusinessId!,
+          agreementId: agreementId!,
+          data: { terms: { [field]: newValue } },
+          ...gate,
+        }).unwrap()
+      );
     },
-    [currentBusinessId, agreementId, updateAgreement]
+    [currentBusinessId, agreementId, updateAgreement, runGated]
   );
 
   /**
@@ -194,17 +208,20 @@ export function AgreementDetailPage() {
     async (itemId: string, newRate: number) => {
       setSavingRateItemId(itemId);
       try {
-        await updateRate({
-          businessId: currentBusinessId!,
-          agreementId: agreementId!,
-          itemId,
-          data: { ratePerDay: newRate },
-        }).unwrap();
+        await runGated(gate =>
+          updateRate({
+            businessId: currentBusinessId!,
+            agreementId: agreementId!,
+            itemId,
+            data: { ratePerDay: newRate },
+            ...gate,
+          }).unwrap()
+        );
       } finally {
         setSavingRateItemId(null);
       }
     },
-    [currentBusinessId, agreementId, updateRate]
+    [currentBusinessId, agreementId, updateRate, runGated]
   );
 
   const [savingOpeningBalItemId, setSavingOpeningBalItemId] = useState<string | null>(null);
@@ -213,17 +230,20 @@ export function AgreementDetailPage() {
     async (itemId: string, newBalance: number) => {
       setSavingOpeningBalItemId(itemId);
       try {
-        await updateRate({
-          businessId: currentBusinessId!,
-          agreementId: agreementId!,
-          itemId,
-          data: { openingBalance: newBalance },
-        }).unwrap();
+        await runGated(gate =>
+          updateRate({
+            businessId: currentBusinessId!,
+            agreementId: agreementId!,
+            itemId,
+            data: { openingBalance: newBalance },
+            ...gate,
+          }).unwrap()
+        );
       } finally {
         setSavingOpeningBalItemId(null);
       }
     },
-    [currentBusinessId, agreementId, updateRate]
+    [currentBusinessId, agreementId, updateRate, runGated]
   );
 
   const tabs = agreement
@@ -636,6 +656,7 @@ export function AgreementDetailPage() {
           />
         </Modal>
       )}
+      {changeDialog}
     </DetailPageShell>
   );
 }

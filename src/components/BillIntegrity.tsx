@@ -27,14 +27,24 @@ export function CauseList({ causes }: { causes: BillChangeCause[] }) {
   );
 }
 
-export function NegativeStockList({ spans }: { spans: NegativeSpan[] }) {
+/** A below-zero span; `to` and `firstCause` (the challan that caused it) are optional. */
+export type NegativeStockSpan = Pick<NegativeSpan, 'itemId' | 'itemName' | 'from' | 'minQty'> & {
+  to?: string;
+  firstCause?: string;
+};
+
+function spanLabel(s: NegativeStockSpan): string {
+  if (s.to == null) return `from ${formatDate(s.from)}`;
+  return s.from === s.to ? formatDate(s.from) : `${formatDate(s.from)} – ${formatDate(s.to)}`;
+}
+
+export function NegativeStockList({ spans }: { spans: NegativeStockSpan[] }) {
   return (
     <ul className={styles.list}>
       {spans.map(s => (
         <li key={`${s.itemId}-${s.from}`}>
-          {s.itemName}:{' '}
-          {s.from === s.to ? formatDate(s.from) : `${formatDate(s.from)} – ${formatDate(s.to)}`},
-          lowest count {s.minQty}
+          {s.itemName}: {spanLabel(s)}, lowest count {s.minQty}
+          {s.firstCause ? ` (challan ${s.firstCause})` : ''}
         </li>
       ))}
     </ul>

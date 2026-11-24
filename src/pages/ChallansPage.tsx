@@ -3,6 +3,7 @@
  */
 import { useState, useRef } from 'react';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
+import { useChangeGate } from '../hooks/useChangeGate';
 import { useHotkey } from '../hooks/useHotkey';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { LIST_PAGE_SIZE, useListPage } from '../hooks/useListPage';
@@ -101,6 +102,7 @@ export function ChallansPage() {
 
   const [createChallan, { isLoading: isCreating }] = useCreateChallanMutation();
   const [confirmChallan] = useConfirmChallanMutation();
+  const { run: runGated, dialog: changeDialog } = useChangeGate();
 
   const handleCreateDelivery = () => {
     setModalVariant('delivery');
@@ -135,11 +137,14 @@ export function ChallansPage() {
   const handleConfirm = async (challan: Challan) => {
     if (!confirm(`Confirm challan ${challan.challanNumber}?`)) return;
     try {
-      await confirmChallan({
-        businessId: currentBusinessId!,
-        challanId: challan._id,
-        confirmedBy: user?.name || user?.email || 'Unknown',
-      }).unwrap();
+      await runGated(gate =>
+        confirmChallan({
+          businessId: currentBusinessId!,
+          challanId: challan._id,
+          confirmedBy: user?.name || user?.email || 'Unknown',
+          ...gate,
+        }).unwrap()
+      );
     } catch (err) {
       alert(getErrorMessage(err));
     }
@@ -335,6 +340,7 @@ export function ChallansPage() {
           isLoading={isCreating}
         />
       </Modal>
+      {changeDialog}
     </div>
   );
 }

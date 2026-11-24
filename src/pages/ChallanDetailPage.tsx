@@ -39,6 +39,7 @@ import {
   TextLink,
   type Column,
 } from '../components/ui';
+import { useChangeGate } from '../hooks/useChangeGate';
 import { EditableField } from '../components/EditableField';
 import type { ChallanItem, DamagedItem } from '../types';
 import { getErrorMessage } from '../api/baseApi';
@@ -102,6 +103,7 @@ export function ChallanDetailPage() {
   const [updateDamagedItems, { isLoading: isSavingDamage }] =
     useUpdateChallanDamagedItemsMutation();
   const [updateChallanDate, { isLoading: isSavingDate }] = useUpdateChallanDateMutation();
+  const { run: runGated, dialog: changeDialog } = useChangeGate();
   const [downloadPdf, { isLoading: isDownloading }] = useLazyGetChallanPdfQuery();
 
   // Add item state
@@ -143,59 +145,72 @@ export function ChallanDetailPage() {
       payload[field] =
         typeof newValue === 'string' && newValue.trim() === '' ? undefined : newValue;
 
-      await updateTransportation({
-        businessId: currentBusinessId,
-        challanId,
-        data: payload,
-      }).unwrap();
+      await runGated(gate =>
+        updateTransportation({
+          businessId: currentBusinessId,
+          challanId,
+          data: payload,
+          ...gate,
+        }).unwrap()
+      );
     },
-    [currentBusinessId, challanId, updateTransportation]
+    [currentBusinessId, challanId, updateTransportation, runGated]
   );
 
   const handleItemQuantitySave = useCallback(
     async (itemId: string, quantity: number) => {
       if (!currentBusinessId || !challanId) return;
-      await updateItem({
-        businessId: currentBusinessId,
-        challanId,
-        itemId,
-        quantity,
-      }).unwrap();
+      await runGated(gate =>
+        updateItem({
+          businessId: currentBusinessId,
+          challanId,
+          itemId,
+          quantity,
+          ...gate,
+        }).unwrap()
+      );
     },
-    [currentBusinessId, challanId, updateItem]
+    [currentBusinessId, challanId, updateItem, runGated]
   );
 
   const handleAddItem = useCallback(async () => {
     if (!currentBusinessId || !challanId || !addItemData) return;
     try {
-      await addItem({
-        businessId: currentBusinessId,
-        challanId,
-        data: addItemData,
-      }).unwrap();
+      const saved = await runGated(gate =>
+        addItem({
+          businessId: currentBusinessId,
+          challanId,
+          data: addItemData,
+          ...gate,
+        }).unwrap()
+      );
+      if (!saved) return;
       setShowAddItem(false);
       setAddItemData(null);
       setAddItemSearch('');
     } catch {
       // error is handled by RTK Query
     }
-  }, [currentBusinessId, challanId, addItemData, addItem]);
+  }, [currentBusinessId, challanId, addItemData, addItem, runGated]);
 
   const handleDeleteItem = useCallback(
     async (itemId: string) => {
       if (!currentBusinessId || !challanId) return;
       if (!window.confirm('Delete this item from the challan?')) return;
       try {
-        await deleteItem({
-          businessId: currentBusinessId,
-          challanId,
-          itemId,
-        }).unwrap();
+        await runGated(gate =>
+          deleteItem({
+            businessId: currentBusinessId,
+            challanId,
+            itemId,
+            ...gate,
+          }).unwrap()
+        );
       } catch {
         // error is handled by RTK Query
       }
     },
-    [currentBusinessId, challanId, deleteItem]
+    [currentBusinessId, challanId, deleteItem, runGated]
   );
 
   const savedDamagedItems = challan?.damagedItems;
@@ -212,13 +227,16 @@ export function ChallanDetailPage() {
   const handleDateSave = useCallback(
     async (_field: string, newValue: string | number) => {
       if (!currentBusinessId || !challanId) return;
-      await updateChallanDate({
-        businessId: currentBusinessId,
-        challanId,
-        date: String(newValue),
-      }).unwrap();
+      await runGated(gate =>
+        updateChallanDate({
+          businessId: currentBusinessId,
+          challanId,
+          date: String(newValue),
+          ...gate,
+        }).unwrap()
+      );
     },
-    [currentBusinessId, challanId, updateChallanDate]
+    [currentBusinessId, challanId, updateChallanDate, runGated]
   );
 
   const handleDownloadPdf = useCallback(async () => {
@@ -245,30 +263,36 @@ export function ChallanDetailPage() {
       .filter(d => d.itemId)
       .map(d => ({ ...d, lossType: d.lossType ?? 'damage' }));
     try {
-      await updateDamagedItems({
-        businessId: currentBusinessId,
-        challanId,
-        damagedItems: filtered,
-      }).unwrap();
-      setEditingDamage(false);
+      const saved = await runGated(gate =>
+        updateDamagedItems({
+          businessId: currentBusinessId,
+          challanId,
+          damagedItems: filtered,
+          ...gate,
+        }).unwrap()
+      );
+      if (saved) setEditingDamage(false);
     } catch {
       // error is handled by RTK Query
     }
-  }, [currentBusinessId, challanId, localDamagedItems, updateDamagedItems]);
+  }, [currentBusinessId, challanId, localDamagedItems, updateDamagedItems, runGated]);
 
   const handleConfirm = useCallback(async () => {
     if (!challan || !currentBusinessId) return;
     if (!confirm(`Confirm challan ${challan.challanNumber}?`)) return;
     try {
-      await confirmChallan({
-        businessId: currentBusinessId,
-        challanId: challan._id,
-        confirmedBy: user?.name || user?.email || 'Unknown',
-      }).unwrap();
+      await runGated(gate =>
+        confirmChallan({
+          businessId: currentBusinessId,
+          challanId: challan._id,
+          confirmedBy: user?.name || user?.email || 'Unknown',
+          ...gate,
+        }).unwrap()
+      );
     } catch (err) {
       alert(getErrorMessage(err));
     }
-  }, [challan, currentBusinessId, confirmChallan, user]);
+  }, [challan, currentBusinessId, confirmChallan, user, runGated]);
 
   const resetAddItem = () => {
     setShowAddItem(false);
@@ -708,6 +732,7 @@ export function ChallanDetailPage() {
           )}
         </>
       )}
+      {changeDialog}
     </DetailPageShell>
   );
 }

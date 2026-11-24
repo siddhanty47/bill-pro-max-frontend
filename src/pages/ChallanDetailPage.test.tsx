@@ -382,6 +382,47 @@ describe('ChallanDetailPage', () => {
     await waitFor(() => expect(bodies).toEqual([{ quantity: 12 }]));
   });
 
+  it('asks for a reason before changing a quantity that touches a sent bill', async () => {
+    useApi();
+    const calls: Array<{ dryRun: boolean; body: unknown }> = [];
+    server.use(
+      http.patch(apiUrl(`${BASE}/items/i1`), async ({ request }) => {
+        const dryRun = new URL(request.url).searchParams.get('dryRun') === 'true';
+        calls.push({ dryRun, body: await request.json() });
+        if (dryRun) {
+          return ok({
+            dryRun: true,
+            report: {
+              affected: [{ billId: 'b9', billNumber: 'INV-9', status: 'sent', issued: true }],
+              negative: [],
+              requiresReason: true,
+              blocked: null,
+            },
+          });
+        }
+        return ok(makeChallan());
+      })
+    );
+    const { user } = renderPage();
+    await openTab(user, /^Items/);
+    const row = within(screen.getByRole('table', { name: 'Items' })).getByRole('row', {
+      name: /Ladder 1.5m/,
+    });
+    await user.click(within(row).getByRole('button', { name: /10/ }));
+    const input = within(row).getByRole('spinbutton', { name: 'Quantity' });
+    await user.clear(input);
+    await user.type(input, '12{Enter}');
+
+    expect(await screen.findByRole('link', { name: 'INV-9' })).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/Reason/), 'Counted again');
+    await user.click(screen.getByRole('button', { name: 'Save anyway' }));
+    await waitFor(() => expect(calls).toHaveLength(2));
+    expect(calls).toEqual([
+      { dryRun: true, body: { quantity: 12 } },
+      { dryRun: false, body: { quantity: 12, reason: 'Counted again' } },
+    ]);
+  });
+
   it('cancels a quantity edit with Escape', async () => {
     useApi();
     const bodies = capture('patch', `${BASE}/items/i1`);

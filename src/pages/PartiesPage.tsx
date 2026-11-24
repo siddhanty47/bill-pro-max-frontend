@@ -3,6 +3,7 @@
  */
 import { useState, useRef } from 'react';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
+import { useChangeGate } from '../hooks/useChangeGate';
 import { useHotkey } from '../hooks/useHotkey';
 import { shortcutLabel } from '../hooks/usePlatform';
 import {
@@ -72,6 +73,7 @@ export function PartiesPage() {
   const [createParty, { isLoading: isCreating }] = useCreatePartyMutation();
   const [deleteParty] = useDeletePartyMutation();
   const [createAgreement, { isLoading: isCreatingAgreement }] = useCreateAgreementMutation();
+  const { run: runGated, dialog: changeDialog } = useChangeGate();
 
   const handleAddParty = () => {
     setSelectedParty(null);
@@ -120,11 +122,15 @@ export function PartiesPage() {
 
   const handleAgreementSubmit = async (data: CreateAgreementInput) => {
     try {
-      await createAgreement({
-        businessId: currentBusinessId!,
-        partyId: selectedParty!._id,
-        data,
-      }).unwrap();
+      const saved = await runGated(gate =>
+        createAgreement({
+          businessId: currentBusinessId!,
+          partyId: selectedParty!._id,
+          data,
+          ...gate,
+        }).unwrap()
+      );
+      if (!saved) return;
       setIsAgreementModalOpen(false);
       setSelectedParty(null);
     } catch (err) {
@@ -331,6 +337,7 @@ export function PartiesPage() {
           party={selectedParty}
         />
       )}
+      {changeDialog}
     </div>
   );
 }
