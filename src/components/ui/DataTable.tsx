@@ -9,6 +9,7 @@ import {
 import { EmptyState } from './EmptyState';
 import { Pagination } from './Pagination';
 import { fromInnerControl } from './innerControl';
+import type { ValueTone } from './status';
 import { Table, THead, TBody, Tr, Th, Td } from './Table';
 import { RowLinkContext, type RowLinkValue } from './rowLink';
 import { useNavigate } from 'react-router-dom';
@@ -23,6 +24,8 @@ export type Column<T> = {
   mono?: boolean;
   hideOnMobile?: boolean;
   nowrap?: boolean;
+  /** Colour this row's value (e.g. a negative count): passed to the cell's `Td tone`. */
+  tone?: (row: T) => ValueTone | undefined;
 };
 
 /**
@@ -256,6 +259,7 @@ function DataTableView<T>({
                   mono={c.mono}
                   hideOnMobile={c.hideOnMobile}
                   nowrap={c.nowrap}
+                  tone={c.tone?.(row)}
                 >
                   {c.render ? c.render(row) : String((row as Record<string, unknown>)[c.key] ?? '')}
                 </Td>

@@ -46,6 +46,8 @@ import type {
   Challan,
   ItemWithParty,
 } from '../types';
+import { NegativeStockNotice } from '../components/stock/NegativeStockNotice';
+import { stockTone } from '../utils/stock';
 
 /** Status options matching EditAgreementForm */
 const STATUS_OPTIONS = [
@@ -358,7 +360,14 @@ export function AgreementDetailPage() {
 
   const siteItemColumns: Column<ItemWithParty>[] = [
     { key: 'itemName', header: 'Item' },
-    { key: 'quantity', header: 'Quantity at site', mono: true, align: 'right', nowrap: true },
+    {
+      key: 'quantity',
+      header: 'Quantity at site',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      tone: i => stockTone(i.quantity),
+    },
   ];
 
   // ─── Challans ─────────────────────────────────────────────────────
@@ -546,6 +555,10 @@ export function AgreementDetailPage() {
 
           {activeTab === 'site-items' && (
             <Card title="Items at site" count={itemsAtSite?.length} padded={false}>
+              <NegativeStockNotice
+                quantities={(itemsAtSite ?? []).map(i => i.quantity)}
+                className={styles.stockNotice}
+              />
               <DataTable
                 aria-label="Items at site"
                 columns={siteItemColumns}

@@ -31,3 +31,8 @@
   font-weight: 500;
   color: var(--text-heading);
 }
+
+/* Negative-count warning above the chart and table. */
+.notice {
+  margin: var(--space-4) var(--space-5) 0;
+}

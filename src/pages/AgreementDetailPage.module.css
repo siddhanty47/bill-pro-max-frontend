@@ -6,3 +6,8 @@
   align-items: baseline;
   gap: var(--space-1);
 }
+
+/* Negative-count warning above the items-at-site table (card body is unpadded). */
+.stockNotice {
+  margin: var(--space-4) var(--space-5) 0;
+}

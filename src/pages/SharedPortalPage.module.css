@@ -58,3 +58,8 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Negative-count warning above the running items table. */
+.stockNotice {
+  margin-bottom: var(--space-4);
+}

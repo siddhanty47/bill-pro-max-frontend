@@ -80,13 +80,16 @@ function useApi(
     payments?: unknown[];
     challans?: unknown[];
     summary?: Partial<typeof summary>;
+    runningItems?: unknown[];
   } = {}
 ) {
   server.use(
     http.get(apiUrl('/share/tok'), () => ok(info)),
     http.get(apiUrl('/share/tok/summary'), () => ok({ ...summary, ...over.summary })),
     http.get(apiUrl('/share/tok/challans'), () => list(over.challans ?? [challan])),
-    http.get(apiUrl('/share/tok/running-items'), () => ok(summary.itemsBreakdown)),
+    http.get(apiUrl('/share/tok/running-items'), () =>
+      ok(over.runningItems ?? summary.itemsBreakdown)
+    ),
     http.get(apiUrl('/share/tok/bills'), () => list(over.bills ?? [bill])),
     http.get(apiUrl('/share/tok/payments'), () => list(over.payments ?? [payment]))
   );
@@ -283,6 +286,16 @@ describe('SharedPortalPage', () => {
     expect(within(item).getByText('Bank transfer')).toBeInTheDocument();
     expect(within(item).getByText('UTR998877')).toBeInTheDocument();
     expect(item).toHaveTextContent('2 Apr 2025 · UTR998877 · March part payment');
+  });
+
+  it('shows a negative running item to the client, flagged', async () => {
+    useApi({ runningItems: [{ itemName: 'Inner 2 mtr', quantity: -18 }] });
+    const { user } = renderPage();
+    await screen.findByRole('heading', { name: 'Mehta Builders' });
+    await openTab(user, 'Running items');
+    const table = await screen.findByRole('table', { name: 'Running items' });
+    expect(within(table).getByText('-18').closest('td')).toHaveClass('tone-negative');
+    expect(screen.getByText('Some counts are below zero')).toBeInTheDocument();
   });
 
   it('shows the running items phone list', async () => {

@@ -36,6 +36,8 @@ import {
   useLazyGetPortalBillPdfQuery,
 } from '../api/shareLinkApi';
 import type { PortalBill, PortalChallan, PortalPayment, PortalRunningItem } from '../types';
+import { NegativeStockNotice } from '../components/stock/NegativeStockNotice';
+import { stockTone } from '../utils/stock';
 
 type TabId = 'summary' | 'challans' | 'running-items' | 'bills' | 'payments';
 
@@ -282,7 +284,14 @@ export function SharedPortalPage() {
 
   const itemColumns: Column<PortalRunningItem>[] = [
     { key: 'itemName', header: 'Item' },
-    { key: 'quantity', header: 'Quantity', mono: true, align: 'right', nowrap: true },
+    {
+      key: 'quantity',
+      header: 'Quantity',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      tone: i => stockTone(i.quantity),
+    },
   ];
 
   const paymentColumns: Column<PortalPayment>[] = [
@@ -406,14 +415,20 @@ export function SharedPortalPage() {
         )}
 
         {activeTab === 'running-items' && (
-          <DataTable
-            aria-label="Running items"
-            columns={itemColumns}
-            rows={runningItems}
-            rowKey={i => i.itemName}
-            empty={<EmptyState title="No items currently in use." />}
-            mobile={itemsMobile}
-          />
+          <>
+            <NegativeStockNotice
+              quantities={runningItems.map(i => i.quantity)}
+              className={styles.stockNotice}
+            />
+            <DataTable
+              aria-label="Running items"
+              columns={itemColumns}
+              rows={runningItems}
+              rowKey={i => i.itemName}
+              empty={<EmptyState title="No items currently in use." />}
+              mobile={itemsMobile}
+            />
+          </>
         )}
 
         {activeTab === 'bills' && (

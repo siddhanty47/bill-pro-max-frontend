@@ -46,6 +46,16 @@ describe('DataTable', () => {
     expect(screen.getByRole('cell', { name: 'Acme' })).toHaveClass('nowrap');
   });
 
+  it('colours a cell by its row tone', () => {
+    const toned: Column<Row>[] = [
+      { key: 'party', header: 'Party' },
+      { key: 'amount', header: 'Amount', tone: r => (r.amount ? 'negative' : undefined) },
+    ];
+    render(<DataTable columns={toned} rows={rows} rowKey={r => r.id} />);
+    expect(screen.getByText('100').closest('td')).toHaveClass('tone-negative');
+    expect(screen.getByText('Beta').closest('tr')?.querySelector('.tone-negative')).toBeNull();
+  });
+
   it('renders an empty string for missing values', () => {
     const cols: Column<Row>[] = [{ key: 'amount', header: 'Amount' }];
     render(<DataTable columns={cols} rows={[rows[1]]} rowKey={r => r.id} />);

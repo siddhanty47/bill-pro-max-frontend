@@ -73,6 +73,7 @@ function setup({
   challans = [] as Challan[],
   isLoading = false,
   nextNumberFails = false,
+  itemsWithPartyFails = false,
 } = {}) {
   server.use(
     http.get(apiUrl('/businesses/biz-1/challans/next-number'), () =>
@@ -81,7 +82,9 @@ function setup({
         : ok(type === 'delivery' ? 'D-2026-27-0007' : 'R-2026-27-0003')
     ),
     http.get(apiUrl('/businesses/biz-1/challans/items-with-party/p1'), () =>
-      ok([{ itemId: 'i1', itemName: 'Steel Pipe', quantity: 12 }])
+      itemsWithPartyFails
+        ? HttpResponse.json({ success: false }, { status: 500 })
+        : ok([{ itemId: 'i1', itemName: 'Steel Pipe', quantity: 12 }])
     ),
     http.get(apiUrl('/businesses/biz-1/employees'), () => ok([transporter]))
   );
@@ -291,6 +294,13 @@ describe('ChallanForm', () => {
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     // Running stock with the party for this agreement (items-with-party API).
     expect(await screen.findByText('12')).toBeInTheDocument();
+  });
+
+  it('shows an unknown running quantity when the items-with-party load fails', async () => {
+    const { user } = setup({ itemsWithPartyFails: true });
+    await pickParty(user);
+    await pickItem(user, itemInputs()[0], 'pi', /PIPE/);
+    expect(await screen.findByTitle('With the party now')).toHaveTextContent('–');
   });
 
   it('adds and removes item rows; the last row cannot be removed', async () => {
