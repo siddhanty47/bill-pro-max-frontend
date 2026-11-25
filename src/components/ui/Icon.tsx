@@ -7,6 +7,7 @@ export type IconName =
   | 'agreements'
   | 'challans'
   | 'bills'
+  | 'notes'
   | 'payments'
   | 'team'
   | 'search'
@@ -71,6 +72,13 @@ const GLYPHS: Record<Exclude<IconName, 'brand'>, ReactNode> = {
     <>
       <path d="M4 2.5h10v13l-2-1.3-1.7 1.3L8.6 14.2 7 15.5l-1.4-1.3L4 15.5z" />
       <path d="M6.5 6.5h5M6.5 9.5h3" />
+    </>
+  ),
+  // Credit/debit note: a page with a ± mark
+  notes: (
+    <>
+      <path d="M4 2.5h7l3 3v10H4z" />
+      <path d="M6.5 8h5M9 5.5v5M6.5 12.5h5" />
     </>
   ),
   payments: (

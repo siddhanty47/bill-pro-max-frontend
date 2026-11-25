@@ -1,12 +1,13 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { BillDetailPage } from './BillDetailPage';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
-import { apiUrl, ok } from '../test/msw/handlers';
-import type { Bill, Party, Payment } from '../types';
+import { apiUrl, ok, pagedOk } from '../test/msw/handlers';
+import { makeBillNote } from '../test/factories';
+import type { Bill, BillNote, Party, Payment } from '../types';
 
 const BASE = '/businesses/biz-1/bills/b1';
 
@@ -113,8 +114,18 @@ const paged = <T,>(data: T[]) =>
     pagination: { page: 1, pageSize: 100, total: data.length, totalPages: 1 },
   });
 
-function useApi(bill: Bill = makeBill(), pays: Payment[] = payments) {
+/** Like the backend notes list: billId/status/source/type filters. */
+function matchNote(n: BillNote, q: URLSearchParams): boolean {
+  return (['billId', 'status', 'source', 'type'] as const).every(
+    k => !q.get(k) || n[k] === q.get(k)
+  );
+}
+
+function useApi(bill: Bill = makeBill(), pays: Payment[] = payments, notes: BillNote[] = []) {
   server.use(
+    http.get(apiUrl('/businesses/biz-1/bill-notes'), ({ request }) =>
+      pagedOk(notes, request, matchNote)
+    ),
     http.get(apiUrl('/businesses'), () => ok([])),
     http.get(apiUrl(BASE), () => ok(bill)),
     http.get(apiUrl('/businesses/biz-1/parties'), () =>
@@ -161,18 +172,6 @@ function renderPage() {
 async function openTab(user: ReturnType<typeof renderPage>['user'], name: RegExp) {
   await user.click(await screen.findByRole('tab', { name }));
 }
-
-/** The PDF endpoint stores a Blob in RTK Query state; silence only that dev warning. */
-const originalError = console.error;
-beforeAll(() => {
-  console.error = (...args: unknown[]) => {
-    if (String(args[0]).includes('non-serializable')) return;
-    originalError(...args);
-  };
-});
-afterAll(() => {
-  console.error = originalError;
-});
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -425,6 +424,8 @@ describe('BillDetailPage', () => {
     await user.click(await screen.findByRole('button', { name: 'More actions' }));
     expect(screen.getAllByRole('menuitem').map(i => i.textContent)).toEqual([
       'Send email',
+      'New credit note',
+      'New debit note',
       'Sent',
       'Paid',
       'Partial',
@@ -674,5 +675,223 @@ describe('BillDetailPage', () => {
     const { user } = renderPage();
     await openTab(user, /Change history/);
     await waitFor(() => expect(historyUrl).toContain('/audit-logs/bill/b1'));
+  });
+
+  describe('credit and debit notes', () => {
+    const cause = {
+      kind: 'challan' as const,
+      id: 'c1',
+      label: 'Challan D-0001',
+      reason: 'Quantity fixed',
+      at: '2026-01-02T00:00:00.000Z',
+    };
+    const draftAuto = (over: Partial<BillNote> = {}) =>
+      makeBillNote({
+        _id: 'n9',
+        billId: 'b1',
+        source: 'auto',
+        type: 'debit',
+        status: 'draft',
+        totalAmount: 300,
+        causes: [cause],
+        ...over,
+      });
+
+    it('turns the pending adjustment into the draft auto note with a review link', async () => {
+      useApi(
+        makeBill({ status: 'sent', pendingAdjustment: { ...driftOf(), amount: 300 } }),
+        payments,
+        [draftAuto()]
+      );
+      renderPage();
+      expect(await screen.findByText('Draft debit note +₹300')).toBeVisible();
+      expect(screen.getByRole('link', { name: 'Review' })).toHaveAttribute(
+        'href',
+        '/bill-notes/n9'
+      );
+      expect(screen.getByText(/Challan D-0001: Quantity fixed/)).toBeVisible();
+      expect(screen.queryByText(/Pending adjustment/)).not.toBeInTheDocument();
+    });
+
+    it('names a draft credit note by its amount', async () => {
+      useApi(makeBill({ status: 'paid', amountPaid: 100000 }), payments, [
+        draftAuto({ type: 'credit', totalAmount: 250 }),
+      ]);
+      renderPage();
+      expect(await screen.findByText('Draft credit note -₹250')).toBeVisible();
+    });
+
+    it('shows notes and the effective amount in the totals, and the balance from it', async () => {
+      useApi(makeBill({ status: 'sent', notesTotal: -1000 }));
+      renderPage();
+      const table = await screen.findByRole('table', { name: 'Summary' });
+      const row = (label: string) => within(table).getByText(label).closest('tr')!;
+      expect(within(row('Credit/debit notes')).getByText('-₹1,000')).toHaveClass('mono');
+      expect(within(row('Effective')).getByText('₹99,000')).toBeVisible();
+      expect(within(row('Balance due')).getByText('₹59,000')).toBeVisible();
+    });
+
+    it('shows a debit total with a plus sign', async () => {
+      useApi(makeBill({ status: 'sent', notesTotal: 500 }));
+      renderPage();
+      const table = await screen.findByRole('table', { name: 'Summary' });
+      expect(within(table).getByText('+₹500')).toBeVisible();
+      expect(within(table).getByText('₹1,00,500')).toBeVisible();
+      expect(within(table).getByText('₹60,500')).toBeVisible();
+    });
+
+    it('hides notes and effective rows when the bill has no notes', async () => {
+      useApi(makeBill({ status: 'sent', notesTotal: 0 }));
+      renderPage();
+      const table = await screen.findByRole('table', { name: 'Summary' });
+      expect(within(table).queryByText('Effective')).not.toBeInTheDocument();
+      expect(within(table).queryByText('Credit/debit notes')).not.toBeInTheDocument();
+    });
+
+    it('lists the notes on an issued bill in a Credit/debit notes tab', async () => {
+      useApi(makeBill({ status: 'sent' }), payments, [
+        makeBillNote({
+          _id: 'n1',
+          billId: 'b1',
+          status: 'issued',
+          noteNumber: 'CN/2026-27/0001',
+          noteDate: '2026-11-21T00:00:00.000Z',
+        }),
+        draftAuto(),
+      ]);
+      const { user } = renderPage();
+      await openTab(user, /^Credit\/debit notes/);
+      const table = screen.getByRole('table', { name: 'Bill notes' });
+      const issued = within(table).getByText('CN/2026-27/0001').closest('tr')!;
+      expect(within(issued).getByText('-₹1,180')).toBeVisible();
+      expect(within(issued).getByText('Issued')).toBeVisible();
+      const draft = within(table).getByText('+₹300').closest('tr')!;
+      expect(within(draft).getByText('Auto')).toBeVisible();
+      expect(screen.getByRole('tab', { name: /Credit\/debit notes/ })).toHaveTextContent('2');
+    });
+
+    it('offers no notes tab or new-note actions on a draft bill', async () => {
+      useApi();
+      const { user } = renderPage();
+      await screen.findByRole('table', { name: 'Summary' });
+      expect(screen.queryByRole('tab', { name: /^Credit\/debit notes/ })).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'More actions' }));
+      expect(screen.queryByRole('menuitem', { name: /New credit note/ })).not.toBeInTheDocument();
+    });
+
+    it('creates a full credit note and opens it', async () => {
+      useApi(makeBill({ status: 'sent', notesTotal: -1000 }));
+      const bodies: unknown[] = [];
+      server.use(
+        http.post(apiUrl('/businesses/biz-1/bill-notes'), async ({ request }) => {
+          bodies.push(await request.json());
+          return ok(makeBillNote({ _id: 'new1', billId: 'b1' }));
+        })
+      );
+      const { user } = renderPage();
+      await user.click(await screen.findByRole('button', { name: 'More actions' }));
+      await user.click(screen.getByRole('menuitem', { name: 'New credit note' }));
+      const dialog = screen.getByRole('dialog', { name: 'New credit note' });
+      await user.click(within(dialog).getByRole('checkbox', { name: 'Credit the full bill' }));
+      // Full value = effective amount
+      expect(within(dialog).getByText('-₹99,000')).toBeVisible();
+      await user.type(within(dialog).getByLabelText(/Reason/), 'Raised in error');
+      await user.click(within(dialog).getByRole('button', { name: 'Create note' }));
+      await waitFor(() =>
+        expect(screen.getByTestId('where')).toHaveTextContent('/bill-notes/new1')
+      );
+      expect(bodies).toEqual([
+        { billId: 'b1', type: 'credit', reason: 'Raised in error', fullValue: true },
+      ]);
+    });
+
+    it('creates a debit note with lines from the Notes tab', async () => {
+      useApi(makeBill({ status: 'paid', amountPaid: 100000 }));
+      const bodies: unknown[] = [];
+      server.use(
+        http.post(apiUrl('/businesses/biz-1/bill-notes'), async ({ request }) => {
+          bodies.push(await request.json());
+          return ok(makeBillNote({ _id: 'new2', type: 'debit' }));
+        })
+      );
+      const { user } = renderPage();
+      await openTab(user, /^Credit\/debit notes/);
+      expect(screen.getByText('No notes on this bill')).toBeVisible();
+      await user.click(screen.getByRole('button', { name: 'New debit note' }));
+      const dialog = screen.getByRole('dialog', { name: 'New debit note' });
+      expect(
+        within(dialog).queryByRole('checkbox', { name: 'Credit the full bill' })
+      ).not.toBeInTheDocument();
+      await user.type(within(dialog).getByLabelText('Description for line 1'), 'Extra trip');
+      await user.type(within(dialog).getByLabelText('Amount for line 1'), '500');
+      await user.type(within(dialog).getByLabelText(/Reason/), 'Missed transport');
+      await user.click(within(dialog).getByRole('button', { name: 'Create note' }));
+      await waitFor(() =>
+        expect(screen.getByTestId('where')).toHaveTextContent('/bill-notes/new2')
+      );
+      expect(bodies).toEqual([
+        {
+          billId: 'b1',
+          type: 'debit',
+          reason: 'Missed transport',
+          lines: [{ kind: 'other', description: 'Extra trip', amount: 500 }],
+        },
+      ]);
+    });
+
+    it('keeps the new-note dialog open while the note is being created', async () => {
+      useApi(makeBill({ status: 'sent' }));
+      let release: () => void = () => {};
+      server.use(
+        http.post(
+          apiUrl('/businesses/biz-1/bill-notes'),
+          () =>
+            new Promise<Response>(resolve => {
+              release = () => resolve(ok(makeBillNote({ _id: 'new3' })));
+            })
+        )
+      );
+      const { user } = renderPage();
+      await user.click(await screen.findByRole('button', { name: 'More actions' }));
+      await user.click(screen.getByRole('menuitem', { name: 'New credit note' }));
+      const dialog = screen.getByRole('dialog', { name: 'New credit note' });
+      await user.click(within(dialog).getByRole('checkbox', { name: 'Credit the full bill' }));
+      await user.type(within(dialog).getByLabelText(/Reason/), 'Raised in error');
+      await user.click(within(dialog).getByRole('button', { name: 'Create note' }));
+      await waitFor(() =>
+        expect(within(dialog).getByRole('button', { name: 'Create note' })).toBeDisabled()
+      );
+      await user.keyboard('{Escape}');
+      expect(screen.getByRole('dialog', { name: 'New credit note' })).toBeVisible();
+      release();
+      await waitFor(() =>
+        expect(screen.getByTestId('where')).toHaveTextContent('/bill-notes/new3')
+      );
+    });
+
+    it('shows CREDIT_EXCEEDS_BILL from the server in the form', async () => {
+      useApi(makeBill({ status: 'sent' }));
+      server.use(
+        http.post(apiUrl('/businesses/biz-1/bill-notes'), () =>
+          HttpResponse.json(
+            {
+              success: false,
+              error: { code: 'CREDIT_EXCEEDS_BILL', message: 'Credit is more than the bill' },
+            },
+            { status: 400 }
+          )
+        )
+      );
+      const { user } = renderPage();
+      await user.click(await screen.findByRole('button', { name: 'More actions' }));
+      await user.click(screen.getByRole('menuitem', { name: 'New credit note' }));
+      const dialog = screen.getByRole('dialog', { name: 'New credit note' });
+      await user.type(within(dialog).getByLabelText('Description for line 1'), 'Refund');
+      await user.type(within(dialog).getByLabelText('Amount for line 1'), '200000');
+      await user.type(within(dialog).getByLabelText(/Reason/), 'Goodwill');
+      await user.click(within(dialog).getByRole('button', { name: 'Create note' }));
+      expect(await within(dialog).findByText('Credit is more than the bill')).toBeVisible();
+      expect(screen.getByRole('dialog', { name: 'New credit note' })).toBeVisible();
+    });
   });
 });

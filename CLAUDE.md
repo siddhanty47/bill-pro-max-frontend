@@ -68,6 +68,7 @@ Defined in `src/App.tsx`.
 - `/agreements`, `/agreements/:agreementId`
 - `/challans`, `/challans/:challanId`
 - `/bills`, `/bills/:billId`
+- `/bill-notes`, `/bill-notes/:noteId` — Credit/debit notes (list searches in the browser over `getAllBillNotes`; the endpoint has no text search)
 - `/payments`, `/payments/:paymentId`
 - `/team` — Team members & invitations
 
@@ -79,7 +80,7 @@ Defined in `src/App.tsx`.
 - Located in `src/components/forms/`
 - Use React Hook Form with Zod resolver for validation
 - Each form has a `.tsx` and optional `.module.css`
-- Forms: `BusinessForm`, `PartyForm`, `InventoryForm`, `AgreementForm`, `ChallanForm`, `BillForm`, `BulkBillForm`, `PaymentForm`
+- Forms: `BusinessForm`, `PartyForm`, `InventoryForm`, `AgreementForm`, `ChallanForm`, `BillForm`, `BulkBillForm`, `PaymentForm`, `BillNoteForm` (note reason + manual line editor with tax preview from the bill's rates)
 
 ### Shared Components
 - `src/components/ui/` — the design-system kit (import from `components/ui`; list and props in `src/components/ui/README.md`): `Button`, `IconButton`, `Icon`, `Brand`, `GoogleIcon`, `Avatar`, `Dot`, `NotAdded`, `NavCount`, `TextLink`, `Notice`, `Card`, `StatCard`, `Meter`, `MeterLegend`, `MeterList`, `ChartCard`, `ScrollArea`, `ProgressBar`, `PageHeader`, `EmptyState`, `StatusChip` (+ `status.ts`), `DocNumber`, `DataTable`, `Table`/`THead`/`TBody`/`Tr`/`Th`/`Td`, `Pagination`, `SegmentedControl`, `Field`/`Input`/`Select`/`Textarea`/`Checkbox`/`Fieldset`, `SearchInput`, `FilterBar`, `Menu`/`MenuItem`/`MenuLabel`/`MenuDivider`, `RowActions`, `Modal`, `Tabs`/`TabPanel`, `Spinner`, `ErrorMessage`
@@ -97,7 +98,7 @@ Defined in `src/App.tsx`.
 
 ### Statement Previews
 - Located in `src/components/statements/`
-- `StatementPreview.tsx` (base), `LedgerPreview.tsx`, `BillsPreview.tsx`, `ItemsPreview.tsx`, `AgingPreview.tsx`
+- `StatementPreview.tsx` (base), `LedgerPreview.tsx`, `BillsPreview.tsx` (adds Notes + Effective columns when a bill has notes), `ItemsPreview.tsx`, `AgingPreview.tsx`
 
 ## Styling Rules
 
@@ -134,12 +135,22 @@ Defined in `src/App.tsx`.
 ## Bill Integrity
 
 - Issued bills (status not `draft`/`cancelled`) are frozen in the UI: no delete / regenerate / refresh.
-- Drafts show "Out of date" (from `bill.drift`) with Refresh (`useRefreshBillMutation`); issued bills show "Pending adjustment" (`bill.pendingAdjustment`); `negativeStock` renders a notice (`components/BillIntegrity.tsx`: `BillIntegrityNotices`, `NegativeStockList`).
+- Drafts show "Out of date" (from `bill.drift`) with Refresh (`useRefreshBillMutation`); issued bills show their draft auto note ("Draft debit note +₹X" / "Draft credit note -₹X" + Review, from `getAllBillNotes({ billId })`), or the legacy "Pending adjustment" card while `bill.pendingAdjustment` has no draft note yet; `negativeStock` renders a notice (`components/BillIntegrity.tsx`: `BillIntegrityNotices`, `NegativeStockList`).
+- Issued bills have a "Credit/debit notes" tab and "New credit note" / "New debit note" (`BillNoteForm mode="create"`, credit can send `fullValue`). Money uses `utils/billMoney.ts`: `effectiveAmount` (total + `notesTotal`) and `balanceDue` everywhere a bill's due amount shows (bill page, bills list, payment form).
 - Issuing goes through `useBillIssueGate` (`hooks/useBillIssueGate.tsx`): blocks out-of-date drafts, confirms negative stock and retries with `acknowledgeNegative`.
 - Challan/agreement mutations the backend gates must be called through `useChangeGate` (`hooks/useChangeGate.tsx`): dry-run preview -> `ChangeImpactDialog` (`components/billing/`) -> reason / `confirmNegative`. Body/params built by `withGate` in `api/changeGate.ts`.
-- Gated mutations use `gatedTags` for `invalidatesTags` so dry runs invalidate nothing.
+- Gated mutations use `gatedTags` for `invalidatesTags` so dry runs invalidate nothing. Their lists include `'BillNote'` (the drift pass re-derives auto notes on a real write).
 - Read error codes with `getApiError` / `hasApiErrorCode` (`src/utils/apiError.ts`), never by string-matching messages.
 - Rule: a new gated backend mutation needs its frontend call site wrapped in `useChangeGate` (and its endpoint using `withGate` + `gatedTags`).
+
+## Credit/Debit Notes
+
+- Issued bills are corrected only by notes (`BillNote`: `credit`/`debit`, `auto`/`manual`, `draft` → `issued` | `cancelled`; issued notes are frozen).
+- API: `src/api/billNoteApi.ts` (`getBillNotes` paged, `getAllBillNotes` whole list by `partyId`/`billId`/status/type/source, get/create/update/issue/cancel/send, `downloadBillNotePdf`). Portal: `shareLinkApi.getPortalNotes` (issued only) + `downloadPortalNotePdf`.
+- Pages: `/bill-notes` (`BillNotesPage`), `/bill-notes/:noteId` (`BillNoteDetailPage`); "Credit/debit notes" tabs on the bill page (issued bills) and the party page; the portal's Bills tab lists issued notes with a PDF per row. Every notes table is `components/billing/BillNotesTable` (`showBill`, `partyName` toggle columns), never a copy.
+- `BillNoteForm` (`components/forms/`): reason + manual line editor, tax preview from the bill's own rates (`manualNoteTotals`). An edit sends `lines` only when they changed. Auto drafts and full-value credits (`note.fullValue`, `amountsFixed`) edit only the reason; the backend 400s `lines` on a full-value draft.
+- Money: `utils/billMoney.ts` `effectiveAmount` (total + `notesTotal`), `balanceDue`, `signedMoney`, `noteSign`. Every note amount and bill notes total is shown with `signedMoney` (+ debit, − credit; a note's discount reads as −). Any bill amount or balance shown (bill page, bills list, party bills tab, payment form, portal) goes through them. Labels and the PDF name (`noteFileName`) live in `utils/billNoteLabels.ts`.
+- File downloads (all PDFs): `queryFn` + `downloadFile(url, fileName, baseQuery)` (`src/api/downloadFile.ts`, saves via `utils/download.ts` `saveBlob`); data is `null`, so no Blob ever enters the store. Callers pass `fileName` to the lazy trigger.
 
 ## Adding a New Entity
 

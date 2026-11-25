@@ -1,0 +1,101 @@
+/* Note form: layout only; controls, tables and buttons are kit components. */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.colKind {
+  width: 150px;
+  min-width: 132px;
+}
+
+.colDescription {
+  min-width: 180px;
+}
+
+.colAmount {
+  width: 140px;
+  min-width: 120px;
+}
+
+.colAction {
+  width: 52px;
+}
+
+.numberInput {
+  text-align: right;
+}
+
+.message {
+  margin: 0;
+}
+
+/* Column name inside a cell; only shown on phones, where the header row is hidden. */
+.phoneLabel {
+  display: none;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+@media (max-width: 768px) {
+  /* Rows are kit `Tr stackOnMobile`; here we only place the cells:
+     kind + remove on top, then description, then amount. */
+  .headRow {
+    display: none;
+  }
+
+  .lineRow {
+    --remove-col: calc(44px + 2 * var(--space-2));
+
+    grid-template-columns: minmax(0, 1fr) var(--remove-col);
+    grid-template-areas:
+      'kind action'
+      'description description'
+      'amount amount';
+  }
+
+  .lineRow .colKind {
+    grid-area: kind;
+  }
+
+  .lineRow .colDescription {
+    grid-area: description;
+  }
+
+  .lineRow .colAmount {
+    grid-area: amount;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .lineRow .colAction {
+    grid-area: action;
+  }
+
+  .lineRow .colKind,
+  .lineRow .colDescription,
+  .lineRow .colAmount,
+  .lineRow .colAction {
+    width: auto;
+    min-width: 0;
+  }
+
+  .phoneLabel {
+    display: inline;
+    white-space: nowrap;
+  }
+}

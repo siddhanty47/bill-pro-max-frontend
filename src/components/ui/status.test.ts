@@ -8,6 +8,7 @@ describe('statusTone', () => {
     ['confirmed', 'success'],
     ['completed', 'success'],
     ['sent', 'info'],
+    ['issued', 'info'],
     ['delivery', 'info'],
     ['partial', 'warning'],
     ['pending', 'warning'],

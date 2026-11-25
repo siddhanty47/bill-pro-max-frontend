@@ -1,7 +1,8 @@
 /**
  * @fileoverview Party detail view page
  * @description Detail page for a single party: contact and notes (inline-editable),
- * sites and agreements, bills, payments, statements, share links and change history,
+ * sites and agreements, bills (effective amounts), credit/debit notes, payments, statements,
+ * share links and change history,
  * one tab each. The reference detail page for the kit's detail recipe:
  * DetailPageShell (status once, tabs with counts, sidebar) + DetailSection /
  * DetailField rows + kit Cards holding DataTables.
@@ -20,9 +21,15 @@ import {
   useUpdateSiteMutation,
 } from '../api/partyApi';
 import { useGetBillsByPartyQuery } from '../api/billApi';
+import { useGetAllBillNotesQuery } from '../api/billNoteApi';
+import { BillNotesTable } from '../components/billing/BillNotesTable';
+import { effectiveAmount } from '../utils/billMoney';
 import { useGetPaymentsByPartyQuery } from '../api/paymentApi';
 import { useGetInventoryQuery } from '../api/inventoryApi';
-import { useLazyGetStatementPdfQuery, useLazyGetStatementDataQuery } from '../api/statementApi';
+import {
+  useLazyDownloadStatementPdfQuery,
+  useLazyGetStatementDataQuery,
+} from '../api/statementApi';
 import { StatementPreview } from '../components/statements/StatementPreview';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import {
@@ -114,13 +121,18 @@ export function PartyDetailPage() {
   const [statementTo, setStatementTo] = useState('');
   const [statementScope, setStatementScope] = useState('');
   const [triggerStatementPdf, { isFetching: isDownloadingStatement }] =
-    useLazyGetStatementPdfQuery();
+    useLazyDownloadStatementPdfQuery();
   const [triggerStatementData, { data: previewData, isFetching: isLoadingPreview }] =
     useLazyGetStatementDataQuery();
   const hasStatementDates = !!statementFrom && !!statementTo;
 
   const { data: bills } = useGetBillsByPartyQuery(
     { businessId: currentBusinessId!, partyId: partyId! },
+    { skip: !currentBusinessId || !partyId }
+  );
+
+  const { data: notes } = useGetAllBillNotesQuery(
+    { businessId: currentBusinessId || '', partyId: partyId || '' },
     { skip: !currentBusinessId || !partyId }
   );
 
@@ -208,20 +220,15 @@ export function PartyDetailPage() {
   const handleDownloadStatement = useCallback(async () => {
     if (!currentBusinessId || !partyId || !statementFrom || !statementTo) return;
     try {
-      const blob = await triggerStatementPdf({
+      await triggerStatementPdf({
         businessId: currentBusinessId,
         partyId,
         type: statementType,
         from: statementFrom,
         to: statementTo,
         ...scopeParams(statementScope),
+        fileName: `${statementType}-statement.pdf`,
       }).unwrap();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${statementType}-statement.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
     } catch (err) {
       alert(getErrorMessage(err));
     }
@@ -367,7 +374,7 @@ export function PartyDetailPage() {
       mono: true,
       align: 'right',
       nowrap: true,
-      render: b => formatMoney(b.totalAmount),
+      render: b => formatMoney(effectiveAmount(b)),
     },
   ];
 
@@ -417,6 +424,7 @@ export function PartyDetailPage() {
         { id: 'about', label: 'About' },
         { id: 'sites-agreements', label: 'Sites & agreements', count: sites.length },
         { id: 'bills', label: 'Bills', count: bills?.length },
+        { id: 'notes', label: 'Credit/debit notes', count: notes?.length },
         { id: 'payments', label: 'Payments', count: payments?.length },
         { id: 'statements', label: 'Statements' },
         { id: 'share-links', label: 'Share links' },
@@ -711,10 +719,20 @@ export function PartyDetailPage() {
                   meta: b => [
                     formatDate(billShownDate(b)),
                     <span key="amount" className="mono">
-                      {formatMoney(b.totalAmount)}
+                      {formatMoney(effectiveAmount(b))}
                     </span>,
                   ],
                 }}
+              />
+            </Card>
+          )}
+
+          {activeTab === 'notes' && (
+            <Card title="Notes" count={notes?.length ?? 0} padded={false}>
+              <BillNotesTable
+                aria-label="Party notes"
+                notes={notes ?? []}
+                empty={<EmptyState title="No notes yet" />}
               />
             </Card>
           )}

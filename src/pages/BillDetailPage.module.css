@@ -9,3 +9,10 @@
   padding: var(--space-3) var(--space-4);
   border-top: 1px solid var(--border-default);
 }
+
+/* New credit / debit note buttons in the Notes card header */
+.noteActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

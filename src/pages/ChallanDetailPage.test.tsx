@@ -118,15 +118,6 @@ async function openTab(user: ReturnType<typeof renderPage>['user'], name: RegExp
   await user.click(await screen.findByRole('tab', { name }));
 }
 
-/** The PDF endpoint stores a Blob in RTK Query state; silence only that dev warning. */
-function allowBlobInStore() {
-  const original = console.error;
-  vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
-    if (String(args[0]).includes('non-serializable')) return;
-    original(...args);
-  });
-}
-
 afterEach(() => vi.restoreAllMocks());
 
 describe('ChallanDetailPage record navigation', () => {
@@ -295,7 +286,6 @@ describe('ChallanDetailPage', () => {
   });
 
   it('downloads the PDF', async () => {
-    allowBlobInStore();
     useApi();
     let pdfRequests = 0;
     server.use(

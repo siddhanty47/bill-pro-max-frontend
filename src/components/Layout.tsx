@@ -86,6 +86,12 @@ const navGroups: NavGroup[] = [
           description: 'overdue bills',
         }),
       },
+      {
+        path: '/bill-notes',
+        label: 'Notes',
+        icon: 'notes',
+        count: c => ({ value: c.draftNotes, label: 'draft', description: 'draft notes' }),
+      },
       { path: '/payments', label: 'Payments', icon: 'payments' },
     ],
   },

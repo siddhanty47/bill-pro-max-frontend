@@ -7,6 +7,7 @@ import { billApi } from './billApi';
 import { challanApi } from './challanApi';
 import { agreementApi } from './agreementApi';
 import { partyApi } from './partyApi';
+import { billNoteApi } from './billNoteApi';
 import { isDryRunResult } from './changeGate';
 import { getApiError, hasApiErrorCode } from '../utils/apiError';
 import type { GateReport } from '../types';
@@ -248,6 +249,55 @@ describe('gated mutation invalidation', () => {
     );
     await settle();
     expect(gets).toBe(5);
+    sub.unsubscribe();
+  });
+});
+
+describe('gated mutations refetch bill notes', () => {
+  it('a challan, agreement and party agreement write refetch a subscribed note; dry runs do not', async () => {
+    const store = setupStore();
+    let gets = 0;
+    const gated = ({ request }: { request: Request }) =>
+      new URL(request.url).searchParams.get('dryRun')
+        ? ok({ dryRun: true, report })
+        : ok({ _id: 'x' });
+    server.use(
+      http.get(apiUrl('/businesses/b1/bill-notes/n1'), () => {
+        gets += 1;
+        return ok({ _id: 'n1' });
+      }),
+      http.patch(apiUrl('/businesses/b1/challans/c1/date'), gated),
+      http.patch(apiUrl('/businesses/b1/agreements/a1'), gated),
+      http.post(apiUrl('/businesses/b1/parties/p1/agreements'), gated)
+    );
+    const sub = store.dispatch(
+      billNoteApi.endpoints.getBillNote.initiate({ businessId: 'b1', noteId: 'n1' })
+    );
+    await sub;
+    const settle = () => new Promise(r => setTimeout(r, 60));
+    const challan = { businessId: 'b1', challanId: 'c1', date: '2026-01-05' };
+    const agreement = { businessId: 'b1', agreementId: 'a1', data: {} as never };
+    const party = { businessId: 'b1', partyId: 'p1', data: {} as never };
+
+    await store.dispatch(
+      challanApi.endpoints.updateChallanDate.initiate({ ...challan, dryRun: true })
+    );
+    await store.dispatch(
+      agreementApi.endpoints.updateAgreement.initiate({ ...agreement, dryRun: true })
+    );
+    await store.dispatch(partyApi.endpoints.createAgreement.initiate({ ...party, dryRun: true }));
+    await settle();
+    expect(gets).toBe(1);
+
+    await store.dispatch(challanApi.endpoints.updateChallanDate.initiate(challan));
+    await settle();
+    expect(gets).toBe(2);
+    await store.dispatch(agreementApi.endpoints.updateAgreement.initiate(agreement));
+    await settle();
+    expect(gets).toBe(3);
+    await store.dispatch(partyApi.endpoints.createAgreement.initiate(party));
+    await settle();
+    expect(gets).toBe(4);
     sub.unsubscribe();
   });
 });

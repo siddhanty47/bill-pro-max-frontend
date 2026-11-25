@@ -2,6 +2,7 @@
  * @file RTK Query API for share link management and public portal.
  */
 import { baseApi } from './baseApi';
+import { downloadFile } from './downloadFile';
 import type {
   ApiResponse,
   ShareLink,
@@ -11,6 +12,7 @@ import type {
   PortalSummary,
   PortalChallan,
   PortalBill,
+  PortalNote,
   PortalRunningItem,
   PortalPayment,
   PaginatedResponse,
@@ -123,6 +125,24 @@ export const shareLinkApi = baseApi.injectEndpoints({
       },
     }),
 
+    /** Get portal credit/debit notes (issued only) */
+    getPortalNotes: builder.query<
+      {
+        success: boolean;
+        data: PortalNote[];
+        pagination: PaginatedResponse<PortalNote>['pagination'];
+      },
+      { token: string; page?: number; pageSize?: number }
+    >({
+      query: ({ token, ...params }) => {
+        const searchParams = new URLSearchParams();
+        if (params.page) searchParams.set('page', String(params.page));
+        if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
+        const qs = searchParams.toString();
+        return `/share/${token}/notes${qs ? `?${qs}` : ''}`;
+      },
+    }),
+
     /** Get portal payments */
     getPortalPayments: builder.query<
       {
@@ -146,21 +166,35 @@ export const shareLinkApi = baseApi.injectEndpoints({
       query: token => `/share/${token}/summary`,
     }),
 
+    // PDFs: fetched and saved as `fileName`; the Blob stays out of the store (data is null)
+
     /** Download portal challan PDF */
-    getPortalChallanPdf: builder.query<Blob, { token: string; challanId: string }>({
-      query: ({ token, challanId }) => ({
-        url: `/share/${token}/challans/${challanId}/pdf`,
-        responseHandler: (response: Response) => response.blob(),
-      }),
+    downloadPortalChallanPdf: builder.query<
+      null,
+      { token: string; challanId: string; fileName: string }
+    >({
+      queryFn: ({ token, challanId, fileName }, _api, _extra, baseQuery) =>
+        downloadFile(`/share/${token}/challans/${challanId}/pdf`, fileName, baseQuery),
+      keepUnusedDataFor: 0,
     }),
 
     /** Download portal bill PDF */
-    getPortalBillPdf: builder.query<Blob, { token: string; billId: string }>({
-      query: ({ token, billId }) => ({
-        url: `/share/${token}/bills/${billId}/pdf`,
-        responseHandler: (response: Response) => response.blob(),
-      }),
-    }),
+    downloadPortalBillPdf: builder.query<null, { token: string; billId: string; fileName: string }>(
+      {
+        queryFn: ({ token, billId, fileName }, _api, _extra, baseQuery) =>
+          downloadFile(`/share/${token}/bills/${billId}/pdf`, fileName, baseQuery),
+        keepUnusedDataFor: 0,
+      }
+    ),
+
+    /** Download portal credit/debit note PDF */
+    downloadPortalNotePdf: builder.query<null, { token: string; noteId: string; fileName: string }>(
+      {
+        queryFn: ({ token, noteId, fileName }, _api, _extra, baseQuery) =>
+          downloadFile(`/share/${token}/notes/${noteId}/pdf`, fileName, baseQuery),
+        keepUnusedDataFor: 0,
+      }
+    ),
   }),
 });
 
@@ -173,8 +207,10 @@ export const {
   useGetPortalChallansQuery,
   useGetPortalRunningItemsQuery,
   useGetPortalBillsQuery,
+  useGetPortalNotesQuery,
   useGetPortalPaymentsQuery,
   useGetPortalSummaryQuery,
-  useLazyGetPortalChallanPdfQuery,
-  useLazyGetPortalBillPdfQuery,
+  useLazyDownloadPortalChallanPdfQuery,
+  useLazyDownloadPortalBillPdfQuery,
+  useLazyDownloadPortalNotePdfQuery,
 } = shareLinkApi;

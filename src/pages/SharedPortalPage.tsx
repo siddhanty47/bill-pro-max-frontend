@@ -1,7 +1,8 @@
 /**
  * @file SharedPortalPage
  * @description Public read-only portal for parties to view their challans,
- * running items, bills, and payment status via a shareable token-based URL.
+ * running items, bills (effective amounts and balances, with their issued credit/debit notes)
+ * and payment status via a shareable token-based URL.
  * Works signed-out: every call is keyed by the share token.
  */
 import { useState } from 'react';
@@ -31,11 +32,21 @@ import {
   useGetPortalChallansQuery,
   useGetPortalRunningItemsQuery,
   useGetPortalBillsQuery,
+  useGetPortalNotesQuery,
   useGetPortalPaymentsQuery,
-  useLazyGetPortalChallanPdfQuery,
-  useLazyGetPortalBillPdfQuery,
+  useLazyDownloadPortalChallanPdfQuery,
+  useLazyDownloadPortalBillPdfQuery,
+  useLazyDownloadPortalNotePdfQuery,
 } from '../api/shareLinkApi';
-import type { PortalBill, PortalChallan, PortalPayment, PortalRunningItem } from '../types';
+import type {
+  PortalBill,
+  PortalChallan,
+  PortalNote,
+  PortalPayment,
+  PortalRunningItem,
+} from '../types';
+import { balanceDue, effectiveAmount, noteSign, signedMoney } from '../utils/billMoney';
+import { NOTE_TYPE_LABEL, noteFileName } from '../utils/billNoteLabels';
 import { NegativeStockNotice } from '../components/stock/NegativeStockNotice';
 import { stockTone } from '../utils/stock';
 
@@ -64,6 +75,7 @@ const periodText = (b: PortalBill) =>
   b.billingPeriod
     ? `${formatDate(b.billingPeriod.start)} - ${formatDate(b.billingPeriod.end)}`
     : '';
+const noteAmount = (n: PortalNote) => signedMoney(noteSign(n.type) * n.totalAmount);
 const dueText = (b: PortalBill) => (b.dueDate ? `Due ${formatDate(b.dueDate)}` : '');
 
 type PagerProps = {
@@ -100,37 +112,21 @@ export function SharedPortalPage() {
   const [challanPage, setChallanPage] = useState(1);
   const [billPage, setBillPage] = useState(1);
   const [paymentPage, setPaymentPage] = useState(1);
+  const [notePage, setNotePage] = useState(1);
 
-  const [triggerChallanPdf] = useLazyGetPortalChallanPdfQuery();
-  const [triggerBillPdf] = useLazyGetPortalBillPdfQuery();
+  const [triggerChallanPdf] = useLazyDownloadPortalChallanPdfQuery();
+  const [triggerBillPdf] = useLazyDownloadPortalBillPdfQuery();
+  const [triggerNotePdf] = useLazyDownloadPortalNotePdfQuery();
 
-  const handleDownloadChallanPdf = async (challanId: string, challanNumber: string) => {
-    try {
-      const blob = await triggerChallanPdf({ token: token!, challanId }).unwrap();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `challan-${challanNumber}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      // silently fail — user sees no PDF
-    }
-  };
+  // A failed download fails silently: the client simply gets no PDF
+  const handleDownloadChallanPdf = (challanId: string, challanNumber: string) =>
+    triggerChallanPdf({ token: token!, challanId, fileName: `challan-${challanNumber}.pdf` });
 
-  const handleDownloadBillPdf = async (billId: string, billNumber: string) => {
-    try {
-      const blob = await triggerBillPdf({ token: token!, billId }).unwrap();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `invoice-${billNumber}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      // silently fail
-    }
-  };
+  const handleDownloadBillPdf = (billId: string, billNumber: string) =>
+    triggerBillPdf({ token: token!, billId, fileName: `invoice-${billNumber}.pdf` });
+
+  const handleDownloadNotePdf = (n: PortalNote) =>
+    triggerNotePdf({ token: token!, noteId: n._id, fileName: noteFileName(n.noteNumber) });
 
   const {
     data: infoResult,
@@ -154,6 +150,11 @@ export function SharedPortalPage() {
     { token: token!, page: billPage, pageSize: 20 },
     { skip: !token || activeTab !== 'bills' }
   );
+  // Issued notes only (the backend never sends drafts), listed under the bills
+  const { data: notesResult } = useGetPortalNotesQuery(
+    { token: token!, page: notePage, pageSize: 20 },
+    { skip: !token || activeTab !== 'bills' }
+  );
   const { data: paymentsResult } = useGetPortalPaymentsQuery(
     { token: token!, page: paymentPage, pageSize: 20 },
     { skip: !token || activeTab !== 'payments' }
@@ -164,6 +165,7 @@ export function SharedPortalPage() {
   const runningItems = runningItemsResult?.data || [];
   const bills = billsResult?.data || [];
   const payments = paymentsResult?.data || [];
+  const notes = notesResult?.data || [];
 
   if (infoLoading) {
     return <Spinner message="Loading portal…" />;
@@ -249,7 +251,7 @@ export function SharedPortalPage() {
       mono: true,
       align: 'right',
       nowrap: true,
-      render: b => formatMoney(b.totalAmount),
+      render: b => formatMoney(effectiveAmount(b)),
     },
     {
       key: 'amountPaid',
@@ -258,6 +260,14 @@ export function SharedPortalPage() {
       align: 'right',
       nowrap: true,
       render: b => formatMoney(b.amountPaid),
+    },
+    {
+      key: 'balance',
+      header: 'Balance',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: b => formatMoney(balanceDue(b)),
     },
     {
       key: 'dueDate',
@@ -280,6 +290,41 @@ export function SharedPortalPage() {
           handleDownloadBillPdf(b._id, b.billNumber)
         ),
     },
+  ];
+
+  const notePdfAction = (n: PortalNote) =>
+    pdfAction(`Download note ${n.noteNumber} PDF`, () => handleDownloadNotePdf(n));
+
+  const noteColumns: Column<PortalNote>[] = [
+    {
+      key: 'noteNumber',
+      header: 'Note #',
+      nowrap: true,
+      render: n => <DocNumber value={n.noteNumber ?? ''} />,
+    },
+    { key: 'type', header: 'Type', nowrap: true, render: n => NOTE_TYPE_LABEL[n.type] },
+    {
+      key: 'noteDate',
+      header: 'Date',
+      nowrap: true,
+      render: n => (n.noteDate ? formatDate(n.noteDate) : notAdded),
+    },
+    {
+      key: 'billNumber',
+      header: 'Bill #',
+      nowrap: true,
+      render: n => <DocNumber value={n.billNumber} />,
+    },
+    {
+      key: 'totalAmount',
+      header: 'Amount',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: noteAmount,
+    },
+    { key: 'reason', header: 'Reason', render: n => n.reason },
+    { key: 'download', header: 'Download', nowrap: true, render: notePdfAction },
   ];
 
   const itemColumns: Column<PortalRunningItem>[] = [
@@ -445,10 +490,13 @@ export function SharedPortalPage() {
                 subtitle: b => periodText(b),
                 meta: b => [
                   <span key="total">
-                    Total <span className="mono">{formatMoney(b.totalAmount)}</span>
+                    Total <span className="mono">{formatMoney(effectiveAmount(b))}</span>
                   </span>,
                   <span key="paid">
                     Paid <span className="mono">{formatMoney(b.amountPaid)}</span>
+                  </span>,
+                  <span key="balance">
+                    Balance <span className="mono">{formatMoney(balanceDue(b))}</span>
                   </span>,
                   dueText(b),
                 ],
@@ -465,6 +513,39 @@ export function SharedPortalPage() {
                 hasNext={billsResult.pagination.hasNext}
                 onPage={setBillPage}
               />
+            )}
+            {notes.length > 0 && (
+              <Card title="Credit/debit notes" padded={false}>
+                <DataTable
+                  aria-label="Credit/debit notes"
+                  columns={noteColumns}
+                  rows={notes}
+                  rowKey={n => n._id}
+                  mobile={{
+                    title: n => <DocNumber value={n.noteNumber ?? ''} />,
+                    subtitle: n => n.reason,
+                    meta: n => [
+                      NOTE_TYPE_LABEL[n.type],
+                      n.noteDate ? formatDate(n.noteDate) : '',
+                      <span key="bill">
+                        Bill <span className="mono">{n.billNumber}</span>
+                      </span>,
+                      <span key="amount" className="mono">
+                        {noteAmount(n)}
+                      </span>,
+                    ],
+                    actions: notePdfAction,
+                  }}
+                />
+                {notesResult?.pagination && (
+                  <Pager
+                    page={notePage}
+                    totalPages={notesResult.pagination.totalPages}
+                    hasNext={notesResult.pagination.hasNext}
+                    onPage={setNotePage}
+                  />
+                )}
+              </Card>
             )}
           </>
         )}

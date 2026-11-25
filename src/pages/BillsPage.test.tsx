@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, within, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
@@ -98,18 +98,6 @@ const rowNumbers = () =>
     .slice(1)
     .map(r => within(r).getAllByRole('cell')[0].textContent);
 
-// RTK warns that the PDF Blob in the download test is non-serializable; irrelevant here.
-const realError = console.error;
-beforeAll(() => {
-  console.error = (...args: unknown[]) => {
-    if (String(args[0]).includes('non-serializable')) return;
-    realError(...args);
-  };
-});
-afterAll(() => {
-  console.error = realError;
-});
-
 afterEach(() => vi.restoreAllMocks());
 
 describe('BillsPage', () => {
@@ -140,6 +128,27 @@ describe('BillsPage', () => {
     expect(within(issued).queryByText('Out of date')).not.toBeInTheDocument();
     expect(screen.queryByText('Stale')).not.toBeInTheDocument();
     expect(screen.queryByText('Out of date')).not.toBeInTheDocument();
+  });
+
+  it('shows the effective amount, with the original under it when notes exist', async () => {
+    useApi([
+      bill({ status: 'sent', notesTotal: -4200 }),
+      bill({ _id: 'b2', billNumber: 'B-2026-27-0002', status: 'sent', notesTotal: 0 }),
+    ]);
+    renderPage();
+    const table = await screen.findByRole('table');
+    const row = within(table).getByRole('row', { name: /B-2026-27-0001/ });
+    expect(within(row).getByText('₹1,80,000')).toHaveClass('mono');
+    expect(within(row).getByText('₹1,84,200')).toHaveClass('mono');
+    expect(within(row).getByText(/^was/)).toBeInTheDocument();
+    const plain = within(table).getByRole('row', { name: /B-2026-27-0002/ });
+    expect(within(plain).getByText('₹1,84,200')).toBeInTheDocument();
+    expect(within(plain).queryByText(/^was/)).not.toBeInTheDocument();
+
+    const list = screen.getByRole('list', { name: 'Bills' });
+    const item = within(list).getByText('B-2026-27-0001').closest('li') as HTMLElement;
+    expect(within(item).getByText('₹1,80,000')).toHaveClass('mono');
+    expect(within(item).getByText(/^was/)).toBeInTheDocument();
   });
 
   it('flags a draft that is out of date', async () => {

@@ -1,5 +1,6 @@
 import type { BillStatementData } from '../../types';
 import { FULL_DATE, formatDate, formatMoney } from '../../utils/format';
+import { effectiveAmount, signedMoney } from '../../utils/billMoney';
 import { DocNumber, Table, THead, TBody, Tr, Th, Td } from '../ui';
 import { StatementShell } from './StatementShell';
 
@@ -29,14 +30,30 @@ function amountsOf(r: {
   ];
 }
 
+/** Notes (signed: + debit, − credit) and Effective (total + notes) cells of a row or the totals */
+function NotesCells({ amounts }: { amounts: { totalAmount: number; notesTotal: number } }) {
+  return (
+    <>
+      <Td align="right" mono nowrap>
+        {signedMoney(amounts.notesTotal)}
+      </Td>
+      <Td align="right" mono nowrap>
+        {formatMoney(effectiveAmount(amounts))}
+      </Td>
+    </>
+  );
+}
+
 /*
  * Documented exception: with 7 amount columns plus bill, date, site and period, this
  * table can be wider than its column next to the sidebar (about 638px at 1280). It
  * scrolls horizontally inside its own Card (the kit Table wrapper) rather than drop
- * columns or break bill numbers; Period may wrap between its two dates.
+ * columns or break bill numbers; Period may wrap between its two dates. Notes and Effective
+ * columns are added only when some bill has issued credit/debit notes.
  */
 export function BillsPreview({ data }: BillsPreviewProps) {
   const { totals } = data;
+  const showNotes = data.bills.some(b => (b.notesTotal ?? 0) !== 0);
   return (
     <StatementShell
       title="Bill statement"
@@ -58,6 +75,12 @@ export function BillsPreview({ data }: BillsPreviewProps) {
                   {h}
                 </Th>
               ))}
+              {showNotes && (
+                <>
+                  <Th align="right">Notes</Th>
+                  <Th align="right">Effective</Th>
+                </>
+              )}
             </Tr>
           </THead>
           <TBody>
@@ -78,6 +101,7 @@ export function BillsPreview({ data }: BillsPreviewProps) {
                     {formatMoney(amount)}
                   </Td>
                 ))}
+                {showNotes && <NotesCells amounts={bill} />}
               </Tr>
             ))}
             <Tr variant="total">
@@ -89,6 +113,7 @@ export function BillsPreview({ data }: BillsPreviewProps) {
                   {formatMoney(amount)}
                 </Td>
               ))}
+              {showNotes && <NotesCells amounts={totals} />}
             </Tr>
           </TBody>
         </Table>

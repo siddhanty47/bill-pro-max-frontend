@@ -24,6 +24,7 @@ const TONES: Record<string, Tone> = {
   deleted: 'danger',
   present: 'success',
   sent: 'info',
+  issued: 'info',
   delivery: 'info',
   partial: 'warning',
   pending: 'warning',

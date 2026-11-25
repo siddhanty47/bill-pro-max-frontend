@@ -56,6 +56,9 @@ export function ChangeImpactDialog({ report, busy, onCancel, onConfirm }: Props)
               </li>
             ))}
           </ul>
+          <p className={styles.note}>
+            A draft credit or debit note will be updated after you save.
+          </p>
         </div>
       )}
       {report.negative.length > 0 && (

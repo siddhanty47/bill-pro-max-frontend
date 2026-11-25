@@ -61,6 +61,7 @@ export const baseApi = createApi({
     'Inventory',
     'Challan',
     'Bill',
+    'BillNote',
     'Payment',
     'Agreement',
     'Member',
