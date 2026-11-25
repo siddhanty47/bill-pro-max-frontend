@@ -118,6 +118,24 @@ describe('YearClosePage', () => {
     expect(within(row).queryByText(/Issue the bill ending/)).not.toBeInTheDocument();
   });
 
+  it('shows an open FY locked by a later closed FY as Locked, not Open', async () => {
+    useApi({
+      '2024-25': [
+        { ...open, lastBillableDay: '2025-03-31T00:00:00.000Z', lockedByLaterYear: '2025-26' },
+      ],
+    });
+    const { user } = renderPage();
+    await screen.findAllByText('No sites were billable in FY 2025-26');
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Financial year' }), '2024-25');
+
+    const row = (await screen.findByText('Gupta Infra', { selector: 'table a' })).closest('tr')!;
+    await waitFor(() => expect(within(row).getByText('Locked')).toBeVisible());
+    expect(within(row).getByText('Locked by FY 2025-26 close')).toBeVisible();
+    expect(within(row).queryByText('Open')).not.toBeInTheDocument();
+    expect(within(row).queryByText(/Issue the bill ending/)).not.toBeInTheDocument();
+  });
+
   it('shows a missing last billable day as not added', async () => {
     useApi({ '2025-26': [{ ...open, lastBillableDay: null }] });
     renderPage();

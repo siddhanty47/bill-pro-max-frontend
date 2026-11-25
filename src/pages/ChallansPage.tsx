@@ -124,11 +124,14 @@ export function ChallansPage() {
 
   const handleSubmit = async (data: CreateChallanInput) => {
     try {
-      await createChallan({
-        businessId: currentBusinessId!,
-        data,
-      }).unwrap();
-      setIsModalOpen(false);
+      const saved = await runGated(gate =>
+        createChallan({
+          businessId: currentBusinessId!,
+          data,
+          ...gate,
+        }).unwrap()
+      );
+      if (saved) setIsModalOpen(false);
     } catch (err) {
       alert(getErrorMessage(err));
     }

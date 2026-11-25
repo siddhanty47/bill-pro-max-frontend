@@ -816,6 +816,8 @@ export interface YearStatusRow {
   /** ISO date; null when no agreement is active in the FY */
   lastBillableDay: string | null;
   closed: boolean;
+  /** A later FY (e.g. '2026-27') is closed on the site while this one is open: nothing dated in it can change either */
+  lockedByLaterYear?: string;
   closingBillId?: string;
   closingBillNumber?: string;
 }

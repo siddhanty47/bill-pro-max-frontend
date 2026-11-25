@@ -87,6 +87,23 @@ export function isOnOrBeforeDay(day: string | Date, limit: string | Date): boole
   return dayOf(day) <= dayOf(limit);
 }
 
+/** The agreement fields that decide where its billing ends. */
+export interface AgreementEnd {
+  endDate?: string | null;
+  status?: string;
+  nextAgreementId?: string | null;
+}
+
+/**
+ * Where an agreement's billing ends (backend `effectiveEndDate`): its end date once it is closed
+ * (a rate change `nextAgreementId`, or a status other than active), else undefined. An end date
+ * typed on an active agreement never stopped billing, so such an agreement stays open-ended.
+ */
+export function effectiveEndDate(agreement: AgreementEnd): string | undefined {
+  if (!agreement.endDate) return undefined;
+  return agreement.nextAgreementId || agreement.status !== 'active' ? agreement.endDate : undefined;
+}
+
 /** The one line shown wherever a change is refused because the site's FY is closed. */
 export function closedYearMessage(fy: string, lockedThrough: string | Date): string {
   const day = new Date(dayOf(lockedThrough)).toISOString().slice(0, 10);
@@ -97,4 +114,17 @@ export function closedYearMessage(fy: string, lockedThrough: string | Date): str
 export function creditDeadlineMessage(fy: string, setting: string | undefined): string {
   const day = creditNoteDeadline(fy, setting).toISOString().slice(0, 10);
   return `Credit notes for FY ${fy} closed on ${formatDate(day, FULL_DATE)}.`;
+}
+
+/**
+ * The credit-note deadline line for a bill when credits against it are closed (today, IST, is
+ * past the deadline of the FY of its period end), else null. Shared by the bill and note pages.
+ */
+export function creditClosedMessage(
+  periodEnd: string | Date,
+  setting: string | undefined,
+  today: Date
+): string | null {
+  const fy = fyOf(new Date(periodEnd));
+  return isPastCreditDeadline(fy, setting, today) ? creditDeadlineMessage(fy, setting) : null;
 }

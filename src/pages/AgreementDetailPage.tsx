@@ -23,6 +23,7 @@ import { getErrorMessage } from '../api/baseApi';
 import { ChangeRatesForm } from '../components/forms/ChangeRatesForm';
 import { useGetItemsWithPartyQuery, useGetChallansByPartyQuery } from '../api/challanApi';
 import { inAgreementPeriod } from '../utils/billingPeriod';
+import { effectiveEndDate } from '../utils/financialYear';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import { EditableField } from '../components/EditableField';
 import {
@@ -136,8 +137,10 @@ export function AgreementDetailPage() {
   }, [agreement, partyChallans, allAgreements]);
 
   // Closed-year lock, by the date each edit takes effect from (backend `agreementEditDate`):
-  // rates bill from the agreement start, opening stock sits at the site start, and moving or
-  // resuming an end changes billing from the day after the old end.
+  // rates bill from the agreement start, opening stock sits at the site start, and a change of
+  // the effective end (an end counts only once the agreement is closed) changes billing from the
+  // day after the earlier end. Typing the end of an active agreement changes no billing, and a
+  // status change that leaves the effective end alone dates today.
   const siteLock = useSiteLock(currentBusinessId, agreement?.partyId, agreement?.agreementId);
   const siteStart = useMemo(() => {
     if (!agreement) return undefined;
@@ -150,8 +153,12 @@ export function AgreementDetailPage() {
   }, [agreement, allAgreements]);
   const startLocked = siteLock.isLocked(agreement?.startDate);
   const openingLocked = siteLock.isLocked(siteStart);
-  const endLocked = !!agreement?.endDate && siteLock.isLocked(dayAfter(agreement.endDate));
-  const resumeLocked = agreement?.endDate ? endLocked : startLocked;
+  const effectiveEnd = agreement && effectiveEndDate(agreement);
+  // Moving the end of a closed agreement, or resuming it
+  const endLocked = !!effectiveEnd && siteLock.isLocked(dayAfter(effectiveEnd));
+  // Closing an open agreement at the end typed on it
+  const closeLocked =
+    !effectiveEnd && !!agreement?.endDate && siteLock.isLocked(dayAfter(agreement.endDate));
 
   const [updateAgreement, { isLoading: isSaving }] = useUpdateAgreementMutation();
   const [updateRate] = useUpdateAgreementRateMutation();
@@ -485,7 +492,7 @@ export function AgreementDetailPage() {
                 <MenuItem
                   key={o.value}
                   onSelect={() => handleSave('status', o.value)}
-                  aria-disabled={(o.value === 'active' ? resumeLocked : endLocked) || undefined}
+                  aria-disabled={(o.value === 'active' ? endLocked : closeLocked) || undefined}
                 >
                   {o.label}
                 </MenuItem>

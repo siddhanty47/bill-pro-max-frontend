@@ -5,6 +5,7 @@ import {
   creditNoteDeadline,
   creditNoteDeadlineSchema,
   deadlineLabel,
+  effectiveEndDate,
   fyEnd,
   fyHasEnded,
   fyOf,
@@ -144,5 +145,17 @@ describe('creditDeadlineMessage', () => {
     expect(creditDeadlineMessage('2025-26', '09-30')).toBe(
       'Credit notes for FY 2025-26 closed on 30 Sep 2026.'
     );
+  });
+});
+
+describe('effectiveEndDate', () => {
+  const end = '2025-12-31T00:00:00.000Z';
+  it('is the end date once the agreement is closed (not active, or rate-changed)', () => {
+    expect(effectiveEndDate({ endDate: end, status: 'expired' })).toBe(end);
+    expect(effectiveEndDate({ endDate: end, status: 'active', nextAgreementId: 'A2' })).toBe(end);
+  });
+  it('is open-ended for an active agreement or one without an end date', () => {
+    expect(effectiveEndDate({ endDate: end, status: 'active' })).toBeUndefined();
+    expect(effectiveEndDate({ endDate: null, status: 'terminated' })).toBeUndefined();
   });
 });

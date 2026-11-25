@@ -723,6 +723,21 @@ describe('AgreementDetailPage closed financial year', () => {
     );
   });
 
+  it('an active agreement with an end typed in the closed year: end editable, closing it refused', async () => {
+    useApi({ agreement: makeAgreement({ endDate: '2026-03-15T00:00:00.000Z' }) });
+    closedSite();
+    const { user } = renderPage();
+
+    await screen.findByText(MESSAGE);
+    // It kept billing past that end, so moving the end changes nothing billed
+    expect(within(period()).getByRole('button', { name: /15 Mar/ })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    expect(screen.getByRole('menuitem', { name: 'Expired' })).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
   it('lets an agreement that ended on 31 Mar be extended or resumed', async () => {
     useApi({
       agreement: makeAgreement({ status: 'expired', endDate: '2026-03-31T00:00:00.000Z' }),

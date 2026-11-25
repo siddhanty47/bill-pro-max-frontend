@@ -2,6 +2,7 @@
  * Billing period helpers shared by the bill forms. Dates are calendar days ("YYYY-MM-DD").
  */
 import type { Agreement } from '../types';
+import { effectiveEndDate } from './financialYear';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -54,7 +55,6 @@ export function inAgreementPeriod(
 ): boolean {
   const day = date.slice(0, 10);
   if (agreement.previousAgreementId && day < agreement.startDate.slice(0, 10)) return false;
-  const closed = agreement.nextAgreementId || agreement.status !== 'active';
-  if (closed && agreement.endDate && day > agreement.endDate.slice(0, 10)) return false;
-  return true;
+  const end = effectiveEndDate(agreement);
+  return !end || day <= end.slice(0, 10);
 }

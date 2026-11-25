@@ -53,7 +53,7 @@ import { formatDate, formatMoney } from '../utils/format';
 import { canChangeStatus, isIssued } from '../utils/billStatus';
 import { balanceDue, effectiveAmount, signedMoney } from '../utils/billMoney';
 import { getApiError } from '../utils/apiError';
-import { creditDeadlineMessage, fyOf, isPastCreditDeadline } from '../utils/financialYear';
+import { creditClosedMessage } from '../utils/financialYear';
 import type {
   Bill,
   BillItem,
@@ -134,10 +134,15 @@ export function BillDetailPage() {
   const [newNoteError, setNewNoteError] = useState<string | null>(null);
 
   // GST: no credit note for the bill's FY (of its period end) after the business's deadline
-  const deadlineSetting = currentBusiness?.settings?.creditNoteDeadline;
-  const billFy = bill ? fyOf(new Date(bill.billingPeriod.end)) : '';
-  const creditClosed =
-    issued && !!bill && isPastCreditDeadline(billFy, deadlineSetting, new Date());
+  const creditClosedLine =
+    issued && bill
+      ? creditClosedMessage(
+          bill.billingPeriod.end,
+          currentBusiness?.settings?.creditNoteDeadline,
+          new Date()
+        )
+      : null;
+  const creditClosed = creditClosedLine !== null;
   const creditClosedId = 'bill-credit-closed';
 
   const partyName = parties?.find(p => p._id === bill?.partyId)?.name || bill?.partyId || '';
@@ -474,7 +479,7 @@ export function BillDetailPage() {
           />
           {creditClosed && (
             <Notice tone="info">
-              <span id={creditClosedId}>{creditDeadlineMessage(billFy, deadlineSetting)}</span>
+              <span id={creditClosedId}>{creditClosedLine}</span>
             </Notice>
           )}
 

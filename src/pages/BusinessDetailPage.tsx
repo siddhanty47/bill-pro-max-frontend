@@ -12,6 +12,7 @@ import { DetailPageShell, DetailSection, DetailField } from '../components/Detai
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { formatDate } from '../utils/format';
 import { creditNoteDeadlineSchema, deadlineLabel } from '../utils/financialYear';
+import { FieldValidationError } from '../utils/fieldValidationError';
 import type { BusinessSettings } from '../types';
 
 const TABS = [
@@ -74,7 +75,7 @@ export function BusinessDetailPage() {
   const handleDeadlineSave = useCallback(
     async (newValue: string | number) => {
       const parsed = creditNoteDeadlineSchema.safeParse(String(newValue).trim());
-      if (!parsed.success) throw new Error(parsed.error.issues[0].message);
+      if (!parsed.success) throw new FieldValidationError(parsed.error.issues[0].message);
       await handleSettingsSave('creditNoteDeadline', parsed.data);
     },
     [handleSettingsSave]

@@ -44,14 +44,29 @@ export const challanApi = baseApi.injectEndpoints({
       providesTags: (_result, _error, { challanId }) => [{ type: 'Challan', id: challanId }],
     }),
 
-    createChallan: builder.mutation<Challan, { businessId: string; data: CreateChallanInput }>({
-      query: ({ businessId, data }) => ({
+    /**
+     * Gated: auto-adding an item's rate to the agreement re-prices its bills, so the server may
+     * refuse it (closed year, billed month) or ask for a reason.
+     */
+    createChallan: builder.mutation<
+      Challan | DryRunResult,
+      { businessId: string; data: CreateChallanInput } & GateArgs
+    >({
+      query: ({ businessId, data, ...gate }) => ({
         url: `/businesses/${businessId}/challans`,
         method: 'POST',
-        body: data,
+        ...withGate(gate, data),
       }),
-      transformResponse: (response: ApiResponse<Challan>) => response.data,
-      invalidatesTags: ['Challan', 'Inventory', 'AuditLog', 'Dashboard'],
+      transformResponse: unwrapGated<Challan>,
+      invalidatesTags: gatedTags(() => [
+        'Challan',
+        'Agreement',
+        'Bill',
+        'BillNote',
+        'Inventory',
+        'AuditLog',
+        'Dashboard',
+      ]),
     }),
 
     confirmChallan: builder.mutation<

@@ -26,10 +26,14 @@ import { fyHasEnded, recentFys } from '../utils/financialYear';
 import type { YearStatusRow } from '../types';
 import styles from './YearClosePage.module.css';
 
-type YearState = 'closed' | 'open' | 'running';
+type YearState = 'closed' | 'locked' | 'open' | 'running';
 
-const STATE_CHIP: Record<YearState, { label: string; tone: 'success' | 'warning' | 'info' }> = {
+const STATE_CHIP: Record<
+  YearState,
+  { label: string; tone: 'success' | 'warning' | 'info' | 'neutral' }
+> = {
   closed: { label: 'Closed', tone: 'success' },
+  locked: { label: 'Locked', tone: 'neutral' },
   open: { label: 'Open', tone: 'warning' },
   running: { label: 'Running', tone: 'info' },
 };
@@ -56,8 +60,9 @@ export function YearClosePage() {
     { skip: !currentBusinessId }
   );
 
+  // Open but a later FY on the site is closed: nothing in it can change, so it reads as locked
   const stateOf = (r: YearStatusRow): YearState =>
-    r.closed ? 'closed' : ended ? 'open' : 'running';
+    r.closed ? 'closed' : r.lockedByLaterYear ? 'locked' : ended ? 'open' : 'running';
   const chip = (r: YearStatusRow) => {
     const { label, tone } = STATE_CHIP[stateOf(r)];
     return (
@@ -66,11 +71,13 @@ export function YearClosePage() {
       </StatusChip>
     );
   };
-  /** What closes an open year: the bill ending on the last billable day */
-  const helper = (r: YearStatusRow) =>
-    stateOf(r) === 'open' && r.lastBillableDay
+  /** What closes an open year (the bill ending on the last billable day), or what locked it */
+  const helper = (r: YearStatusRow) => {
+    if (stateOf(r) === 'locked') return `Locked by FY ${r.lockedByLaterYear} close`;
+    return stateOf(r) === 'open' && r.lastBillableDay
       ? `Issue the bill ending ${lastDay(r)} to close the year`
       : null;
+  };
   const closingBill = (r: YearStatusRow) =>
     r.closingBillId && r.closingBillNumber ? (
       <DocNumber value={r.closingBillNumber} to={`/bills/${r.closingBillId}`} />
