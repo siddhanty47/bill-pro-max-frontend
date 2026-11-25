@@ -30,6 +30,7 @@ const names: IconName[] = [
   'paperclip',
   'mic',
   'stop',
+  'lock',
   'brand',
 ];
 

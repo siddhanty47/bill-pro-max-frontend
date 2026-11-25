@@ -28,6 +28,7 @@ export type IconName =
   | 'paperclip'
   | 'mic'
   | 'stop'
+  | 'lock'
   | 'brand';
 
 export interface IconProps {
@@ -137,6 +138,12 @@ const GLYPHS: Record<Exclude<IconName, 'brand'>, ReactNode> = {
     <>
       <rect x="6.5" y="2" width="5" height="8" rx="2.5" />
       <path d="M4 8.5a5 5 0 0 0 10 0M9 13.5V16" />
+    </>
+  ),
+  lock: (
+    <>
+      <rect x="3.5" y="8" width="11" height="7.5" rx="1.5" />
+      <path d="M6 8V5.5a3 3 0 0 1 6 0V8" />
     </>
   ),
   stop: <rect x="4.5" y="4.5" width="9" height="9" rx="1.5" fill="currentColor" />,

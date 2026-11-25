@@ -67,10 +67,13 @@ export interface EditableFieldProps {
   align?: 'left' | 'right';
 }
 
+/** An API error's message, or a thrown Error's (e.g. a client-side check in `onSave`). */
 const errorMessage = (err: unknown) =>
-  err && typeof err === 'object' && 'data' in err
-    ? ((err as { data?: { error?: { message?: string } } }).data?.error?.message ?? 'Save failed')
-    : 'Save failed';
+  err instanceof Error
+    ? err.message
+    : err && typeof err === 'object' && 'data' in err
+      ? ((err as { data?: { error?: { message?: string } } }).data?.error?.message ?? 'Save failed')
+      : 'Save failed';
 
 /** Keeps focus (and so the blur-save) on the input when an action button is pressed. */
 const keepFocus = (e: MouseEvent) => e.preventDefault();

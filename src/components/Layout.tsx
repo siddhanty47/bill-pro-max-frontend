@@ -95,7 +95,13 @@ const navGroups: NavGroup[] = [
       { path: '/payments', label: 'Payments', icon: 'payments' },
     ],
   },
-  { label: 'Business', items: [{ path: '/team', label: 'Team', icon: 'team' }] },
+  {
+    label: 'Business',
+    items: [
+      { path: '/team', label: 'Team', icon: 'team' },
+      { path: '/year-close', label: 'Year close', icon: 'lock' },
+    ],
+  },
 ];
 
 /** Mounts the search-index sync hook inside WebSocketProvider (Layout itself sits outside it). */

@@ -119,9 +119,14 @@ describe('Layout', () => {
       'Notes',
       'Payments',
       'Team',
+      'Year close',
     ]);
     expect(within(nav).getByRole('link', { name: 'Bills' })).toHaveAttribute('href', '/bills');
     expect(within(nav).getByRole('link', { name: 'Notes' })).toHaveAttribute('href', '/bill-notes');
+    expect(within(nav).getByRole('link', { name: 'Year close' })).toHaveAttribute(
+      'href',
+      '/year-close'
+    );
   });
 
   it('shows sidebar count badges with accessible names', async () => {

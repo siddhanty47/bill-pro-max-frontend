@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
   closedYearMessage,
+  creditDeadlineMessage,
   creditNoteDeadline,
+  creditNoteDeadlineSchema,
+  deadlineLabel,
   fyEnd,
+  fyHasEnded,
   fyOf,
   isOnOrBeforeDay,
   isPastCreditDeadline,
+  recentFys,
 } from './financialYear';
 
 const d = (s: string): Date => new Date(`${s}T00:00:00.000Z`);
@@ -73,6 +78,71 @@ describe('closedYearMessage', () => {
     );
     expect(closedYearMessage('2024-25', fyEnd('2024-25'))).toBe(
       'FY 2024-25 is closed for this site. Nothing dated on or before 31 Mar 2025 can change.'
+    );
+  });
+});
+
+describe('fyHasEnded', () => {
+  it('ends only once the IST day is after 31 March', () => {
+    expect(fyHasEnded('2025-26', d('2026-03-31'))).toBe(false);
+    expect(fyHasEnded('2025-26', new Date('2026-03-31T18:29:00Z'))).toBe(false);
+    expect(fyHasEnded('2025-26', new Date('2026-03-31T18:30:00Z'))).toBe(true);
+    expect(fyHasEnded('2024-25', d('2026-01-01'))).toBe(true);
+  });
+});
+
+describe('recentFys', () => {
+  it('lists the current FY, then the five before it', () => {
+    expect(recentFys(d('2026-11-25'))).toEqual([
+      '2026-27',
+      '2025-26',
+      '2024-25',
+      '2023-24',
+      '2022-23',
+      '2021-22',
+    ]);
+    expect(recentFys(d('2026-03-31'))[0]).toBe('2025-26');
+  });
+});
+
+describe('creditNoteDeadlineSchema', () => {
+  const valid = (v: string) => creditNoteDeadlineSchema.safeParse(v).success;
+  it('accepts real non-leap calendar days in MM-DD', () => {
+    expect(valid('11-30')).toBe(true);
+    expect(valid('02-28')).toBe(true);
+    expect(valid('12-31')).toBe(true);
+  });
+  it('refuses other formats and impossible days', () => {
+    expect(valid('02-29')).toBe(false);
+    expect(valid('02-30')).toBe(false);
+    expect(valid('13-01')).toBe(false);
+    expect(valid('04-31')).toBe(false);
+    expect(valid('1-30')).toBe(false);
+    expect(valid('30 Nov')).toBe(false);
+    expect(creditNoteDeadlineSchema.safeParse('02-30').error?.issues[0].message).toBe(
+      'Not a calendar day'
+    );
+    expect(creditNoteDeadlineSchema.safeParse('x').error?.issues[0].message).toBe(
+      'Use MM-DD, e.g. 11-30'
+    );
+  });
+});
+
+describe('deadlineLabel', () => {
+  it('reads MM-DD as a day and month, defaulting to 30 Nov', () => {
+    expect(deadlineLabel('09-30')).toBe('30 Sep');
+    expect(deadlineLabel(undefined)).toBe('30 Nov');
+    expect(deadlineLabel('02-30')).toBe('30 Nov');
+  });
+});
+
+describe('creditDeadlineMessage', () => {
+  it('names the FY and the deadline with its year', () => {
+    expect(creditDeadlineMessage('2025-26', undefined)).toBe(
+      'Credit notes for FY 2025-26 closed on 30 Nov 2026.'
+    );
+    expect(creditDeadlineMessage('2025-26', '09-30')).toBe(
+      'Credit notes for FY 2025-26 closed on 30 Sep 2026.'
     );
   });
 });

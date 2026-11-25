@@ -251,6 +251,25 @@ describe('BillNoteDetailPage', () => {
     );
   });
 
+  it('shows the server message when the credit-note deadline has passed', async () => {
+    useApi();
+    capture(
+      'post',
+      `${BASE}/issue`,
+      fail(409, 'CREDIT_NOTE_DEADLINE_PASSED', 'Credit notes for FY 2025-26 closed on 30 Nov 2026')
+    );
+    const { user } = renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Issue' }));
+    await user.click(
+      within(screen.getByRole('dialog', { name: 'Issue note' })).getByRole('button', {
+        name: 'Issue note',
+      })
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Credit notes for FY 2025-26 closed on 30 Nov 2026'
+    );
+  });
+
   it('edits a manual draft: lines and reason', async () => {
     useApi();
     const bodies = capture('patch', BASE, () => ok(makeBillNote({ _id: 'n1' })));

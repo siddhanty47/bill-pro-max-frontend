@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
@@ -678,6 +678,12 @@ describe('BillDetailPage', () => {
   });
 
   describe('credit and debit notes', () => {
+    // Before FY 2025-26's credit-note deadline (30 Nov 2026) for the fixture bill (ends Oct 2025)
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-25T06:00:00.000Z'));
+    });
+    afterEach(() => vi.useRealTimers());
     const cause = {
       kind: 'challan' as const,
       id: 'c1',
@@ -892,6 +898,110 @@ describe('BillDetailPage', () => {
       await user.click(within(dialog).getByRole('button', { name: 'Create note' }));
       expect(await within(dialog).findByText('Credit is more than the bill')).toBeVisible();
       expect(screen.getByRole('dialog', { name: 'New credit note' })).toBeVisible();
+    });
+  });
+
+  describe('credit note deadline', () => {
+    const NOTICE = 'Credit notes for FY 2025-26 closed on 30 Nov 2026.';
+    const at = (iso: string) => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(iso));
+    };
+    afterEach(() => vi.useRealTimers());
+
+    const useBusiness = (creditNoteDeadline?: string) =>
+      server.use(
+        http.get(apiUrl('/businesses'), () =>
+          ok([{ _id: 'biz-1', name: 'Shree', settings: { creditNoteDeadline } }])
+        )
+      );
+
+    it('keeps credit notes open on the deadline day, up to 23:59 IST', async () => {
+      at('2026-11-30T18:29:00.000Z');
+      useApi(makeBill({ status: 'sent' }));
+      useBusiness();
+      const { user } = renderPage();
+      await user.click(await screen.findByRole('button', { name: 'More actions' }));
+      expect(screen.getByRole('menuitem', { name: 'New credit note' })).not.toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      await user.keyboard('{Escape}');
+      expect(screen.queryByText(NOTICE)).not.toBeInTheDocument();
+      await openTab(user, /^Credit\/debit notes/);
+      expect(screen.getByRole('button', { name: 'New credit note' })).toBeEnabled();
+    });
+
+    it('closes credit notes from 00:00 IST the day after, but not debit notes', async () => {
+      at('2026-11-30T18:30:00.000Z');
+      useApi(makeBill({ status: 'sent' }));
+      useBusiness();
+      const { user } = renderPage();
+      expect(await screen.findByText(NOTICE)).toBeVisible();
+
+      await user.click(screen.getByRole('button', { name: 'More actions' }));
+      const credit = screen.getByRole('menuitem', { name: 'New credit note' });
+      expect(credit).toHaveAttribute('aria-disabled', 'true');
+      expect(credit).toHaveAccessibleDescription(NOTICE);
+      await user.click(credit);
+      expect(screen.queryByRole('dialog', { name: 'New credit note' })).not.toBeInTheDocument();
+
+      // The disabled item leaves the menu open
+      await user.click(screen.getByRole('menuitem', { name: 'New debit note' }));
+      expect(screen.getByRole('dialog', { name: 'New debit note' })).toBeVisible();
+      await user.keyboard('{Escape}');
+
+      await openTab(user, /^Credit\/debit notes/);
+      expect(screen.getByRole('button', { name: 'New credit note' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'New debit note' })).toBeEnabled();
+    });
+
+    it("uses the business's own deadline", async () => {
+      at('2026-10-01T06:00:00.000Z');
+      useApi(makeBill({ status: 'sent' }));
+      useBusiness('09-30');
+      renderPage();
+      expect(
+        await screen.findByText('Credit notes for FY 2025-26 closed on 30 Sep 2026.')
+      ).toBeVisible();
+    });
+
+    it('shows no deadline notice on a draft bill', async () => {
+      at('2026-12-15T06:00:00.000Z');
+      useApi();
+      useBusiness();
+      renderPage();
+      await screen.findByRole('table', { name: 'Summary' });
+      expect(screen.queryByText(NOTICE)).not.toBeInTheDocument();
+    });
+
+    it('shows CREDIT_NOTE_DEADLINE_PASSED from the server in the form', async () => {
+      at('2026-11-25T06:00:00.000Z');
+      useApi(makeBill({ status: 'sent' }));
+      server.use(
+        http.post(apiUrl('/businesses/biz-1/bill-notes'), () =>
+          HttpResponse.json(
+            {
+              success: false,
+              error: {
+                code: 'CREDIT_NOTE_DEADLINE_PASSED',
+                message: 'Credit notes for FY 2025-26 closed on 30 Nov 2026',
+              },
+            },
+            { status: 409 }
+          )
+        )
+      );
+      const { user } = renderPage();
+      await user.click(await screen.findByRole('button', { name: 'More actions' }));
+      await user.click(screen.getByRole('menuitem', { name: 'New credit note' }));
+      const dialog = screen.getByRole('dialog', { name: 'New credit note' });
+      await user.click(within(dialog).getByRole('checkbox', { name: 'Credit the full bill' }));
+      await user.type(within(dialog).getByLabelText(/Reason/), 'Raised in error');
+      await user.click(within(dialog).getByRole('button', { name: 'Create note' }));
+      expect(
+        await within(dialog).findByText('Credit notes for FY 2025-26 closed on 30 Nov 2026')
+      ).toBeVisible();
     });
   });
 });

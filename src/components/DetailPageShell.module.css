@@ -91,6 +91,13 @@
   font-size: var(--text-sm);
 }
 
+.hint {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
 @media (max-width: 768px) {
   .body {
     grid-template-columns: minmax(0, 1fr);

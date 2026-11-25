@@ -119,7 +119,7 @@ describe('BusinessDetailPage', () => {
     await waitFor(() => expect(bodies).toEqual([{ phone: '9000000000' }]));
   });
 
-  it('saves a settings number with the full settings object', async () => {
+  it('saves a settings number with only that setting (the server merges the rest)', async () => {
     useApi();
     const bodies = capture();
     const { user } = renderPage();
@@ -128,21 +128,58 @@ describe('BusinessDetailPage', () => {
     const input = screen.getByRole('spinbutton', { name: 'Payment due days' });
     await user.clear(input);
     await user.type(input, '30{Enter}');
-    await waitFor(() =>
-      expect(bodies).toEqual([
-        {
-          settings: {
-            billingCycle: 'monthly',
-            currency: 'INR',
-            defaultTaxRate: 18,
-            defaultSgstRate: 9,
-            defaultCgstRate: 9,
-            defaultIgstRate: 0,
-            defaultPaymentDueDays: 30,
-          },
-        },
-      ])
-    );
+    await waitFor(() => expect(bodies).toEqual([{ settings: { defaultPaymentDueDays: 30 } }]));
+  });
+
+  describe('credit note deadline', () => {
+    const deadlineRow = async () =>
+      (await screen.findByText('Credit note deadline')).closest('div')!;
+
+    it('shows the default 30 Nov with the GST helper when unset', async () => {
+      useApi();
+      renderPage();
+      const row = await deadlineRow();
+      expect(within(row).getByRole('button', { name: /30 Nov/ })).toBeVisible();
+      expect(
+        within(row).getByText(
+          "Credit notes are refused after this day following the year's end (GST). Default 30 Nov."
+        )
+      ).toBeVisible();
+    });
+
+    it('shows a custom deadline and saves a valid MM-DD alone', async () => {
+      useApi(
+        makeBusiness({ settings: { ...makeBusiness().settings, creditNoteDeadline: '09-30' } })
+      );
+      const bodies = capture();
+      const { user } = renderPage();
+      const row = await deadlineRow();
+      await user.click(within(row).getByRole('button', { name: /30 Sep/ }));
+      const input = screen.getByRole('textbox', { name: 'Credit note deadline' });
+      expect(input).toHaveValue('09-30');
+      await user.clear(input);
+      await user.type(input, '10-31{Enter}');
+      await waitFor(() => expect(bodies).toEqual([{ settings: { creditNoteDeadline: '10-31' } }]));
+    });
+
+    it.each([
+      ['02-29', 'Not a calendar day'],
+      ['02-30', 'Not a calendar day'],
+      ['13-01', 'Use MM-DD, e.g. 11-30'],
+      ['30 Nov', 'Use MM-DD, e.g. 11-30'],
+    ])('refuses %s without calling the API', async (value, message) => {
+      useApi();
+      const bodies = capture();
+      const { user } = renderPage();
+      const row = await deadlineRow();
+      await user.click(within(row).getByRole('button', { name: /30 Nov/ }));
+      const input = screen.getByRole('textbox', { name: 'Credit note deadline' });
+      await user.clear(input);
+      await user.type(input, `${value}{Enter}`);
+      expect(await screen.findByText(message)).toBeVisible();
+      expect(bodies).toEqual([]);
+      expect(input).toHaveValue(value);
+    });
   });
 
   it('saves the billing cycle select', async () => {
@@ -152,11 +189,7 @@ describe('BusinessDetailPage', () => {
     await user.click(await screen.findByRole('button', { name: /Monthly/ }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Billing cycle' }), 'weekly');
     await user.click(screen.getByRole('button', { name: 'Save' }));
-    await waitFor(() =>
-      expect(bodies).toEqual([
-        { settings: expect.objectContaining({ billingCycle: 'weekly', currency: 'INR' }) },
-      ])
-    );
+    await waitFor(() => expect(bodies).toEqual([{ settings: { billingCycle: 'weekly' } }]));
   });
 
   it('cancels an edit with Escape without saving', async () => {

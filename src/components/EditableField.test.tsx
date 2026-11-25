@@ -70,6 +70,19 @@ describe('EditableField', () => {
     expect(screen.getByRole('textbox')).toHaveValue('Sharma2');
   });
 
+  it('shows a thrown Error message (a client-side check) and stays in edit mode', async () => {
+    const onSave = vi.fn(async () => {
+      throw new Error('Not a calendar day');
+    });
+    const { user, startEditing } = setup({ onSave });
+
+    await startEditing();
+    await user.type(screen.getByRole('textbox'), '2{Enter}');
+
+    expect(await screen.findByText('Not a calendar day')).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveValue('Sharma2');
+  });
+
   it('starts editing from the latest value after the prop changes', async () => {
     const { user, rerender, onSave } = setup();
 

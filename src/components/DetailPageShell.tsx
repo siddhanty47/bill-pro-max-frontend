@@ -269,6 +269,8 @@ export interface DetailFieldProps {
   mono?: boolean;
   /** If provided, makes this field inline-editable */
   editable?: EditableConfig;
+  /** Short muted line under the value (e.g. what a setting does and its default) */
+  hint?: string;
 }
 
 const isEmptyValue = (value: ReactNode) => value === undefined || value === null || value === '';
@@ -283,6 +285,7 @@ export function DetailField({
   emptyText = 'Not added',
   mono = false,
   editable,
+  hint,
 }: DetailFieldProps) {
   const inList = useContext(InFieldList);
   const isEmpty = isEmptyValue(value);
@@ -314,7 +317,12 @@ export function DetailField({
 
   // A DetailField nested inside this value (or inside a section in it) is not a row
   // of this list: reset the context so it renders its own <dl>.
-  const body = <InFieldList.Provider value={false}>{content}</InFieldList.Provider>;
+  const body = (
+    <InFieldList.Provider value={false}>
+      {content}
+      {hint && <p className={styles.hint}>{hint}</p>}
+    </InFieldList.Provider>
+  );
 
   if (!label) {
     return <div className={`${styles.field} ${styles.bare} ${valueClass}`}>{body}</div>;
