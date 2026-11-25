@@ -722,7 +722,10 @@ export function BillDetailPage() {
 
           <Modal
             isOpen={newNoteType !== null}
-            onClose={() => setNewNoteType(null)}
+            onClose={() => {
+              // Closing mid-save would still navigate to the new note when it lands
+              if (!isCreatingNote) setNewNoteType(null);
+            }}
             title={newNoteType === 'debit' ? 'New debit note' : 'New credit note'}
             size="form"
           >

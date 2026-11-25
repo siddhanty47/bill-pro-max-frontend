@@ -6,8 +6,7 @@
 import { useState } from 'react';
 import { Button, Field, Input, Modal, Notice, TextLink } from '../ui';
 import { NegativeStockList } from '../BillIntegrity';
-import { formatMoney } from '../../utils/format';
-import type { GateAffectedBill, GateReport } from '../../types';
+import type { GateReport } from '../../types';
 import styles from './ChangeImpactDialog.module.css';
 
 interface Props {
@@ -16,18 +15,6 @@ interface Props {
   onCancel: () => void;
   /** Called with the trimmed reason (empty when none was typed). */
   onConfirm: (reason: string) => void;
-}
-
-/** "Draft debit note ₹X" / "Draft credit note ₹X" for an issued bill's expected correction. */
-function DraftNoteLabel({ amount }: { amount: GateAffectedBill['noteAmount'] }) {
-  if (amount === undefined || Math.abs(amount) < 0.01) return null;
-  return (
-    <>
-      {' · '}
-      <span>Draft {amount > 0 ? 'debit' : 'credit'} note</span>{' '}
-      <span className="mono">{formatMoney(Math.abs(amount))}</span>
-    </>
-  );
 }
 
 export function ChangeImpactDialog({ report, busy, onCancel, onConfirm }: Props) {
@@ -66,10 +53,12 @@ export function ChangeImpactDialog({ report, busy, onCancel, onConfirm }: Props)
             {issued.map(b => (
               <li key={b.billId}>
                 <TextLink to={`/bills/${b.billId}`}>{b.billNumber}</TextLink>
-                <DraftNoteLabel amount={b.noteAmount} />
               </li>
             ))}
           </ul>
+          <p className={styles.note}>
+            A draft credit or debit note will be updated after you save.
+          </p>
         </div>
       )}
       {report.negative.length > 0 && (

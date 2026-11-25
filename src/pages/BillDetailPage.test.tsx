@@ -851,6 +851,36 @@ describe('BillDetailPage', () => {
       ]);
     });
 
+    it('keeps the new-note dialog open while the note is being created', async () => {
+      useApi(makeBill({ status: 'sent' }));
+      let release: () => void = () => {};
+      server.use(
+        http.post(
+          apiUrl('/businesses/biz-1/bill-notes'),
+          () =>
+            new Promise<Response>(resolve => {
+              release = () => resolve(ok(makeBillNote({ _id: 'new3' })));
+            })
+        )
+      );
+      const { user } = renderPage();
+      await user.click(await screen.findByRole('button', { name: 'More actions' }));
+      await user.click(screen.getByRole('menuitem', { name: 'New credit note' }));
+      const dialog = screen.getByRole('dialog', { name: 'New credit note' });
+      await user.click(within(dialog).getByRole('checkbox', { name: 'Credit the full bill' }));
+      await user.type(within(dialog).getByLabelText(/Reason/), 'Raised in error');
+      await user.click(within(dialog).getByRole('button', { name: 'Create note' }));
+      await waitFor(() =>
+        expect(within(dialog).getByRole('button', { name: 'Create note' })).toBeDisabled()
+      );
+      await user.keyboard('{Escape}');
+      expect(screen.getByRole('dialog', { name: 'New credit note' })).toBeVisible();
+      release();
+      await waitFor(() =>
+        expect(screen.getByTestId('where')).toHaveTextContent('/bill-notes/new3')
+      );
+    });
+
     it('shows CREDIT_EXCEEDS_BILL from the server in the form', async () => {
       useApi(makeBill({ status: 'sent' }));
       server.use(

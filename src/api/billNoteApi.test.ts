@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { http } from 'msw';
 import { server } from '../test/msw/server';
 import { apiUrl, ok, pagedOk } from '../test/msw/handlers';
@@ -8,6 +8,13 @@ import { billApi } from './billApi';
 import { shareLinkApi } from './shareLinkApi';
 
 const note = { _id: 'n1', type: 'credit', status: 'draft', totalAmount: 100 };
+
+// jsdom has no URL.createObjectURL, so the PDF tests assign stubs; put the originals back.
+const { createObjectURL, revokeObjectURL } = URL;
+afterEach(() => {
+  Object.assign(URL, { createObjectURL, revokeObjectURL });
+  vi.restoreAllMocks();
+});
 
 describe('billNoteApi', () => {
   it('lists notes with only the non-empty filters and unwraps the page', async () => {
