@@ -644,7 +644,6 @@ export interface Bill {
   updatedAt: string;
 }
 
-/** Money difference between a bill and what current data would price it at */
 export type BillNoteType = 'credit' | 'debit';
 export type BillNoteSource = 'auto' | 'manual';
 export type BillNoteStatus = 'draft' | 'issued' | 'cancelled';
@@ -696,13 +695,7 @@ export interface BillNote {
 }
 
 /** Manual line of a new/edited note (amount positive, in the note's direction) */
-export interface BillNoteLineInput {
-  kind: BillNoteLineKind;
-  itemId?: string;
-  itemName?: string;
-  description: string;
-  amount: number;
-}
+export type BillNoteLineInput = BillNoteLine;
 
 export interface CreateBillNoteInput {
   billId: string;
@@ -718,17 +711,22 @@ export interface UpdateBillNoteInput {
   lines?: BillNoteLineInput[];
 }
 
-export interface BillNoteListArgs {
+/** Server-side filters of the notes list */
+export interface BillNoteFilters {
   businessId: string;
-  page: number;
-  pageSize: number;
   partyId?: string;
   billId?: string;
-  status?: string;
-  type?: string;
-  source?: string;
+  status?: BillNoteStatus;
+  type?: BillNoteType;
+  source?: BillNoteSource;
 }
 
+export interface BillNoteListArgs extends BillNoteFilters {
+  page: number;
+  pageSize: number;
+}
+
+/** Money difference between a bill and what current data would price it at */
 export interface PriceDelta {
   total: number;
   subtotal: number;

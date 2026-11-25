@@ -2,10 +2,12 @@
  * Credit/debit note API endpoints
  */
 import { baseApi } from './baseApi';
+import { fetchAllPages } from './fetchAllPages';
 import { listParams, toPagedList } from './listPage';
 import type {
   BillNote,
   BillNoteListArgs,
+  BillNoteFilters,
   CreateBillNoteInput,
   UpdateBillNoteInput,
   ApiResponse,
@@ -25,6 +27,19 @@ export const billNoteApi = baseApi.injectEndpoints({
         params: listParams({ page, pageSize, partyId, billId, status, type, source }),
       }),
       transformResponse: (response: PaginatedResponse<BillNote>) => toPagedList(response),
+      providesTags: ['BillNote'],
+    }),
+
+    /**
+     * Every note matching the filters (all backend pages). The Notes page searches these in the
+     * browser: the notes endpoint has no text search.
+     */
+    getAllBillNotes: builder.query<BillNote[], BillNoteFilters>({
+      queryFn: ({ businessId, ...filters }, _api, _extra, baseQuery) => {
+        const query = new URLSearchParams(listParams(filters) as Record<string, string>).toString();
+        const url = `/businesses/${businessId}/bill-notes${query ? `?${query}` : ''}`;
+        return fetchAllPages<BillNote>(url, baseQuery);
+      },
       providesTags: ['BillNote'],
     }),
 
@@ -108,6 +123,7 @@ export const billNoteApi = baseApi.injectEndpoints({
 
 export const {
   useGetBillNotesQuery,
+  useGetAllBillNotesQuery,
   useGetBillNoteQuery,
   useCreateBillNoteMutation,
   useUpdateBillNoteMutation,

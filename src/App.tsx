@@ -24,6 +24,8 @@ import { PartyDetailPage } from './pages/PartyDetailPage';
 import { AgreementDetailPage } from './pages/AgreementDetailPage';
 import { ChallanDetailPage } from './pages/ChallanDetailPage';
 import { BillDetailPage } from './pages/BillDetailPage';
+import { BillNotesPage } from './pages/BillNotesPage';
+import { BillNoteDetailPage } from './pages/BillNoteDetailPage';
 import { PaymentDetailPage } from './pages/PaymentDetailPage';
 import { TeamPage } from './pages/TeamPage';
 import { BusinessDetailPage } from './pages/BusinessDetailPage';
@@ -162,6 +164,15 @@ function App() {
           element={
             <KeyedByParam param="billId">
               <BillDetailPage />
+            </KeyedByParam>
+          }
+        />
+        <Route path="bill-notes" element={<BillNotesPage />} />
+        <Route
+          path="bill-notes/:noteId"
+          element={
+            <KeyedByParam param="noteId">
+              <BillNoteDetailPage />
             </KeyedByParam>
           }
         />

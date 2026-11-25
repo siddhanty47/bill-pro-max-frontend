@@ -116,14 +116,16 @@ describe('Layout', () => {
       'Agreements',
       'Challans',
       'Bills',
+      'Notes',
       'Payments',
       'Team',
     ]);
     expect(within(nav).getByRole('link', { name: 'Bills' })).toHaveAttribute('href', '/bills');
+    expect(within(nav).getByRole('link', { name: 'Notes' })).toHaveAttribute('href', '/bill-notes');
   });
 
   it('shows sidebar count badges with accessible names', async () => {
-    setup({ counts: { inventory: 142, draftChallans: 3, overdueBills: 7 } });
+    setup({ counts: { inventory: 142, draftChallans: 3, overdueBills: 7, draftNotes: 2 } });
     const nav = screen.getByRole('navigation', { name: 'Main' });
     expect(await within(nav).findByRole('link', { name: 'Inventory, 142' })).toBeInTheDocument();
     const challans = within(nav).getByRole('link', { name: 'Challans, 3 draft challans' });
@@ -133,6 +135,9 @@ describe('Layout', () => {
     const pill = bills.querySelector('[aria-hidden="true"]:not(svg)');
     expect([...(pill?.children ?? [])].map(c => c.textContent)).toEqual(['7', 'overdue']);
     expect(pill).toHaveClass('danger');
+    const notes = within(nav).getByRole('link', { name: 'Notes, 2 draft notes' });
+    const notesPill = notes.querySelector('[aria-hidden="true"]:not(svg)') as HTMLElement;
+    expect([...notesPill.children].map(c => c.textContent)).toEqual(['2', 'draft']);
   });
 
   it('polls nav counts every 5 minutes', async () => {

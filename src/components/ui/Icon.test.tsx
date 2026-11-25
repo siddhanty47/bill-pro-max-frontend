@@ -9,6 +9,7 @@ const names: IconName[] = [
   'agreements',
   'challans',
   'bills',
+  'notes',
   'payments',
   'team',
   'search',

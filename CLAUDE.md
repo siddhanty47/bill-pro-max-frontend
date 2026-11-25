@@ -68,6 +68,7 @@ Defined in `src/App.tsx`.
 - `/agreements`, `/agreements/:agreementId`
 - `/challans`, `/challans/:challanId`
 - `/bills`, `/bills/:billId`
+- `/bill-notes`, `/bill-notes/:noteId` — Credit/debit notes (list searches in the browser over `getAllBillNotes`; the endpoint has no text search)
 - `/payments`, `/payments/:paymentId`
 - `/team` — Team members & invitations
 
@@ -79,7 +80,7 @@ Defined in `src/App.tsx`.
 - Located in `src/components/forms/`
 - Use React Hook Form with Zod resolver for validation
 - Each form has a `.tsx` and optional `.module.css`
-- Forms: `BusinessForm`, `PartyForm`, `InventoryForm`, `AgreementForm`, `ChallanForm`, `BillForm`, `BulkBillForm`, `PaymentForm`
+- Forms: `BusinessForm`, `PartyForm`, `InventoryForm`, `AgreementForm`, `ChallanForm`, `BillForm`, `BulkBillForm`, `PaymentForm`, `BillNoteForm` (note reason + manual line editor with tax preview from the bill's rates)
 
 ### Shared Components
 - `src/components/ui/` — the design-system kit (import from `components/ui`; list and props in `src/components/ui/README.md`): `Button`, `IconButton`, `Icon`, `Brand`, `GoogleIcon`, `Avatar`, `Dot`, `NotAdded`, `NavCount`, `TextLink`, `Notice`, `Card`, `StatCard`, `Meter`, `MeterLegend`, `MeterList`, `ChartCard`, `ScrollArea`, `ProgressBar`, `PageHeader`, `EmptyState`, `StatusChip` (+ `status.ts`), `DocNumber`, `DataTable`, `Table`/`THead`/`TBody`/`Tr`/`Th`/`Td`, `Pagination`, `SegmentedControl`, `Field`/`Input`/`Select`/`Textarea`/`Checkbox`/`Fieldset`, `SearchInput`, `FilterBar`, `Menu`/`MenuItem`/`MenuLabel`/`MenuDivider`, `RowActions`, `Modal`, `Tabs`/`TabPanel`, `Spinner`, `ErrorMessage`

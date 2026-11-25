@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { http } from 'msw';
 import { server } from '../test/msw/server';
-import { apiUrl, ok } from '../test/msw/handlers';
+import { apiUrl, ok, pagedOk } from '../test/msw/handlers';
 import { setupStore } from '../store';
 import { billNoteApi } from './billNoteApi';
 import { billApi } from './billApi';
@@ -29,7 +29,7 @@ describe('billNoteApi', () => {
         page: 2,
         pageSize: 10,
         status: 'draft',
-        type: '',
+        type: undefined,
         billId: 'bill1',
       })
     );
@@ -38,6 +38,45 @@ describe('billNoteApi', () => {
     expect(params.get('status')).toBe('draft');
     expect(params.get('billId')).toBe('bill1');
     expect(params.has('type')).toBe(false);
+  });
+
+  it('loads every page of notes with only the non-empty filters', async () => {
+    const store = setupStore();
+    const rows = Array.from({ length: 150 }, (_, i) => ({ ...note, _id: `n${i}` }));
+    const seen: URLSearchParams[] = [];
+    server.use(
+      http.get(apiUrl('/businesses/b1/bill-notes'), ({ request }) => {
+        seen.push(new URL(request.url).searchParams);
+        return pagedOk(rows, request);
+      })
+    );
+    const res = await store.dispatch(
+      billNoteApi.endpoints.getAllBillNotes.initiate({
+        businessId: 'b1',
+        status: 'issued',
+        type: undefined,
+      })
+    );
+    expect(res.data).toHaveLength(150);
+    expect(seen.map(q => q.get('page'))).toEqual(['1', '2']);
+    expect(seen[0].get('status')).toBe('issued');
+    expect(seen[0].has('type')).toBe(false);
+  });
+
+  it('loads all notes with no filters', async () => {
+    const store = setupStore();
+    let search = 'unset';
+    server.use(
+      http.get(apiUrl('/businesses/b1/bill-notes'), ({ request }) => {
+        search = new URL(request.url).search;
+        return pagedOk([note], request);
+      })
+    );
+    const res = await store.dispatch(
+      billNoteApi.endpoints.getAllBillNotes.initiate({ businessId: 'b1' })
+    );
+    expect(res.data).toEqual([note]);
+    expect(search).toBe('?page=1&pageSize=100');
   });
 
   it('gets one note', async () => {
