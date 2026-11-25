@@ -636,6 +636,8 @@ export interface Bill {
   drift?: BillDrift | null;
   /** Adjustment owed on a later bill because this issued bill drifted */
   pendingAdjustment?: BillPendingAdjustment | null;
+  /** Signed total of the bill's issued credit/debit notes (debits minus credits) */
+  notesTotal?: number;
   /** Spans where stock was negative when the bill was generated */
   negativeStock?: NegativeSpan[];
   createdAt: string;
@@ -643,6 +645,90 @@ export interface Bill {
 }
 
 /** Money difference between a bill and what current data would price it at */
+export type BillNoteType = 'credit' | 'debit';
+export type BillNoteSource = 'auto' | 'manual';
+export type BillNoteStatus = 'draft' | 'issued' | 'cancelled';
+export type BillNoteLineKind = 'hire' | 'damage' | 'transport' | 'other';
+
+/** One note line; amounts are in the note's direction (an auto note line may be negative) */
+export interface BillNoteLine {
+  kind: BillNoteLineKind;
+  itemId?: string;
+  itemName?: string;
+  description: string;
+  amount: number;
+}
+
+/** Credit/debit note correcting an issued bill. Mirrors backend `BillNote` model. */
+export interface BillNote {
+  _id: string;
+  businessId: string;
+  partyId: string;
+  agreementId: string;
+  siteCode: string;
+  billId: string;
+  billNumber: string;
+  type: BillNoteType;
+  source: BillNoteSource;
+  status: BillNoteStatus;
+  /** CN/2026-27/0001 or DN/2026-27/0001; given on issue only */
+  noteNumber?: string;
+  /** Issue day (calendar day); set on issue */
+  noteDate?: string;
+  reason: string;
+  lines: BillNoteLine[];
+  subtotal: number;
+  discountAmount: number;
+  taxMode: 'intra' | 'inter';
+  sgstRate: number;
+  cgstRate: number;
+  igstRate: number;
+  sgstAmount: number;
+  cgstAmount: number;
+  igstAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+  causes: BillChangeCause[];
+  issuedAt?: string;
+  createdBy: { userId: string; name: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Manual line of a new/edited note (amount positive, in the note's direction) */
+export interface BillNoteLineInput {
+  kind: BillNoteLineKind;
+  itemId?: string;
+  itemName?: string;
+  description: string;
+  amount: number;
+}
+
+export interface CreateBillNoteInput {
+  billId: string;
+  type: BillNoteType;
+  reason: string;
+  lines?: BillNoteLineInput[];
+  /** Credit for the bill's whole effective amount */
+  fullValue?: boolean;
+}
+
+export interface UpdateBillNoteInput {
+  reason?: string;
+  lines?: BillNoteLineInput[];
+}
+
+export interface BillNoteListArgs {
+  businessId: string;
+  page: number;
+  pageSize: number;
+  partyId?: string;
+  billId?: string;
+  status?: string;
+  type?: string;
+  source?: string;
+}
+
 export interface PriceDelta {
   total: number;
   subtotal: number;
@@ -1084,9 +1170,24 @@ export interface PortalBill {
   billingPeriod: { start: string; end: string };
   billDate?: string;
   totalAmount: number;
+  /** Signed total of the bill's issued credit/debit notes */
+  notesTotal: number;
+  /** totalAmount + notesTotal */
+  effectiveAmount: number;
   amountPaid: number;
   status: string;
   dueDate: string;
+}
+
+/** Issued credit/debit note as shown on the client portal */
+export interface PortalNote {
+  _id: string;
+  noteNumber?: string;
+  type: BillNoteType;
+  noteDate?: string;
+  billNumber: string;
+  totalAmount: number;
+  reason: string;
 }
 
 export interface PortalRunningItem {
@@ -1216,6 +1317,8 @@ export interface BillStatementRow {
   taxAmount: number;
   discountAmount: number;
   totalAmount: number;
+  /** Signed total of the bill's issued notes (debits minus credits) */
+  notesTotal: number;
 }
 
 export interface BillStatementTotals {
@@ -1226,6 +1329,7 @@ export interface BillStatementTotals {
   taxAmount: number;
   discountAmount: number;
   totalAmount: number;
+  notesTotal: number;
   billCount: number;
 }
 
@@ -1514,6 +1618,7 @@ export interface NavCounts {
   agreements?: number;
   draftChallans?: number;
   overdueBills?: number;
+  draftNotes?: number;
 }
 
 /** Current vs previous value; the % change is computed on the client. */

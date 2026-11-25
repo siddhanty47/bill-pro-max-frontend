@@ -1,0 +1,118 @@
+/**
+ * Credit/debit note API endpoints
+ */
+import { baseApi } from './baseApi';
+import { listParams, toPagedList } from './listPage';
+import type {
+  BillNote,
+  BillNoteListArgs,
+  CreateBillNoteInput,
+  UpdateBillNoteInput,
+  ApiResponse,
+  PaginatedResponse,
+  PagedList,
+} from '../types';
+
+/** Everything a note change can move: bills, balances, statements, nav counts (Dashboard). */
+const NOTE_MUTATION_TAGS = ['BillNote', 'Bill', 'AuditLog', 'Dashboard'] as const;
+
+export const billNoteApi = baseApi.injectEndpoints({
+  endpoints: builder => ({
+    /** One page of notes, filtered on the server */
+    getBillNotes: builder.query<PagedList<BillNote>, BillNoteListArgs>({
+      query: ({ businessId, page, pageSize, partyId, billId, status, type, source }) => ({
+        url: `/businesses/${businessId}/bill-notes`,
+        params: listParams({ page, pageSize, partyId, billId, status, type, source }),
+      }),
+      transformResponse: (response: PaginatedResponse<BillNote>) => toPagedList(response),
+      providesTags: ['BillNote'],
+    }),
+
+    getBillNote: builder.query<BillNote, { businessId: string; noteId: string }>({
+      query: ({ businessId, noteId }) => `/businesses/${businessId}/bill-notes/${noteId}`,
+      transformResponse: (response: ApiResponse<BillNote>) => response.data,
+      providesTags: (_result, _error, { noteId }) => [{ type: 'BillNote', id: noteId }],
+    }),
+
+    /** Create a manual draft note against an issued bill */
+    createBillNote: builder.mutation<BillNote, { businessId: string; data: CreateBillNoteInput }>({
+      query: ({ businessId, data }) => ({
+        url: `/businesses/${businessId}/bill-notes`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<BillNote>) => response.data,
+      invalidatesTags: [...NOTE_MUTATION_TAGS],
+    }),
+
+    /** Edit a draft note's reason / lines */
+    updateBillNote: builder.mutation<
+      BillNote,
+      { businessId: string; noteId: string; data: UpdateBillNoteInput }
+    >({
+      query: ({ businessId, noteId, data }) => ({
+        url: `/businesses/${businessId}/bill-notes/${noteId}`,
+        method: 'PATCH',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<BillNote>) => response.data,
+      invalidatesTags: (_result, _error, { noteId }) => [
+        { type: 'BillNote', id: noteId },
+        ...NOTE_MUTATION_TAGS,
+      ],
+    }),
+
+    issueBillNote: builder.mutation<BillNote, { businessId: string; noteId: string }>({
+      query: ({ businessId, noteId }) => ({
+        url: `/businesses/${businessId}/bill-notes/${noteId}/issue`,
+        method: 'POST',
+      }),
+      transformResponse: (response: ApiResponse<BillNote>) => response.data,
+      invalidatesTags: (_result, _error, { noteId }) => [
+        { type: 'BillNote', id: noteId },
+        ...NOTE_MUTATION_TAGS,
+      ],
+    }),
+
+    /** Cancel a draft note (issued notes can never be cancelled) */
+    cancelBillNote: builder.mutation<BillNote, { businessId: string; noteId: string }>({
+      query: ({ businessId, noteId }) => ({
+        url: `/businesses/${businessId}/bill-notes/${noteId}/cancel`,
+        method: 'POST',
+      }),
+      transformResponse: (response: ApiResponse<BillNote>) => response.data,
+      invalidatesTags: (_result, _error, { noteId }) => [
+        { type: 'BillNote', id: noteId },
+        ...NOTE_MUTATION_TAGS,
+      ],
+    }),
+
+    /** Email an issued note to the party */
+    sendBillNote: builder.mutation<void, { businessId: string; noteId: string }>({
+      query: ({ businessId, noteId }) => ({
+        url: `/businesses/${businessId}/bill-notes/${noteId}/send`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, { noteId }) => [{ type: 'BillNote', id: noteId }],
+    }),
+
+    /** Download note PDF */
+    getBillNotePdf: builder.query<Blob, { businessId: string; noteId: string }>({
+      query: ({ businessId, noteId }) => ({
+        url: `/businesses/${businessId}/bill-notes/${noteId}/pdf`,
+        responseHandler: response => response.blob(),
+      }),
+    }),
+  }),
+});
+
+export const {
+  useGetBillNotesQuery,
+  useGetBillNoteQuery,
+  useCreateBillNoteMutation,
+  useUpdateBillNoteMutation,
+  useIssueBillNoteMutation,
+  useCancelBillNoteMutation,
+  useSendBillNoteMutation,
+  useLazyGetBillNotePdfQuery,
+} = billNoteApi;

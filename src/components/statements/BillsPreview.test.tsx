@@ -26,6 +26,7 @@ const base: BillStatementData = {
       taxAmount: 1935.09,
       discountAmount: 100,
       totalAmount: 12585.59,
+      notesTotal: 0,
     },
     {
       billId: 'b2',
@@ -39,6 +40,7 @@ const base: BillStatementData = {
       taxAmount: 360,
       discountAmount: 0,
       totalAmount: 2360,
+      notesTotal: 0,
     },
   ],
   totals: {
@@ -49,6 +51,7 @@ const base: BillStatementData = {
     taxAmount: 2295.09,
     discountAmount: 100,
     totalAmount: 14945.59,
+    notesTotal: 0,
     billCount: 2,
   },
   currency: 'INR',

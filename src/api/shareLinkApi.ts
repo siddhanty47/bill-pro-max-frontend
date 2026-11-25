@@ -11,6 +11,7 @@ import type {
   PortalSummary,
   PortalChallan,
   PortalBill,
+  PortalNote,
   PortalRunningItem,
   PortalPayment,
   PaginatedResponse,
@@ -123,6 +124,24 @@ export const shareLinkApi = baseApi.injectEndpoints({
       },
     }),
 
+    /** Get portal credit/debit notes (issued only) */
+    getPortalNotes: builder.query<
+      {
+        success: boolean;
+        data: PortalNote[];
+        pagination: PaginatedResponse<PortalNote>['pagination'];
+      },
+      { token: string; page?: number; pageSize?: number }
+    >({
+      query: ({ token, ...params }) => {
+        const searchParams = new URLSearchParams();
+        if (params.page) searchParams.set('page', String(params.page));
+        if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
+        const qs = searchParams.toString();
+        return `/share/${token}/notes${qs ? `?${qs}` : ''}`;
+      },
+    }),
+
     /** Get portal payments */
     getPortalPayments: builder.query<
       {
@@ -161,6 +180,14 @@ export const shareLinkApi = baseApi.injectEndpoints({
         responseHandler: (response: Response) => response.blob(),
       }),
     }),
+
+    /** Download portal credit/debit note PDF */
+    getPortalNotePdf: builder.query<Blob, { token: string; noteId: string }>({
+      query: ({ token, noteId }) => ({
+        url: `/share/${token}/notes/${noteId}/pdf`,
+        responseHandler: (response: Response) => response.blob(),
+      }),
+    }),
   }),
 });
 
@@ -173,8 +200,10 @@ export const {
   useGetPortalChallansQuery,
   useGetPortalRunningItemsQuery,
   useGetPortalBillsQuery,
+  useGetPortalNotesQuery,
   useGetPortalPaymentsQuery,
   useGetPortalSummaryQuery,
   useLazyGetPortalChallanPdfQuery,
   useLazyGetPortalBillPdfQuery,
+  useLazyGetPortalNotePdfQuery,
 } = shareLinkApi;
