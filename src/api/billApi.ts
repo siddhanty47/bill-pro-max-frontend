@@ -102,12 +102,18 @@ export const billApi = baseApi.injectEndpoints({
 
     updateBillStatus: builder.mutation<
       Bill,
-      { businessId: string; billId: string; status: Bill['status'] }
+      {
+        businessId: string;
+        billId: string;
+        status: Bill['status'];
+        /** Issuing a bill with negative stock needs this */
+        acknowledgeNegative?: boolean;
+      }
     >({
-      query: ({ businessId, billId, status }) => ({
+      query: ({ businessId, billId, status, acknowledgeNegative }) => ({
         url: `/businesses/${businessId}/bills/${billId}/status`,
         method: 'PATCH',
-        body: { status },
+        body: acknowledgeNegative === undefined ? { status } : { status, acknowledgeNegative },
       }),
       transformResponse: (response: ApiResponse<Bill>) => response.data,
       invalidatesTags: (_result, _error, { billId }) => [
@@ -118,22 +124,38 @@ export const billApi = baseApi.injectEndpoints({
       ],
     }),
 
-    /**
-     * Delete a bill
-     * @param force - Set to true to delete bills with any status (not just draft/cancelled)
-     */
-    deleteBill: builder.mutation<void, { businessId: string; billId: string; force?: boolean }>({
-      query: ({ businessId, billId, force }) => ({
-        url: `/businesses/${businessId}/bills/${billId}${force ? '?force=true' : ''}`,
+    /** Re-price a draft bill from current data (clears its drift). */
+    refreshBill: builder.mutation<Bill, { businessId: string; billId: string }>({
+      query: ({ businessId, billId }) => ({
+        url: `/businesses/${businessId}/bills/${billId}/refresh`,
+        method: 'POST',
+      }),
+      transformResponse: (response: ApiResponse<Bill>) => response.data,
+      invalidatesTags: (_result, _error, { billId }) => [
+        { type: 'Bill', id: billId },
+        'Bill',
+        'AuditLog',
+        'Dashboard',
+      ],
+    }),
+
+    /** Delete a draft or cancelled bill (issued bills can never be deleted). */
+    deleteBill: builder.mutation<void, { businessId: string; billId: string }>({
+      query: ({ businessId, billId }) => ({
+        url: `/businesses/${businessId}/bills/${billId}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['Bill', 'AuditLog', 'Dashboard'],
     }),
 
-    sendBillEmail: builder.mutation<void, { businessId: string; billId: string }>({
-      query: ({ businessId, billId }) => ({
+    sendBillEmail: builder.mutation<
+      void,
+      { businessId: string; billId: string; acknowledgeNegative?: boolean }
+    >({
+      query: ({ businessId, billId, acknowledgeNegative }) => ({
         url: `/businesses/${businessId}/bills/${billId}/send`,
         method: 'POST',
+        ...(acknowledgeNegative === undefined ? {} : { body: { acknowledgeNegative } }),
       }),
       invalidatesTags: (_result, _error, { billId }) => [
         { type: 'Bill', id: billId },
@@ -164,6 +186,7 @@ export const {
   useGenerateBillMutation,
   useBulkGenerateBillsMutation,
   useUpdateBillStatusMutation,
+  useRefreshBillMutation,
   useDeleteBillMutation,
   useSendBillEmailMutation,
   useLazyGetBillPdfQuery,

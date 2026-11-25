@@ -234,6 +234,41 @@ describe('AgreementDetailPage', () => {
     await waitFor(() => expect(bodies).toEqual([{ ratePerDay: 7.5 }]));
   });
 
+  it('shows the impact on bills before saving a rate change', async () => {
+    useApi();
+    const calls: Array<{ dryRun: boolean; body: unknown }> = [];
+    server.use(
+      http.patch(apiUrl(`${BASE}/rates/i1`), async ({ request }) => {
+        const dryRun = new URL(request.url).searchParams.get('dryRun') === 'true';
+        calls.push({ dryRun, body: await request.json() });
+        if (dryRun) {
+          return ok({
+            dryRun: true,
+            report: {
+              affected: [{ billId: 'b1', billNumber: 'INV-1', status: 'draft', issued: false }],
+              negative: [],
+              requiresReason: false,
+              blocked: null,
+            },
+          });
+        }
+        return ok(makeAgreement());
+      })
+    );
+    const { user } = renderPage();
+    const table = await screen.findByRole('table', { name: 'Items and rates' });
+    const row = await within(table).findByRole('row', { name: /Ladder 1.5m/ });
+    await user.click(within(row).getByRole('button', { name: /₹5/ }));
+    const input = within(row).getByRole('spinbutton', { name: 'Rate per day' });
+    await user.clear(input);
+    await user.type(input, '8{Enter}');
+
+    expect(await screen.findByText('May be marked out of date')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save anyway' }));
+    await waitFor(() => expect(calls).toHaveLength(2));
+    expect(calls[1]).toEqual({ dryRun: false, body: { ratePerDay: 8 } });
+  });
+
   it('saves an edited opening balance', async () => {
     useApi();
     const bodies = capturePatch(`${BASE}/rates/i1`);

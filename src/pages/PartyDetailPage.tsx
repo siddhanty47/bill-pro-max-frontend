@@ -10,6 +10,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import styles from './PartyDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
+import { useChangeGate } from '../hooks/useChangeGate';
 import {
   useGetPartyQuery,
   useGetOutstandingSummaryQuery,
@@ -96,6 +97,7 @@ export function PartyDetailPage() {
 
   const [updateParty, { isLoading: isSaving }] = useUpdatePartyMutation();
   const [createAgreement, { isLoading: isCreatingAgreement }] = useCreateAgreementMutation();
+  const { run: runGated, dialog: changeDialog } = useChangeGate();
   const [updateSite, { isLoading: isUpdatingSite }] = useUpdateSiteMutation();
 
   const { data: inventory } = useGetInventoryQuery(currentBusinessId || '', {
@@ -186,17 +188,21 @@ export function PartyDetailPage() {
   const handleAgreementSubmit = useCallback(
     async (data: CreateAgreementInput) => {
       try {
-        await createAgreement({
-          businessId: currentBusinessId!,
-          partyId: partyId!,
-          data,
-        }).unwrap();
+        const saved = await runGated(gate =>
+          createAgreement({
+            businessId: currentBusinessId!,
+            partyId: partyId!,
+            data,
+            ...gate,
+          }).unwrap()
+        );
+        if (!saved) return;
         setIsAgreementModalOpen(false);
       } catch (err) {
         alert(getErrorMessage(err));
       }
     },
-    [createAgreement, currentBusinessId, partyId]
+    [createAgreement, currentBusinessId, partyId, runGated]
   );
 
   const handleDownloadStatement = useCallback(async () => {
@@ -856,6 +862,7 @@ export function PartyDetailPage() {
           </Modal>
         </>
       )}
+      {changeDialog}
     </DetailPageShell>
   );
 }
