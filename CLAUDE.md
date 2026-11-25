@@ -143,6 +143,15 @@ Defined in `src/App.tsx`.
 - Read error codes with `getApiError` / `hasApiErrorCode` (`src/utils/apiError.ts`), never by string-matching messages.
 - Rule: a new gated backend mutation needs its frontend call site wrapped in `useChangeGate` (and its endpoint using `withGate` + `gatedTags`).
 
+## Credit/Debit Notes
+
+- Issued bills are corrected only by notes (`BillNote`: `credit`/`debit`, `auto`/`manual`, `draft` → `issued` | `cancelled`; issued notes are frozen).
+- API: `src/api/billNoteApi.ts` (`getBillNotes` paged, `getAllBillNotes` whole list by `partyId`/`billId`/status/type/source, get/create/update/issue/cancel/send, `downloadBillNotePdf`). Portal: `shareLinkApi.getPortalNotes` (issued only) + `downloadPortalNotePdf`.
+- Pages: `/bill-notes` (`BillNotesPage`), `/bill-notes/:noteId` (`BillNoteDetailPage`); Notes tabs on the bill page (issued bills) and the party page; the portal's Bills tab lists issued notes with a PDF per row. Every notes table is `components/billing/BillNotesTable` (`showBill`, `partyName` toggle columns), never a copy.
+- `BillNoteForm` (`components/forms/`): reason + manual line editor, tax preview from the bill's own rates (`manualNoteTotals`).
+- Money: `utils/billMoney.ts` `effectiveAmount` (total + `notesTotal`), `balanceDue`, `signedMoney`, `noteSign`. Any bill amount or balance shown (bill page, bills list, party bills tab, payment form, portal) goes through them. Labels and the PDF name (`noteFileName`) live in `utils/billNoteLabels.ts`.
+- File downloads (all PDFs): `queryFn` + `downloadFile(url, fileName, baseQuery)` (`src/api/downloadFile.ts`, saves via `utils/download.ts` `saveBlob`); data is `null`, so no Blob ever enters the store. Callers pass `fileName` to the lazy trigger.
+
 ## Adding a New Entity
 
 1. Add TypeScript types to `src/types/index.ts`
