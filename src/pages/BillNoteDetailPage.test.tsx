@@ -7,15 +7,24 @@ import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
 import { apiUrl, ok } from '../test/msw/handlers';
 import { makeBillNote } from '../test/factories';
-import type { BillNote, Party } from '../types';
+import type { Bill, BillNote, Party } from '../types';
 
 const BASE = '/businesses/biz-1/bill-notes/n1';
 
-function useApi(note: BillNote = makeBillNote({ _id: 'n1' })) {
+/** The note's bill: period end in FY 2026-27 unless given (its FY decides the credit deadline) */
+const billEnding = (end = '2026-07-31T00:00:00.000Z') =>
+  ({
+    _id: 'bill-1',
+    status: 'sent',
+    billingPeriod: { start: `${end.slice(0, 8)}01T00:00:00.000Z`, end },
+  }) as unknown as Bill;
+
+function useApi(note: BillNote = makeBillNote({ _id: 'n1' }), bill = billEnding()) {
   let current = note;
   const gets = { count: 0 };
   server.use(
     http.get(apiUrl('/businesses'), () => ok([])),
+    http.get(apiUrl('/businesses/biz-1/bills/bill-1'), () => ok(bill)),
     http.get(apiUrl(BASE), () => {
       gets.count += 1;
       return ok(current);
@@ -248,6 +257,51 @@ describe('BillNoteDetailPage', () => {
     );
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Credit is more than the bill amount'
+    );
+  });
+
+  describe('credit note deadline', () => {
+    const NOTICE = 'Credit notes for FY 2025-26 closed on 30 Nov 2026.';
+    afterEach(() => vi.useRealTimers());
+    const lateMarchBill = () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-12-01T06:00:00.000Z'));
+      return billEnding('2026-03-31T00:00:00.000Z');
+    };
+
+    it('disables Issue on a draft credit note past the deadline, with the notice', async () => {
+      useApi(makeBillNote({ _id: 'n1' }), lateMarchBill());
+      renderPage();
+      expect(await screen.findByText(NOTICE)).toBeVisible();
+      const issue = screen.getByRole('button', { name: 'Issue' });
+      expect(issue).toBeDisabled();
+      expect(issue).toHaveAccessibleDescription(NOTICE);
+    });
+
+    it('keeps Issue on a debit note (no limit)', async () => {
+      useApi(makeBillNote({ _id: 'n1', type: 'debit' }), lateMarchBill());
+      renderPage();
+      expect(await screen.findByRole('button', { name: 'Issue' })).toBeEnabled();
+      expect(screen.queryByText(NOTICE)).not.toBeInTheDocument();
+    });
+  });
+
+  it('shows the server message when the credit-note deadline has passed', async () => {
+    useApi();
+    capture(
+      'post',
+      `${BASE}/issue`,
+      fail(409, 'CREDIT_NOTE_DEADLINE_PASSED', 'Credit notes for FY 2025-26 closed on 30 Nov 2026')
+    );
+    const { user } = renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Issue' }));
+    await user.click(
+      within(screen.getByRole('dialog', { name: 'Issue note' })).getByRole('button', {
+        name: 'Issue note',
+      })
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Credit notes for FY 2025-26 closed on 30 Nov 2026'
     );
   });
 

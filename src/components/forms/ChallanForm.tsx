@@ -1,6 +1,7 @@
 /**
  * Challan creation form with predicted challan number,
- * color-coded type support, and running-quantity display per item.
+ * color-coded type support, and running-quantity display per item. A date in a closed
+ * financial year of the chosen site is refused at the date field.
  */
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -23,6 +24,7 @@ import {
 } from '../../api/challanApi';
 import { getErrorMessage } from '../../api/baseApi';
 import { useGetEmployeesQuery } from '../../api/employeeApi';
+import { useSiteLock } from '../../hooks/useSiteLock';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
 import { DocumentNumberBadge } from '../DocumentNumberBadge';
 import {
@@ -228,6 +230,8 @@ export function ChallanForm({
   const selectedParty = parties.find(p => p._id === selectedPartyId);
   const activeAgreements = selectedParty?.agreements?.filter(a => a.status === 'active') || [];
   const challanDate = watch('date');
+  const siteLock = useSiteLock(businessId, selectedPartyId, selectedAgreementId);
+  const dateLocked = siteLock.isLocked(challanDate);
 
   /** Fetch transporter employees for the business */
   const { data: employeesResponse } = useGetEmployeesQuery(
@@ -502,6 +506,7 @@ export function ChallanForm({
   );
 
   const handleFormSubmit = async (data: FormData) => {
+    if (siteLock.isLocked(data.date)) return;
     const damagedItems =
       data.type === 'return' && data.damagedItems?.length
         ? data.damagedItems
@@ -590,7 +595,11 @@ export function ChallanForm({
           register={register('challanSequence', { setValueAs: optionalNumber })}
           error={errors.challanSequence?.message}
         />
-        <Field label="Date" required error={errors.date?.message}>
+        <Field
+          label="Date"
+          required
+          error={errors.date?.message ?? (dateLocked ? siteLock.message : undefined)}
+        >
           <Input type="date" {...register('date')} disabled={isLoading} />
         </Field>
 

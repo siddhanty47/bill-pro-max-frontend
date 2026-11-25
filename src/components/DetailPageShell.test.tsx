@@ -200,6 +200,12 @@ describe('DetailField', () => {
     expect(screen.getByText('Not added')).toHaveClass('notAdded');
   });
 
+  it('shows a hint under the value', () => {
+    render(<DetailField label="Deadline" value="30 Nov" hint="Default 30 Nov." />);
+    expect(screen.getByRole('definition')).toHaveTextContent('30 NovDefault 30 Nov.');
+    expect(screen.getByText('Default 30 Nov.')).toHaveClass('hint');
+  });
+
   it('renders a bare value without a label row', () => {
     render(<DetailField label="" value="Pays by cheque" />);
     expect(screen.queryByRole('term')).not.toBeInTheDocument();

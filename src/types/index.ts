@@ -85,6 +85,8 @@ export interface BusinessSettings {
   defaultCgstRate?: number;
   defaultIgstRate?: number;
   defaultPaymentDueDays: number;
+  /** Last day (MM-DD, in the year after the FY) credit notes may be raised; default '11-30' */
+  creditNoteDeadline?: string;
 }
 
 export interface Business {
@@ -795,8 +797,38 @@ export interface GateReport {
   negative: GateNegativeSpan[];
   /** An issued bill is touched, or stock goes newly / further below zero */
   requiresReason: boolean;
-  /** 'role' when the caller may not change a billed month at all */
-  blocked: 'role' | null;
+  /**
+   * 'role' when the caller may not change a billed month at all; 'closedYear' when the change is
+   * dated in a closed financial year of the site (nobody may make it)
+   */
+  blocked: 'role' | 'closedYear' | null;
+  /** The closed FY (e.g. '2025-26') when `blocked` is 'closedYear' */
+  closedYear?: string;
+}
+
+/** One site's year-close state for an FY (`GET /year-close?fy=`) */
+export interface YearStatusRow {
+  partyId: string;
+  partyName: string;
+  partyCode: string;
+  siteCode: string;
+  siteAddress: string;
+  /** ISO date; null when no agreement is active in the FY */
+  lastBillableDay: string | null;
+  closed: boolean;
+  /** A later FY (e.g. '2026-27') is closed on the site while this one is open: nothing dated in it can change either */
+  lockedByLaterYear?: string;
+  closingBillId?: string;
+  closingBillNumber?: string;
+}
+
+/** Latest closed FY of a site; nothing dated on or before `lockedThrough` can change */
+export interface SiteClosedThrough {
+  fy: string;
+  /** ISO date: the site's last billable day in that FY */
+  date: string;
+  /** ISO date: 31 March of that FY */
+  lockedThrough: string;
 }
 
 /** Response of a gated mutation sent with `?dryRun=true`: nothing was written */

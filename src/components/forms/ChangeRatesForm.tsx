@@ -1,7 +1,7 @@
 /**
  * Change rates form: closes an agreement the day before the new rates start and opens a
  * successor for the same site. Rates are prefilled with the current ones; only changed
- * rates are sent.
+ * rates are sent. On a site with a closed financial year the new rates must start after it.
  */
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,6 +9,8 @@ import { z } from 'zod';
 import type { AgreementRateWithItem, ChangeAgreementRatesInput } from '../../types';
 import { Button, Field, Input, Notice, Table, TBody, THead, Td, Th, Tr } from '../ui';
 import { formatDate, formatMoney } from '../../utils/format';
+import { isOnOrBeforeDay } from '../../utils/financialYear';
+import type { SiteLock } from '../../hooks/useSiteLock';
 import styles from './ChangeRatesForm.module.css';
 
 interface ChangeRatesFormProps {
@@ -21,6 +23,8 @@ interface ChangeRatesFormProps {
   isLoading?: boolean;
   /** Server error to show (e.g. a bill already covers the date) */
   error?: string;
+  /** The site's closed-year lock: the new rates cannot start on or before it */
+  siteLock?: Pick<SiteLock, 'lockedThrough' | 'message'>;
 }
 
 /** "2026-09-01" -> "2026-08-31" (calendar days, no time zone) */
@@ -38,13 +42,16 @@ export function ChangeRatesForm({
   onCancel,
   isLoading,
   error,
+  siteLock,
 }: ChangeRatesFormProps) {
   const start = startDate.slice(0, 10);
+  const lockedThrough = siteLock?.lockedThrough;
   const schema = z.object({
     effectiveDate: z
       .string()
       .min(1, 'Pick the date the new rates start')
-      .refine(v => v > start, 'Pick a date after the agreement start'),
+      .refine(v => v > start, 'Pick a date after the agreement start')
+      .refine(v => !lockedThrough || !isOnOrBeforeDay(v, lockedThrough), siteLock?.message ?? ''),
     rates: z.array(z.object({ ratePerDay: z.number({ message: 'Enter a rate' }).min(0) })),
   });
   type FormData = z.infer<typeof schema>;

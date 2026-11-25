@@ -71,6 +71,7 @@ Defined in `src/App.tsx`.
 - `/bill-notes`, `/bill-notes/:noteId` — Credit/debit notes (list searches in the browser over `getAllBillNotes`; the endpoint has no text search)
 - `/payments`, `/payments/:paymentId`
 - `/team` — Team members & invitations
+- `/year-close` — Year close status per site (`YearClosePage`, nav "Year close" in the Business group)
 
 **Sidebar navigation** defined in `Layout.tsx` (`navGroups` array near the top: optional group label + items with `path`, `label`, `icon`).
 
@@ -151,6 +152,17 @@ Defined in `src/App.tsx`.
 - `BillNoteForm` (`components/forms/`): reason + manual line editor, tax preview from the bill's own rates (`manualNoteTotals`). An edit sends `lines` only when they changed. Auto drafts and full-value credits (`note.fullValue`, `amountsFixed`) edit only the reason; the backend 400s `lines` on a full-value draft.
 - Money: `utils/billMoney.ts` `effectiveAmount` (total + `notesTotal`), `balanceDue`, `signedMoney`, `noteSign`. Every note amount and bill notes total is shown with `signedMoney` (+ debit, − credit; a note's discount reads as −). Any bill amount or balance shown (bill page, bills list, party bills tab, payment form, portal) goes through them. Labels and the PDF name (`noteFileName`) live in `utils/billNoteLabels.ts`.
 - File downloads (all PDFs): `queryFn` + `downloadFile(url, fileName, baseQuery)` (`src/api/downloadFile.ts`, saves via `utils/download.ts` `saveBlob`); data is `null`, so no Blob ever enters the store. Callers pass `fileName` to the lazy trigger.
+
+## Year Close
+
+- A financial year (1 Apr – 31 Mar, label `2025-26`) closes for a site once today (IST) is after 31 March and the site's bill ending on its last billable day is issued. Derived by the backend on every request, never stored. After that nothing dated on or before `lockedThrough` can change on that site, for anyone.
+- FY helpers: `src/utils/financialYear.ts` (`fyOf`, `fyEnd`, `fyHasEnded`, `recentFys`, `isOnOrBeforeDay`, `closedYearMessage`, credit-note deadline helpers). Calendar days are IST dates stored as UTC midnight; never use local-time FY math.
+- API: `src/api/yearCloseApi.ts` (`getYearStatus` per FY, `getSiteClosedThrough` per site; tag `YearClose`, invalidated by bill, payment and business mutations). `hooks/useSiteLock.ts` wraps the site query.
+- Locks: challan and agreement pages go read only when dated in a closed year; a 409 `YEAR_CLOSED` (or dry run `blocked: 'closedYear'`) shows the closed-year mode of `ChangeImpactDialog`.
+- `/year-close` page: FY select (current FY + the five before it, default the last ended FY), one row per site: party, site, last billable day, Closed / Locked / Open / Running chip, closing bill link; a row with `lockedByLaterYear` reads "Locked by FY <later> close"; other open rows of an ended FY say which bill closes the year.
+- Agreement ends: `effectiveEndDate` (`utils/financialYear.ts`) mirrors the backend: an end date counts only once the agreement is closed (`nextAgreementId` set or status ≠ active). Lock math for extend/resume/end edits uses it.
+- Credit-note deadline: `business.settings.creditNoteDeadline` (`MM-DD`, default `11-30`), edited on `/business` and validated by `creditNoteDeadlineSchema` (same regex and non-leap calendar check as the backend). Once today (IST) is past `<FY end year>-MM-DD` for a bill's FY (FY of `billingPeriod.end`), the bill page disables "New credit note" and the note page disables Issue on a credit note, each with the same notice (`isPastCreditDeadline`, `creditDeadlineMessage`); debit notes have no limit. The server's 409 `CREDIT_NOTE_DEADLINE_PASSED` is shown as its message on create and issue.
+- Business settings PATCH sends only the changed setting (the backend merges it into the stored settings).
 
 ## Adding a New Entity
 

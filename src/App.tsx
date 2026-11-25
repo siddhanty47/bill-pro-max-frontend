@@ -25,6 +25,7 @@ import { AgreementDetailPage } from './pages/AgreementDetailPage';
 import { ChallanDetailPage } from './pages/ChallanDetailPage';
 import { BillDetailPage } from './pages/BillDetailPage';
 import { BillNotesPage } from './pages/BillNotesPage';
+import { YearClosePage } from './pages/YearClosePage';
 import { BillNoteDetailPage } from './pages/BillNoteDetailPage';
 import { PaymentDetailPage } from './pages/PaymentDetailPage';
 import { TeamPage } from './pages/TeamPage';
@@ -168,6 +169,7 @@ function App() {
           }
         />
         <Route path="bill-notes" element={<BillNotesPage />} />
+        <Route path="year-close" element={<YearClosePage />} />
         <Route
           path="bill-notes/:noteId"
           element={

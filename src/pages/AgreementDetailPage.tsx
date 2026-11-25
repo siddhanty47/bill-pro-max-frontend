@@ -2,13 +2,15 @@
  * @fileoverview Agreement detail view page
  * @description Detail page showing all information for a single agreement,
  * including rates/items, terms, and period dates. Supports Jira-style inline
- * editing for status, dates, terms, and per-item rate values.
+ * editing for status, dates, terms, and per-item rate values. Edits dated in a closed
+ * financial year of the site are disabled (mirroring the backend's effective dates).
  */
 import { useState, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styles from './AgreementDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useChangeGate } from '../hooks/useChangeGate';
+import { useSiteLock } from '../hooks/useSiteLock';
 import {
   useGetAgreementQuery,
   useGetAgreementsQuery,
@@ -21,6 +23,7 @@ import { getErrorMessage } from '../api/baseApi';
 import { ChangeRatesForm } from '../components/forms/ChangeRatesForm';
 import { useGetItemsWithPartyQuery, useGetChallansByPartyQuery } from '../api/challanApi';
 import { inAgreementPeriod } from '../utils/billingPeriod';
+import { effectiveEndDate } from '../utils/financialYear';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import { EditableField } from '../components/EditableField';
 import {
@@ -34,6 +37,7 @@ import {
   MenuItem,
   MenuLabel,
   Modal,
+  Notice,
   StatusChip,
   TextLink,
   type Column,
@@ -72,6 +76,11 @@ function toDateInputValue(dateStr: string | undefined): string {
   if (!dateStr) return '';
   return dateStr.split('T')[0];
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** The day after an ISO date (same time of day). */
+const dayAfter = (dateStr: string): Date => new Date(new Date(dateStr).getTime() + DAY_MS);
 
 /**
  * AgreementDetailPage displays the full details of a single rental agreement.
@@ -126,6 +135,30 @@ export function AgreementDetailPage() {
       c => siteIds.has(c.agreementId) && inAgreementPeriod(c.date, agreement)
     );
   }, [agreement, partyChallans, allAgreements]);
+
+  // Closed-year lock, by the date each edit takes effect from (backend `agreementEditDate`):
+  // rates bill from the agreement start, opening stock sits at the site start, and a change of
+  // the effective end (an end counts only once the agreement is closed) changes billing from the
+  // day after the earlier end. Typing the end of an active agreement changes no billing, and a
+  // status change that leaves the effective end alone dates today.
+  const siteLock = useSiteLock(currentBusinessId, agreement?.partyId, agreement?.agreementId);
+  const siteStart = useMemo(() => {
+    if (!agreement) return undefined;
+    const starts = (allAgreements ?? [])
+      .filter(a => a.partyId === agreement.partyId && a.siteCode === agreement.siteCode)
+      .map(a => a.startDate);
+    return [agreement.startDate, ...starts].reduce((a, b) =>
+      new Date(b).getTime() < new Date(a).getTime() ? b : a
+    );
+  }, [agreement, allAgreements]);
+  const startLocked = siteLock.isLocked(agreement?.startDate);
+  const openingLocked = siteLock.isLocked(siteStart);
+  const effectiveEnd = agreement && effectiveEndDate(agreement);
+  // Moving the end of a closed agreement, or resuming it
+  const endLocked = !!effectiveEnd && siteLock.isLocked(dayAfter(effectiveEnd));
+  // Closing an open agreement at the end typed on it
+  const closeLocked =
+    !effectiveEnd && !!agreement?.endDate && siteLock.isLocked(dayAfter(agreement.endDate));
 
   const [updateAgreement, { isLoading: isSaving }] = useUpdateAgreementMutation();
   const [updateRate] = useUpdateAgreementRateMutation();
@@ -295,34 +328,40 @@ export function AgreementDetailPage() {
 
   // ─── Rates ────────────────────────────────────────────────────────
 
-  const rateCell = (itemId: string, ratePerDay: number) => (
-    <EditableField
-      label="Rate per day"
-      value={ratePerDay}
-      displayValue={formatMoney(ratePerDay)}
-      inputType="number"
-      prefix="₹"
-      compact
-      mono
-      align="right"
-      onSave={async v => handleRateSave(itemId, Number(v))}
-      isSaving={savingRateItemId === itemId}
-    />
-  );
+  const rateCell = (itemId: string, ratePerDay: number) =>
+    startLocked ? (
+      <span className="mono">{formatMoney(ratePerDay)}</span>
+    ) : (
+      <EditableField
+        label="Rate per day"
+        value={ratePerDay}
+        displayValue={formatMoney(ratePerDay)}
+        inputType="number"
+        prefix="₹"
+        compact
+        mono
+        align="right"
+        onSave={async v => handleRateSave(itemId, Number(v))}
+        isSaving={savingRateItemId === itemId}
+      />
+    );
 
-  const openingCell = (itemId: string, openingBalance: number) => (
-    <EditableField
-      label="Opening stock"
-      value={openingBalance}
-      displayValue={`${openingBalance}`}
-      inputType="number"
-      compact
-      mono
-      align="right"
-      onSave={async v => handleOpeningBalanceSave(itemId, Number(v))}
-      isSaving={savingOpeningBalItemId === itemId}
-    />
-  );
+  const openingCell = (itemId: string, openingBalance: number) =>
+    openingLocked ? (
+      <span className="mono">{openingBalance}</span>
+    ) : (
+      <EditableField
+        label="Opening stock"
+        value={openingBalance}
+        displayValue={`${openingBalance}`}
+        inputType="number"
+        compact
+        mono
+        align="right"
+        onSave={async v => handleOpeningBalanceSave(itemId, Number(v))}
+        isSaving={savingOpeningBalItemId === itemId}
+      />
+    );
 
   const rateColumns: Column<AgreementRateWithItem>[] = [
     { key: 'itemCode', header: 'Code', mono: true, nowrap: true },
@@ -450,7 +489,11 @@ export function AgreementDetailPage() {
             <Menu trigger={p => <IconButton label="More actions" icon="more" {...p} />}>
               <MenuLabel>Set status</MenuLabel>
               {STATUS_OPTIONS.filter(o => o.value !== agreement.status).map(o => (
-                <MenuItem key={o.value} onSelect={() => handleSave('status', o.value)}>
+                <MenuItem
+                  key={o.value}
+                  onSelect={() => handleSave('status', o.value)}
+                  aria-disabled={(o.value === 'active' ? endLocked : closeLocked) || undefined}
+                >
                   {o.label}
                 </MenuItem>
               ))}
@@ -461,28 +504,37 @@ export function AgreementDetailPage() {
     >
       {agreement && (
         <>
+          {openingLocked && <Notice tone="warning">{siteLock.message}</Notice>}
           {activeTab === 'about' && (
             <>
               <DetailSection title="Period">
                 <DetailField
                   label="Start date"
                   value={formatDate(agreement.startDate)}
-                  editable={{
-                    rawValue: toDateInputValue(agreement.startDate),
-                    inputType: 'date',
-                    onSave: v => handleSave('startDate', v),
-                    isSaving,
-                  }}
+                  editable={
+                    startLocked
+                      ? undefined
+                      : {
+                          rawValue: toDateInputValue(agreement.startDate),
+                          inputType: 'date',
+                          onSave: v => handleSave('startDate', v),
+                          isSaving,
+                        }
+                  }
                 />
                 <DetailField
                   label="End date"
                   value={formatDate(agreement.endDate)}
-                  editable={{
-                    rawValue: toDateInputValue(agreement.endDate),
-                    inputType: 'date',
-                    onSave: v => handleSave('endDate', v),
-                    isSaving,
-                  }}
+                  editable={
+                    endLocked
+                      ? undefined
+                      : {
+                          rawValue: toDateInputValue(agreement.endDate),
+                          inputType: 'date',
+                          onSave: v => handleSave('endDate', v),
+                          isSaving,
+                        }
+                  }
                 />
                 {agreement.previousAgreementId && (
                   <DetailField
@@ -653,6 +705,7 @@ export function AgreementDetailPage() {
             onCancel={() => setChangeRatesOpen(false)}
             isLoading={isChangingRates}
             error={changeRatesError}
+            siteLock={siteLock}
           />
         </Modal>
       )}

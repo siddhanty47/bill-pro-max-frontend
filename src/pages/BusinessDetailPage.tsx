@@ -11,6 +11,8 @@ import { useGetBusinessQuery, useUpdateBusinessMutation } from '../api/businessA
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { formatDate } from '../utils/format';
+import { creditNoteDeadlineSchema, deadlineLabel } from '../utils/financialYear';
+import { FieldValidationError } from '../utils/fieldValidationError';
 import type { BusinessSettings } from '../types';
 
 const TABS = [
@@ -54,20 +56,29 @@ export function BusinessDetailPage() {
     [currentBusinessId, updateBusiness]
   );
 
-  /** Save handler for settings fields */
+  /**
+   * Save handler for settings fields: sends only the changed setting. The server merges it into
+   * the stored settings, so a stale copy of the others never overwrites them.
+   */
   const handleSettingsSave = useCallback(
     async (field: keyof BusinessSettings, newValue: string | number) => {
-      if (!business || !currentBusinessId) return;
-      const settings: Partial<BusinessSettings> = {
-        ...business.settings,
-        [field]: newValue,
-      };
+      if (!currentBusinessId) return;
       await updateBusiness({
         businessId: currentBusinessId,
-        data: { settings },
+        data: { settings: { [field]: newValue } },
       }).unwrap();
     },
-    [currentBusinessId, business, updateBusiness]
+    [currentBusinessId, updateBusiness]
+  );
+
+  /** Same rule as the backend; a bad value is shown under the input and never sent */
+  const handleDeadlineSave = useCallback(
+    async (newValue: string | number) => {
+      const parsed = creditNoteDeadlineSchema.safeParse(String(newValue).trim());
+      if (!parsed.success) throw new FieldValidationError(parsed.error.issues[0].message);
+      await handleSettingsSave('creditNoteDeadline', parsed.data);
+    },
+    [handleSettingsSave]
   );
 
   // Early return must come after every hook (rules-of-hooks).
@@ -252,6 +263,17 @@ export function BusinessDetailPage() {
                     rawValue: business.settings.defaultPaymentDueDays ?? 15,
                     inputType: 'number',
                     onSave: v => handleSettingsSave('defaultPaymentDueDays', v),
+                    isSaving,
+                  }}
+                />
+                <DetailField
+                  label="Credit note deadline"
+                  value={deadlineLabel(business.settings.creditNoteDeadline)}
+                  hint="Credit notes are refused after this day following the year's end (GST). Default 30 Nov."
+                  editable={{
+                    rawValue: business.settings.creditNoteDeadline ?? '11-30',
+                    inputType: 'text',
+                    onSave: handleDeadlineSave,
                     isSaving,
                   }}
                 />

@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { readCss } from '../test/readCss';
 import { EditableField } from './EditableField';
+import { FieldValidationError } from '../utils/fieldValidationError';
 
 const setup = (props: Partial<Parameters<typeof EditableField>[0]> = {}) => {
   const onSave = vi.fn(async () => {});
@@ -68,6 +69,32 @@ describe('EditableField', () => {
 
     expect(await screen.findByText('Code already exists')).toBeInTheDocument();
     expect(screen.getByRole('textbox')).toHaveValue('Sharma2');
+  });
+
+  it('shows a FieldValidationError message (a client-side check) and stays in edit mode', async () => {
+    const onSave = vi.fn(async () => {
+      throw new FieldValidationError('Not a calendar day');
+    });
+    const { user, startEditing } = setup({ onSave });
+
+    await startEditing();
+    await user.type(screen.getByRole('textbox'), '2{Enter}');
+
+    expect(await screen.findByText('Not a calendar day')).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveValue('Sharma2');
+  });
+
+  it('shows "Save failed" for any other thrown error, never its raw message', async () => {
+    const onSave = vi.fn(async () => {
+      throw new TypeError("Cannot read properties of undefined (reading 'x')");
+    });
+    const { user, startEditing } = setup({ onSave });
+
+    await startEditing();
+    await user.type(screen.getByRole('textbox'), '2{Enter}');
+
+    expect(await screen.findByText('Save failed')).toBeInTheDocument();
+    expect(screen.queryByText(/Cannot read properties/)).not.toBeInTheDocument();
   });
 
   it('starts editing from the latest value after the prop changes', async () => {

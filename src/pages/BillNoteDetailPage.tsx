@@ -17,6 +17,7 @@ import {
   useUpdateBillNoteMutation,
 } from '../api/billNoteApi';
 import { useGetPartiesQuery } from '../api/partyApi';
+import { useGetBillQuery } from '../api/billApi';
 import { getErrorMessage } from '../api/baseApi';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import {
@@ -49,6 +50,7 @@ import {
   noteFileName,
 } from '../utils/billNoteLabels';
 import { formatDate } from '../utils/format';
+import { creditClosedMessage } from '../utils/financialYear';
 import type { BillChangeCause, BillNoteLine } from '../types';
 import styles from './BillNoteDetailPage.module.css';
 
@@ -78,7 +80,7 @@ function causeLink(c: BillChangeCause): ReactNode {
  */
 export function BillNoteDetailPage() {
   const { noteId } = useParams<{ noteId: string }>();
-  const { currentBusinessId } = useCurrentBusiness();
+  const { currentBusinessId, currentBusiness } = useCurrentBusiness();
   const ids = { businessId: currentBusinessId!, noteId: noteId! };
 
   const {
@@ -90,6 +92,22 @@ export function BillNoteDetailPage() {
   const { data: parties } = useGetPartiesQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
   });
+
+  // GST: a draft credit note can't be issued past the deadline of its bill's FY (as on the bill)
+  const creditDraft = note?.type === 'credit' && note.status === 'draft';
+  const { data: bill } = useGetBillQuery(
+    { businessId: currentBusinessId!, billId: note?.billId ?? '' },
+    { skip: !currentBusinessId || !creditDraft }
+  );
+  const creditClosedLine =
+    creditDraft && bill
+      ? creditClosedMessage(
+          bill.billingPeriod.end,
+          currentBusiness?.settings?.creditNoteDeadline,
+          new Date()
+        )
+      : null;
+  const creditClosedId = 'note-credit-closed';
 
   const [updateNote, { isLoading: isSaving }] = useUpdateBillNoteMutation();
   const [issueNote, { isLoading: isIssuing }] = useIssueBillNoteMutation();
@@ -250,7 +268,13 @@ export function BillNoteDetailPage() {
   if (note?.status === 'draft') {
     headerActions = (
       <>
-        <Button variant="primary" onClick={() => setConfirming('issue')} loading={isIssuing}>
+        <Button
+          variant="primary"
+          onClick={() => setConfirming('issue')}
+          loading={isIssuing}
+          disabled={creditClosedLine !== null}
+          aria-describedby={creditClosedLine ? creditClosedId : undefined}
+        >
           Issue
         </Button>
         <Button
@@ -312,6 +336,11 @@ export function BillNoteDetailPage() {
       {note && (
         <>
           {banner && <Notice tone={banner.tone}>{banner.text}</Notice>}
+          {creditClosedLine && (
+            <Notice tone="info">
+              <span id={creditClosedId}>{creditClosedLine}</span>
+            </Notice>
+          )}
 
           {activeTab === 'about' && (
             <>

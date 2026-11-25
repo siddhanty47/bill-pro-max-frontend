@@ -75,6 +75,7 @@ export const baseApi = createApi({
     'Assistant',
     'SearchIndex',
     'Dashboard',
+    'YearClose',
   ],
   endpoints: () => ({}),
 });

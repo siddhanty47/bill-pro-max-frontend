@@ -33,6 +33,7 @@ import {
   MenuLabel,
   Modal,
   NotAdded,
+  Notice,
   StatusChip,
   Table,
   TBody,
@@ -52,6 +53,7 @@ import { formatDate, formatMoney } from '../utils/format';
 import { canChangeStatus, isIssued } from '../utils/billStatus';
 import { balanceDue, effectiveAmount, signedMoney } from '../utils/billMoney';
 import { getApiError } from '../utils/apiError';
+import { creditClosedMessage } from '../utils/financialYear';
 import type {
   Bill,
   BillItem,
@@ -91,7 +93,7 @@ const notAdded = <NotAdded />;
  */
 export function BillDetailPage() {
   const { billId } = useParams<{ billId: string }>();
-  const { currentBusinessId } = useCurrentBusiness();
+  const { currentBusinessId, currentBusiness } = useCurrentBusiness();
 
   const {
     data: bill,
@@ -130,6 +132,18 @@ export function BillDetailPage() {
   const [createNote, { isLoading: isCreatingNote }] = useCreateBillNoteMutation();
   const [newNoteType, setNewNoteType] = useState<BillNoteType | null>(null);
   const [newNoteError, setNewNoteError] = useState<string | null>(null);
+
+  // GST: no credit note for the bill's FY (of its period end) after the business's deadline
+  const creditClosedLine =
+    issued && bill
+      ? creditClosedMessage(
+          bill.billingPeriod.end,
+          currentBusiness?.settings?.creditNoteDeadline,
+          new Date()
+        )
+      : null;
+  const creditClosed = creditClosedLine !== null;
+  const creditClosedId = 'bill-credit-closed';
 
   const partyName = parties?.find(p => p._id === bill?.partyId)?.name || bill?.partyId || '';
   const outstanding = bill ? balanceDue(bill) : 0;
@@ -427,7 +441,13 @@ export function BillDetailPage() {
                 {menuEmail && <MenuItem onSelect={handleSendEmail}>Send email</MenuItem>}
                 {issued && (
                   <>
-                    <MenuItem onSelect={() => openNewNote('credit')}>New credit note</MenuItem>
+                    <MenuItem
+                      onSelect={() => openNewNote('credit')}
+                      aria-disabled={creditClosed || undefined}
+                      aria-describedby={creditClosed ? creditClosedId : undefined}
+                    >
+                      New credit note
+                    </MenuItem>
                     <MenuItem onSelect={() => openNewNote('debit')}>New debit note</MenuItem>
                   </>
                 )}
@@ -457,6 +477,11 @@ export function BillDetailPage() {
             refreshError={gate.refreshError}
             draftNote={draftAutoNote}
           />
+          {creditClosed && (
+            <Notice tone="info">
+              <span id={creditClosedId}>{creditClosedLine}</span>
+            </Notice>
+          )}
 
           {activeTab === 'about' && (
             <>
@@ -641,7 +666,12 @@ export function BillDetailPage() {
               padded={false}
               actions={
                 <div className={styles.noteActions}>
-                  <Button size="sm" onClick={() => openNewNote('credit')}>
+                  <Button
+                    size="sm"
+                    onClick={() => openNewNote('credit')}
+                    disabled={creditClosed}
+                    aria-describedby={creditClosed ? creditClosedId : undefined}
+                  >
                     New credit note
                   </Button>
                   <Button size="sm" onClick={() => openNewNote('debit')}>

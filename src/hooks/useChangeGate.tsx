@@ -2,7 +2,8 @@
  * @fileoverview Wraps a gated challan / agreement mutation: preview with `dryRun`,
  * save straight away when nothing billed is touched, otherwise ask in a dialog.
  * The server stays the source of truth: its 403 / 400 / 409 after the preview
- * reopen the same dialog.
+ * reopen the same dialog. A change in a closed financial year (dry run `blocked: 'closedYear'`
+ * or a 409 `YEAR_CLOSED`) shows the closed-year line with only a Close button.
  */
 import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { isDryRunResult } from '../api/changeGate';
@@ -26,8 +27,25 @@ function needsDialog(report: GateReport): boolean {
   return report.affected.length > 0 || report.negative.length > 0 || report.blocked !== null;
 }
 
+const EMPTY_REPORT: GateReport = {
+  affected: [],
+  negative: [],
+  requiresReason: false,
+  blocked: null,
+};
+
+/** The closed-year report for a 409 `YEAR_CLOSED`, or null for any other error. */
+function closedYearReport(error: unknown, previous: GateReport): GateReport | null {
+  const info = getApiError(error);
+  const fy = info.details?.fy;
+  if (info.code !== 'YEAR_CLOSED' || typeof fy !== 'string') return null;
+  return { ...previous, blocked: 'closedYear', closedYear: fy };
+}
+
 /** The report to show again when the real save is refused, or null for any other error. */
 function reportFromError(error: unknown, previous: GateReport): GateReport | null {
+  const closed = closedYearReport(error, previous);
+  if (closed) return closed;
   const info = getApiError(error);
   if (info.code === 'BILLED_PERIOD_LOCKED') return { ...previous, blocked: 'role' };
   if (info.code === 'REASON_REQUIRED') return { ...previous, requiresReason: true };
@@ -79,11 +97,21 @@ export function useChangeGate() {
    */
   const run = useCallback(
     async (call: GatedCall): Promise<boolean> => {
-      const preview = await call({ dryRun: true });
+      let preview: unknown;
+      try {
+        preview = await call({ dryRun: true });
+      } catch (err) {
+        const closed = closedYearReport(err, EMPTY_REPORT);
+        if (!closed) throw err;
+        return new Promise<boolean>((resolve, reject) =>
+          show({ call, report: closed, resolve, reject })
+        );
+      }
       if (!isDryRunResult(preview)) return true;
+      const { report } = preview;
       return new Promise<boolean>((resolve, reject) => {
-        const next: Pending = { call, report: preview.report, resolve, reject };
-        if (needsDialog(preview.report)) show(next);
+        const next: Pending = { call, report, resolve, reject };
+        if (needsDialog(report)) show(next);
         else void commit(next, {});
       });
     },

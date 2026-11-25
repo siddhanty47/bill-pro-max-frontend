@@ -39,6 +39,7 @@ export const businessApi = baseApi.injectEndpoints({
         { type: 'Business', id: businessId },
         'Business',
         'AuditLog',
+        'YearClose',
       ],
     }),
   }),

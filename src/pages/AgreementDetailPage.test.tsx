@@ -313,20 +313,21 @@ describe('AgreementDetailPage', () => {
     await waitFor(() => expect(bodies).toHaveLength(1));
 
     const terms = screen.getByRole('heading', { name: 'Terms' }).closest('section')!;
-    await user.click(within(terms).getByRole('button', { name: /30 days/ }));
+    // The status save settles before the terms are editable again
+    await user.click(await within(terms).findByRole('button', { name: /30 days/ }));
     const due = within(terms).getByRole('spinbutton');
     await user.clear(due);
     await user.type(due, '45{Enter}');
     await waitFor(() => expect(bodies).toHaveLength(2));
 
-    await user.click(within(terms).getByRole('button', { name: /₹50,000/ }));
+    await user.click(await within(terms).findByRole('button', { name: /₹50,000/ }));
     const dep = within(terms).getByRole('spinbutton');
     await user.clear(dep);
     await user.type(dep, '60000{Enter}');
     await waitFor(() => expect(bodies).toHaveLength(3));
 
     const period = screen.getByRole('heading', { name: 'Period' }).closest('section')!;
-    await user.click(within(period).getByRole('button', { name: /1 Apr 2025/ }));
+    await user.click(await within(period).findByRole('button', { name: /1 Apr 2025/ }));
     const start = period.querySelector('input[type="date"]') as HTMLInputElement;
     await user.clear(start);
     await user.type(start, '2025-05-01{Enter}');
@@ -586,5 +587,171 @@ describe('AgreementDetailPage challans by site', () => {
     expect(within(table).getByText('R-2026-27-0012')).toBeInTheDocument();
     expect(within(table).queryByText('D-2026-27-0010')).not.toBeInTheDocument();
     expect(within(table).queryByText('D-2026-27-0013')).not.toBeInTheDocument();
+  });
+});
+
+describe('AgreementDetailPage closed financial year', () => {
+  const MESSAGE =
+    'FY 2025-26 is closed for this site. Nothing dated on or before 31 Mar 2026 can change.';
+
+  function closedSite() {
+    const seen: URLSearchParams[] = [];
+    server.use(
+      http.get(apiUrl('/businesses/biz-1/year-close/site'), ({ request }) => {
+        seen.push(new URL(request.url).searchParams);
+        return ok({
+          closedThrough: {
+            fy: '2025-26',
+            date: '2026-03-31T00:00:00.000Z',
+            lockedThrough: '2026-03-31T00:00:00.000Z',
+          },
+        });
+      })
+    );
+    return seen;
+  }
+
+  const ratesTable = () => screen.findByRole('table', { name: 'Items and rates' });
+  const period = () => screen.getByRole('heading', { name: 'Period' }).closest('section')!;
+
+  it('locks rates, opening stock and the start of an agreement that starts in the closed year', async () => {
+    useApi();
+    const seen = closedSite();
+    const { user } = renderPage();
+
+    expect(await screen.findByText(MESSAGE)).toBeInTheDocument();
+    expect(seen[0].get('partyId')).toBe('p1');
+    expect(seen[0].get('agreementId')).toBe('AG-001');
+    const row = await within(await ratesTable()).findByRole('row', { name: /Ladder 1.5m/ });
+    expect(within(row).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(row).getByText('₹5')).toBeInTheDocument();
+    expect(within(period()).queryByRole('button', { name: /1 Apr 2025/ })).not.toBeInTheDocument();
+    // An open end can still be set after the closed year, and closing it dates today
+    expect(within(period()).getByRole('button', { name: /Not added/ })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    expect(screen.getByRole('menuitem', { name: 'Expired' })).not.toHaveAttribute('aria-disabled');
+  });
+
+  it('lets rates change from 1 Apr but refuses 31 Mar in the change rates form', async () => {
+    useApi();
+    closedSite();
+    const bodies: unknown[] = [];
+    server.use(
+      http.post(apiUrl(`${BASE}/change-rates`), async ({ request }) => {
+        bodies.push(await request.json());
+        return ok({
+          previous: makeAgreement({ status: 'expired' }),
+          agreement: makeAgreement({ agreementId: 'AG-002' }),
+        });
+      }),
+      http.get(apiUrl('/businesses/biz-1/agreements/AG-002'), () =>
+        ok(makeAgreement({ agreementId: 'AG-002' }))
+      ),
+      http.get(apiUrl('/businesses/biz-1/agreements/AG-002/rates'), () => ok(rates))
+    );
+    const { user } = renderPage();
+    await screen.findByText(MESSAGE);
+
+    await user.click(screen.getByRole('button', { name: 'Change rates' }));
+    const dialog = await screen.findByRole('dialog');
+    const date = within(dialog).getByLabelText(/New rates from/);
+    fireEvent.change(date, { target: { value: '2026-03-31' } });
+    await user.click(within(dialog).getByRole('button', { name: 'Change rates' }));
+    expect(await within(dialog).findByText(MESSAGE)).toBeInTheDocument();
+    expect(bodies).toEqual([]);
+
+    fireEvent.change(date, { target: { value: '2026-04-01' } });
+    await user.click(within(dialog).getByRole('button', { name: 'Change rates' }));
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0]).toMatchObject({ effectiveDate: '2026-04-01' });
+    expect(await screen.findByRole('heading', { name: 'AG-002', level: 1 })).toBeVisible();
+  });
+
+  it('keeps a successor from 1 Apr editable, except the opening stock dated at the site start', async () => {
+    const successor = makeAgreement({
+      startDate: '2026-04-01T00:00:00.000Z',
+      previousAgreementId: 'AG-000',
+    });
+    useApi({ agreement: successor });
+    server.use(
+      http.get(apiUrl('/businesses/biz-1/agreements'), () =>
+        ok([
+          makeAgreement({
+            agreementId: 'AG-000',
+            status: 'expired',
+            endDate: '2026-03-31T00:00:00.000Z',
+          }),
+          successor,
+        ])
+      )
+    );
+    closedSite();
+    renderPage();
+
+    expect(await screen.findByText(MESSAGE)).toBeInTheDocument();
+    const row = await within(await ratesTable()).findByRole('row', { name: /Ladder 1.5m/ });
+    expect(within(row).getByRole('button', { name: /₹5/ })).toBeVisible();
+    expect(within(row).queryByRole('button', { name: /^10/ })).not.toBeInTheDocument();
+    expect(within(period()).getByRole('button', { name: /1 Apr/ })).toBeVisible();
+  });
+
+  it('shows no lock for an agreement and site that start on 1 Apr', async () => {
+    useApi({ agreement: makeAgreement({ startDate: '2026-04-01T00:00:00.000Z' }) });
+    const seen = closedSite();
+    renderPage();
+
+    const row = await within(await ratesTable()).findByRole('row', { name: /Ladder 1.5m/ });
+    await waitFor(() => expect(seen).toHaveLength(1));
+    expect(within(row).getByRole('button', { name: /₹5/ })).toBeVisible();
+    expect(within(row).getByRole('button', { name: /10/ })).toBeVisible();
+    expect(screen.queryByText(MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('refuses to extend or resume an agreement that ended before 31 Mar', async () => {
+    useApi({
+      agreement: makeAgreement({ status: 'expired', endDate: '2026-03-30T00:00:00.000Z' }),
+    });
+    closedSite();
+    const { user } = renderPage();
+
+    await screen.findByText(MESSAGE);
+    expect(within(period()).queryByRole('button', { name: /30 Mar/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    expect(screen.getByRole('menuitem', { name: 'Active' })).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
+  it('an active agreement with an end typed in the closed year: end editable, closing it refused', async () => {
+    useApi({ agreement: makeAgreement({ endDate: '2026-03-15T00:00:00.000Z' }) });
+    closedSite();
+    const { user } = renderPage();
+
+    await screen.findByText(MESSAGE);
+    // It kept billing past that end, so moving the end changes nothing billed
+    expect(within(period()).getByRole('button', { name: /15 Mar/ })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    expect(screen.getByRole('menuitem', { name: 'Expired' })).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
+  it('lets an agreement that ended on 31 Mar be extended or resumed', async () => {
+    useApi({
+      agreement: makeAgreement({ status: 'expired', endDate: '2026-03-31T00:00:00.000Z' }),
+    });
+    const bodies = capturePatch(BASE);
+    closedSite();
+    const { user } = renderPage();
+
+    await screen.findByText(MESSAGE);
+    expect(within(period()).getByRole('button', { name: /31 Mar/ })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    const active = screen.getByRole('menuitem', { name: 'Active' });
+    expect(active).not.toHaveAttribute('aria-disabled');
+    await user.click(active);
+    await waitFor(() => expect(bodies).toEqual([{ status: 'active' }]));
   });
 });

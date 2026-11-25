@@ -20,6 +20,7 @@ import {
   type ReactNode,
 } from 'react';
 import { Button, Input, Select, Textarea } from './ui';
+import { FieldValidationError } from '../utils/fieldValidationError';
 import styles from './EditableField.module.css';
 
 /**
@@ -67,10 +68,13 @@ export interface EditableFieldProps {
   align?: 'left' | 'right';
 }
 
+/** An API error's message, or a client-side check's (`FieldValidationError` from `onSave`). */
 const errorMessage = (err: unknown) =>
-  err && typeof err === 'object' && 'data' in err
-    ? ((err as { data?: { error?: { message?: string } } }).data?.error?.message ?? 'Save failed')
-    : 'Save failed';
+  err instanceof FieldValidationError
+    ? err.message
+    : err && typeof err === 'object' && 'data' in err
+      ? ((err as { data?: { error?: { message?: string } } }).data?.error?.message ?? 'Save failed')
+      : 'Save failed';
 
 /** Keeps focus (and so the blur-save) on the input when an action button is pressed. */
 const keepFocus = (e: MouseEvent) => e.preventDefault();

@@ -122,6 +122,7 @@ export const billApi = baseApi.injectEndpoints({
         'Bill',
         'AuditLog',
         'Dashboard',
+        'YearClose',
       ],
     }),
 
@@ -162,6 +163,7 @@ export const billApi = baseApi.injectEndpoints({
         { type: 'Bill', id: billId },
         'Bill',
         'Dashboard',
+        'YearClose',
       ],
     }),
 
