@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { balanceDue, effectiveAmount, manualNoteTotals, noteSign } from './billMoney';
+import { balanceDue, effectiveAmount, manualNoteTotals, noteSign, signedMoney } from './billMoney';
 
 describe('billMoney', () => {
+  it('signs money: plus for positive, minus for negative, none for zero', () => {
+    expect(signedMoney(500)).toBe('+₹500');
+    expect(signedMoney(-1000)).toBe('-₹1,000');
+    expect(signedMoney(0)).toBe('₹0');
+  });
+
   it('effectiveAmount adds the signed notes total to the bill total', () => {
     expect(effectiveAmount({ totalAmount: 1000, notesTotal: -250 })).toBe(750);
     expect(effectiveAmount({ totalAmount: 1000, notesTotal: 120.5 })).toBe(1120.5);

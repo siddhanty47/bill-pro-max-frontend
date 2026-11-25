@@ -1,3 +1,4 @@
+import { formatMoney } from './format';
 import type { Bill, BillNoteType } from '../types';
 
 type MoneyBill = Pick<Bill, 'totalAmount'> & Partial<Pick<Bill, 'notesTotal' | 'amountPaid'>>;
@@ -15,6 +16,11 @@ export function effectiveAmount(bill: MoneyBill): number {
 /** Mirrors the backend `balanceDueOf`: effective amount minus paid (negative = over-credited). */
 export function balanceDue(bill: MoneyBill): number {
   return round2(effectiveAmount(bill) - (bill.amountPaid ?? 0));
+}
+
+/** Money with its sign always shown (`+₹500`, `-₹500`; zero has no sign). */
+export function signedMoney(n: number): string {
+  return `${n > 0 ? '+' : ''}${formatMoney(n)}`;
 }
 
 /** Display sign of a note's stored (positive) amounts: credits read as negative. */

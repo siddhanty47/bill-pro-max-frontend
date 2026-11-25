@@ -1,12 +1,13 @@
 /**
  * @fileoverview Bill detail view page
  * @description Detail page for a single bill: billing period, summary and notes,
- * line/damage/transportation tables, payments and change history. Header actions
- * (send email, mark paid, download PDF, status changes) and the out-of-date,
- * pending adjustment and negative stock notices. Built on the kit's detail recipe.
+ * line/damage/transportation tables, payments, credit/debit notes (issued bills) and change
+ * history. Header actions (send email, mark paid, download PDF, status changes, new credit or
+ * debit note) and the out-of-date, draft note and negative stock notices. Totals and balance
+ * due count issued notes (effective amount). Built on the kit's detail recipe.
  */
 import { useCallback, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import styles from './BillDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import {
@@ -17,6 +18,7 @@ import {
 } from '../api/billApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetPaymentsByBillQuery } from '../api/paymentApi';
+import { useCreateBillNoteMutation, useGetAllBillNotesQuery } from '../api/billNoteApi';
 import { DetailPageShell, DetailSection, DetailField } from '../components/DetailPageShell';
 import {
   Button,
@@ -26,8 +28,10 @@ import {
   EmptyState,
   IconButton,
   Menu,
+  MenuDivider,
   MenuItem,
   MenuLabel,
+  Modal,
   NotAdded,
   StatusChip,
   Table,
@@ -41,10 +45,22 @@ import type { ValueTone } from '../components/ui/status';
 import { getErrorMessage } from '../api/baseApi';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { BillIntegrityNotices } from '../components/BillIntegrity';
+import { BillNoteForm, type BillNoteFormValues } from '../components/forms/BillNoteForm';
 import { useBillIssueGate } from '../hooks/useBillIssueGate';
 import { formatDate, formatMoney } from '../utils/format';
-import { canChangeStatus } from '../utils/billStatus';
-import type { Bill, BillItem, DamageBillItem, Payment, TransportationBreakupItem } from '../types';
+import { canChangeStatus, isIssued } from '../utils/billStatus';
+import { balanceDue, effectiveAmount, noteSign, signedMoney } from '../utils/billMoney';
+import { NOTE_SOURCE_LABEL, NOTE_TYPE_LABEL } from '../utils/billNoteLabels';
+import { getApiError } from '../utils/apiError';
+import type {
+  Bill,
+  BillItem,
+  BillNote,
+  BillNoteType,
+  DamageBillItem,
+  Payment,
+  TransportationBreakupItem,
+} from '../types';
 
 /** Bill statuses a bill can be moved to from the header menu (filtered by canChangeStatus) */
 const BILL_STATUSES: { value: Bill['status']; label: string }[] = [
@@ -102,9 +118,23 @@ export function BillDetailPage() {
   const [sendBillEmail, { isLoading: isSending }] = useSendBillEmailMutation();
   const gate = useBillIssueGate(currentBusinessId);
   const [activeTab, setActiveTab] = useState('about');
+  const navigate = useNavigate();
+
+  // Notes exist only on issued bills (the server refuses a note on a draft or cancelled bill)
+  const issued = bill ? isIssued(bill) : false;
+  const { data: notes } = useGetAllBillNotesQuery(
+    { businessId: currentBusinessId!, billId: billId! },
+    { skip: !currentBusinessId || !billId || !issued }
+  );
+  const noteList = notes ?? [];
+  const draftAutoNote = noteList.find(n => n.source === 'auto' && n.status === 'draft') ?? null;
+  const [createNote, { isLoading: isCreatingNote }] = useCreateBillNoteMutation();
+  const [newNoteType, setNewNoteType] = useState<BillNoteType | null>(null);
+  const [newNoteError, setNewNoteError] = useState<string | null>(null);
 
   const partyName = parties?.find(p => p._id === bill?.partyId)?.name || bill?.partyId || '';
-  const outstanding = bill ? bill.totalAmount - bill.amountPaid : 0;
+  const outstanding = bill ? balanceDue(bill) : 0;
+  const notesTotal = bill?.notesTotal ?? 0;
   const rentalSubtotal = bill
     ? bill.subtotal - (bill.transportationCharges || 0) - (bill.damageCharges || 0)
     : 0;
@@ -118,9 +148,30 @@ export function BillDetailPage() {
         { id: 'about', label: 'About' },
         { id: 'line-items', label: 'Line items', count: bill.items.length },
         { id: 'payments', label: 'Payments', count: paymentList.length },
+        ...(issued ? [{ id: 'notes', label: 'Notes', count: noteList.length }] : []),
         { id: 'change-history', label: 'Change history' },
       ]
     : undefined;
+
+  const openNewNote = (type: BillNoteType) => {
+    setNewNoteError(null);
+    setNewNoteType(type);
+  };
+
+  const handleCreateNote = async (values: BillNoteFormValues) => {
+    if (!bill || !currentBusinessId || !newNoteType) return;
+    setNewNoteError(null);
+    try {
+      const note = await createNote({
+        businessId: currentBusinessId,
+        data: { billId: bill._id, type: newNoteType, ...values },
+      }).unwrap();
+      setNewNoteType(null);
+      navigate(`/bill-notes/${note._id}`);
+    } catch (err) {
+      setNewNoteError(getApiError(err).message ?? getErrorMessage(err));
+    }
+  };
 
   /** Move the bill to another status (same mutation the inline status edit used) */
   const handleStatusChange = useCallback(
@@ -289,6 +340,43 @@ export function BillDetailPage() {
     },
   ];
 
+  // ─── Notes ────────────────────────────────────────────────────────
+
+  const noteNumber = (n: BillNote) =>
+    n.noteNumber ? <DocNumber value={n.noteNumber} to={`/bill-notes/${n._id}`} /> : 'Draft';
+  const noteAmount = (n: BillNote) => formatMoney(noteSign(n.type) * n.totalAmount);
+  const noteColumns: Column<BillNote>[] = [
+    { key: 'noteNumber', header: 'Number', nowrap: true, render: noteNumber },
+    { key: 'type', header: 'Type', nowrap: true, render: n => NOTE_TYPE_LABEL[n.type] },
+    {
+      key: 'noteDate',
+      header: 'Date',
+      nowrap: true,
+      render: n => (n.noteDate ? formatDate(n.noteDate) : notAdded),
+    },
+    {
+      key: 'totalAmount',
+      header: 'Amount',
+      mono: true,
+      align: 'right',
+      nowrap: true,
+      render: noteAmount,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      nowrap: true,
+      render: n => <StatusChip status={n.status} />,
+    },
+    {
+      key: 'source',
+      header: 'Source',
+      nowrap: true,
+      hideOnMobile: true,
+      render: n => NOTE_SOURCE_LABEL[n.source],
+    },
+  ];
+
   // ─── Shell ────────────────────────────────────────────────────────
 
   const sidebar = bill ? (
@@ -377,10 +465,21 @@ export function BillDetailPage() {
               </Button>
             )}
             {primary === 'download' ? downloadButton('primary') : downloadButton('secondary')}
-            {(menuEmail || statusOptions.length > 0) && (
+            {(menuEmail || statusOptions.length > 0 || issued) && (
               <Menu trigger={p => <IconButton label="More actions" icon="more" {...p} />}>
                 {menuEmail && <MenuItem onSelect={handleSendEmail}>Send email</MenuItem>}
-                {statusOptions.length > 0 && <MenuLabel>Set status</MenuLabel>}
+                {issued && (
+                  <>
+                    <MenuItem onSelect={() => openNewNote('credit')}>New credit note</MenuItem>
+                    <MenuItem onSelect={() => openNewNote('debit')}>New debit note</MenuItem>
+                  </>
+                )}
+                {statusOptions.length > 0 && (
+                  <>
+                    {(menuEmail || issued) && <MenuDivider />}
+                    <MenuLabel>Set status</MenuLabel>
+                  </>
+                )}
                 {statusOptions.map(o => (
                   <MenuItem key={o.value} onSelect={() => handleStatusChange(o.value)}>
                     {o.label}
@@ -399,6 +498,7 @@ export function BillDetailPage() {
             onRefresh={() => gate.refresh(bill)}
             refreshing={gate.refreshing}
             refreshError={gate.refreshError}
+            draftNote={draftAutoNote}
           />
 
           {activeTab === 'about' && (
@@ -453,6 +553,12 @@ export function BillDetailPage() {
                       bill.discountRate
                     )}
                     {summaryRow('Total', formatMoney(bill.totalAmount), true)}
+                    {notesTotal !== 0 && (
+                      <>
+                        {summaryRow('Notes', signedMoney(notesTotal))}
+                        {summaryRow('Effective', formatMoney(effectiveAmount(bill)), true)}
+                      </>
+                    )}
                     {summaryRow('Paid', formatMoney(bill.amountPaid))}
                     {summaryRow(
                       'Balance due',
@@ -571,9 +677,70 @@ export function BillDetailPage() {
             </Card>
           )}
 
+          {activeTab === 'notes' && issued && (
+            <Card
+              title="Notes"
+              count={noteList.length}
+              padded={false}
+              actions={
+                <div className={styles.noteActions}>
+                  <Button size="sm" onClick={() => openNewNote('credit')}>
+                    New credit note
+                  </Button>
+                  <Button size="sm" onClick={() => openNewNote('debit')}>
+                    New debit note
+                  </Button>
+                </div>
+              }
+            >
+              <DataTable
+                aria-label="Bill notes"
+                columns={noteColumns}
+                rows={noteList}
+                rowKey={n => n._id}
+                rowLink={n => `/bill-notes/${n._id}`}
+                empty={<EmptyState title="No notes on this bill" />}
+                mobile={{
+                  title: noteNumber,
+                  badge: n => <StatusChip status={n.status} />,
+                  meta: n => [
+                    NOTE_TYPE_LABEL[n.type],
+                    n.noteDate ? formatDate(n.noteDate) : '',
+                    <span key="amount" className="mono">
+                      {noteAmount(n)}
+                    </span>,
+                    NOTE_SOURCE_LABEL[n.source],
+                  ],
+                }}
+              />
+            </Card>
+          )}
+
           {activeTab === 'change-history' && (
             <ChangeHistoryTable documentType="bill" documentId={billId!} />
           )}
+
+          <Modal
+            isOpen={newNoteType !== null}
+            onClose={() => setNewNoteType(null)}
+            title={newNoteType === 'debit' ? 'New debit note' : 'New credit note'}
+            size="form"
+          >
+            {newNoteType && (
+              <BillNoteForm
+                key={newNoteType}
+                mode="create"
+                source="manual"
+                type={newNoteType}
+                bill={bill}
+                fullValueAmount={effectiveAmount(bill)}
+                onSubmit={handleCreateNote}
+                onCancel={() => setNewNoteType(null)}
+                isLoading={isCreatingNote}
+                error={newNoteError}
+              />
+            )}
+          </Modal>
         </>
       )}
       {gate.dialog}

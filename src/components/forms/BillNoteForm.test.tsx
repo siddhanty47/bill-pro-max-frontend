@@ -111,4 +111,22 @@ describe('BillNoteForm', () => {
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onCancel).toHaveBeenCalled();
   });
+
+  it('credits the full bill: hides the lines and sends fullValue only', async () => {
+    const { user, onSubmit } = setup({ mode: 'create', fullValueAmount: 1180 });
+    await user.type(screen.getByLabelText('Amount for line 1'), '0');
+    await user.click(screen.getByRole('checkbox', { name: 'Credit the full bill' }));
+    expect(screen.queryByRole('table', { name: 'Note lines' })).not.toBeInTheDocument();
+    expect(within(totalsRow('Total')).getByText('-₹1,180')).toBeVisible();
+    await user.type(screen.getByLabelText(/Reason/), 'Bill raised in error');
+    await user.click(screen.getByRole('button', { name: 'Create note' }));
+    expect(onSubmit).toHaveBeenCalledWith({ reason: 'Bill raised in error', fullValue: true });
+  });
+
+  it('offers the full-bill toggle only on a credit with a full amount', () => {
+    setup({ type: 'debit', fullValueAmount: 1180 });
+    expect(
+      screen.queryByRole('checkbox', { name: 'Credit the full bill' })
+    ).not.toBeInTheDocument();
+  });
 });

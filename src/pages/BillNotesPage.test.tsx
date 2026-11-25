@@ -175,5 +175,6 @@ describe('BillNotesPage', () => {
     expect(within(item).getByText('Issued')).toBeInTheDocument();
     expect(within(item).getByText('Om Constructions')).toBeInTheDocument();
     expect(within(item).getByText('₹99.50')).toBeInTheDocument();
+    expect(within(item).getByText('INV-2026-27-0009')).toHaveClass('mono');
   });
 });

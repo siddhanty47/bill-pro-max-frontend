@@ -4,6 +4,7 @@
 import { baseApi } from './baseApi';
 import { fetchAllPages } from './fetchAllPages';
 import { listParams, toPagedList } from './listPage';
+import { saveBlob } from '../utils/download';
 import type {
   BillNote,
   BillNoteListArgs,
@@ -111,12 +112,25 @@ export const billNoteApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { noteId }) => [{ type: 'BillNote', id: noteId }],
     }),
 
-    /** Download note PDF */
-    getBillNotePdf: builder.query<Blob, { businessId: string; noteId: string }>({
-      query: ({ businessId, noteId }) => ({
-        url: `/businesses/${businessId}/bill-notes/${noteId}/pdf`,
-        responseHandler: response => response.blob(),
-      }),
+    /**
+     * Fetch the note PDF and save it as `fileName`. The Blob never reaches the store (it is not
+     * serializable): the query's data is `null`. Re-run with the lazy trigger for each download.
+     */
+    downloadBillNotePdf: builder.query<
+      null,
+      { businessId: string; noteId: string; fileName: string }
+    >({
+      queryFn: async ({ businessId, noteId, fileName }, _api, _extra, baseQuery) => {
+        const result = await baseQuery({
+          url: `/businesses/${businessId}/bill-notes/${noteId}/pdf`,
+          // An error body is the JSON envelope, so its message survives (and stays serializable)
+          responseHandler: response => (response.ok ? response.blob() : response.json()),
+        });
+        if (result.error) return { error: result.error };
+        saveBlob(result.data as Blob, fileName);
+        return { data: null };
+      },
+      keepUnusedDataFor: 0,
     }),
   }),
 });
@@ -130,5 +144,5 @@ export const {
   useIssueBillNoteMutation,
   useCancelBillNoteMutation,
   useSendBillNoteMutation,
-  useLazyGetBillNotePdfQuery,
+  useLazyDownloadBillNotePdfQuery,
 } = billNoteApi;

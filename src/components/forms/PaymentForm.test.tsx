@@ -80,6 +80,21 @@ describe('PaymentForm', () => {
     expect(select).not.toHaveTextContent('B-002');
   });
 
+  it('shows what is due on a bill after its notes', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const { user } = renderWithProviders(
+      <PaymentForm
+        parties={PARTIES}
+        bills={[bill({ notesTotal: -1500 })]}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />
+    );
+    await user.type(screen.getByPlaceholderText(/party code/i), 'MEH');
+    await user.click(await screen.findByRole('option', { name: /Mehta Builders/ }));
+    expect(screen.getByRole('option', { name: 'B-001 - ₹2,500 due' })).toBeInTheDocument();
+  });
+
   it('submits a payable to a supplier with omitted optionals', async () => {
     const { user, onSubmit } = setup();
     await user.selectOptions(screen.getByLabelText(/payment type/i), 'payable');

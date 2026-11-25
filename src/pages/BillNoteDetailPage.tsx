@@ -12,7 +12,7 @@ import {
   useCancelBillNoteMutation,
   useGetBillNoteQuery,
   useIssueBillNoteMutation,
-  useLazyGetBillNotePdfQuery,
+  useLazyDownloadBillNotePdfQuery,
   useSendBillNoteMutation,
   useUpdateBillNoteMutation,
 } from '../api/billNoteApi';
@@ -90,7 +90,7 @@ export function BillNoteDetailPage() {
   const [issueNote, { isLoading: isIssuing }] = useIssueBillNoteMutation();
   const [cancelNote, { isLoading: isCancelling }] = useCancelBillNoteMutation();
   const [sendNote, { isLoading: isSending }] = useSendBillNoteMutation();
-  const [downloadPdf, { isLoading: isDownloading }] = useLazyGetBillNotePdfQuery();
+  const [downloadPdf, { isLoading: isDownloading }] = useLazyDownloadBillNotePdfQuery();
 
   const [activeTab, setActiveTab] = useState('about');
   const [editing, setEditing] = useState(false);
@@ -152,13 +152,10 @@ export function BillNoteDetailPage() {
     if (!note) return;
     setBanner(null);
     try {
-      const blob = await downloadPdf(ids).unwrap();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `note-${(note.noteNumber ?? 'draft').replace(/\//g, '-')}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadPdf({
+        ...ids,
+        fileName: `note-${(note.noteNumber ?? 'draft').replace(/\//g, '-')}.pdf`,
+      }).unwrap();
     } catch (err) {
       setBanner({ tone: 'danger', text: messageOf(err) });
     }
@@ -235,6 +232,9 @@ export function BillNoteDetailPage() {
     </DetailSection>
   ) : null;
 
+  /** An issue or cancel is in flight: the draft must not be edited or cancelled meanwhile */
+  const busy = isIssuing || isCancelling;
+
   let headerActions: ReactNode;
   if (note?.status === 'draft') {
     headerActions = (
@@ -243,6 +243,7 @@ export function BillNoteDetailPage() {
           Issue
         </Button>
         <Button
+          disabled={busy}
           onClick={() => {
             setEditError(null);
             setEditing(true);
@@ -250,7 +251,7 @@ export function BillNoteDetailPage() {
         >
           Edit
         </Button>
-        <Menu trigger={p => <IconButton label="More actions" icon="more" {...p} />}>
+        <Menu trigger={p => <IconButton label="More actions" icon="more" disabled={busy} {...p} />}>
           <MenuItem tone="danger" onSelect={() => setConfirming('cancel')}>
             Cancel note
           </MenuItem>

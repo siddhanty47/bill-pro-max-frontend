@@ -777,6 +777,11 @@ export interface GateAffectedBill {
   billNumber: string;
   status: Bill['status'];
   issued: boolean;
+  /**
+   * Issued bills: signed amount of the draft auto note the change would leave (debit > 0,
+   * credit < 0). Optional: the backend dry run does not price the change yet, so it is absent.
+   */
+  noteAmount?: number;
 }
 
 export interface GateNegativeSpan {

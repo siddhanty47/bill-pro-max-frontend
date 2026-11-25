@@ -135,7 +135,8 @@ Defined in `src/App.tsx`.
 ## Bill Integrity
 
 - Issued bills (status not `draft`/`cancelled`) are frozen in the UI: no delete / regenerate / refresh.
-- Drafts show "Out of date" (from `bill.drift`) with Refresh (`useRefreshBillMutation`); issued bills show "Pending adjustment" (`bill.pendingAdjustment`); `negativeStock` renders a notice (`components/BillIntegrity.tsx`: `BillIntegrityNotices`, `NegativeStockList`).
+- Drafts show "Out of date" (from `bill.drift`) with Refresh (`useRefreshBillMutation`); issued bills show their draft auto note ("Draft debit/credit note ₹X" + Review, from `getAllBillNotes({ billId })`), or the legacy "Pending adjustment" card while `bill.pendingAdjustment` has no draft note yet; `negativeStock` renders a notice (`components/BillIntegrity.tsx`: `BillIntegrityNotices`, `NegativeStockList`).
+- Issued bills have a Notes tab and "New credit note" / "New debit note" (`BillNoteForm mode="create"`, credit can send `fullValue`). Money uses `utils/billMoney.ts`: `effectiveAmount` (total + `notesTotal`) and `balanceDue` everywhere a bill's due amount shows (bill page, bills list, payment form).
 - Issuing goes through `useBillIssueGate` (`hooks/useBillIssueGate.tsx`): blocks out-of-date drafts, confirms negative stock and retries with `acknowledgeNegative`.
 - Challan/agreement mutations the backend gates must be called through `useChangeGate` (`hooks/useChangeGate.tsx`): dry-run preview -> `ChangeImpactDialog` (`components/billing/`) -> reason / `confirmNegative`. Body/params built by `withGate` in `api/changeGate.ts`.
 - Gated mutations use `gatedTags` for `invalidatesTags` so dry runs invalidate nothing.

@@ -142,6 +142,27 @@ describe('BillsPage', () => {
     expect(screen.queryByText('Out of date')).not.toBeInTheDocument();
   });
 
+  it('shows the effective amount, with the original under it when notes exist', async () => {
+    useApi([
+      bill({ status: 'sent', notesTotal: -4200 }),
+      bill({ _id: 'b2', billNumber: 'B-2026-27-0002', status: 'sent', notesTotal: 0 }),
+    ]);
+    renderPage();
+    const table = await screen.findByRole('table');
+    const row = within(table).getByRole('row', { name: /B-2026-27-0001/ });
+    expect(within(row).getByText('₹1,80,000')).toHaveClass('mono');
+    expect(within(row).getByText('₹1,84,200')).toHaveClass('mono');
+    expect(within(row).getByText(/^was/)).toBeInTheDocument();
+    const plain = within(table).getByRole('row', { name: /B-2026-27-0002/ });
+    expect(within(plain).getByText('₹1,84,200')).toBeInTheDocument();
+    expect(within(plain).queryByText(/^was/)).not.toBeInTheDocument();
+
+    const list = screen.getByRole('list', { name: 'Bills' });
+    const item = within(list).getByText('B-2026-27-0001').closest('li') as HTMLElement;
+    expect(within(item).getByText('₹1,80,000')).toHaveClass('mono');
+    expect(within(item).getByText(/^was/)).toBeInTheDocument();
+  });
+
   it('flags a draft that is out of date', async () => {
     useApi([
       bill({ drift: DRIFT }),

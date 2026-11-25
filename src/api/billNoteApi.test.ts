@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { http } from 'msw';
 import { server } from '../test/msw/server';
 import { apiUrl, ok, pagedOk } from '../test/msw/handlers';
@@ -184,7 +184,7 @@ describe('billNoteApi', () => {
     expect(called).toBe(true);
   });
 
-  it('downloads the note PDF as a blob', async () => {
+  it('saves the note PDF under the given name and keeps no Blob in the store', async () => {
     const store = setupStore();
     server.use(
       http.get(
@@ -192,10 +192,54 @@ describe('billNoteApi', () => {
         () => new Response('%PDF', { headers: { 'Content-Type': 'application/pdf' } })
       )
     );
+    const saved: Array<{ name: string; size: number }> = [];
+    const createObjectURL = vi.fn((blob: Blob) => {
+      saved.push({ name: '', size: blob.size });
+      return 'blob:note';
+    });
+    const revokeObjectURL = vi.fn();
+    Object.assign(URL, { createObjectURL, revokeObjectURL });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement
+    ) {
+      saved[saved.length - 1].name = this.download;
+    });
+
     const res = await store.dispatch(
-      billNoteApi.endpoints.getBillNotePdf.initiate({ businessId: 'b1', noteId: 'n1' })
+      billNoteApi.endpoints.downloadBillNotePdf.initiate({
+        businessId: 'b1',
+        noteId: 'n1',
+        fileName: 'note-CN-2026-27-0001.pdf',
+      })
     );
-    expect(res.data).toMatchObject({ size: 4, type: 'application/pdf' });
+    expect('error' in res).toBe(false);
+    expect(res.data).toBeNull();
+    expect(saved).toEqual([{ name: 'note-CN-2026-27-0001.pdf', size: 4 }]);
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:note');
+    click.mockRestore();
+  });
+
+  it('returns the PDF error without saving anything', async () => {
+    const store = setupStore();
+    server.use(
+      http.get(apiUrl('/businesses/b1/bill-notes/n1/pdf'), () =>
+        Response.json({ success: false, error: { message: 'No PDF' } }, { status: 500 })
+      )
+    );
+    const createObjectURL = vi.fn();
+    Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() });
+    const res = await store.dispatch(
+      billNoteApi.endpoints.downloadBillNotePdf.initiate({
+        businessId: 'b1',
+        noteId: 'n1',
+        fileName: 'x.pdf',
+      })
+    );
+    expect('error' in res && res.error).toMatchObject({
+      status: 500,
+      data: { error: { message: 'No PDF' } },
+    });
+    expect(createObjectURL).not.toHaveBeenCalled();
   });
 });
 

@@ -1,17 +1,13 @@
 /**
- * @fileoverview Shared pieces for the out-of-date, pending adjustment and
+ * @fileoverview Shared pieces for the out-of-date, draft note (or legacy pending adjustment) and
  * negative stock states of a bill (detail page notices and send dialogs).
  */
 import { Button, Notice } from './ui';
 import { isIssued } from '../utils/billStatus';
 import { formatDate, formatMoney } from '../utils/format';
-import type { Bill, BillChangeCause, NegativeSpan } from '../types';
+import { signedMoney } from '../utils/billMoney';
+import type { Bill, BillChangeCause, BillNote, NegativeSpan } from '../types';
 import styles from './BillIntegrity.module.css';
-
-/** Money with its sign always shown (`+₹500`, `-₹500`). */
-function signedMoney(n: number): string {
-  return `${n > 0 ? '+' : ''}${formatMoney(n)}`;
-}
 
 export function CauseList({ causes }: { causes: BillChangeCause[] }) {
   if (causes.length === 0) return null;
@@ -56,13 +52,25 @@ interface NoticesProps {
   onRefresh: () => void;
   refreshing: boolean;
   refreshError: string | null;
+  /** The issued bill's draft auto note (its drift correction), if there is one */
+  draftNote?: BillNote | null;
 }
 
-/** The integrity notices at the top of a bill: out of date, pending adjustment, negative stock. */
-export function BillIntegrityNotices({ bill, onRefresh, refreshing, refreshError }: NoticesProps) {
+/**
+ * The integrity notices at the top of a bill: out of date (drafts), the draft auto note (issued
+ * bills; a legacy `pendingAdjustment` without a draft note keeps its old card), negative stock.
+ */
+export function BillIntegrityNotices({
+  bill,
+  onRefresh,
+  refreshing,
+  refreshError,
+  draftNote,
+}: NoticesProps) {
   const issued = isIssued(bill);
   const showDrift = bill.drift != null && !issued;
-  const showPending = bill.pendingAdjustment != null && issued;
+  const showDraftNote = issued && draftNote != null;
+  const showPending = bill.pendingAdjustment != null && issued && !showDraftNote;
   const negative = bill.negativeStock ?? [];
   return (
     <>
@@ -78,6 +86,19 @@ export function BillIntegrityNotices({ bill, onRefresh, refreshing, refreshError
           </div>
           <CauseList causes={bill.drift.causes} />
           {refreshError && <p className={styles.error}>{refreshError}</p>}
+        </Notice>
+      )}
+      {showDraftNote && draftNote && (
+        <Notice
+          tone="info"
+          title={`Draft ${draftNote.type} note ${formatMoney(draftNote.totalAmount)}`}
+        >
+          <div className={styles.row}>
+            <CauseList causes={draftNote.causes} />
+            <Button size="sm" to={`/bill-notes/${draftNote._id}`}>
+              Review
+            </Button>
+          </div>
         </Notice>
       )}
       {showPending && bill.pendingAdjustment && (

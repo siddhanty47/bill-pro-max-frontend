@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
@@ -59,17 +59,6 @@ function renderPage() {
   );
 }
 
-/** The PDF endpoint stores a Blob in RTK Query state; silence only that dev warning. */
-const originalError = console.error;
-beforeAll(() => {
-  console.error = (...args: unknown[]) => {
-    if (String(args[0]).includes('non-serializable')) return;
-    originalError(...args);
-  };
-});
-afterAll(() => {
-  console.error = originalError;
-});
 afterEach(() => vi.restoreAllMocks());
 
 describe('BillNoteDetailPage', () => {
@@ -199,6 +188,31 @@ describe('BillNoteDetailPage', () => {
     await waitFor(() =>
       expect(screen.queryByRole('dialog', { name: 'Issue note' })).not.toBeInTheDocument()
     );
+  });
+
+  it('disables Edit and Cancel note while the issue request is in flight', async () => {
+    useApi();
+    let release: () => void = () => {};
+    server.use(
+      http.post(
+        apiUrl(`${BASE}/issue`),
+        () =>
+          new Promise<Response>(resolve => {
+            release = () => resolve(ok(makeBillNote({ _id: 'n1' })));
+          })
+      )
+    );
+    const { user } = renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Issue' }));
+    await user.click(
+      within(screen.getByRole('dialog', { name: 'Issue note' })).getByRole('button', {
+        name: 'Issue note',
+      })
+    );
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Edit' })).toBeDisabled());
+    expect(screen.getByRole('button', { name: 'More actions' })).toBeDisabled();
+    release();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Edit' })).toBeEnabled());
   });
 
   it('on NOTE_OUT_OF_DATE asks to review again and refetches', async () => {

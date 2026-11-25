@@ -39,6 +39,7 @@ import {
 import { BillForm } from '../components/forms/BillForm';
 import { BulkBillForm } from '../components/forms/BulkBillForm';
 import { isIssued } from '../utils/billStatus';
+import { effectiveAmount } from '../utils/billMoney';
 import { useBillIssueGate } from '../hooks/useBillIssueGate';
 import { BulkBillProgress } from '../components/BulkBillProgress';
 import { getErrorMessage } from '../api/baseApi';
@@ -198,6 +199,20 @@ export function BillsPage() {
   const periodOf = (bill: Bill) =>
     `${formatDate(bill.billingPeriod.start)} – ${formatDate(bill.billingPeriod.end)}`;
 
+  /** Effective amount (total + issued notes); the original total under it when notes exist. */
+  const amountCell = (bill: Bill) => {
+    const effective = <span className="mono">{formatMoney(effectiveAmount(bill))}</span>;
+    if (!bill.notesTotal) return effective;
+    return (
+      <span className={styles.amount}>
+        {effective}
+        <span className={styles.was}>
+          was <span className="mono">{formatMoney(bill.totalAmount)}</span>
+        </span>
+      </span>
+    );
+  };
+
   const statusCell = (bill: Bill) => (
     <span className={styles.status}>
       <StatusChip status={bill.status} />
@@ -276,9 +291,8 @@ export function BillsPage() {
     {
       key: 'totalAmount',
       header: 'Amount',
-      mono: true,
       align: 'right',
-      render: bill => formatMoney(bill.totalAmount),
+      render: amountCell,
     },
     {
       key: 'amountPaid',
@@ -386,9 +400,7 @@ export function BillsPage() {
               const date = billDateOf(bill);
               return [
                 date ? formatDate(date) : '',
-                <span key="amount" className="mono">
-                  {formatMoney(bill.totalAmount)}
-                </span>,
+                <span key="amount">{amountCell(bill)}</span>,
                 <span key="paid">
                   Paid <span className="mono">{formatMoney(bill.amountPaid)}</span>
                 </span>,

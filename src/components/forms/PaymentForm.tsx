@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
 import { Button, Field, Input, Select, Textarea } from '../ui';
 import { formatMoney } from '../../utils/format';
+import { balanceDue } from '../../utils/billMoney';
 import { DEFAULT_SITE_LABEL } from '../../utils/sites';
 import styles from './PaymentForm.module.css';
 import type { Party, Bill, CreatePaymentInput } from '../../types';
@@ -210,7 +211,7 @@ export function PaymentForm({ parties, bills, onSubmit, onCancel, isLoading }: P
                 </option>
                 {partyBills.map(bill => (
                   <option key={bill._id} value={bill._id}>
-                    {bill.billNumber} - {formatMoney(bill.totalAmount - bill.amountPaid)} due
+                    {bill.billNumber} - {formatMoney(balanceDue(bill))} due
                   </option>
                 ))}
               </Select>

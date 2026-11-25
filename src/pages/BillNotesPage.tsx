@@ -173,7 +173,9 @@ export function BillNotesPage() {
             subtitle: n => partyName(n),
             meta: n => [
               NOTE_TYPE_LABEL[n.type],
-              n.billNumber,
+              <span key="bill" className="mono">
+                {n.billNumber}
+              </span>,
               n.noteDate ? formatDate(n.noteDate) : '',
               <span key="amount" className="mono">
                 {signedTotal(n)}
