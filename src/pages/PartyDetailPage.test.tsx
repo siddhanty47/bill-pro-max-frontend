@@ -6,7 +6,8 @@ import { PartyDetailPage } from './PartyDetailPage';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
 import { apiUrl, ok } from '../test/msw/handlers';
-import type { Bill, Party, Payment } from '../types';
+import { makeBillNote } from '../test/factories';
+import type { Bill, BillNote, Party, Payment } from '../types';
 
 const BASE = '/businesses/biz-1/parties/p1';
 
@@ -141,8 +142,9 @@ const paged = <T,>(data: T[]) =>
     pagination: { page: 1, pageSize: 100, total: data.length, totalPages: 1 },
   });
 
-function useApi(party: Party = makeParty()) {
+function useApi(party: Party = makeParty(), notes: BillNote[] = []) {
   server.use(
+    http.get(apiUrl('/businesses/biz-1/bill-notes'), () => paged(notes)),
     http.get(apiUrl('/businesses'), () => ok([])),
     http.get(apiUrl(BASE), () => ok(party)),
     http.get(apiUrl('/businesses/biz-1/inventory'), () => paged([])),
@@ -201,18 +203,6 @@ function renderPage() {
   );
 }
 
-/**
- * The statement PDF endpoint stores a Blob in RTK Query state (existing app
- * behaviour); silence only RTK's dev "non-serializable" warning about it.
- */
-function allowBlobInStore() {
-  const original = console.error;
-  vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
-    if (String(args[0]).includes('non-serializable')) return;
-    original(...args);
-  });
-}
-
 async function openTab(user: ReturnType<typeof renderPage>['user'], name: RegExp) {
   await user.click(await screen.findByRole('tab', { name }));
 }
@@ -257,6 +247,7 @@ describe('PartyDetailPage', () => {
       'About',
       'Sites & agreements 2',
       expect.stringMatching(/^Bills/),
+      expect.stringMatching(/^Notes/),
       expect.stringMatching(/^Payments/),
       'Statements',
       'Share links',
@@ -435,6 +426,81 @@ describe('PartyDetailPage', () => {
     expect(screen.getByTestId('where')).toHaveTextContent('/bills/b1');
   });
 
+  it('shows a bill at its effective amount (total + issued notes)', async () => {
+    useApi();
+    server.use(
+      http.get(apiUrl('/businesses/biz-1/bills'), () =>
+        paged([bill({ totalAmount: 184200, notesTotal: -4200 })])
+      )
+    );
+    const { user } = renderPage();
+    await openTab(user, /Bills/);
+    const table = await screen.findByRole('table', { name: 'Bills' });
+    expect(await within(table).findByText('₹1,80,000')).toBeInTheDocument();
+    expect(within(table).queryByText('₹1,84,200')).not.toBeInTheDocument();
+  });
+
+  it("lists the party's notes, asks only for this party's and opens a note", async () => {
+    let search = '';
+    const issued = makeBillNote({
+      _id: 'n1',
+      noteNumber: 'CN/2026-27/0001',
+      status: 'issued',
+      noteDate: '2026-11-21T00:00:00.000Z',
+      billId: 'b1',
+      billNumber: 'B-0001',
+    });
+    const draft = makeBillNote({
+      _id: 'n2',
+      type: 'debit',
+      source: 'auto',
+      totalAmount: 500,
+      billId: 'b2',
+      billNumber: 'B-0002',
+    });
+    useApi(makeParty(), [issued, draft]);
+    server.use(
+      http.get(apiUrl('/businesses/biz-1/bill-notes'), ({ request }) => {
+        search = new URL(request.url).search;
+        return paged([issued, draft]);
+      })
+    );
+    const { user } = renderPage();
+    await openTab(user, /Notes 2/);
+
+    expect(search).toContain('partyId=p1');
+    const table = await screen.findByRole('table', { name: 'Party notes' });
+    const headers = within(table)
+      .getAllByRole('columnheader')
+      .map(h => h.textContent);
+    expect(headers).toEqual(['Number', 'Type', 'Bill', 'Date', 'Amount', 'Status', 'Source']);
+    const row1 = within(table).getByRole('row', { name: /CN\/2026-27\/0001/ });
+    expect(within(row1).getByText('Credit')).toBeInTheDocument();
+    expect(within(row1).getByRole('link', { name: 'B-0001' })).toHaveAttribute('href', '/bills/b1');
+    expect(within(row1).getByText('21 Nov')).toBeInTheDocument();
+    expect(within(row1).getByText('-₹1,180')).toHaveClass('mono');
+    expect(within(row1).getByText('Issued')).toBeInTheDocument();
+    expect(within(row1).getByText('Manual')).toBeInTheDocument();
+    const row2 = within(table).getByRole('row', { name: /Draft/ });
+    expect(within(row2).getByText('₹500')).toBeInTheDocument();
+    expect(within(row2).getByText('Auto')).toBeInTheDocument();
+
+    const list = screen.getByRole('list', { name: 'Party notes' });
+    expect(within(list).getAllByRole('listitem')[0]).toHaveTextContent(
+      'Credit · B-0001 · 21 Nov · -₹1,180 · Manual'
+    );
+
+    await user.click(within(row2).getByText('Auto'));
+    expect(screen.getByTestId('where')).toHaveTextContent('/bill-notes/n2');
+  });
+
+  it('shows an empty state when the party has no notes', async () => {
+    useApi();
+    const { user } = renderPage();
+    await openTab(user, /Notes/);
+    expect(await screen.findAllByText('No notes yet')).not.toHaveLength(0);
+  });
+
   it('opens a bill with the party bills as the prev/next context', async () => {
     useApi();
     const { user } = renderPage();
@@ -491,7 +557,6 @@ describe('PartyDetailPage', () => {
 
   it('previews and downloads a statement with the chosen parameters', async () => {
     useApi();
-    allowBlobInStore();
     const urls: string[] = [];
     server.use(
       http.get(apiUrl(`${BASE}/statements/data`), ({ request }) => {
@@ -557,7 +622,6 @@ describe('PartyDetailPage', () => {
 
   it('alerts when a statement fails', async () => {
     useApi(makeParty({ agreements: [] }));
-    allowBlobInStore();
     server.use(
       http.get(apiUrl(`${BASE}/statements/data`), () =>
         HttpResponse.json({ success: false, error: { message: 'Bad range' } }, { status: 400 })

@@ -4,7 +4,7 @@
 import { baseApi } from './baseApi';
 import { fetchAllPages } from './fetchAllPages';
 import { listParams, toPagedList } from './listPage';
-import { saveBlob } from '../utils/download';
+import { downloadFile } from './downloadFile';
 import type {
   BillNote,
   BillNoteListArgs,
@@ -120,16 +120,8 @@ export const billNoteApi = baseApi.injectEndpoints({
       null,
       { businessId: string; noteId: string; fileName: string }
     >({
-      queryFn: async ({ businessId, noteId, fileName }, _api, _extra, baseQuery) => {
-        const result = await baseQuery({
-          url: `/businesses/${businessId}/bill-notes/${noteId}/pdf`,
-          // An error body is the JSON envelope, so its message survives (and stays serializable)
-          responseHandler: response => (response.ok ? response.blob() : response.json()),
-        });
-        if (result.error) return { error: result.error };
-        saveBlob(result.data as Blob, fileName);
-        return { data: null };
-      },
+      queryFn: ({ businessId, noteId, fileName }, _api, _extra, baseQuery) =>
+        downloadFile(`/businesses/${businessId}/bill-notes/${noteId}/pdf`, fileName, baseQuery),
       keepUnusedDataFor: 0,
     }),
   }),

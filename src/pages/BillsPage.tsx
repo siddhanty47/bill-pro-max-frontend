@@ -14,7 +14,7 @@ import {
   useUpdateBillStatusMutation,
   useDeleteBillMutation,
   useSendBillEmailMutation,
-  useLazyGetBillPdfQuery,
+  useLazyDownloadBillPdfQuery,
 } from '../api/billApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetAgreementsQuery } from '../api/agreementApi';
@@ -92,7 +92,7 @@ export function BillsPage() {
   const [updateBillStatus] = useUpdateBillStatusMutation();
   const [deleteBill] = useDeleteBillMutation();
   const [sendBillEmail] = useSendBillEmailMutation();
-  const [downloadPdf, { isLoading: isDownloading }] = useLazyGetBillPdfQuery();
+  const [downloadPdf, { isLoading: isDownloading }] = useLazyDownloadBillPdfQuery();
 
   const gate = useBillIssueGate(currentBusinessId);
 
@@ -163,16 +163,11 @@ export function BillsPage() {
   const handleDownloadPdf = async (bill: Bill) => {
     if (!currentBusinessId) return;
     try {
-      const blob = await downloadPdf({
+      await downloadPdf({
         businessId: currentBusinessId,
         billId: bill._id,
+        fileName: `invoice-${bill.billNumber}.pdf`,
       }).unwrap();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `invoice-${bill.billNumber}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
     } catch (err) {
       alert(getErrorMessage(err));
     }

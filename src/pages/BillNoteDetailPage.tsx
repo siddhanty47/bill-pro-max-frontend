@@ -42,7 +42,12 @@ import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { BillNoteForm, type BillNoteFormValues } from '../components/forms/BillNoteForm';
 import { getApiError, hasApiErrorCode } from '../utils/apiError';
 import { noteSign } from '../utils/billMoney';
-import { NOTE_LINE_KIND_LABEL, NOTE_SOURCE_LABEL, NOTE_TYPE_LABEL } from '../utils/billNoteLabels';
+import {
+  NOTE_LINE_KIND_LABEL,
+  NOTE_SOURCE_LABEL,
+  NOTE_TYPE_LABEL,
+  noteFileName,
+} from '../utils/billNoteLabels';
 import { formatDate, formatMoney } from '../utils/format';
 import type { BillChangeCause, BillNoteLine } from '../types';
 import styles from './BillNoteDetailPage.module.css';
@@ -154,7 +159,7 @@ export function BillNoteDetailPage() {
     try {
       await downloadPdf({
         ...ids,
-        fileName: `note-${(note.noteNumber ?? 'draft').replace(/\//g, '-')}.pdf`,
+        fileName: noteFileName(note.noteNumber),
       }).unwrap();
     } catch (err) {
       setBanner({ tone: 'danger', text: messageOf(err) });

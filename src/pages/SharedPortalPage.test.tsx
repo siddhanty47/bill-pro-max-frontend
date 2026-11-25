@@ -47,9 +47,21 @@ const bill = {
   billNumber: 'BILL-001',
   billingPeriod: { start: '2025-03-01T00:00:00.000Z', end: '2025-03-31T00:00:00.000Z' },
   totalAmount: 184200,
+  notesTotal: 0,
+  effectiveAmount: 184200,
   amountPaid: 50000.5,
   status: 'partial',
   dueDate: '2025-04-15T00:00:00.000Z',
+};
+
+const creditNote = {
+  _id: 'n1',
+  noteNumber: 'CN/2026-27/0001',
+  type: 'credit',
+  noteDate: '2025-04-05T00:00:00.000Z',
+  billNumber: 'BILL-001',
+  totalAmount: 4200,
+  reason: 'Short supply returned',
 };
 
 const payment = {
@@ -81,6 +93,7 @@ function useApi(
     challans?: unknown[];
     summary?: Partial<typeof summary>;
     runningItems?: unknown[];
+    notes?: unknown[];
   } = {}
 ) {
   server.use(
@@ -91,7 +104,8 @@ function useApi(
       ok(over.runningItems ?? summary.itemsBreakdown)
     ),
     http.get(apiUrl('/share/tok/bills'), () => list(over.bills ?? [bill])),
-    http.get(apiUrl('/share/tok/payments'), () => list(over.payments ?? [payment]))
+    http.get(apiUrl('/share/tok/payments'), () => list(over.payments ?? [payment])),
+    http.get(apiUrl('/share/tok/notes'), () => list(over.notes ?? []))
   );
 }
 
@@ -191,6 +205,86 @@ describe('SharedPortalPage', () => {
     expect(within(table).getByText('15 Apr 2025')).toBeInTheDocument();
     await user.click(within(table).getByRole('button', { name: /pdf/i }));
     await waitFor(() => expect(pdfHit).toBe(1));
+  });
+
+  it('shows the effective amount and balance of a bill with issued notes', async () => {
+    useApi({ bills: [{ ...bill, notesTotal: -4200, effectiveAmount: 180000 }] });
+    const { user } = renderPage();
+    await screen.findByRole('heading', { name: 'Mehta Builders' });
+    await openTab(user, 'Bills');
+    const table = await screen.findByRole('table', { name: 'Bills' });
+    expect(within(table).getByRole('columnheader', { name: 'Balance' })).toBeInTheDocument();
+    expect(within(table).getByText('₹1,80,000')).toBeInTheDocument();
+    expect(within(table).getByText('₹1,29,999.50')).toBeInTheDocument();
+    expect(within(table).queryByText('₹1,84,200')).not.toBeInTheDocument();
+    const list = screen.getByRole('list', { name: 'Bills' });
+    expect(within(list).getByText('₹1,80,000')).toBeInTheDocument();
+    expect(within(list).getByText('₹1,29,999.50').parentElement).toHaveTextContent(
+      'Balance ₹1,29,999.50'
+    );
+  });
+
+  it('lists issued credit/debit notes under the bills and downloads a note PDF', async () => {
+    const debit = {
+      ...creditNote,
+      _id: 'n2',
+      noteNumber: 'DN/2026-27/0001',
+      type: 'debit',
+      totalAmount: 900,
+      reason: 'Extra transport',
+    };
+    useApi({ notes: [creditNote, debit] });
+    let pdfHit = 0;
+    server.use(
+      http.get(apiUrl('/share/tok/notes/n1/pdf'), () => {
+        pdfHit += 1;
+        return new HttpResponse('pdf', { headers: { 'Content-Type': 'application/pdf' } });
+      })
+    );
+    URL.createObjectURL = vi.fn(() => 'blob:x');
+    URL.revokeObjectURL = vi.fn();
+    const names: string[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement
+    ) {
+      names.push(this.download);
+    });
+    const { user } = renderPage();
+    await screen.findByRole('heading', { name: 'Mehta Builders' });
+    await openTab(user, 'Bills');
+    expect(await screen.findByText('Credit/debit notes')).toBeInTheDocument();
+    const table = await screen.findByRole('table', { name: 'Credit/debit notes' });
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent('CN/2026-27/0001');
+    expect(rows[0]).toHaveTextContent('Credit');
+    expect(rows[0]).toHaveTextContent('5 Apr 2025');
+    expect(rows[0]).toHaveTextContent('BILL-001');
+    expect(within(rows[0]).getByText('-₹4,200')).toBeInTheDocument();
+    expect(rows[0]).toHaveTextContent('Short supply returned');
+    expect(within(rows[1]).getByText('+₹900')).toBeInTheDocument();
+    expect(rows[1]).toHaveTextContent('Debit');
+
+    const list = screen.getByRole('list', { name: 'Credit/debit notes' });
+    const item = within(list).getAllByRole('listitem')[0];
+    expect(within(item).getByText('CN/2026-27/0001')).toBeInTheDocument();
+    expect(item).toHaveTextContent('Short supply returned');
+    expect(item).toHaveTextContent('-₹4,200');
+
+    await user.click(
+      within(table).getByRole('button', { name: 'Download note CN/2026-27/0001 PDF' })
+    );
+    await waitFor(() => expect(pdfHit).toBe(1));
+    expect(names).toEqual(['note-CN-2026-27-0001.pdf']);
+  });
+
+  it('hides the notes section when the party has no issued notes', async () => {
+    useApi();
+    const { user } = renderPage();
+    await screen.findByRole('heading', { name: 'Mehta Builders' });
+    await openTab(user, 'Bills');
+    await screen.findByRole('table', { name: 'Bills' });
+    expect(screen.queryByText('Credit/debit notes')).not.toBeInTheDocument();
   });
 
   it('lists payments with method, reference and notes', async () => {

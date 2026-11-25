@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, within, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
@@ -97,18 +97,6 @@ const rowNumbers = () =>
     .getAllByRole('row')
     .slice(1)
     .map(r => within(r).getAllByRole('cell')[0].textContent);
-
-// RTK warns that the PDF Blob in the download test is non-serializable; irrelevant here.
-const realError = console.error;
-beforeAll(() => {
-  console.error = (...args: unknown[]) => {
-    if (String(args[0]).includes('non-serializable')) return;
-    realError(...args);
-  };
-});
-afterAll(() => {
-  console.error = realError;
-});
 
 afterEach(() => vi.restoreAllMocks());
 

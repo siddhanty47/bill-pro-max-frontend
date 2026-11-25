@@ -19,7 +19,7 @@ import {
   useDeleteChallanItemMutation,
   useUpdateChallanDamagedItemsMutation,
   useUpdateChallanDateMutation,
-  useLazyGetChallanPdfQuery,
+  useLazyDownloadChallanPdfQuery,
 } from '../api/challanApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetInventoryQuery } from '../api/inventoryApi';
@@ -104,7 +104,7 @@ export function ChallanDetailPage() {
     useUpdateChallanDamagedItemsMutation();
   const [updateChallanDate, { isLoading: isSavingDate }] = useUpdateChallanDateMutation();
   const { run: runGated, dialog: changeDialog } = useChangeGate();
-  const [downloadPdf, { isLoading: isDownloading }] = useLazyGetChallanPdfQuery();
+  const [downloadPdf, { isLoading: isDownloading }] = useLazyDownloadChallanPdfQuery();
 
   // Add item state
   const [showAddItem, setShowAddItem] = useState(false);
@@ -242,16 +242,11 @@ export function ChallanDetailPage() {
   const handleDownloadPdf = useCallback(async () => {
     if (!challan || !currentBusinessId) return;
     try {
-      const blob = await downloadPdf({
+      await downloadPdf({
         businessId: currentBusinessId,
         challanId: challan._id,
+        fileName: `challan-${challan.challanNumber}.pdf`,
       }).unwrap();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `challan-${challan.challanNumber}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
     } catch (err) {
       alert(getErrorMessage(err));
     }

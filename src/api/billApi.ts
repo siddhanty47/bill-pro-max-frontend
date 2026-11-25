@@ -1,6 +1,7 @@
 /**
  * Bill API endpoints
  */
+import { downloadFile } from './downloadFile';
 import { baseApi } from './baseApi';
 import { fetchAllPages } from './fetchAllPages';
 import { listParams, toPagedList } from './listPage';
@@ -164,12 +165,11 @@ export const billApi = baseApi.injectEndpoints({
       ],
     }),
 
-    /** Download bill invoice PDF */
-    getBillPdf: builder.query<Blob, { businessId: string; billId: string }>({
-      query: ({ businessId, billId }) => ({
-        url: `/businesses/${businessId}/bills/${billId}/pdf`,
-        responseHandler: response => response.blob(),
-      }),
+    /** Fetch the bill invoice PDF and save it as `fileName` (the Blob stays out of the store) */
+    downloadBillPdf: builder.query<null, { businessId: string; billId: string; fileName: string }>({
+      queryFn: ({ businessId, billId, fileName }, _api, _extra, baseQuery) =>
+        downloadFile(`/businesses/${businessId}/bills/${billId}/pdf`, fileName, baseQuery),
+      keepUnusedDataFor: 0,
     }),
   }),
 });
@@ -189,5 +189,5 @@ export const {
   useRefreshBillMutation,
   useDeleteBillMutation,
   useSendBillEmailMutation,
-  useLazyGetBillPdfQuery,
+  useLazyDownloadBillPdfQuery,
 } = billApi;

@@ -21,3 +21,7 @@ export const NOTE_LINE_KINDS: { value: BillNoteLineKind; label: string }[] = [
 export const NOTE_LINE_KIND_LABEL = Object.fromEntries(
   NOTE_LINE_KINDS.map(k => [k.value, k.label])
 ) as Record<BillNoteLineKind, string>;
+
+/** Download name of a note's PDF: `CN/2026-27/0001` → `note-CN-2026-27-0001.pdf` */
+export const noteFileName = (noteNumber?: string): string =>
+  `note-${(noteNumber ?? 'draft').replace(/\//g, '-')}.pdf`;

@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
@@ -172,18 +172,6 @@ function renderPage() {
 async function openTab(user: ReturnType<typeof renderPage>['user'], name: RegExp) {
   await user.click(await screen.findByRole('tab', { name }));
 }
-
-/** The PDF endpoint stores a Blob in RTK Query state; silence only that dev warning. */
-const originalError = console.error;
-beforeAll(() => {
-  console.error = (...args: unknown[]) => {
-    if (String(args[0]).includes('non-serializable')) return;
-    originalError(...args);
-  };
-});
-afterAll(() => {
-  console.error = originalError;
-});
 
 afterEach(() => vi.restoreAllMocks());
 

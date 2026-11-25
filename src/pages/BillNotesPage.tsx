@@ -9,26 +9,16 @@ import { useGetAllBillNotesQuery } from '../api/billNoteApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import {
   Card,
-  DataTable,
-  DocNumber,
   EmptyState,
   ErrorMessage,
   FilterBar,
-  NotAdded,
   PageHeader,
   SearchInput,
   Select,
   Spinner,
-  StatusChip,
-  type Column,
 } from '../components/ui';
-import { noteSign } from '../utils/billMoney';
-import { formatDate, formatMoney } from '../utils/format';
-import { NOTE_SOURCE_LABEL, NOTE_TYPE_LABEL } from '../utils/billNoteLabels';
+import { BillNotesTable } from '../components/billing/BillNotesTable';
 import type { BillNote, BillNoteSource, BillNoteStatus, BillNoteType } from '../types';
-
-const notePath = (n: BillNote) => `/bill-notes/${n._id}`;
-const signedTotal = (n: BillNote) => formatMoney(noteSign(n.type) * n.totalAmount);
 
 export function BillNotesPage() {
   const { currentBusinessId } = useCurrentBusiness();
@@ -69,44 +59,6 @@ export function BillNotesPage() {
       partyName(n).toLowerCase().includes(search)
   );
   const hasFilters = Boolean(search || type || status || source);
-
-  const numberCell = (n: BillNote) =>
-    n.noteNumber ? <DocNumber value={n.noteNumber} to={notePath(n)} /> : 'Draft';
-  const billCell = (n: BillNote) => <DocNumber value={n.billNumber} to={`/bills/${n.billId}`} />;
-
-  const columns: Column<BillNote>[] = [
-    { key: 'noteNumber', header: 'Number', nowrap: true, render: numberCell },
-    { key: 'type', header: 'Type', nowrap: true, render: n => NOTE_TYPE_LABEL[n.type] },
-    { key: 'billNumber', header: 'Bill', nowrap: true, render: billCell },
-    { key: 'partyId', header: 'Party', render: n => partyName(n) || <NotAdded /> },
-    {
-      key: 'noteDate',
-      header: 'Date',
-      nowrap: true,
-      render: n => (n.noteDate ? formatDate(n.noteDate) : <NotAdded />),
-    },
-    {
-      key: 'totalAmount',
-      header: 'Amount',
-      mono: true,
-      align: 'right',
-      nowrap: true,
-      render: signedTotal,
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      nowrap: true,
-      render: n => <StatusChip status={n.status} />,
-    },
-    {
-      key: 'source',
-      header: 'Source',
-      nowrap: true,
-      hideOnMobile: true,
-      render: n => NOTE_SOURCE_LABEL[n.source],
-    },
-  ];
 
   if (!currentBusinessId) {
     return <ErrorMessage error={{ message: 'Please select a business' }} />;
@@ -158,31 +110,13 @@ export function BillNotesPage() {
       </FilterBar>
 
       <Card padded={false}>
-        <DataTable
+        <BillNotesTable
           aria-label="Notes"
-          columns={columns}
-          rows={rows}
-          rowKey={n => n._id}
-          rowLink={notePath}
+          notes={rows}
+          partyName={partyName}
           empty={
             <EmptyState title={hasFilters ? 'No notes match these filters' : 'No notes yet'} />
           }
-          mobile={{
-            title: numberCell,
-            badge: n => <StatusChip status={n.status} />,
-            subtitle: n => partyName(n),
-            meta: n => [
-              NOTE_TYPE_LABEL[n.type],
-              <span key="bill" className="mono">
-                {n.billNumber}
-              </span>,
-              n.noteDate ? formatDate(n.noteDate) : '',
-              <span key="amount" className="mono">
-                {signedTotal(n)}
-              </span>,
-              NOTE_SOURCE_LABEL[n.source],
-            ],
-          }}
         />
       </Card>
     </div>

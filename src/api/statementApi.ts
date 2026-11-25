@@ -2,6 +2,7 @@
  * Statement API endpoints
  */
 import { baseApi } from './baseApi';
+import { downloadFile } from './downloadFile';
 import type { ApiResponse, StatementData } from '../types';
 
 export interface StatementPdfParams {
@@ -17,16 +18,24 @@ export interface StatementPdfParams {
 
 export const statementApi = baseApi.injectEndpoints({
   endpoints: builder => ({
-    getStatementPdf: builder.query<Blob, StatementPdfParams>({
-      query: ({ businessId, partyId, type, from, to, agreementId, siteCode }) => {
+    /** Fetch the statement PDF and save it as `fileName` (the Blob stays out of the store) */
+    downloadStatementPdf: builder.query<null, StatementPdfParams & { fileName: string }>({
+      queryFn: (
+        { businessId, partyId, type, from, to, agreementId, siteCode, fileName },
+        _api,
+        _extra,
+        baseQuery
+      ) => {
         const params = new URLSearchParams({ type, from, to });
         if (agreementId) params.set('agreementId', agreementId);
         if (siteCode) params.set('siteCode', siteCode);
-        return {
-          url: `/businesses/${businessId}/parties/${partyId}/statements/pdf?${params.toString()}`,
-          responseHandler: response => response.blob(),
-        };
+        return downloadFile(
+          `/businesses/${businessId}/parties/${partyId}/statements/pdf?${params.toString()}`,
+          fileName,
+          baseQuery
+        );
       },
+      keepUnusedDataFor: 0,
     }),
 
     getStatementData: builder.query<StatementData, StatementPdfParams>({
@@ -41,4 +50,4 @@ export const statementApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useLazyGetStatementPdfQuery, useLazyGetStatementDataQuery } = statementApi;
+export const { useLazyDownloadStatementPdfQuery, useLazyGetStatementDataQuery } = statementApi;

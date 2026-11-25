@@ -14,7 +14,7 @@ import {
   useGetBillQuery,
   useUpdateBillStatusMutation,
   useSendBillEmailMutation,
-  useLazyGetBillPdfQuery,
+  useLazyDownloadBillPdfQuery,
 } from '../api/billApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetPaymentsByBillQuery } from '../api/paymentApi';
@@ -46,16 +46,15 @@ import { getErrorMessage } from '../api/baseApi';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { BillIntegrityNotices } from '../components/BillIntegrity';
 import { BillNoteForm, type BillNoteFormValues } from '../components/forms/BillNoteForm';
+import { BillNotesTable } from '../components/billing/BillNotesTable';
 import { useBillIssueGate } from '../hooks/useBillIssueGate';
 import { formatDate, formatMoney } from '../utils/format';
 import { canChangeStatus, isIssued } from '../utils/billStatus';
-import { balanceDue, effectiveAmount, noteSign, signedMoney } from '../utils/billMoney';
-import { NOTE_SOURCE_LABEL, NOTE_TYPE_LABEL } from '../utils/billNoteLabels';
+import { balanceDue, effectiveAmount, signedMoney } from '../utils/billMoney';
 import { getApiError } from '../utils/apiError';
 import type {
   Bill,
   BillItem,
-  BillNote,
   BillNoteType,
   DamageBillItem,
   Payment,
@@ -114,7 +113,7 @@ export function BillDetailPage() {
   );
 
   const [updateBillStatus, { isLoading: isSaving }] = useUpdateBillStatusMutation();
-  const [downloadPdf, { isLoading: isDownloading }] = useLazyGetBillPdfQuery();
+  const [downloadPdf, { isLoading: isDownloading }] = useLazyDownloadBillPdfQuery();
   const [sendBillEmail, { isLoading: isSending }] = useSendBillEmailMutation();
   const gate = useBillIssueGate(currentBusinessId);
   const [activeTab, setActiveTab] = useState('about');
@@ -204,16 +203,11 @@ export function BillDetailPage() {
   const handleDownloadPdf = useCallback(async () => {
     if (!bill || !currentBusinessId) return;
     try {
-      const blob = await downloadPdf({
+      await downloadPdf({
         businessId: currentBusinessId,
         billId: bill._id,
+        fileName: `invoice-${bill.billNumber}.pdf`,
       }).unwrap();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `invoice-${bill.billNumber}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
     } catch (err) {
       alert(getErrorMessage(err));
     }
@@ -337,43 +331,6 @@ export function BillDetailPage() {
       header: 'Reference',
       hideOnMobile: true,
       render: p => (p.reference ? <span className="mono">{p.reference}</span> : notAdded),
-    },
-  ];
-
-  // ─── Notes ────────────────────────────────────────────────────────
-
-  const noteNumber = (n: BillNote) =>
-    n.noteNumber ? <DocNumber value={n.noteNumber} to={`/bill-notes/${n._id}`} /> : 'Draft';
-  const noteAmount = (n: BillNote) => formatMoney(noteSign(n.type) * n.totalAmount);
-  const noteColumns: Column<BillNote>[] = [
-    { key: 'noteNumber', header: 'Number', nowrap: true, render: noteNumber },
-    { key: 'type', header: 'Type', nowrap: true, render: n => NOTE_TYPE_LABEL[n.type] },
-    {
-      key: 'noteDate',
-      header: 'Date',
-      nowrap: true,
-      render: n => (n.noteDate ? formatDate(n.noteDate) : notAdded),
-    },
-    {
-      key: 'totalAmount',
-      header: 'Amount',
-      mono: true,
-      align: 'right',
-      nowrap: true,
-      render: noteAmount,
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      nowrap: true,
-      render: n => <StatusChip status={n.status} />,
-    },
-    {
-      key: 'source',
-      header: 'Source',
-      nowrap: true,
-      hideOnMobile: true,
-      render: n => NOTE_SOURCE_LABEL[n.source],
     },
   ];
 
@@ -693,25 +650,11 @@ export function BillDetailPage() {
                 </div>
               }
             >
-              <DataTable
+              <BillNotesTable
                 aria-label="Bill notes"
-                columns={noteColumns}
-                rows={noteList}
-                rowKey={n => n._id}
-                rowLink={n => `/bill-notes/${n._id}`}
+                notes={noteList}
+                showBill={false}
                 empty={<EmptyState title="No notes on this bill" />}
-                mobile={{
-                  title: noteNumber,
-                  badge: n => <StatusChip status={n.status} />,
-                  meta: n => [
-                    NOTE_TYPE_LABEL[n.type],
-                    n.noteDate ? formatDate(n.noteDate) : '',
-                    <span key="amount" className="mono">
-                      {noteAmount(n)}
-                    </span>,
-                    NOTE_SOURCE_LABEL[n.source],
-                  ],
-                }}
               />
             </Card>
           )}

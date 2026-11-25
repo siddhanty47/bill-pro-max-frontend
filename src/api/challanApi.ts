@@ -2,6 +2,7 @@
  * Challan API endpoints
  */
 import { baseApi } from './baseApi';
+import { downloadFile } from './downloadFile';
 import { fetchAllPages } from './fetchAllPages';
 import { withGate, unwrapGated, gatedTags } from './changeGate';
 import { listParams, toPagedList } from './listPage';
@@ -257,12 +258,14 @@ export const challanApi = baseApi.injectEndpoints({
       transformResponse: (response: ApiResponse<ExtractedChallanData>) => response.data,
     }),
 
-    /** Download challan PDF */
-    getChallanPdf: builder.query<Blob, { businessId: string; challanId: string }>({
-      query: ({ businessId, challanId }) => ({
-        url: `/businesses/${businessId}/challans/${challanId}/pdf`,
-        responseHandler: response => response.blob(),
-      }),
+    /** Fetch the challan PDF and save it as `fileName` (the Blob stays out of the store) */
+    downloadChallanPdf: builder.query<
+      null,
+      { businessId: string; challanId: string; fileName: string }
+    >({
+      queryFn: ({ businessId, challanId, fileName }, _api, _extra, baseQuery) =>
+        downloadFile(`/businesses/${businessId}/challans/${challanId}/pdf`, fileName, baseQuery),
+      keepUnusedDataFor: 0,
     }),
   }),
 });
@@ -283,7 +286,7 @@ export const {
   useGetItemsWithPartyQuery,
   useGetChallansByAgreementQuery,
   useGetChallansByPartyQuery,
-  useLazyGetChallanPdfQuery,
+  useLazyDownloadChallanPdfQuery,
   useLazyGetChallansPageQuery,
   useExtractChallanFromPhotoMutation,
 } = challanApi;

@@ -273,9 +273,16 @@ describe('portal notes', () => {
     );
     expect(list.data?.data[0]._id).toBe('n1');
     expect(search).toBe('?pageSize=5');
+    Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:n'), revokeObjectURL: vi.fn() });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     const pdf = await store.dispatch(
-      shareLinkApi.endpoints.getPortalNotePdf.initiate({ token: 'tok', noteId: 'n1' })
+      shareLinkApi.endpoints.downloadPortalNotePdf.initiate({
+        token: 'tok',
+        noteId: 'n1',
+        fileName: 'note.pdf',
+      })
     );
-    expect(pdf.data).toMatchObject({ size: 4, type: 'application/pdf' });
+    expect(pdf.data).toBeNull();
+    expect(click).toHaveBeenCalledTimes(1);
   });
 });
