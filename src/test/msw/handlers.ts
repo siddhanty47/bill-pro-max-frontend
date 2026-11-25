@@ -17,6 +17,8 @@ export const handlers = [
   http.get(apiUrl('/businesses/:businessId/parties/:partyId/stock'), () => ok([])),
   http.get(apiUrl('/businesses/:businessId/dashboard/nav-counts'), () => ok({})),
   http.get(apiUrl('/businesses/:businessId/dashboard/summary'), () => ok({})),
+  // No closed financial year on any site unless a test says otherwise
+  http.get(apiUrl('/businesses/:businessId/year-close/site'), () => ok({ closedThrough: null })),
   http.get(apiUrl('/businesses/:businessId/dashboard/series'), ({ request }) => {
     const query = new URL(request.url).searchParams;
     return ok({

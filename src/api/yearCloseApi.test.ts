@@ -7,6 +7,7 @@ import { yearCloseApi } from './yearCloseApi';
 import { billApi } from './billApi';
 import { businessApi } from './businessApi';
 import { billNoteApi } from './billNoteApi';
+import { paymentApi } from './paymentApi';
 
 const row = {
   partyId: 'p1',
@@ -88,7 +89,8 @@ describe('yearCloseApi', () => {
         http.patch(apiUrl('/businesses/b1/bills/bill1/status'), () => ok({ _id: 'bill1' })),
         http.post(apiUrl('/businesses/b1/bills/bill1/send'), () => ok({})),
         http.patch(apiUrl('/businesses/b1'), () => ok({ _id: 'b1' })),
-        http.post(apiUrl('/businesses/b1/bill-notes/n1/issue'), () => ok({ _id: 'n1' }))
+        http.post(apiUrl('/businesses/b1/bill-notes/n1/issue'), () => ok({ _id: 'n1' })),
+        http.post(apiUrl('/businesses/b1/payments'), () => ok({ _id: 'pay1' }))
       );
       const sub = store.dispatch(
         yearCloseApi.endpoints.getYearStatus.initiate({ businessId: 'b1', fy: '2025-26' })
@@ -125,6 +127,15 @@ describe('yearCloseApi', () => {
       const store = await setup();
       await store.dispatch(
         businessApi.endpoints.updateBusiness.initiate({ businessId: 'b1', data: {} })
+      );
+      await settle();
+      expect(hits).toBe(2);
+    });
+
+    it('refetches after a payment (a payment on a draft issues it)', async () => {
+      const store = await setup();
+      await store.dispatch(
+        paymentApi.endpoints.createPayment.initiate({ businessId: 'b1', data: {} as never })
       );
       await settle();
       expect(hits).toBe(2);

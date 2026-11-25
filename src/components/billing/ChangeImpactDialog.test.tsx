@@ -47,4 +47,33 @@ describe('ChangeImpactDialog', () => {
     expect(screen.getByRole('link', { name: 'INV-1' })).toBeInTheDocument();
     expect(screen.queryByText(NOTE_LINE)).not.toBeInTheDocument();
   });
+
+  it('shows only the closed-year message and a Close button in closed-year mode', async () => {
+    const onCancel = vi.fn();
+    const onConfirm = vi.fn();
+    const { user } = renderWithProviders(
+      <ChangeImpactDialog
+        report={{
+          affected: [{ billId: 'b1', billNumber: 'INV-1', status: 'sent', issued: true }],
+          negative: [],
+          requiresReason: true,
+          blocked: 'closedYear',
+          closedYear: '2025-26',
+        }}
+        busy={false}
+        onCancel={onCancel}
+        onConfirm={onConfirm}
+      />
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByRole('alert')).toHaveTextContent(
+      'FY 2025-26 is closed for this site. Nothing dated on or before 31 Mar 2026 can change.'
+    );
+    expect(within(dialog).queryByRole('link', { name: 'INV-1' })).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText(/Reason/)).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: 'Save anyway' })).not.toBeInTheDocument();
+    await user.click(within(dialog).getByText('Close'));
+    expect(onCancel).toHaveBeenCalled();
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
 });

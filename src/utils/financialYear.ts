@@ -2,6 +2,7 @@
  * Indian financial year (1 Apr - 31 Mar) helpers. Mirrors backend `src/billing/yearClose.ts`:
  * calendar days are IST dates, stored as UTC midnight.
  */
+import { formatDate, FULL_DATE } from './format';
 
 const IST_OFFSET_MS = 330 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -45,4 +46,18 @@ export function isPastCreditDeadline(
   today: Date
 ): boolean {
   return istDay(today) > creditNoteDeadline(fy, setting).getTime();
+}
+
+/** The IST calendar day of a date string or instant, as UTC midnight (ms). */
+const dayOf = (d: string | Date): number => istDay(new Date(d));
+
+/** True when `day`'s IST calendar day is on or before `limit`'s (e.g. a site's `lockedThrough`). */
+export function isOnOrBeforeDay(day: string | Date, limit: string | Date): boolean {
+  return dayOf(day) <= dayOf(limit);
+}
+
+/** The one line shown wherever a change is refused because the site's FY is closed. */
+export function closedYearMessage(fy: string, lockedThrough: string | Date): string {
+  const day = new Date(dayOf(lockedThrough)).toISOString().slice(0, 10);
+  return `FY ${fy} is closed for this site. Nothing dated on or before ${formatDate(day, FULL_DATE)} can change.`;
 }

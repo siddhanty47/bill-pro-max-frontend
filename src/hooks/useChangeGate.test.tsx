@@ -246,4 +246,54 @@ describe('useChangeGate', () => {
     await user.click(screen.getByRole('button', { name: 'Go' }));
     await waitFor(() => expect(onDone).toHaveBeenCalledWith({ error: boom }));
   });
+
+  describe('closed year', () => {
+    const MESSAGE =
+      'FY 2025-26 is closed for this site. Nothing dated on or before 31 Mar 2026 can change.';
+    const yearClosed = () =>
+      apiError(409, 'YEAR_CLOSED', {
+        fy: '2025-26',
+        closedThrough: '2026-03-31T00:00:00.000Z',
+        lockedThrough: '2026-03-31T00:00:00.000Z',
+      });
+
+    it('shows the message with only Close when the preview reports a closed year', async () => {
+      const { call, gates } = makeCall({
+        ...draftAndIssued,
+        blocked: 'closedYear',
+        closedYear: '2025-26',
+      });
+      const { user, onDone } = setup(call);
+      await user.click(screen.getByRole('button', { name: 'Go' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(MESSAGE);
+      expect(screen.queryByRole('button', { name: 'Save anyway' })).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/Reason/)).not.toBeInTheDocument();
+      await user.click(screen.getByText('Close'));
+      await waitFor(() => expect(onDone).toHaveBeenCalledWith(false));
+      expect(gates).toEqual([{ dryRun: true }]);
+    });
+
+    it('shows the message when the real save is refused with YEAR_CLOSED', async () => {
+      const { call, gates } = makeCall(clean, () => {
+        throw yearClosed();
+      });
+      const { user, onDone } = setup(call);
+      await user.click(screen.getByRole('button', { name: 'Go' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(MESSAGE);
+      expect(screen.queryByRole('button', { name: 'Save anyway' })).not.toBeInTheDocument();
+      await user.click(screen.getByText('Close'));
+      await waitFor(() => expect(onDone).toHaveBeenCalledWith(false));
+      expect(gates).toEqual([{ dryRun: true }, {}]);
+    });
+
+    it('shows the message when the preview itself is refused with YEAR_CLOSED', async () => {
+      const { user, onDone } = setup(() => Promise.reject(yearClosed()));
+      await user.click(screen.getByRole('button', { name: 'Go' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent(MESSAGE);
+      await user.click(screen.getByText('Close'));
+      await waitFor(() => expect(onDone).toHaveBeenCalledWith(false));
+    });
+  });
 });

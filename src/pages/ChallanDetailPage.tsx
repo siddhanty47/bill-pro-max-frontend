@@ -3,7 +3,8 @@
  * @description Detail page for a single challan (delivery or return): transport
  * charges and notes (inline-editable), items (inline quantity edit, add, delete),
  * loss items on returns, and change history. Built on the kit's detail recipe:
- * DetailPageShell + DetailSection/DetailField + Cards holding DataTables.
+ * DetailPageShell + DetailSection/DetailField + Cards holding DataTables. A challan dated in a
+ * closed financial year of its site is read only.
  */
 import { useState, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
@@ -33,6 +34,7 @@ import {
   EmptyState,
   Input,
   NotAdded,
+  Notice,
   RowActions,
   Select,
   StatusChip,
@@ -40,6 +42,7 @@ import {
   type Column,
 } from '../components/ui';
 import { useChangeGate } from '../hooks/useChangeGate';
+import { useSiteLock } from '../hooks/useSiteLock';
 import { EditableField } from '../components/EditableField';
 import type { ChallanItem, DamagedItem } from '../types';
 import { getErrorMessage } from '../api/baseApi';
@@ -105,6 +108,9 @@ export function ChallanDetailPage() {
   const [updateChallanDate, { isLoading: isSavingDate }] = useUpdateChallanDateMutation();
   const { run: runGated, dialog: changeDialog } = useChangeGate();
   const [downloadPdf, { isLoading: isDownloading }] = useLazyDownloadChallanPdfQuery();
+  const siteLock = useSiteLock(currentBusinessId, challan?.partyId, challan?.agreementId);
+  /** Dated in a closed financial year: nothing on it can change */
+  const locked = siteLock.isLocked(challan?.date);
 
   // Add item state
   const [showAddItem, setShowAddItem] = useState(false);
@@ -308,21 +314,24 @@ export function ChallanDetailPage() {
 
   // ─── Items ────────────────────────────────────────────────────────
 
-  const itemQuantity = (row: ItemRow) => (
-    <EditableField
-      label="Quantity"
-      value={row.quantity}
-      inputType="number"
-      compact
-      mono
-      align="right"
-      onSave={v => handleItemQuantitySave(row.itemId, Number(v))}
-      isSaving={isSavingItem}
-    />
-  );
+  const itemQuantity = (row: ItemRow) =>
+    locked ? (
+      <span className="mono">{row.quantity}</span>
+    ) : (
+      <EditableField
+        label="Quantity"
+        value={row.quantity}
+        inputType="number"
+        compact
+        mono
+        align="right"
+        onSave={v => handleItemQuantitySave(row.itemId, Number(v))}
+        isSaving={isSavingItem}
+      />
+    );
 
   const itemActions = (row: ItemRow) =>
-    challan && challan.items.length > 1 ? (
+    challan && challan.items.length > 1 && !locked ? (
       <RowActions
         items={[{ label: 'Delete', tone: 'danger', onClick: () => handleDeleteItem(row.itemId) }]}
       />
@@ -493,12 +502,16 @@ export function ChallanDetailPage() {
       <DetailField
         label="Date"
         value={formatDate(challan.date)}
-        editable={{
-          rawValue: challan.date ? new Date(challan.date).toISOString().split('T')[0] : '',
-          inputType: 'date',
-          onSave: v => handleDateSave('date', v),
-          isSaving: isSavingDate,
-        }}
+        editable={
+          locked
+            ? undefined
+            : {
+                rawValue: challan.date ? new Date(challan.date).toISOString().split('T')[0] : '',
+                inputType: 'date',
+                onSave: v => handleDateSave('date', v),
+                isSaving: isSavingDate,
+              }
+        }
       />
       <DetailField label="Confirmed by" value={challan.confirmedBy} />
       <DetailField label="Confirmed at" value={formatDateTime(challan.confirmedAt)} />
@@ -515,13 +528,17 @@ export function ChallanDetailPage() {
         label={label}
         value={challan[field] != null ? formatMoney(challan[field]) : undefined}
         mono
-        editable={{
-          rawValue: challan[field],
-          inputType: 'number',
-          prefix: '₹',
-          onSave: v => handleTransportationSave(field, v),
-          isSaving: isSavingTransportation,
-        }}
+        editable={
+          locked
+            ? undefined
+            : {
+                rawValue: challan[field],
+                inputType: 'number',
+                prefix: '₹',
+                onSave: v => handleTransportationSave(field, v),
+                isSaving: isSavingTransportation,
+              }
+        }
       />
     );
 
@@ -531,12 +548,16 @@ export function ChallanDetailPage() {
         label={label}
         value={challan[field]}
         mono={mono}
-        editable={{
-          rawValue: challan[field],
-          inputType: 'text',
-          onSave: v => handleTransportationSave(field, v),
-          isSaving: isSavingTransportation,
-        }}
+        editable={
+          locked
+            ? undefined
+            : {
+                rawValue: challan[field],
+                inputType: 'text',
+                onSave: v => handleTransportationSave(field, v),
+                isSaving: isSavingTransportation,
+              }
+        }
       />
     );
 
@@ -569,7 +590,12 @@ export function ChallanDetailPage() {
               Download PDF
             </Button>
             {isDraft && (
-              <Button variant="primary" onClick={handleConfirm} loading={isConfirming}>
+              <Button
+                variant="primary"
+                onClick={handleConfirm}
+                loading={isConfirming}
+                disabled={locked}
+              >
                 Confirm
               </Button>
             )}
@@ -579,6 +605,7 @@ export function ChallanDetailPage() {
     >
       {challan && (
         <>
+          {locked && <Notice tone="warning">{siteLock.message}</Notice>}
           {activeTab === 'about' && (
             <>
               <DetailSection title="Transportation">
@@ -609,7 +636,12 @@ export function ChallanDetailPage() {
                 padded={false}
                 actions={
                   !showAddItem && (
-                    <Button size="sm" icon="plus" onClick={() => setShowAddItem(true)}>
+                    <Button
+                      size="sm"
+                      icon="plus"
+                      onClick={() => setShowAddItem(true)}
+                      disabled={locked}
+                    >
                       Add item
                     </Button>
                   )
@@ -687,7 +719,7 @@ export function ChallanDetailPage() {
                   padded={editingDamage}
                   actions={
                     !editingDamage && (
-                      <Button size="sm" onClick={startEditingDamage}>
+                      <Button size="sm" onClick={startEditingDamage} disabled={locked}>
                         Edit loss items
                       </Button>
                     )

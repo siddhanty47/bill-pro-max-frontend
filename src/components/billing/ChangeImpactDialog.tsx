@@ -1,11 +1,13 @@
 /**
  * @fileoverview Shows what a challan or agreement change would touch (bills that
  * go out of date, bills already sent, items below zero) and asks for a reason
- * before saving.
+ * before saving. A change dated in a closed financial year gets only the closed-year line
+ * and a Close button: nobody may make it.
  */
 import { useState } from 'react';
 import { Button, Field, Input, Modal, Notice, TextLink } from '../ui';
 import { NegativeStockList } from '../BillIntegrity';
+import { closedYearMessage, fyEnd } from '../../utils/financialYear';
 import type { GateReport } from '../../types';
 import styles from './ChangeImpactDialog.module.css';
 
@@ -19,6 +21,19 @@ interface Props {
 
 export function ChangeImpactDialog({ report, busy, onCancel, onConfirm }: Props) {
   const [reason, setReason] = useState('');
+  if (report.blocked === 'closedYear' && report.closedYear) {
+    return (
+      <Modal isOpen onClose={onCancel} title="This year is closed">
+        <Notice tone="danger">
+          {closedYearMessage(report.closedYear, fyEnd(report.closedYear))}
+        </Notice>
+        <div className={styles.actions}>
+          <Button onClick={onCancel}>Close</Button>
+        </div>
+      </Modal>
+    );
+  }
+
   const drafts = report.affected.filter(b => !b.issued);
   const issued = report.affected.filter(b => b.issued);
   const blocked = report.blocked === 'role';

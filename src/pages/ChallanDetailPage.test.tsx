@@ -576,4 +576,72 @@ describe('ChallanDetailPage', () => {
     await openTab(user, /Change history/);
     await waitFor(() => expect(historyUrl).toContain('/audit-logs/challan/c1'));
   });
+
+  describe('closed financial year', () => {
+    const MESSAGE =
+      'FY 2025-26 is closed for this site. Nothing dated on or before 31 Mar 2026 can change.';
+
+    function closedThrough(seen: URLSearchParams[] = []) {
+      server.use(
+        http.get(apiUrl('/businesses/biz-1/year-close/site'), ({ request }) => {
+          seen.push(new URL(request.url).searchParams);
+          return ok({
+            closedThrough: {
+              fy: '2025-26',
+              date: '2026-03-31T00:00:00.000Z',
+              lockedThrough: '2026-03-31T00:00:00.000Z',
+            },
+          });
+        })
+      );
+      return seen;
+    }
+
+    it('locks every change on a challan dated 31 Mar of the closed year', async () => {
+      useApi(makeChallan({ date: '2026-03-31T00:00:00.000Z' }));
+      const seen = closedThrough();
+      const { user } = renderPage();
+
+      expect(await screen.findByText(MESSAGE)).toBeInTheDocument();
+      expect(seen[0].get('partyId')).toBe('p1');
+      expect(seen[0].get('agreementId')).toBe('AG-001');
+      expect(screen.getByRole('button', { name: 'Confirm' })).toBeDisabled();
+      const details = screen.getByRole('heading', { name: 'Details' }).closest('section')!;
+      expect(within(details).queryByRole('button', { name: /31 Mar/ })).not.toBeInTheDocument();
+      expect(within(details).getByText(/31 Mar/)).toBeInTheDocument();
+      const transport = screen.getByRole('heading', { name: 'Transportation' }).closest('section')!;
+      expect(within(transport).queryByRole('button')).not.toBeInTheDocument();
+
+      await openTab(user, /Items/);
+      const items = screen.getByRole('table', { name: 'Items' });
+      expect(within(items).queryByRole('button')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Add item' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Edit loss items' })).toBeDisabled();
+    });
+
+    it('leaves a challan dated 1 Apr editable', async () => {
+      useApi(makeChallan({ date: '2026-04-01T00:00:00.000Z' }));
+      const seen = closedThrough();
+      renderPage();
+
+      const details = (await screen.findByRole('heading', { name: 'Details' })).closest('section')!;
+      await waitFor(() => expect(seen).toHaveLength(1));
+      expect(within(details).getByRole('button', { name: /1 Apr/ })).toBeVisible();
+      expect(screen.queryByText(MESSAGE)).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Confirm' })).toBeEnabled();
+    });
+
+    it('does not flash the lock while the closed year is loading', async () => {
+      useApi(makeChallan({ date: '2026-03-31T00:00:00.000Z' }));
+      server.use(
+        http.get(apiUrl('/businesses/biz-1/year-close/site'), () => new Promise<never>(() => {}))
+      );
+      renderPage();
+
+      const details = (await screen.findByRole('heading', { name: 'Details' })).closest('section')!;
+      expect(within(details).getByRole('button', { name: /31 Mar/ })).toBeVisible();
+      expect(screen.queryByText(MESSAGE)).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Confirm' })).toBeEnabled();
+    });
+  });
 });

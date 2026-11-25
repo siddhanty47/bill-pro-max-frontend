@@ -537,4 +537,57 @@ describe('ChallanForm', () => {
       ).toBeInTheDocument();
     });
   });
+
+  describe('closed financial year', () => {
+    const MESSAGE =
+      'FY 2025-26 is closed for this site. Nothing dated on or before 31 Mar 2026 can change.';
+
+    function closedSite() {
+      const seen: URLSearchParams[] = [];
+      server.use(
+        http.get(apiUrl('/businesses/biz-1/year-close/site'), ({ request }) => {
+          seen.push(new URL(request.url).searchParams);
+          return ok({
+            closedThrough: {
+              fy: '2025-26',
+              date: '2026-03-31T00:00:00.000Z',
+              lockedThrough: '2026-03-31T00:00:00.000Z',
+            },
+          });
+        })
+      );
+      return seen;
+    }
+
+    async function fillTo(user: User, date: string) {
+      fireEvent.change(screen.getByLabelText(/^date/i), { target: { value: date } });
+      await pickParty(user);
+      await pickItem(user, itemInputs()[0], 'pi', /Steel Pipe/);
+    }
+
+    it('refuses a date on 31 Mar of the closed year at the date field', async () => {
+      const seen = closedSite();
+      const { user, onSubmit } = setup();
+      await fillTo(user, '2026-03-31');
+
+      const dateField = screen.getByLabelText(/^date/i);
+      await waitFor(() => expect(dateField).toHaveAccessibleDescription(MESSAGE));
+      expect(seen[0].get('partyId')).toBe('p1');
+      expect(seen[0].get('agreementId')).toBe('AG-1');
+      await user.click(submit());
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('accepts 1 Apr after the closed year', async () => {
+      const seen = closedSite();
+      const { user, onSubmit } = setup();
+      await fillTo(user, '2026-04-01');
+      await waitFor(() => expect(seen).toHaveLength(1));
+
+      expect(screen.queryByText(MESSAGE)).not.toBeInTheDocument();
+      await user.click(submit());
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+      expect(onSubmit.mock.calls[0][0].date).toBe('2026-04-01');
+    });
+  });
 });
