@@ -62,15 +62,15 @@ describe('BillNoteForm', () => {
     expect(within(totalsRow('Total')).getByText('-₹1,180')).toBeVisible();
   });
 
-  it('shows IGST only for an inter-state bill, positive for a debit', async () => {
+  it('shows IGST only for an inter-state bill, signed + for a debit', async () => {
     const { user } = setup({
       type: 'debit',
       bill: { taxMode: 'inter', sgstRate: 0, cgstRate: 0, igstRate: 18 },
     });
     await user.type(screen.getByLabelText('Amount for line 1'), '100');
-    expect(within(totalsRow('IGST')).getByText('₹18')).toBeVisible();
+    expect(within(totalsRow('IGST')).getByText('+₹18')).toBeVisible();
     expect(screen.queryByText('SGST')).not.toBeInTheDocument();
-    expect(within(totalsRow('Total')).getByText('₹118')).toBeVisible();
+    expect(within(totalsRow('Total')).getByText('+₹118')).toBeVisible();
   });
 
   it('requires a reason, a description and an amount above zero', async () => {
@@ -102,6 +102,48 @@ describe('BillNoteForm', () => {
     await user.type(screen.getByLabelText(/Reason/), 'Challan date fixed');
     await user.click(screen.getByRole('button', { name: 'Save note' }));
     expect(onSubmit).toHaveBeenCalledWith({ reason: 'Challan date fixed' });
+  });
+
+  it('sends only the reason when an edit leaves the lines unchanged', async () => {
+    const { user, onSubmit } = setup({
+      initial: {
+        reason: 'Old',
+        lines: [{ kind: 'other', description: 'Goodwill', amount: 100 }],
+      },
+    });
+    await user.clear(screen.getByLabelText(/Reason/));
+    await user.type(screen.getByLabelText(/Reason/), 'New reason');
+    await user.click(screen.getByRole('button', { name: 'Save note' }));
+    expect(onSubmit).toHaveBeenCalledWith({ reason: 'New reason' });
+  });
+
+  it('sends lines when an edit removes one', async () => {
+    const lines = [
+      { kind: 'other' as const, description: 'A', amount: 100 },
+      { kind: 'other' as const, description: 'B', amount: 50 },
+    ];
+    const { user, onSubmit } = setup({ initial: { reason: 'R', lines } });
+    await user.click(screen.getByRole('button', { name: 'Remove line 2' }));
+    await user.click(screen.getByRole('button', { name: 'Save note' }));
+    expect(onSubmit).toHaveBeenCalledWith({ reason: 'R', lines: [lines[0]] });
+  });
+
+  it('a full-value credit (fixed amounts) edits only the reason', async () => {
+    const { user, onSubmit } = setup({
+      amountsFixed: true,
+      initial: {
+        reason: 'Cancel the bill',
+        lines: [
+          { kind: 'hire', description: 'Prop', amount: 1000 },
+          { kind: 'other', description: 'Earlier credit', amount: -100 },
+        ],
+      },
+    });
+    expect(screen.queryByRole('table', { name: 'Note lines' })).not.toBeInTheDocument();
+    await user.clear(screen.getByLabelText(/Reason/));
+    await user.type(screen.getByLabelText(/Reason/), 'Billed in error');
+    await user.click(screen.getByRole('button', { name: 'Save note' }));
+    expect(onSubmit).toHaveBeenCalledWith({ reason: 'Billed in error' });
   });
 
   it('shows the server error and cancels', async () => {

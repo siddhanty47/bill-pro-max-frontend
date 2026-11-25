@@ -424,7 +424,7 @@ export function PartyDetailPage() {
         { id: 'about', label: 'About' },
         { id: 'sites-agreements', label: 'Sites & agreements', count: sites.length },
         { id: 'bills', label: 'Bills', count: bills?.length },
-        { id: 'notes', label: 'Notes', count: notes?.length },
+        { id: 'notes', label: 'Credit/debit notes', count: notes?.length },
         { id: 'payments', label: 'Payments', count: payments?.length },
         { id: 'statements', label: 'Statements' },
         { id: 'share-links', label: 'Share links' },

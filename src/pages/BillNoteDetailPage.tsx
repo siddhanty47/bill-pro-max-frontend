@@ -41,14 +41,14 @@ import {
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { BillNoteForm, type BillNoteFormValues } from '../components/forms/BillNoteForm';
 import { getApiError, hasApiErrorCode } from '../utils/apiError';
-import { noteSign } from '../utils/billMoney';
+import { noteSign, signedMoney } from '../utils/billMoney';
 import {
   NOTE_LINE_KIND_LABEL,
   NOTE_SOURCE_LABEL,
   NOTE_TYPE_LABEL,
   noteFileName,
 } from '../utils/billNoteLabels';
-import { formatDate, formatMoney } from '../utils/format';
+import { formatDate } from '../utils/format';
 import type { BillChangeCause, BillNoteLine } from '../types';
 import styles from './BillNoteDetailPage.module.css';
 
@@ -104,7 +104,7 @@ export function BillNoteDetailPage() {
   const [banner, setBanner] = useState<Banner | null>(null);
 
   const sign = note ? noteSign(note.type) : 1;
-  const signed = (n: number) => formatMoney(sign * n);
+  const signed = (n: number) => signedMoney(sign * n);
   const partyName = parties?.find(p => p._id === note?.partyId)?.name ?? '';
   const typeLabel = note ? NOTE_TYPE_LABEL[note.type] : '';
 
@@ -196,11 +196,17 @@ export function BillNoteDetailPage() {
   ];
   const causeRows: CauseRow[] = (note?.causes ?? []).map((c, idx) => ({ ...c, idx }));
 
-  const summaryRow = (label: string, amount: number, strong = false, pct?: number) => (
+  const summaryRow = (
+    label: string,
+    amount: number,
+    strong = false,
+    pct?: number,
+    shown: string = signed(amount)
+  ) => (
     <Tr key={label} variant={strong ? 'total' : undefined}>
       <Td>{label}</Td>
       <Td align="right" nowrap>
-        <span className="mono">{signed(amount)}</span>
+        <span className="mono">{shown}</span>
         {pct !== undefined && <span> ({pct}%)</span>}
       </Td>
     </Tr>
@@ -332,7 +338,15 @@ export function BillNoteDetailPage() {
                 <Table aria-label="Summary" detail>
                   <TBody>
                     {summaryRow('Subtotal', note.subtotal)}
-                    {note.discountAmount !== 0 && summaryRow('Discount', note.discountAmount)}
+                    {note.discountAmount !== 0 &&
+                      // A deduction from the note's subtotal
+                      summaryRow(
+                        'Discount',
+                        note.discountAmount,
+                        false,
+                        undefined,
+                        signedMoney(-Math.abs(note.discountAmount))
+                      )}
                     {intra ? (
                       <>
                         {summaryRow('SGST', note.sgstAmount, false, note.sgstRate)}
@@ -374,6 +388,7 @@ export function BillNoteDetailPage() {
               source={note.source}
               type={note.type}
               initial={{ reason: note.reason, lines: note.lines }}
+              amountsFixed={note.fullValue === true}
               bill={note}
               onSubmit={handleSave}
               onCancel={() => setEditing(false)}
@@ -403,7 +418,11 @@ export function BillNoteDetailPage() {
             onClose={() => setConfirming(null)}
             title="Cancel note"
           >
-            <p className={styles.text}>Cancel this note? A cancelled note can&apos;t be issued.</p>
+            <p className={styles.text}>
+              {note.source === 'auto'
+                ? "This dismisses the current draft. A new one is drafted on the next change to this bill's data."
+                : "Cancel this note? A cancelled note can't be issued."}
+            </p>
             <div className={styles.actions}>
               <Button onClick={() => setConfirming(null)}>Keep note</Button>
               <Button variant="danger" onClick={handleCancel} loading={isCancelling}>

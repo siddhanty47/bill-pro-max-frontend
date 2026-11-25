@@ -104,6 +104,27 @@ describe('BillsPreview', () => {
     expect(screen.getByRole('link', { name: 'B-002' })).toHaveAttribute('href', '/bills/b2');
   });
 
+  it('adds signed Notes and Effective columns only when a bill has notes', () => {
+    const [b1, b2] = base.bills;
+    renderWithProviders(
+      <BillsPreview
+        data={{
+          ...base,
+          bills: [
+            { ...b1, notesTotal: -585.59 },
+            { ...b2, notesTotal: 118 },
+          ],
+          totals: { ...base.totals, notesTotal: -467.59 },
+        }}
+      />
+    );
+    const [head, row1, row2, totals] = tableRows();
+    expect(head.slice(-3)).toEqual(['Total', 'Notes', 'Effective']);
+    expect(row1.slice(-3)).toEqual(['₹12,585.59', '-₹585.59', '₹12,000']);
+    expect(row2.slice(-3)).toEqual(['₹2,360', '+₹118', '₹2,478']);
+    expect(totals.slice(-3)).toEqual(['₹14,945.59', '-₹467.59', '₹14,478']);
+  });
+
   it('says "1 bill" in the totals row for a single bill', () => {
     renderWithProviders(
       <BillsPreview

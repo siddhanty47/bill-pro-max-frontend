@@ -704,7 +704,7 @@ describe('BillDetailPage', () => {
         [draftAuto()]
       );
       renderPage();
-      expect(await screen.findByText('Draft debit note ₹300')).toBeVisible();
+      expect(await screen.findByText('Draft debit note +₹300')).toBeVisible();
       expect(screen.getByRole('link', { name: 'Review' })).toHaveAttribute(
         'href',
         '/bill-notes/n9'
@@ -718,7 +718,7 @@ describe('BillDetailPage', () => {
         draftAuto({ type: 'credit', totalAmount: 250 }),
       ]);
       renderPage();
-      expect(await screen.findByText('Draft credit note ₹250')).toBeVisible();
+      expect(await screen.findByText('Draft credit note -₹250')).toBeVisible();
     });
 
     it('shows notes and the effective amount in the totals, and the balance from it', async () => {
@@ -726,7 +726,7 @@ describe('BillDetailPage', () => {
       renderPage();
       const table = await screen.findByRole('table', { name: 'Summary' });
       const row = (label: string) => within(table).getByText(label).closest('tr')!;
-      expect(within(row('Notes')).getByText('-₹1,000')).toHaveClass('mono');
+      expect(within(row('Credit/debit notes')).getByText('-₹1,000')).toHaveClass('mono');
       expect(within(row('Effective')).getByText('₹99,000')).toBeVisible();
       expect(within(row('Balance due')).getByText('₹59,000')).toBeVisible();
     });
@@ -745,10 +745,10 @@ describe('BillDetailPage', () => {
       renderPage();
       const table = await screen.findByRole('table', { name: 'Summary' });
       expect(within(table).queryByText('Effective')).not.toBeInTheDocument();
-      expect(within(table).queryByText('Notes')).not.toBeInTheDocument();
+      expect(within(table).queryByText('Credit/debit notes')).not.toBeInTheDocument();
     });
 
-    it('lists the notes on an issued bill in a Notes tab', async () => {
+    it('lists the notes on an issued bill in a Credit/debit notes tab', async () => {
       useApi(makeBill({ status: 'sent' }), payments, [
         makeBillNote({
           _id: 'n1',
@@ -760,21 +760,21 @@ describe('BillDetailPage', () => {
         draftAuto(),
       ]);
       const { user } = renderPage();
-      await openTab(user, /^Notes/);
+      await openTab(user, /^Credit\/debit notes/);
       const table = screen.getByRole('table', { name: 'Bill notes' });
       const issued = within(table).getByText('CN/2026-27/0001').closest('tr')!;
       expect(within(issued).getByText('-₹1,180')).toBeVisible();
       expect(within(issued).getByText('Issued')).toBeVisible();
-      const draft = within(table).getByText('₹300').closest('tr')!;
+      const draft = within(table).getByText('+₹300').closest('tr')!;
       expect(within(draft).getByText('Auto')).toBeVisible();
-      expect(screen.getByRole('tab', { name: /Notes/ })).toHaveTextContent('2');
+      expect(screen.getByRole('tab', { name: /Credit\/debit notes/ })).toHaveTextContent('2');
     });
 
     it('offers no notes tab or new-note actions on a draft bill', async () => {
       useApi();
       const { user } = renderPage();
       await screen.findByRole('table', { name: 'Summary' });
-      expect(screen.queryByRole('tab', { name: /^Notes/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('tab', { name: /^Credit\/debit notes/ })).not.toBeInTheDocument();
       await user.click(screen.getByRole('button', { name: 'More actions' }));
       expect(screen.queryByRole('menuitem', { name: /New credit note/ })).not.toBeInTheDocument();
     });
@@ -815,7 +815,7 @@ describe('BillDetailPage', () => {
         })
       );
       const { user } = renderPage();
-      await openTab(user, /^Notes/);
+      await openTab(user, /^Credit\/debit notes/);
       expect(screen.getByText('No notes on this bill')).toBeVisible();
       await user.click(screen.getByRole('button', { name: 'New debit note' }));
       const dialog = screen.getByRole('dialog', { name: 'New debit note' });

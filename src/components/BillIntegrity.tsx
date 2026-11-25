@@ -4,8 +4,8 @@
  */
 import { Button, Notice } from './ui';
 import { isIssued } from '../utils/billStatus';
-import { formatDate, formatMoney } from '../utils/format';
-import { signedMoney } from '../utils/billMoney';
+import { formatDate } from '../utils/format';
+import { noteSign, signedMoney } from '../utils/billMoney';
 import type { Bill, BillChangeCause, BillNote, NegativeSpan } from '../types';
 import styles from './BillIntegrity.module.css';
 
@@ -91,7 +91,7 @@ export function BillIntegrityNotices({
       {showDraftNote && draftNote && (
         <Notice
           tone="info"
-          title={`Draft ${draftNote.type} note ${formatMoney(draftNote.totalAmount)}`}
+          title={`Draft ${draftNote.type} note ${signedMoney(noteSign(draftNote.type) * draftNote.totalAmount)}`}
         >
           <div className={styles.row}>
             <CauseList causes={draftNote.causes} />

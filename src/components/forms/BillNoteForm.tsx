@@ -1,8 +1,10 @@
 /**
  * @fileoverview Credit/debit note form: reason plus, for manual notes, a line editor with a
  * tax preview from the bill's own rates. Auto notes only take a reason (their amounts come from
- * the drift pass). Used to edit drafts (notes detail page) and to create manual notes (bill
- * detail page); a new credit can instead credit the whole bill (`fullValue`, no lines).
+ * the drift pass), and neither does a full-value credit (its amounts are the bill's). Used to
+ * edit drafts (notes detail page) and to create manual notes (bill detail page); a new credit
+ * can instead credit the whole bill (`fullValue`, no lines). An edit sends `lines` only when
+ * they changed.
  */
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,8 +25,7 @@ import {
   Tr,
   Textarea,
 } from '../ui';
-import { formatMoney } from '../../utils/format';
-import { manualNoteTotals, noteSign, type NoteTaxRates } from '../../utils/billMoney';
+import { manualNoteTotals, noteSign, signedMoney, type NoteTaxRates } from '../../utils/billMoney';
 import { NOTE_LINE_KINDS } from '../../utils/billNoteLabels';
 import type { BillNoteLineInput, BillNoteSource, BillNoteType } from '../../types';
 import styles from './BillNoteForm.module.css';
@@ -70,7 +71,7 @@ type FormValues = z.infer<typeof manualSchema>;
 
 export interface BillNoteFormValues {
   reason: string;
-  /** Only for manual notes */
+  /** Only for manual notes; on an edit only when the lines changed */
   lines?: BillNoteLineInput[];
   /** New credit for the bill's whole effective amount (no lines are sent) */
   fullValue?: true;
@@ -93,9 +94,20 @@ export interface BillNoteFormProps {
    * shown as that credit's total.
    */
   fullValueAmount?: number;
+  /** The note's amounts can't be edited (a full-value credit): only its reason */
+  amountsFixed?: boolean;
 }
 
 const emptyLine = (): BillNoteLineInput => ({ kind: 'other', description: '', amount: NaN });
+
+const lineKey = (l: BillNoteLineInput) =>
+  JSON.stringify([l.kind, l.itemId ?? '', l.itemName ?? '', l.description.trim(), l.amount]);
+
+/** Whether the edited lines differ from the note's saved lines */
+function linesChanged(lines: BillNoteLineInput[], saved: BillNoteLineInput[] | undefined): boolean {
+  if (!saved || lines.length !== saved.length) return true;
+  return lines.some((l, i) => lineKey(l) !== lineKey(saved[i]));
+}
 
 /** "Line 2: Add a description" for each line with an error (first field error per line). */
 function lineMessages(rows: unknown): string[] {
@@ -130,8 +142,9 @@ export function BillNoteForm({
   isLoading,
   error,
   fullValueAmount,
+  amountsFixed = false,
 }: BillNoteFormProps) {
-  const manual = source === 'manual';
+  const manual = source === 'manual' && !amountsFixed;
   const canCreditFull =
     manual && mode === 'create' && type === 'credit' && fullValueAmount !== undefined;
   const {
@@ -158,13 +171,14 @@ export function BillNoteForm({
   const fullValue = useWatch({ control, name: 'fullValue' }) && canCreditFull;
   const totals = manualNoteTotals(lines, bill);
   const sign = noteSign(type);
-  const signed = (n: number) => formatMoney(sign * n);
+  const signed = (n: number) => signedMoney(sign * n);
   const intra = (bill.taxMode ?? 'intra') === 'intra';
 
   const submit = (values: FormValues) => {
     if (fullValue) return onSubmit({ reason: values.reason, fullValue: true });
+    const sendLines = manual && (mode === 'create' || linesChanged(values.lines, initial?.lines));
     return onSubmit(
-      manual ? { reason: values.reason, lines: values.lines } : { reason: values.reason }
+      sendLines ? { reason: values.reason, lines: values.lines } : { reason: values.reason }
     );
   };
 

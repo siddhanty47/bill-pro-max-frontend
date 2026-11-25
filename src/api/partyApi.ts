@@ -113,6 +113,7 @@ export const partyApi = baseApi.injectEndpoints({
         { type: 'Party', id: partyId },
         'Party',
         'Bill',
+        'BillNote',
         'SearchIndex',
         'Dashboard',
       ]),

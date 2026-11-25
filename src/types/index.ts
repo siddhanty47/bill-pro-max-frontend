@@ -670,6 +670,8 @@ export interface BillNote {
   type: BillNoteType;
   source: BillNoteSource;
   status: BillNoteStatus;
+  /** A manual credit of the whole bill (its stored amounts): only the reason can be edited */
+  fullValue?: boolean;
   /** CN/2026-27/0001 or DN/2026-27/0001; given on issue only */
   noteNumber?: string;
   /** Issue day (calendar day); set on issue */

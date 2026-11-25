@@ -109,7 +109,7 @@ describe('BillNoteDetailPage', () => {
     expect(screen.queryByText('IGST')).not.toBeInTheDocument();
   });
 
-  it('shows an issued debit note with its number, IGST and positive totals', async () => {
+  it('shows an issued debit note with its number, IGST and + signed totals', async () => {
     useApi(
       makeBillNote({
         _id: 'n1',
@@ -129,8 +129,8 @@ describe('BillNoteDetailPage', () => {
     renderPage();
     expect(await screen.findByRole('heading', { name: 'DN/2026-27/0003', level: 1 })).toBeVisible();
     const summary = screen.getByRole('table', { name: 'Summary' });
-    expect(within(summary).getByText('₹180')).toBeVisible();
-    expect(within(summary).getByText('₹1,180')).toBeVisible();
+    expect(within(summary).getByText('+₹180')).toBeVisible();
+    expect(within(summary).getByText('+₹1,180')).toBeVisible();
     expect(screen.getByText('21 Nov')).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Issue' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
@@ -285,6 +285,45 @@ describe('BillNoteDetailPage', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Save note' }));
     await waitFor(() => expect(bodies).toEqual([{ reason: 'Rate agreed lower and dates' }]));
     expect(await within(dialog).findByText('This note is already issued')).toBeVisible();
+  });
+
+  it('edits only the reason of a full-value credit and shows its discount as a deduction', async () => {
+    useApi(
+      makeBillNote({
+        _id: 'n1',
+        fullValue: true,
+        subtotal: 1000,
+        discountAmount: 100,
+        sgstAmount: 81,
+        cgstAmount: 81,
+        taxAmount: 162,
+        totalAmount: 1062,
+      })
+    );
+    const bodies = capture('patch', BASE, () => ok(makeBillNote({ _id: 'n1' })));
+    const { user } = renderPage();
+    const summary = await screen.findByRole('table', { name: 'Summary' });
+    const discount = within(summary).getByText('Discount').closest('tr')!;
+    expect(within(discount).getByText('-₹100')).toBeVisible();
+    expect(within(summary).getByText('-₹1,062')).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    const dialog = screen.getByRole('dialog', { name: 'Edit note' });
+    expect(within(dialog).queryByRole('table', { name: 'Note lines' })).not.toBeInTheDocument();
+    await user.type(within(dialog).getByLabelText(/Reason/), ' in full');
+    await user.click(within(dialog).getByRole('button', { name: 'Save note' }));
+    await waitFor(() => expect(bodies).toEqual([{ reason: 'Rate agreed lower in full' }]));
+  });
+
+  it('explains that cancelling an auto draft dismisses it until the next change', async () => {
+    useApi(makeBillNote({ _id: 'n1', source: 'auto' }));
+    const { user } = renderPage();
+    await user.click(await screen.findByRole('button', { name: 'More actions' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Cancel note' }));
+    const dialog = screen.getByRole('dialog', { name: 'Cancel note' });
+    expect(dialog).toHaveTextContent(
+      "This dismisses the current draft. A new one is drafted on the next change to this bill's data."
+    );
   });
 
   it('cancels a draft from the menu after confirming', async () => {

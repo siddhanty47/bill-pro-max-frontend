@@ -86,7 +86,7 @@ describe('BillNotesPage', () => {
 
     const issued = rowOf('DN/2026-27/0002');
     expect(within(issued).getByText('Debit')).toBeVisible();
-    expect(within(issued).getByText('₹99.50')).toBeVisible();
+    expect(within(issued).getByText('+₹99.50')).toBeVisible();
     expect(within(issued).getByText('21 Nov')).toBeVisible();
     expect(within(issued).getByText('Issued')).toBeVisible();
     expect(within(issued).getByText('Auto')).toBeVisible();
@@ -174,7 +174,7 @@ describe('BillNotesPage', () => {
     expect(within(item).getByText('DN/2026-27/0002')).toBeInTheDocument();
     expect(within(item).getByText('Issued')).toBeInTheDocument();
     expect(within(item).getByText('Om Constructions')).toBeInTheDocument();
-    expect(within(item).getByText('₹99.50')).toBeInTheDocument();
+    expect(within(item).getByText('+₹99.50')).toBeInTheDocument();
     expect(within(item).getByText('INV-2026-27-0009')).toHaveClass('mono');
   });
 });

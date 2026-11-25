@@ -247,7 +247,7 @@ describe('PartyDetailPage', () => {
       'About',
       'Sites & agreements 2',
       expect.stringMatching(/^Bills/),
-      expect.stringMatching(/^Notes/),
+      expect.stringMatching(/^Credit\/debit notes/),
       expect.stringMatching(/^Payments/),
       'Statements',
       'Share links',
@@ -466,7 +466,7 @@ describe('PartyDetailPage', () => {
       })
     );
     const { user } = renderPage();
-    await openTab(user, /Notes 2/);
+    await openTab(user, /Credit\/debit notes 2/);
 
     expect(search).toContain('partyId=p1');
     const table = await screen.findByRole('table', { name: 'Party notes' });
@@ -482,7 +482,7 @@ describe('PartyDetailPage', () => {
     expect(within(row1).getByText('Issued')).toBeInTheDocument();
     expect(within(row1).getByText('Manual')).toBeInTheDocument();
     const row2 = within(table).getByRole('row', { name: /Draft/ });
-    expect(within(row2).getByText('₹500')).toBeInTheDocument();
+    expect(within(row2).getByText('+₹500')).toBeInTheDocument();
     expect(within(row2).getByText('Auto')).toBeInTheDocument();
 
     const list = screen.getByRole('list', { name: 'Party notes' });
@@ -497,7 +497,7 @@ describe('PartyDetailPage', () => {
   it('shows an empty state when the party has no notes', async () => {
     useApi();
     const { user } = renderPage();
-    await openTab(user, /Notes/);
+    await openTab(user, /Credit\/debit notes/);
     expect(await screen.findAllByText('No notes yet')).not.toHaveLength(0);
   });
 

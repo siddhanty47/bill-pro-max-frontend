@@ -5,8 +5,8 @@
  */
 import type { ReactNode } from 'react';
 import { DataTable, DocNumber, NotAdded, StatusChip, type Column } from '../ui';
-import { noteSign } from '../../utils/billMoney';
-import { formatDate, formatMoney } from '../../utils/format';
+import { noteSign, signedMoney } from '../../utils/billMoney';
+import { formatDate } from '../../utils/format';
 import { NOTE_SOURCE_LABEL, NOTE_TYPE_LABEL } from '../../utils/billNoteLabels';
 import type { BillNote } from '../../types';
 
@@ -21,7 +21,7 @@ export interface BillNotesTableProps {
 }
 
 const notePath = (n: BillNote) => `/bill-notes/${n._id}`;
-const signedTotal = (n: BillNote) => formatMoney(noteSign(n.type) * n.totalAmount);
+const signedTotal = (n: BillNote) => signedMoney(noteSign(n.type) * n.totalAmount);
 const numberCell = (n: BillNote) =>
   n.noteNumber ? <DocNumber value={n.noteNumber} to={notePath(n)} /> : 'Draft';
 const billCell = (n: BillNote) => <DocNumber value={n.billNumber} to={`/bills/${n.billId}`} />;

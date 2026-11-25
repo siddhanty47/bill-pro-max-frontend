@@ -147,7 +147,7 @@ export function BillDetailPage() {
         { id: 'about', label: 'About' },
         { id: 'line-items', label: 'Line items', count: bill.items.length },
         { id: 'payments', label: 'Payments', count: paymentList.length },
-        ...(issued ? [{ id: 'notes', label: 'Notes', count: noteList.length }] : []),
+        ...(issued ? [{ id: 'notes', label: 'Credit/debit notes', count: noteList.length }] : []),
         { id: 'change-history', label: 'Change history' },
       ]
     : undefined;
@@ -512,7 +512,7 @@ export function BillDetailPage() {
                     {summaryRow('Total', formatMoney(bill.totalAmount), true)}
                     {notesTotal !== 0 && (
                       <>
-                        {summaryRow('Notes', signedMoney(notesTotal))}
+                        {summaryRow('Credit/debit notes', signedMoney(notesTotal))}
                         {summaryRow('Effective', formatMoney(effectiveAmount(bill)), true)}
                       </>
                     )}
