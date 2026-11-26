@@ -30,6 +30,7 @@ describe('ui barrel', () => {
     'Th',
     'Td',
     'DataTable',
+    'BulkActionBar',
     'Field',
     'Input',
     'Select',
