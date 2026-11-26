@@ -17,6 +17,7 @@ import {
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetInventoryQuery } from '../api/inventoryApi';
 import {
+  BulkActionBar,
   Button,
   Card,
   DataTable,
@@ -39,6 +40,8 @@ import { ChallanForm } from '../components/forms/ChallanForm';
 import { getErrorMessage } from '../api/baseApi';
 import { formatDate } from '../utils/format';
 import type { Challan, CreateChallanInput } from '../types';
+import { MessageDialog, useBulkSelection, useConfirm } from '../components/bulk';
+import { useChallanBulkActions } from './challans/useChallanBulkActions';
 import styles from './ChallansPage.module.css';
 
 type TypeFilter = 'all' | Challan['type'];
@@ -103,6 +106,27 @@ export function ChallansPage() {
   const [createChallan, { isLoading: isCreating }] = useCreateChallanMutation();
   const [confirmChallan] = useConfirmChallanMutation();
   const { run: runGated, dialog: changeDialog } = useChangeGate();
+  const [failure, setFailure] = useState<string | null>(null);
+  const confirmDialog = useConfirm();
+  const confirmedBy = user?.name || user?.email || 'Unknown';
+
+  const challans = pageData?.rows ?? [];
+
+  // Selection is per page of the server list: it clears on page, filter, search or business change.
+  const selection = useBulkSelection({
+    rows: challans,
+    rowKey: c => c._id,
+    resetKey: `${currentBusinessId}|${filtersKey}|${page}`,
+    label: c => `Select ${c.challanNumber}`,
+  });
+  const selectedChallans = selection.selectedRows;
+  const bulk = useChallanBulkActions({
+    businessId: currentBusinessId || '',
+    challans: selectedChallans,
+    confirmedBy,
+    ask: confirmDialog.ask,
+    onSucceeded: selection.remove,
+  });
 
   const handleCreateDelivery = () => {
     setModalVariant('delivery');
@@ -133,25 +157,34 @@ export function ChallansPage() {
       );
       if (saved) setIsModalOpen(false);
     } catch (err) {
-      alert(getErrorMessage(err));
+      setFailure(getErrorMessage(err));
     }
   };
 
-  const handleConfirm = async (challan: Challan) => {
-    if (!confirm(`Confirm challan ${challan.challanNumber}?`)) return;
+  const confirmOne = async (challan: Challan) => {
     try {
       await runGated(gate =>
         confirmChallan({
           businessId: currentBusinessId!,
           challanId: challan._id,
-          confirmedBy: user?.name || user?.email || 'Unknown',
+          confirmedBy,
           ...gate,
         }).unwrap()
       );
     } catch (err) {
-      alert(getErrorMessage(err));
+      setFailure(getErrorMessage(err));
     }
   };
+
+  // The confirm dialog closes straight away; the change dialog may follow on its own.
+  const handleConfirm = (challan: Challan) =>
+    confirmDialog.ask({
+      title: `Confirm challan ${challan.challanNumber}?`,
+      confirmLabel: 'Confirm',
+      onConfirm: () => {
+        void confirmOne(challan);
+      },
+    });
 
   // Get party name by ID
   const getPartyName = (partyId: string) => {
@@ -164,8 +197,6 @@ export function ChallansPage() {
     const agreement = party?.agreements?.find(a => a.agreementId === challan.agreementId);
     return agreement?.siteCode ?? '—';
   };
-
-  const challans = pageData?.rows ?? [];
 
   const hasDraftChallans = challans.some(c => c.status === 'draft');
 
@@ -285,12 +316,15 @@ export function ChallansPage() {
         </Select>
       </FilterBar>
 
+      {selection.mobileSelectAll}
+
       <Card padded={false}>
         <DataTable
           aria-label="Challans"
           columns={columns}
           rows={challans}
           rowKey={c => c._id}
+          selection={selection.selectionProp}
           pagination={{
             page,
             pageSize: LIST_PAGE_SIZE,
@@ -325,6 +359,14 @@ export function ChallansPage() {
         />
       </Card>
 
+      <BulkActionBar
+        count={selectedChallans.length}
+        noun={selectedChallans.length === 1 ? 'challan' : 'challans'}
+        onClear={selection.clear}
+      >
+        {bulk.actions}
+      </BulkActionBar>
+
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -344,6 +386,13 @@ export function ChallansPage() {
         />
       </Modal>
       {changeDialog}
+      {confirmDialog.dialog}
+      {bulk.dialog}
+      <MessageDialog
+        title="Something went wrong"
+        message={failure}
+        onClose={() => setFailure(null)}
+      />
     </div>
   );
 }

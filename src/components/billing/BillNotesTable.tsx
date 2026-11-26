@@ -4,7 +4,14 @@
  * and source, with a phone list. Rows open the note.
  */
 import type { ReactNode } from 'react';
-import { DataTable, DocNumber, NotAdded, StatusChip, type Column } from '../ui';
+import {
+  DataTable,
+  DocNumber,
+  NotAdded,
+  StatusChip,
+  type Column,
+  type DataTableSelection,
+} from '../ui';
 import { noteSign, signedMoney } from '../../utils/billMoney';
 import { formatDate } from '../../utils/format';
 import { NOTE_SOURCE_LABEL, NOTE_TYPE_LABEL } from '../../utils/billNoteLabels';
@@ -18,6 +25,8 @@ export interface BillNotesTableProps {
   showBill?: boolean;
   /** Party name of a note; when given, a Party column (and phone subtitle) is shown */
   partyName?: (note: BillNote) => string;
+  /** Row checkboxes for bulk actions; only the Notes page passes it (not the bill/party tabs) */
+  selection?: DataTableSelection<BillNote>;
 }
 
 const notePath = (n: BillNote) => `/bill-notes/${n._id}`;
@@ -32,6 +41,7 @@ export function BillNotesTable({
   empty,
   showBill = true,
   partyName,
+  selection,
 }: BillNotesTableProps) {
   const columns: Column<BillNote>[] = [
     { key: 'noteNumber', header: 'Number', nowrap: true, render: numberCell },
@@ -77,6 +87,7 @@ export function BillNotesTable({
       rowKey={n => n._id}
       rowLink={notePath}
       empty={empty}
+      selection={selection}
       mobile={{
         title: numberCell,
         badge: n => <StatusChip status={n.status} />,
