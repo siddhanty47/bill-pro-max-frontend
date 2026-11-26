@@ -3,7 +3,7 @@
  * and delete, run per bill over the existing endpoints with `runBulk`. Each action runs on the
  * bills it applies to; the others, and every failure, are listed as skipped in a "Done" dialog.
  */
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import {
   useDeleteBillMutation,
   useLazyDownloadBillPdfQuery,
@@ -21,7 +21,10 @@ import type { ConfirmRequest } from './BillConfirmDialog';
 import styles from './BillDialogs.module.css';
 
 export const OUT_OF_DATE_REASON = 'out of date, open it and press Refresh';
-export const NEGATIVE_DECLINED_REASON = 'stock below zero, not sent';
+const NEGATIVE_WORDING = {
+  markSent: { button: 'Mark as sent anyway', declined: 'stock below zero, not marked as sent' },
+  email: { button: 'Send anyway', declined: 'stock below zero, not sent' },
+} as const;
 
 type Skip = { bill: Bill; reason: string };
 type Outcome = { line: string; skipped: Skip[] };
@@ -55,20 +58,37 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
   const [downloadPdf] = useLazyDownloadBillPdfQuery();
 
   const [running, setRunning] = useState(false);
+  // Blocks a second run while one is going (a fast double click lands before `running` renders).
+  const inFlight = useRef(false);
+  const guard =
+    <A extends unknown[]>(fn: (...args: A) => Promise<void>) =>
+    async (...args: A) => {
+      if (inFlight.current) return;
+      inFlight.current = true;
+      try {
+        await fn(...args);
+      } finally {
+        inFlight.current = false;
+      }
+    };
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [negative, setNegative] = useState<{
     kind: IssueKind;
     items: NegativeBill[];
     done: string[];
     skipped: Skip[];
+    order: Bill[];
   } | null>(null);
 
   const drafts = bills.filter(b => b.status === 'draft');
   const removable = bills.filter(b => !isIssued(b));
 
-  const finish = (line: string, done: string[], skipped: Skip[]) => {
+  /** `order` is the run's bills; skipped bills are listed in that order. */
+  const finish = (line: string, done: string[], skipped: Skip[], order: Bill[]) => {
+    const position = new Map(order.map((b, i) => [b._id, i]));
+    const at = (s: Skip) => position.get(s.bill._id) ?? order.length;
     onSucceeded(done);
-    setOutcome({ line, skipped });
+    setOutcome({ line, skipped: [...skipped].sort((a, b) => at(a) - at(b)) });
   };
 
   const issueOne = (kind: IssueKind, bill: Bill, acknowledgeNegative?: boolean) =>
@@ -85,7 +105,8 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
     kind === 'markSent' ? `${n} marked as sent` : `${n} sent`;
 
   /** First pass without the acknowledge flag; bills with negative stock are asked about together. */
-  const runIssue = async (kind: IssueKind) => {
+  const runIssue = guard(async (kind: IssueKind) => {
+    const order = bills;
     const skipped: Skip[] = bills
       .filter(b => b.status !== 'draft')
       .map(bill => ({ bill, reason: notDraftReason(bill) }));
@@ -118,23 +139,25 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
         skipped.push({ bill: r.item, reason: reasonFor(r.error) });
       }
     }
-    if (needAck.length > 0) setNegative({ kind, items: needAck, done, skipped });
-    else finish(issueLine(kind, done.length), done, skipped);
-  };
+    if (needAck.length > 0) setNegative({ kind, items: needAck, done, skipped, order });
+    else finish(issueLine(kind, done.length), done, skipped, order);
+  });
 
   const declineNegative = () => {
     if (!negative) return;
-    const { kind, items, done, skipped } = negative;
+    const { kind, items, done, skipped, order } = negative;
     setNegative(null);
-    finish(issueLine(kind, done.length), done, [
-      ...skipped,
-      ...items.map(({ bill }) => ({ bill, reason: NEGATIVE_DECLINED_REASON })),
-    ]);
+    finish(
+      issueLine(kind, done.length),
+      done,
+      [...skipped, ...items.map(({ bill }) => ({ bill, reason: NEGATIVE_WORDING[kind].declined }))],
+      order
+    );
   };
 
-  const sendAnyway = async () => {
+  const sendAnyway = guard(async () => {
     if (!negative) return;
-    const { kind, items, done, skipped } = negative;
+    const { kind, items, done, skipped, order } = negative;
     setRunning(true);
     const results = await runBulk(
       items.map(i => i.bill),
@@ -148,10 +171,11 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
       if (r.ok) allDone.push(r.item._id);
       else allSkipped.push({ bill: r.item, reason: reasonFor(r.error) });
     }
-    finish(issueLine(kind, allDone.length), allDone, allSkipped);
-  };
+    finish(issueLine(kind, allDone.length), allDone, allSkipped, order);
+  });
 
-  const runDownload = async () => {
+  const runDownload = guard(async () => {
+    const order = bills;
     setRunning(true);
     const results = await runBulk(
       bills,
@@ -168,10 +192,11 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
     const skipped = results.flatMap(r =>
       r.ok ? [] : [{ bill: r.item, reason: reasonFor(r.error) }]
     );
-    finish(`${done.length} downloaded`, done, skipped);
-  };
+    finish(`${done.length} downloaded`, done, skipped, order);
+  });
 
-  const runDelete = async () => {
+  const runDelete = guard(async () => {
+    const order = bills;
     const skipped: Skip[] = bills
       .filter(isIssued)
       .map(bill => ({ bill, reason: "can't delete a sent bill" }));
@@ -185,8 +210,8 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
       if (r.ok) done.push(r.item._id);
       else skipped.push({ bill: r.item, reason: reasonFor(r.error) });
     }
-    finish(`${done.length} deleted`, done, skipped);
-  };
+    finish(`${done.length} deleted`, done, skipped, order);
+  });
 
   const n = drafts.length;
   const actions: ReactNode = (
@@ -219,7 +244,7 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
       >
         Send {n} to {plural(n, 'client', 'clients')}
       </Button>
-      <Button disabled={bills.length === 0 || running} onClick={runDownload}>
+      <Button disabled={bills.length === 0 || running} onClick={() => runDownload()}>
         Download {bills.length} {plural(bills.length, 'PDF', 'PDFs')}
       </Button>
       <Button
@@ -261,7 +286,7 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
             Cancel
           </Button>
           <Button variant="primary" loading={running} onClick={sendAnyway}>
-            Send anyway
+            {NEGATIVE_WORDING[negative.kind].button}
           </Button>
         </div>
       </Modal>

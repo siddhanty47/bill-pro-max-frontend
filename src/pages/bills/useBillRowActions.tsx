@@ -52,13 +52,17 @@ export function useBillRowActions({ businessId, ask, onError }: Options) {
       body: 'The bill will be locked. Any later change is made with a correction, not by editing the bill.',
       confirmLabel: 'Mark as sent',
       onConfirm: () =>
-        gate.attempt(bill, acknowledgeNegative =>
-          updateBillStatus({
-            businessId,
-            billId: bill._id,
-            status: 'sent',
-            acknowledgeNegative,
-          }).unwrap()
+        gate.attempt(
+          bill,
+          acknowledgeNegative =>
+            updateBillStatus({
+              businessId,
+              billId: bill._id,
+              status: 'sent',
+              acknowledgeNegative,
+            }).unwrap(),
+          true,
+          'markSent'
         ),
     });
 

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, within, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, within, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { BillsPage } from './BillsPage';
@@ -7,6 +7,13 @@ import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
 import { apiUrl, ok, pagedOk } from '../test/msw/handlers';
 import type { Bill, Party } from '../types';
+import * as bulk from '../utils/runBulk';
+
+// Passthrough spy: lets a test count how many bulk runs start.
+vi.mock('../utils/runBulk', async importOriginal => {
+  const actual = await importOriginal<typeof import('../utils/runBulk')>();
+  return { ...actual, runBulk: vi.fn(actual.runBulk) };
+});
 
 const bill = (over: Partial<Bill>) =>
   ({
@@ -630,6 +637,32 @@ describe('BillsPage row menu', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
+  it('words the negative stock question for marking as sent', async () => {
+    useApi();
+    const calls = trackStatus((_id, body) =>
+      body.acknowledgeNegative
+        ? undefined
+        : conflict('NEGATIVE_STOCK_ACK_REQUIRED', { negativeStock: [SPAN] })
+    );
+    const { user } = renderPage();
+    const table = await screen.findByRole('table');
+    await user.click(within(table).getAllByRole('button', { name: 'More actions' })[0]);
+    await user.click(screen.getByRole('menuitem', { name: 'Mark as sent' }));
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Mark as sent' })
+    );
+    const ask = await screen.findByRole('dialog', { name: 'Stock went below zero' });
+    expect(ask).toHaveTextContent('Mark the bill as sent anyway?');
+    expect(within(ask).queryByRole('button', { name: 'Send anyway' })).not.toBeInTheDocument();
+    await user.click(within(ask).getByRole('button', { name: 'Mark as sent anyway' }));
+    await waitFor(() =>
+      expect(calls.map(c => c.body)).toEqual([
+        { status: 'sent' },
+        { status: 'sent', acknowledgeNegative: true },
+      ])
+    );
+  });
+
   it('blocks marking an out of date draft as sent', async () => {
     useApi([bill({ drift: DRIFT })]);
     const calls = trackStatus();
@@ -811,6 +844,7 @@ describe('BillsPage bulk actions', () => {
     const ask = await screen.findByRole('dialog', { name: '1 bill shows stock below zero' });
     expect(ask).toHaveTextContent('B-3');
     expect(within(ask).getByText(/Prop 3m: 3 Oct, lowest count -1/)).toBeInTheDocument();
+    expect(within(ask).getByRole('button', { name: 'Mark as sent anyway' })).toBeInTheDocument();
     await user.click(within(ask).getByRole('button', { name: 'Cancel' }));
     const done = await doneDialog();
     expect(calls).toHaveLength(3);
@@ -819,7 +853,7 @@ describe('BillsPage bulk actions', () => {
       within(done)
         .getAllByRole('listitem')
         .map(li => li.textContent)
-    ).toEqual(['B-3: stock below zero, not sent']);
+    ).toEqual(['B-3: stock below zero, not marked as sent']);
     expect(bar()).toHaveTextContent('1 bill selected');
   });
 
@@ -858,6 +892,55 @@ describe('BillsPage bulk actions', () => {
     expect(bar()).not.toBeInTheDocument();
   });
 
+  it('keeps the send wording when emailing; Cancel says not sent', async () => {
+    useApi(drafts3.slice(0, 1));
+    server.use(
+      http.post(apiUrl('/businesses/biz-1/bills/:id/send'), () =>
+        conflict('NEGATIVE_STOCK_ACK_REQUIRED')
+      )
+    );
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await pick(user, 'B-1');
+    await user.click(within(bar()!).getByRole('button', { name: 'Send 1 to client' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Send' }));
+    const ask = await screen.findByRole('dialog', { name: '1 bill shows stock below zero' });
+    expect(within(ask).getByRole('button', { name: 'Send anyway' })).toBeInTheDocument();
+    await user.click(within(ask).getByRole('button', { name: 'Cancel' }));
+    expect(await doneDialog()).toHaveTextContent('B-1: stock below zero, not sent');
+  });
+
+  it('starts one run of downloads on a fast double click', async () => {
+    useApi(mixed);
+    const fetched: string[] = [];
+    server.use(
+      http.get(apiUrl('/businesses/biz-1/bills/:id/pdf'), ({ params }) => {
+        fetched.push(String(params.id));
+        return new HttpResponse('pdf', { headers: { 'Content-Type': 'application/pdf' } });
+      })
+    );
+    URL.createObjectURL = vi.fn(() => 'blob:x');
+    URL.revokeObjectURL = vi.fn();
+    const save = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await pick(user, 'B-1', 'B-2');
+    const button = within(bar()!).getByRole('button', { name: 'Download 2 PDFs' });
+    // React disables the button after the first click; call its handler twice directly so
+    // the second call hits the in-flight guard (a click landing before that re-render).
+    vi.mocked(bulk.runBulk).mockClear();
+    const propsKey = Object.keys(button).find(k => k.startsWith('__reactProps'))!;
+    const { onClick } = (button as unknown as Record<string, { onClick: () => void }>)[propsKey];
+    await act(async () => {
+      onClick();
+      onClick();
+    });
+    expect(await doneDialog()).toHaveTextContent('2 downloaded');
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(bulk.runBulk).toHaveBeenCalledTimes(1);
+    expect(fetched.sort()).toEqual(['d1', 'd2']);
+  });
+
   it('reports a failed retry as skipped', async () => {
     useApi(drafts3.slice(0, 1));
     trackStatus((_id, body) =>
@@ -873,7 +956,7 @@ describe('BillsPage bulk actions', () => {
       within(screen.getByRole('dialog')).getByRole('button', { name: 'Mark as sent' })
     );
     const ask = await screen.findByRole('dialog', { name: '1 bill shows stock below zero' });
-    await user.click(within(ask).getByRole('button', { name: 'Send anyway' }));
+    await user.click(within(ask).getByRole('button', { name: 'Mark as sent anyway' }));
     const done = await doneDialog();
     expect(done).toHaveTextContent('0 marked as sent');
     expect(done).toHaveTextContent('B-1: Server broke');
@@ -904,7 +987,7 @@ describe('BillsPage bulk actions', () => {
       within(done)
         .getAllByRole('listitem')
         .map(li => li.textContent)
-    ).toEqual(["B-3: can't delete a sent bill", 'B-2: Not allowed']);
+    ).toEqual(['B-2: Not allowed', "B-3: can't delete a sent bill"]);
   });
 
   it('downloads one PDF per selected bill', async () => {
