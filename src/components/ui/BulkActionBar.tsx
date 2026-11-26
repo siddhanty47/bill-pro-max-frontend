@@ -15,13 +15,13 @@ export type BulkActionBarProps = {
   className?: string;
 };
 
+/** The spacer's height, set from the bar's measured height (CSS falls back without it). */
+const BAR_HEIGHT_VAR = '--bulk-bar-height';
+
 /**
  * "{count} {noun} selected", the bulk actions and Clear. Sticky at the bottom of the
  * content area on desktop; a fixed bottom bar (safe-area padded) on phones.
  */
-/** The spacer's height, set from the bar's measured height (CSS falls back without it). */
-const BAR_HEIGHT_VAR = '--bulk-bar-height';
-
 export function BulkActionBar({ count, noun, onClear, children, className }: BulkActionBarProps) {
   const barRef = useRef<HTMLDivElement>(null);
   const spacerRef = useRef<HTMLDivElement>(null);
