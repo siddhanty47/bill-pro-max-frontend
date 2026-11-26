@@ -49,7 +49,13 @@ function useApi(notes: BillNote[] = defaults) {
 }
 
 function Where() {
-  return <div data-testid="where">{useLocation().pathname}</div>;
+  const { pathname, state } = useLocation();
+  return (
+    <>
+      <div data-testid="where">{pathname}</div>
+      <div data-testid="state">{JSON.stringify(state)}</div>
+    </>
+  );
 }
 
 function renderPage() {
@@ -377,6 +383,19 @@ describe('BillNotesPage', () => {
       expect(within(table()).getAllByRole('row')).toHaveLength(6);
       await user.click(screen.getByRole('button', { name: 'Select all on this page' }));
       expect(bar()).toHaveTextContent('5 notes selected');
+    });
+
+    it('Prev/Next from page 2 still steps through all 30 notes', async () => {
+      useApi(thirty);
+      const { user } = renderPage();
+      await screen.findByRole('table', { name: 'Notes' });
+      const nav = screen.getByRole('navigation', { name: 'Notes pages' });
+      await user.click(within(nav).getByRole('button', { name: 'Page 2' }));
+      await user.click(within(rowOf('B-27')).getByText('Credit'));
+      expect(screen.getByTestId('where')).toHaveTextContent('/bill-notes/m26');
+      const { recordNav } = JSON.parse(screen.getByTestId('state').textContent ?? '');
+      expect(recordNav.paths).toEqual(thirty.map(n => `/bill-notes/${n._id}`));
+      expect(recordNav.index).toBe(26);
     });
 
     it('clears the selection when a filter changes', async () => {

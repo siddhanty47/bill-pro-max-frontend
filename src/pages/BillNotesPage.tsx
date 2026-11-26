@@ -64,8 +64,9 @@ export function BillNotesPage() {
   );
   const hasFilters = Boolean(search || type || status || source);
 
-  // The page owns paging so the selection (and phone "Select all on this page") only ever
-  // covers the notes on screen. It clears on page, filter, search or business change.
+  // The table pages the whole list (so Prev/Next covers every note) on a page held here, so
+  // the selection (and phone "Select all on this page") only ever covers the notes on screen.
+  // It clears on page, filter, search or business change.
   const filtersKey = `${currentBusinessId}|${search}|${type}|${status}|${source}`;
   const [page, setPage] = useListPage(filtersKey, rows.length);
   const pageRows = rows.slice((page - 1) * LIST_PAGE_SIZE, page * LIST_PAGE_SIZE);
@@ -138,15 +139,11 @@ export function BillNotesPage() {
       <Card padded={false}>
         <BillNotesTable
           aria-label="Notes"
-          notes={pageRows}
+          notes={rows}
           partyName={partyName}
           selection={selection.selectionProp}
-          pagination={{
-            page,
-            pageSize: LIST_PAGE_SIZE,
-            total: rows.length,
-            onPageChange: setPage,
-          }}
+          page={page}
+          onPageChange={setPage}
           empty={
             <EmptyState title={hasFilters ? 'No notes match these filters' : 'No notes yet'} />
           }

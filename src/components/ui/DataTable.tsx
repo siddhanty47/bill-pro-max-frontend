@@ -83,6 +83,13 @@ export type DataTableProps<T> = {
    */
   pageSize?: number;
   /**
+   * Controlled client page (1-based) when the table pages `rows` itself (no `pagination`):
+   * the table shows this page and reports changes through `onPageChange`. The parent then
+   * resets it on a filter change. Without it the table keeps its own page.
+   */
+  page?: number;
+  onPageChange?: (page: number) => void;
+  /**
    * Server-side paging: `rows` is already the current page and the backend gave
    * `total`. The table shows the pager and calls `onPageChange`; it does not slice.
    */
@@ -244,6 +251,8 @@ function DataTableView<T>({
   pageSize = DEFAULT_PAGE_SIZE,
   pagination,
   selection,
+  page: controlledPage,
+  onPageChange: onClientPageChange,
 }: DataTableProps<T> & { navigate?: (to: string, state: RowLinkValue['state']) => void }) {
   const paths = useMemo(() => (rowLink ? rows.map(rowLink) : []), [rows, rowLink]);
   const [ownPage, setOwnPage] = useState(1);
@@ -258,7 +267,11 @@ function DataTableView<T>({
   if (rows.length === 0) return <>{empty ?? <EmptyState title="Nothing here yet" />}</>;
 
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
-  const clientPage = Math.min(ownPage, pageCount);
+  const clientPage = Math.min(controlledPage ?? ownPage, pageCount);
+  const setClientPage = (next: number) => {
+    setOwnPage(next);
+    onClientPageChange?.(next);
+  };
   const visible = pagination
     ? rows
     : rows.slice((clientPage - 1) * pageSize, clientPage * pageSize);
@@ -317,7 +330,7 @@ function DataTableView<T>({
       page={clientPage}
       pageSize={pageSize}
       total={rows.length}
-      onPageChange={setOwnPage}
+      onPageChange={setClientPage}
       label={ariaLabel ? `${ariaLabel} pages` : undefined}
     />
   );
