@@ -40,8 +40,8 @@ function useApi(notes: BillNote[] = defaults) {
     }),
     http.get(apiUrl('/businesses/biz-1/parties'), () =>
       ok([
-        { _id: 'p1', name: 'Mehta Builders' },
-        { _id: 'p2', name: 'Om Constructions' },
+        { _id: 'p1', name: 'Mehta Builders', code: 'MEHT' },
+        { _id: 'p2', name: 'Om Constructions', code: 'OMCO' },
       ] as Party[])
     )
   );
@@ -141,6 +141,13 @@ describe('BillNotesPage', () => {
     await waitFor(() =>
       expect(within(table()).queryByText('INV-2026-27-0007')).not.toBeInTheDocument()
     );
+
+    await user.clear(search);
+    await user.type(search, 'omco');
+    await waitFor(() =>
+      expect(within(table()).queryByText('INV-2026-27-0007')).not.toBeInTheDocument()
+    );
+    expect(within(table()).getByText('DN/2026-27/0002')).toBeVisible();
 
     await user.clear(search);
     await user.type(search, 'nothing like this');

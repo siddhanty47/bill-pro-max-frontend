@@ -27,6 +27,7 @@ const defaults = [
   agreement({
     agreementId: 'AGR-002',
     siteCode: 'TOWER',
+    siteAddress: 'Sector 150, Noida',
     partyName: 'Om Constructions',
     status: 'expired',
     endDate: undefined,
@@ -104,6 +105,9 @@ describe('AgreementsPage', () => {
     expect(rowIds()).toEqual(['AGR-001']);
     await user.clear(search);
     await user.type(search, 'tower');
+    expect(rowIds()).toEqual(['AGR-002']);
+    await user.clear(search);
+    await user.type(search, 'sector 150');
     expect(rowIds()).toEqual(['AGR-002']);
   });
 

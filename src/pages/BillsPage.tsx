@@ -272,7 +272,7 @@ export function BillsPage() {
           ref={searchRef}
           label="Search bills"
           hint="/"
-          placeholder="Search bill no. or party"
+          placeholder="Search bill no., party, code or site"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />
