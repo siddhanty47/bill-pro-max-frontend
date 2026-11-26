@@ -11,6 +11,7 @@ here, and this index, in the same PR.
 - [bill-integrity-ui.md](bill-integrity-ui.md) — frozen bills, out-of-date drafts, draft auto notes, negative stock, `useBillIssueGate`
 - [notes-ui.md](notes-ui.md) — credit/debit notes pages, form, tables, money helpers, PDFs
 - [year-close-ui.md](year-close-ui.md) — `/year-close`, `useSiteLock`, closed-year locks, credit-note deadline
+- [bill-generation-ui.md](bill-generation-ui.md) — single and bulk bill forms, GST mode per site
 - [bulk-actions.md](bulk-actions.md) — multi-select, bulk bar, "Done" dialog with skip reasons, CSV export
 - [dashboard.md](dashboard.md) — insights dashboard, charts, sidebar counts, party stock section
 - [global-search.md](global-search.md) — header search (MiniSearch + document search), live index sync
