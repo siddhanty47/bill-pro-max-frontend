@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
-import { http } from 'msw';
+import { http, HttpResponse } from 'msw';
 import { renderWithProviders, signedIn } from '../../test/render';
 import { server } from '../../test/msw/server';
 import { apiUrl, ok } from '../../test/msw/handlers';
@@ -199,6 +199,54 @@ describe('ChangeImpactDialog', () => {
 
     await user.keyboard('{Escape}');
     expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps 20+ bills, long numbers included, in one list', () => {
+    const affected = Array.from({ length: 22 }, (_, i) => ({
+      billId: `b${i}`,
+      billNumber: i % 2 ? `INV-2025-26/000${100 + i}-LONG` : `INV-${i}`,
+      status: 'sent' as const,
+      issued: true,
+    }));
+    renderDialog({ ...mixed, affected });
+    const section = screen
+      .getByRole('heading', { name: 'Already sent to the client (22)' })
+      .closest('section')!;
+    const lists = within(section).getAllByRole('list');
+    expect(lists).toHaveLength(1);
+    const items = within(lists[0]).getAllByRole('listitem');
+    expect(items).toHaveLength(22);
+    for (const b of affected) {
+      expect(
+        within(lists[0]).getByRole('button', { name: `${b.billNumber} View` })
+      ).toBeInTheDocument();
+    }
+  });
+
+  // Many bills must scroll inside the dialog, not push Save off screen.
+  it('lets a long bill list scroll inside the dialog (CSS present)', async () => {
+    const fs = (await import(/* @vite-ignore */ 'node:fs' as string)) as {
+      readFileSync(path: string, encoding: 'utf8'): string;
+    };
+    const css = fs.readFileSync('src/components/billing/ChangeImpactDialog.module.css', 'utf8');
+    expect(css).toMatch(/\.list\s*\{[^}]*max-height:\s*[^;]+;/);
+    expect(css).toMatch(/\.list\s*\{[^}]*overflow-y:\s*auto/);
+  });
+
+  it('can still save when a bill preview fails to load', async () => {
+    const { user, onConfirm } = renderDialog(mixed);
+    server.use(
+      http.get(apiUrl('/businesses/biz-1/bills/:billId'), () =>
+        HttpResponse.json({ success: false, error: { message: 'Not found' } }, { status: 404 })
+      )
+    );
+    await user.click(billButton('INV-2'));
+    const panel = screen.getByRole('region', { name: 'Bill preview' });
+    expect(await within(panel).findByText("Couldn't load this bill.")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText(/Why are you making/), 'Wrong count');
+    await user.click(screen.getByRole('button', { name: 'Save change' }));
+    expect(onConfirm).toHaveBeenCalledWith('Wrong count');
   });
 
   it('shows only the closed-year message and a Close button in closed-year mode', async () => {
