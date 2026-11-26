@@ -1,10 +1,12 @@
 /**
- * Parties management page
+ * Parties management page. Selected rows (on the visible page) export to CSV or are deleted
+ * one by one over the party delete endpoint; a server refusal is listed with its message.
  */
 import { useState, useRef } from 'react';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useChangeGate } from '../hooks/useChangeGate';
 import { useHotkey } from '../hooks/useHotkey';
+import { LIST_PAGE_SIZE, useListPage } from '../hooks/useListPage';
 import { shortcutLabel } from '../hooks/usePlatform';
 import {
   useGetOutstandingSummaryQuery,
@@ -15,6 +17,7 @@ import {
 } from '../api/partyApi';
 import { useGetInventoryQuery } from '../api/inventoryApi';
 import {
+  BulkActionBar,
   Button,
   Card,
   DataTable,
@@ -35,6 +38,15 @@ import { AgreementForm } from '../components/forms/AgreementForm';
 import { AddSiteModal } from '../components/AddSiteModal';
 import { getErrorMessage } from '../api/baseApi';
 import { formatMoney } from '../utils/format';
+import { csvFileName, downloadCsv } from '../utils/csv';
+import {
+  ExportCsvButton,
+  MessageDialog,
+  useBulkDelete,
+  useBulkSelection,
+  useConfirm,
+} from '../components/bulk';
+import { activeAgreements, partiesCsv, roleLabel, siteCount } from './party/partiesCsv';
 import type { Party, CreatePartyInput, CreateAgreementInput } from '../types';
 import styles from './PartiesPage.module.css';
 
@@ -47,6 +59,8 @@ export function PartiesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
+  const [failure, setFailure] = useState<{ title: string; message: string } | null>(null);
+  const confirmDialog = useConfirm();
 
   const {
     data: parties,
@@ -64,7 +78,8 @@ export function PartiesPage() {
   const outstandingByParty = new Map(
     (outstandingSummary?.parties ?? []).map(p => [p.partyId, p.outstanding])
   );
-  const outstandingOf = (party: Party) => formatMoney(outstandingByParty.get(party._id) ?? 0);
+  const outstandingAmount = (party: Party) => outstandingByParty.get(party._id) ?? 0;
+  const outstandingOf = (party: Party) => formatMoney(outstandingAmount(party));
 
   const { data: inventory } = useGetInventoryQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
@@ -95,17 +110,23 @@ export function PartiesPage() {
     setIsSiteModalOpen(true);
   };
 
-  const handleDeleteParty = async (party: Party) => {
-    if (!confirm(`Delete party "${party.name}"?`)) return;
-    try {
-      await deleteParty({
-        businessId: currentBusinessId!,
-        partyId: party._id,
-      }).unwrap();
-    } catch (err) {
-      alert(getErrorMessage(err));
-    }
-  };
+  const removeParty = (party: Party) =>
+    deleteParty({ businessId: currentBusinessId!, partyId: party._id }).unwrap();
+
+  const handleDeleteParty = (party: Party) =>
+    confirmDialog.ask({
+      title: `Delete ${party.name}?`,
+      body: "This can't be undone.",
+      confirmLabel: 'Delete',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          await removeParty(party);
+        } catch (err) {
+          setFailure({ title: "Couldn't delete party", message: getErrorMessage(err) });
+        }
+      },
+    });
 
   const handlePartySubmit = async (data: CreatePartyInput) => {
     try {
@@ -116,7 +137,7 @@ export function PartiesPage() {
       setIsPartyModalOpen(false);
       setSelectedParty(null);
     } catch (err) {
-      alert(getErrorMessage(err));
+      setFailure({ title: "Couldn't add party", message: getErrorMessage(err) });
     }
   };
 
@@ -134,7 +155,7 @@ export function PartiesPage() {
       setIsAgreementModalOpen(false);
       setSelectedParty(null);
     } catch (err) {
-      alert(getErrorMessage(err));
+      setFailure({ title: "Couldn't add agreement", message: getErrorMessage(err) });
     }
   };
 
@@ -148,11 +169,30 @@ export function PartiesPage() {
     return matchesSearch && matchesRole;
   });
 
-  const roleLabel = (party: Party) =>
-    party.roles.map(r => r.charAt(0).toUpperCase() + r.slice(1)).join(', ');
-  const siteCount = (party: Party) => party.sites?.length || 0;
-  const activeAgreements = (party: Party) =>
-    party.agreements?.filter(a => a.status === 'active').length || 0;
+  // The table pages the whole list (so Prev/Next covers every party) on a page held here,
+  // so the selection only ever covers the parties on screen. It clears on page, filter,
+  // search or business change.
+  const filtersKey = `${currentBusinessId}|${searchTerm}|${roleFilter}`;
+  const [page, setPage] = useListPage(filtersKey, filteredParties.length);
+  const pageRows = filteredParties.slice((page - 1) * LIST_PAGE_SIZE, page * LIST_PAGE_SIZE);
+  const selection = useBulkSelection({
+    rows: pageRows,
+    rowKey: party => party._id,
+    resetKey: `${filtersKey}|${page}`,
+    label: party => `Select ${party.name}`,
+  });
+  const selectedParties = selection.selectedRows;
+  const bulkDelete = useBulkDelete({
+    rows: selectedParties,
+    rowKey: party => party._id,
+    label: party => party.name,
+    remove: removeParty,
+    noun: { one: 'party', many: 'parties' },
+    ask: confirmDialog.ask,
+    onSucceeded: selection.remove,
+  });
+  const exportSelected = () =>
+    downloadCsv(csvFileName('parties'), partiesCsv(selectedParties, outstandingAmount));
 
   const rowActions = (party: Party) => (
     <RowActions
@@ -249,6 +289,8 @@ export function PartiesPage() {
         </Select>
       </FilterBar>
 
+      {selection.mobileSelectAll}
+
       <Card padded={false}>
         <DataTable
           aria-label="Parties"
@@ -256,6 +298,9 @@ export function PartiesPage() {
           rows={filteredParties}
           rowKey={party => party._id}
           rowLink={party => `/parties/${party._id}`}
+          selection={selection.selectionProp}
+          page={page}
+          onPageChange={setPage}
           empty={
             (parties || []).length === 0 ? (
               <EmptyState
@@ -296,6 +341,15 @@ export function PartiesPage() {
           }}
         />
       </Card>
+
+      <BulkActionBar
+        count={selectedParties.length}
+        noun={selectedParties.length === 1 ? 'party' : 'parties'}
+        onClear={selection.clear}
+      >
+        <ExportCsvButton count={selectedParties.length} onExport={exportSelected} />
+        {bulkDelete.button}
+      </BulkActionBar>
 
       <Modal
         isOpen={isPartyModalOpen}
@@ -338,6 +392,13 @@ export function PartiesPage() {
         />
       )}
       {changeDialog}
+      {confirmDialog.dialog}
+      {bulkDelete.dialog}
+      <MessageDialog
+        title={failure?.title ?? ''}
+        message={failure?.message ?? null}
+        onClose={() => setFailure(null)}
+      />
     </div>
   );
 }

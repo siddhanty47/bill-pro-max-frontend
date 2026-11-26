@@ -7,6 +7,7 @@ import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
 import { apiUrl, ok } from '../test/msw/handlers';
 import type { UserEvent } from '@testing-library/user-event';
+import * as download from '../utils/download';
 import type { Inventory } from '../types';
 
 const item = (over: Partial<Inventory>) =>
@@ -71,7 +72,7 @@ const rowCodes = () =>
   within(screen.getByRole('table'))
     .getAllByRole('row')
     .slice(1)
-    .map(r => within(r).getAllByRole('cell')[0].textContent);
+    .map(r => within(r).getAllByRole('cell')[1].textContent);
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -215,20 +216,21 @@ describe('InventoryPage', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
-  it('alerts when creating fails', async () => {
+  it('shows a failed create in a dialog', async () => {
     useApi();
     server.use(
       http.post(apiUrl('/businesses/biz-1/inventory'), () =>
         HttpResponse.json({ success: false, message: 'Nope' }, { status: 400 })
       )
     );
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const { user } = renderPage();
     await screen.findByRole('table');
     await user.click(screen.getByRole('button', { name: /Add item/ }));
     const dialog = await screen.findByRole('dialog');
     await fillForm(user, dialog);
-    await waitFor(() => expect(alertSpy).toHaveBeenCalled());
+    expect(await screen.findByRole('dialog', { name: "Couldn't add item" })).toHaveTextContent(
+      'Nope'
+    );
   });
 
   it('opens the import and create preset modals', async () => {
@@ -243,7 +245,7 @@ describe('InventoryPage', () => {
     expect(await screen.findByRole('dialog')).toHaveTextContent(/Create preset/);
   });
 
-  it('deletes an item after confirming, without navigating', async () => {
+  it('deletes an item after confirming in a dialog, without navigating', async () => {
     useApi();
     let deleted = '';
     server.use(
@@ -252,17 +254,18 @@ describe('InventoryPage', () => {
         return ok({});
       })
     );
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const { user } = renderPage();
     const table = await screen.findByRole('table');
     await user.click(within(table).getAllByRole('button', { name: 'More actions' })[1]);
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
-    expect(confirmSpy).toHaveBeenCalledWith('Delete "Steel plank"? This cannot be undone.');
+    const ask = screen.getByRole('dialog', { name: 'Delete Steel plank?' });
+    expect(ask).toHaveTextContent("This can't be undone.");
+    await user.click(within(ask).getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(deleted).toBe('i2'));
     expect(screen.queryByTestId('where')).not.toBeInTheDocument();
   });
 
-  it('does not delete when declined, and alerts when delete fails', async () => {
+  it('does not delete when cancelled, and shows the error when delete fails', async () => {
     useApi();
     let calls = 0;
     server.use(
@@ -271,18 +274,21 @@ describe('InventoryPage', () => {
         return HttpResponse.json({ success: false, message: 'Nope' }, { status: 400 });
       })
     );
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const { user } = renderPage();
     const table = await screen.findByRole('table');
     const menus = within(table).getAllByRole('button', { name: 'More actions' });
+    const ask = () => screen.getByRole('dialog', { name: 'Delete Cuplock vertical?' });
     await user.click(menus[0]);
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    await user.click(within(ask()).getByRole('button', { name: 'Cancel' }));
     expect(calls).toBe(0);
-    confirmSpy.mockReturnValue(true);
     await user.click(menus[0]);
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
-    await waitFor(() => expect(alertSpy).toHaveBeenCalled());
+    await user.click(within(ask()).getByRole('button', { name: 'Delete' }));
+    expect(await screen.findByRole('dialog', { name: "Couldn't delete item" })).toHaveTextContent(
+      'Nope'
+    );
+    expect(calls).toBe(1);
   });
 
   it('disables delete while items are rented', async () => {
@@ -330,5 +336,123 @@ describe('InventoryPage', () => {
     server.use(http.get(apiUrl('/businesses'), () => ok([])));
     renderWithProviders(<InventoryPage />, { preloadedState: signedIn('') });
     expect(screen.getByText('Please select a business')).toBeInTheDocument();
+  });
+
+  describe('bulk actions', () => {
+    afterEach(() => vi.restoreAllMocks());
+    const bar = () => screen.queryByRole('region', { name: 'Bulk actions' });
+    const selectAll = (user: ReturnType<typeof renderPage>['user']) =>
+      user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+    const items = (el: HTMLElement) =>
+      within(el)
+        .getAllByRole('listitem')
+        .map(li => li.textContent);
+    const rentedPlank = [
+      defaults[0],
+      item({ ...defaults[1], quantityHistory: [rentedTx(5)] as never }),
+      defaults[2],
+    ];
+
+    it('exports the selected items with the table columns as plain numbers', async () => {
+      useApi(rentedPlank, { i1: 10 });
+      const save = vi.spyOn(download, 'saveBlob').mockImplementation(() => {});
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await screen.findAllByText('10 pcs');
+      await selectAll(user);
+      expect(bar()).toHaveTextContent('3 items selected');
+      await user.click(within(bar()!).getByRole('button', { name: 'Export 3 to CSV' }));
+      const [blob, name] = save.mock.calls[0];
+      expect(name).toMatch(/^inventory-\d{4}-\d{2}-\d{2}\.csv$/);
+      expect((await (blob as Blob).text()).split('\r\n')).toEqual([
+        'Code,Name,Category,Unit,Total,Available,Rented,Daily rate',
+        'SC-01,Cuplock vertical,Scaffolding,pcs,100,100,10,1250',
+        'PL-02,Steel plank,Planks,pcs,50,45,5,',
+        'SC-03,Base jack,Scaffolding,pcs,100,100,0,1250',
+      ]);
+    });
+
+    it('deletes the eligible items; rented ones and server refusals are skipped', async () => {
+      useApi(rentedPlank);
+      const hits: string[] = [];
+      server.use(
+        http.delete(apiUrl('/businesses/biz-1/inventory/:id'), ({ params }) => {
+          hits.push(String(params.id));
+          return params.id === 'i3'
+            ? HttpResponse.json({ success: false, message: 'Item is in use' }, { status: 400 })
+            : ok({});
+        })
+      );
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await selectAll(user);
+      await user.click(within(bar()!).getByRole('button', { name: 'Delete 2' }));
+      const ask = screen.getByRole('dialog', { name: 'Delete 2 items?' });
+      expect(ask).toHaveTextContent("This can't be undone.");
+      await user.click(within(ask).getByRole('button', { name: 'Delete' }));
+      const done = await screen.findByRole('dialog', { name: 'Done' });
+      expect(hits.sort()).toEqual(['i1', 'i3']);
+      expect(done).toHaveTextContent('1 deleted');
+      expect(items(done)).toEqual([
+        'Steel plank: items are currently rented',
+        'Base jack: Item is in use',
+      ]);
+      await user.click(within(done).getAllByRole('button', { name: 'Close' }).at(-1)!);
+      expect(bar()).toHaveTextContent('2 items selected');
+    });
+
+    it('disables Delete when every selected item is rented', async () => {
+      useApi([item({ quantityHistory: [rentedTx(5)] as never })]);
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(
+        within(screen.getByRole('table')).getByRole('checkbox', { name: 'Select Cuplock vertical' })
+      );
+      expect(bar()).toHaveTextContent('1 item selected');
+      expect(within(bar()!).getByRole('button', { name: 'Delete 0' })).toBeDisabled();
+      expect(within(bar()!).getByRole('button', { name: 'Export 1 to CSV' })).toBeEnabled();
+    });
+
+    it('asks in the singular for one item', async () => {
+      useApi();
+      server.use(http.delete(apiUrl('/businesses/biz-1/inventory/:id'), () => ok({})));
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(
+        within(screen.getByRole('table')).getByRole('checkbox', { name: 'Select Base jack' })
+      );
+      await user.click(within(bar()!).getByRole('button', { name: 'Delete 1' }));
+      await user.click(
+        within(screen.getByRole('dialog', { name: 'Delete 1 item?' })).getByRole('button', {
+          name: 'Delete',
+        })
+      );
+      expect(await screen.findByRole('dialog', { name: 'Done' })).toHaveTextContent('1 deleted');
+    });
+
+    it('select-all covers only the 25 items on the page; a page change clears it', async () => {
+      useApi(
+        Array.from({ length: 30 }, (_, i) =>
+          item({ _id: `m${i}`, code: `C${String(i + 1).padStart(2, '0')}`, name: `Item ${i + 1}` })
+        )
+      );
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(screen.getByRole('button', { name: 'Select all on this page' }));
+      expect(bar()).toHaveTextContent('25 items selected');
+      const nav = screen.getByRole('navigation', { name: 'Inventory pages' });
+      await user.click(within(nav).getByRole('button', { name: 'Page 2' }));
+      expect(bar()).not.toBeInTheDocument();
+      expect(rowCodes()).toEqual(['C26', 'C27', 'C28', 'C29', 'C30']);
+    });
+
+    it('clears the selection when the category changes', async () => {
+      useApi();
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await selectAll(user);
+      await user.selectOptions(screen.getByRole('combobox', { name: 'Category' }), 'Planks');
+      await waitFor(() => expect(bar()).not.toBeInTheDocument());
+    });
   });
 });

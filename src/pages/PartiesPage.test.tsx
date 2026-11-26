@@ -6,6 +6,7 @@ import { PartiesPage } from './PartiesPage';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
 import { apiUrl, ok } from '../test/msw/handlers';
+import * as download from '../utils/download';
 import type { Party } from '../types';
 
 const party = (over: Partial<Party>) =>
@@ -95,7 +96,7 @@ const rowCodes = () =>
   within(screen.getByRole('table'))
     .getAllByRole('row')
     .slice(1)
-    .map(r => within(r).getAllByRole('cell')[0].textContent);
+    .map(r => within(r).getAllByRole('cell')[1].textContent);
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -252,7 +253,7 @@ describe('PartiesPage', () => {
     expect(await screen.findByRole('dialog')).toHaveTextContent('Add agreement for Acme Builders');
   });
 
-  it('deletes a party after confirming, without navigating', async () => {
+  it('deletes a party after confirming in a dialog, without navigating', async () => {
     useApi();
     let deleted = '';
     server.use(
@@ -261,17 +262,18 @@ describe('PartiesPage', () => {
         return ok({});
       })
     );
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const { user } = renderPage();
     const table = await screen.findByRole('table');
     await user.click(within(table).getAllByRole('button', { name: 'More actions' })[1]);
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
-    expect(confirmSpy).toHaveBeenCalledWith('Delete party "Steel Traders"?');
+    const ask = screen.getByRole('dialog', { name: 'Delete Steel Traders?' });
+    expect(ask).toHaveTextContent("This can't be undone.");
+    await user.click(within(ask).getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(deleted).toBe('p2'));
     expect(screen.queryByTestId('where')).not.toBeInTheDocument();
   });
 
-  it('does not delete when declined, and alerts when delete fails', async () => {
+  it('does not delete when cancelled, and shows the error when delete fails', async () => {
     useApi();
     let calls = 0;
     server.use(
@@ -280,18 +282,29 @@ describe('PartiesPage', () => {
         return HttpResponse.json({ success: false, message: 'Nope' }, { status: 400 });
       })
     );
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const { user } = renderPage();
     const table = await screen.findByRole('table');
     const menus = within(table).getAllByRole('button', { name: 'More actions' });
     await user.click(menus[0]);
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    await user.click(
+      within(screen.getByRole('dialog', { name: 'Delete Acme Builders?' })).getByRole('button', {
+        name: 'Cancel',
+      })
+    );
     expect(calls).toBe(0);
-    confirmSpy.mockReturnValue(true);
     await user.click(menus[0]);
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
-    await waitFor(() => expect(alertSpy).toHaveBeenCalled());
+    await user.click(
+      within(screen.getByRole('dialog', { name: 'Delete Acme Builders?' })).getByRole('button', {
+        name: 'Delete',
+      })
+    );
+    const failed = await screen.findByRole('dialog', { name: "Couldn't delete party" });
+    expect(failed).toHaveTextContent('Nope');
+    expect(calls).toBe(1);
+    await user.click(within(failed).getAllByRole('button', { name: 'Close' }).at(-1)!);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('shows code, status, roles, counts and phone in the phone list', async () => {
@@ -332,5 +345,141 @@ describe('PartiesPage', () => {
     server.use(http.get(apiUrl('/businesses'), () => ok([])));
     renderWithProviders(<PartiesPage />, { preloadedState: signedIn('') });
     expect(screen.getByText('Please select a business')).toBeInTheDocument();
+  });
+
+  describe('bulk actions', () => {
+    afterEach(() => vi.restoreAllMocks());
+    const bar = () => screen.queryByRole('region', { name: 'Bulk actions' });
+    const doneDialog = () => screen.findByRole('dialog', { name: 'Done' });
+    const selectAll = (user: ReturnType<typeof renderPage>['user']) =>
+      user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+    const tick = (user: ReturnType<typeof renderPage>['user'], name: string) =>
+      user.click(
+        within(screen.getByRole('table')).getByRole('checkbox', { name: `Select ${name}` })
+      );
+    const items = (el: HTMLElement) =>
+      within(el)
+        .getAllByRole('listitem')
+        .map(li => li.textContent);
+    function trackDeletes(reply: (id: string) => Response | undefined = () => undefined) {
+      const hits: string[] = [];
+      server.use(
+        http.delete(apiUrl('/businesses/biz-1/parties/:id'), ({ params }) => {
+          const id = String(params.id);
+          hits.push(id);
+          return reply(id) ?? ok({});
+        })
+      );
+      return hits;
+    }
+
+    it('exports the selected parties with the table columns, outstanding as a number', async () => {
+      useApi();
+      const save = vi.spyOn(download, 'saveBlob').mockImplementation(() => {});
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await screen.findAllByText('₹18,250.50');
+      await selectAll(user);
+      expect(bar()).toHaveTextContent('3 parties selected');
+      await user.click(within(bar()!).getByRole('button', { name: 'Export 3 to CSV' }));
+      const [blob, name] = save.mock.calls[0];
+      expect(name).toMatch(/^parties-\d{4}-\d{2}-\d{2}\.csv$/);
+      expect((await (blob as Blob).text()).split('\r\n')).toEqual([
+        'Code,Name,Roles,Contact person,Phone,Sites,Active agreements,Outstanding,Status',
+        'ACME,Acme Builders,Client,Ravi Shah,9876543210,2,1,18250.5,Active',
+        'STEEL,Steel Traders,"Supplier, Client",Mina Joshi,9000000002,1,0,0,Inactive',
+        'ZED,Zed Infra,Supplier,Omkar Pai,9000000003,2,1,0,Active',
+      ]);
+    });
+
+    it('a name with a comma, a quote, a newline or a leading = exports safely', async () => {
+      useApi([party({ name: '=Shah, "Ravi"\nCo' })]);
+      const save = vi.spyOn(download, 'saveBlob').mockImplementation(() => {});
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await selectAll(user);
+      await user.click(within(bar()!).getByRole('button', { name: 'Export 1 to CSV' }));
+      const text = await (save.mock.calls[0][0] as Blob).text();
+      expect(text.split('\r\n')[1]).toBe(
+        'ACME,"\'=Shah, ""Ravi""\nCo",Client,Ravi Shah,9876543210,2,1,18250.5,Active'
+      );
+    });
+
+    it('deletes the selected parties; a server refusal is skipped with its message', async () => {
+      useApi();
+      const hits = trackDeletes(id =>
+        id === 'p2'
+          ? HttpResponse.json(
+              { success: false, message: 'Party has agreements and cannot be deleted' },
+              { status: 400 }
+            )
+          : undefined
+      );
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await selectAll(user);
+      await user.click(within(bar()!).getByRole('button', { name: 'Delete 3' }));
+      const ask = screen.getByRole('dialog', { name: 'Delete 3 parties?' });
+      expect(ask).toHaveTextContent("This can't be undone.");
+      await user.click(within(ask).getByRole('button', { name: 'Delete' }));
+      const done = await doneDialog();
+      expect(hits.sort()).toEqual(['p1', 'p2', 'p3']);
+      expect(done).toHaveTextContent('2 deleted');
+      expect(items(done)).toEqual(['Steel Traders: Party has agreements and cannot be deleted']);
+      expect(done.querySelector('li .mono')).toBeNull();
+      await user.click(within(done).getAllByRole('button', { name: 'Close' }).at(-1)!);
+      expect(bar()).toHaveTextContent('1 party selected');
+    });
+
+    it('asks in the singular and does nothing on Cancel', async () => {
+      useApi();
+      const hits = trackDeletes();
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      expect(bar()).not.toBeInTheDocument();
+      await tick(user, 'Zed Infra');
+      expect(bar()).toHaveTextContent('1 party selected');
+      await user.click(within(bar()!).getByRole('button', { name: 'Delete 1' }));
+      const ask = screen.getByRole('dialog', { name: 'Delete 1 party?' });
+      await user.click(within(ask).getByRole('button', { name: 'Cancel' }));
+      expect(hits).toEqual([]);
+      await user.click(within(bar()!).getByRole('button', { name: 'Delete 1' }));
+      await user.click(
+        within(screen.getByRole('dialog', { name: 'Delete 1 party?' })).getByRole('button', {
+          name: 'Delete',
+        })
+      );
+      expect(await doneDialog()).toHaveTextContent('1 deleted');
+      expect(hits).toEqual(['p3']);
+    });
+
+    const thirty = Array.from({ length: 30 }, (_, i) =>
+      party({ _id: `m${i}`, code: `C${String(i + 1).padStart(2, '0')}`, name: `Party ${i + 1}` })
+    );
+
+    it('select-all covers only the 25 parties on the page; a page change clears it', async () => {
+      useApi(thirty);
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(screen.getByRole('button', { name: 'Select all on this page' }));
+      expect(bar()).toHaveTextContent('25 parties selected');
+      const nav = screen.getByRole('navigation', { name: 'Parties pages' });
+      await user.click(within(nav).getByRole('button', { name: 'Page 2' }));
+      expect(bar()).not.toBeInTheDocument();
+      expect(rowCodes()).toEqual(['C26', 'C27', 'C28', 'C29', 'C30']);
+      await user.click(within(screen.getByRole('table')).getByText('Party 27'));
+      const { recordNav } = JSON.parse(screen.getByTestId('state').textContent ?? '');
+      expect(recordNav.paths).toHaveLength(30);
+    });
+
+    it('clears the selection when the search changes', async () => {
+      useApi();
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await tick(user, 'Acme Builders');
+      expect(bar()).toBeInTheDocument();
+      await user.type(screen.getByRole('searchbox', { name: 'Search parties' }), 'a');
+      await waitFor(() => expect(bar()).not.toBeInTheDocument());
+    });
   });
 });
