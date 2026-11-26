@@ -87,6 +87,14 @@ export interface BusinessSettings {
   defaultPaymentDueDays: number;
   /** Last day (MM-DD, in the year after the FY) credit notes may be raised; default '11-30' */
   creditNoteDeadline?: string;
+  /** Printed on invoices and credit/debit notes, one per line */
+  invoiceTerms?: string;
+  /** Printed on delivery and return challans, one per line */
+  challanTerms?: string;
+  /** Name in the "Authorised Signatory" box of invoices, notes and challans */
+  signatoryName?: string;
+  /** Title under it; documents print "Authorised Signatory" when empty */
+  signatoryTitle?: string;
 }
 
 export interface Business {
@@ -99,6 +107,9 @@ export interface Business {
   email?: string;
   gst?: string;
   stateCode?: string;
+  /** PAN printed on documents; when empty they read it from the GSTIN */
+  pan?: string;
+  logo?: string;
   settings: BusinessSettings;
   isActive: boolean;
   createdAt: string;
@@ -122,6 +133,7 @@ export interface UpdateBusinessInput {
   email?: string;
   gst?: string;
   stateCode?: string;
+  pan?: string;
   settings?: Partial<BusinessSettings>;
 }
 

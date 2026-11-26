@@ -182,6 +182,41 @@ describe('BusinessDetailPage', () => {
     });
   });
 
+  describe('documents', () => {
+    const rowOf = async (label: string) => (await screen.findByText(label)).closest('div')!;
+
+    it('saves a PAN upper-cased and refuses a malformed one', async () => {
+      useApi();
+      const bodies = capture();
+      const { user } = renderPage();
+      const row = await rowOf('PAN');
+      expect(
+        screen.getByText('Printed on documents. Left empty, it is read from your GSTIN.')
+      ).toBeVisible();
+      await user.click(within(row).getByRole('button'));
+      const input = screen.getByRole('textbox', { name: 'PAN' });
+      await user.type(input, 'ABC{Enter}');
+      expect(await screen.findByText('PAN looks like ABCDE1234F')).toBeVisible();
+      expect(bodies).toEqual([]);
+      await user.clear(input);
+      await user.type(input, 'abcde1234f{Enter}');
+      await waitFor(() => expect(bodies).toEqual([{ pan: 'ABCDE1234F' }]));
+    });
+
+    it('saves invoice terms and the signatory as settings, trimmed', async () => {
+      useApi();
+      const bodies = capture();
+      const { user } = renderPage();
+      expect(await screen.findByRole('heading', { name: 'Documents (PDF)' })).toBeVisible();
+      await user.click(within(await rowOf('Signatory name')).getByRole('button'));
+      const input = screen.getByRole('textbox', { name: 'Signatory name' });
+      await user.type(input, '  Ramesh Kumar  {Enter}');
+      await waitFor(() =>
+        expect(bodies).toEqual([{ settings: { signatoryName: 'Ramesh Kumar' } }])
+      );
+    });
+  });
+
   it('saves the billing cycle select', async () => {
     useApi();
     const bodies = capture();
