@@ -17,6 +17,12 @@ React SPA for scaffolding rental business management. See README.md for setup. T
 - Skills: **`write-tests`** and **`raise-pr`** in `.claude/skills/`.
 - Gates (CI runs the same on every PR): `npm run lint`, `format:check`, `typecheck`, `test:coverage`, `coverage:changed` (changed files ≥ 80% lines), `build`.
 
+## Feature docs
+
+- Per-feature UI docs live in **`docs/features/`**; index: **`docs/features/README.md`** (one line per doc). Backend rules for the same features: `../bill-pro-max-backend-v2/docs/features/README.md`.
+- **Rule (binding):** every new feature or significant behaviour/architecture change must add or update its doc in `docs/features/` and the index in the same PR. This file stays the short pointer layer: keep critical rules here (contracts, tag rules, locks) and put detail in the feature doc.
+- If this file and a feature doc disagree with the code, the code wins: fix the doc in the same PR.
+
 ## API Layer (RTK Query)
 
 `src/api/baseApi.ts` defines the base API with:
@@ -24,11 +30,11 @@ React SPA for scaffolding rental business management. See README.md for setup. T
 - Auto-logout on 401 responses
 - Tag types for cache invalidation
 
-**Tag types:** `Business`, `Party`, `Inventory`, `Challan`, `Bill`, `Payment`, `Agreement`, `Member`, `Invitation`, `Notification`, `Employee`, `Attendance`, `ShareLink`, `Preset`, `AuditLog`, `Assistant`, `SearchIndex`, `Dashboard`
+**Tag types:** `Business`, `Party`, `Inventory`, `Challan`, `Bill`, `Payment`, `Agreement`, `Member`, `Invitation`, `Notification`, `Employee`, `Attendance`, `ShareLink`, `Preset`, `AuditLog`, `Assistant`, `SearchIndex`, `Dashboard`, `BillNote`, `YearClose`
 
 Each entity has its own API file in `src/api/` that injects endpoints via `baseApi.injectEndpoints()`. Follow the pattern in `partyApi.ts` when creating new ones.
 
-**Dashboard:** `src/api/dashboardApi.ts` has `nav-counts` (sidebar counts), `summary` and `series` queries; keys are absent from the response when the role can't read them, so the UI must treat each as optional. The `Dashboard` tag is invalidated by bill/payment/challan/inventory/party/agreement mutations.
+**Dashboard:** `src/api/dashboardApi.ts` has `nav-counts` (sidebar counts), `summary` and `series` queries; keys are absent from the response when the role can't read them, so the UI must treat each as optional. The `Dashboard` tag is invalidated by bill/payment/challan/inventory/party/agreement/note mutations and by `useSearchIndexSync`. Detail: `docs/features/dashboard.md`.
 
 **Party stock:** `partyApi.getPartyStock` (`GET /businesses/:id/parties/:partyId/stock`, rows `PartyStockRow`: on site now + damaged/lost last 12 months) powers the "Stock on site" section of the party About tab (`pages/party/PartyStockSection.tsx`). It provides `Party`/`Challan`/`Inventory` tags so challan mutations refresh it; a 403 hides the section.
 
@@ -135,6 +141,8 @@ Defined in `src/App.tsx`.
 
 ## Bill Integrity
 
+Detail: `docs/features/bill-integrity-ui.md`, `docs/features/change-gate-ui.md`.
+
 - Issued bills (status not `draft`/`cancelled`) are frozen in the UI: no delete / regenerate / refresh.
 - Drafts show "Out of date" (from `bill.drift`) with Refresh (`useRefreshBillMutation`); issued bills show their draft auto note ("Draft debit note +₹X" / "Draft credit note -₹X" + Review, from `getAllBillNotes({ billId })`), or the legacy "Pending adjustment" card while `bill.pendingAdjustment` has no draft note yet; `negativeStock` renders a notice (`components/BillIntegrity.tsx`: `BillIntegrityNotices`, `NegativeStockList`).
 - Issued bills have a "Credit/debit notes" tab and "New credit note" / "New debit note" (`BillNoteForm mode="create"`, credit can send `fullValue`). Money uses `utils/billMoney.ts`: `effectiveAmount` (total + `notesTotal`) and `balanceDue` everywhere a bill's due amount shows (bill page, bills list, payment form).
@@ -147,6 +155,8 @@ Defined in `src/App.tsx`.
 
 ## Credit/Debit Notes
 
+Detail: `docs/features/notes-ui.md`.
+
 - Issued bills are corrected only by notes (`BillNote`: `credit`/`debit`, `auto`/`manual`, `draft` → `issued` | `cancelled`; issued notes are frozen).
 - API: `src/api/billNoteApi.ts` (`getBillNotes` paged, `getAllBillNotes` whole list by `partyId`/`billId`/status/type/source, get/create/update/issue/cancel/send, `downloadBillNotePdf`). Portal: `shareLinkApi.getPortalNotes` (issued only) + `downloadPortalNotePdf`.
 - Pages: `/bill-notes` (`BillNotesPage`), `/bill-notes/:noteId` (`BillNoteDetailPage`); "Credit/debit notes" tabs on the bill page (issued bills) and the party page; the portal's Bills tab lists issued notes with a PDF per row. Every notes table is `components/billing/BillNotesTable` (`showBill`, `partyName` toggle columns), never a copy.
@@ -156,11 +166,13 @@ Defined in `src/App.tsx`.
 
 ## Year Close
 
+Detail: `docs/features/year-close-ui.md`.
+
 - A financial year (1 Apr – 31 Mar, label `2025-26`) closes for a site once today (IST) is after 31 March and the site's bill ending on its last billable day is issued. Derived by the backend on every request, never stored. After that nothing dated on or before `lockedThrough` can change on that site, for anyone.
 - FY helpers: `src/utils/financialYear.ts` (`fyOf`, `fyEnd`, `fyHasEnded`, `recentFys`, `isOnOrBeforeDay`, `closedYearMessage`, credit-note deadline helpers). Calendar days are IST dates stored as UTC midnight; never use local-time FY math.
 - API: `src/api/yearCloseApi.ts` (`getYearStatus` per FY, `getSiteClosedThrough` per site; tag `YearClose`, invalidated by bill, payment and business mutations). `hooks/useSiteLock.ts` wraps the site query.
 - Locks: challan and agreement pages go read only when dated in a closed year; a 409 `YEAR_CLOSED` (or dry run `blocked: 'closedYear'`) shows the closed-year mode of `ChangeImpactDialog`.
-- `/year-close` page: FY select (current FY + the five before it, default the last ended FY), one row per site: party, site, last billable day, Closed / Locked / Open / Running chip, closing bill link; a row with `lockedByLaterYear` reads "Locked by FY <later> close"; other open rows of an ended FY say which bill closes the year.
+- `/year-close` page: FY select (current FY + the five before it, default the previous FY, `recentFys(today)[1]`), one row per site: party, site, last billable day, Closed / Locked / Open / Running chip, closing bill link; a row with `lockedByLaterYear` reads "Locked by FY <later> close"; other open rows of an ended FY say which bill closes the year.
 - Agreement ends: `effectiveEndDate` (`utils/financialYear.ts`) mirrors the backend: an end date counts only once the agreement is closed (`nextAgreementId` set or status ≠ active). Lock math for extend/resume/end edits uses it.
 - Credit-note deadline: `business.settings.creditNoteDeadline` (`MM-DD`, default `11-30`), edited on `/business` and validated by `creditNoteDeadlineSchema` (same regex and non-leap calendar check as the backend). Once today (IST) is past `<FY end year>-MM-DD` for a bill's FY (FY of `billingPeriod.end`), the bill page disables "New credit note" and the note page disables Issue on a credit note, each with the same notice (`isPastCreditDeadline`, `creditDeadlineMessage`); debit notes have no limit. The server's 409 `CREDIT_NOTE_DEADLINE_PASSED` is shown as its message on create and issue.
 - Business settings PATCH sends only the changed setting (the backend merges it into the stored settings).
@@ -177,6 +189,7 @@ Defined in `src/App.tsx`.
    - List: `<Route path="newentities" element={<NewEntitiesPage />} />`
    - Detail: `<Route path="newentities/:entityId" element={<NewEntityDetailPage />} />`
 8. Add sidebar link in `src/components/Layout.tsx` — add an item (with an `Icon` name) to the right group in the `navGroups` array
+9. Add `docs/features/<feature>.md` and its line in `docs/features/README.md`
 
 ## Regression Risks
 
