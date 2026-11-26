@@ -21,7 +21,15 @@ type Pending =
   | { kind: 'outOfDate'; bill: Bill; message: string }
   | { kind: 'negative'; bill: Bill; run: Run; spans: NegativeSpan[] };
 
-export function useBillIssueGate(businessId: string | null | undefined) {
+interface GateOptions {
+  /** Shows any other failure (default: `alert`). */
+  onError?: (message: string) => void;
+}
+
+export function useBillIssueGate(
+  businessId: string | null | undefined,
+  { onError }: GateOptions = {}
+) {
   const [pending, setPending] = useState<Pending | null>(null);
   const [busy, setBusy] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
@@ -47,32 +55,37 @@ export function useBillIssueGate(businessId: string | null | undefined) {
     [businessId, refreshMutation]
   );
 
-  const execute = useCallback(async (bill: Bill, run: Run, ack?: boolean) => {
-    try {
-      await run(ack);
-      setPending(null);
-    } catch (err) {
-      const info = getApiError(err);
-      if (info.code === 'BILL_OUT_OF_DATE') {
-        setPending({
-          kind: 'outOfDate',
-          bill,
-          message: info.message ?? OUT_OF_DATE_MESSAGE,
-        });
-      } else if (info.code === 'NEGATIVE_STOCK_ACK_REQUIRED') {
-        const spans = info.details?.negativeStock;
-        setPending({
-          kind: 'negative',
-          bill,
-          run,
-          spans: Array.isArray(spans) ? (spans as NegativeSpan[]) : [],
-        });
-      } else {
+  const execute = useCallback(
+    async (bill: Bill, run: Run, ack?: boolean) => {
+      try {
+        await run(ack);
         setPending(null);
-        alert(getErrorMessage(err));
+      } catch (err) {
+        const info = getApiError(err);
+        if (info.code === 'BILL_OUT_OF_DATE') {
+          setPending({
+            kind: 'outOfDate',
+            bill,
+            message: info.message ?? OUT_OF_DATE_MESSAGE,
+          });
+        } else if (info.code === 'NEGATIVE_STOCK_ACK_REQUIRED') {
+          const spans = info.details?.negativeStock;
+          setPending({
+            kind: 'negative',
+            bill,
+            run,
+            spans: Array.isArray(spans) ? (spans as NegativeSpan[]) : [],
+          });
+        } else {
+          setPending(null);
+          const message = getErrorMessage(err);
+          if (onError) onError(message);
+          else alert(message);
+        }
       }
-    }
-  }, []);
+    },
+    [onError]
+  );
 
   /**
    * Send a bill. `run` makes the API call with the acknowledge flag. Drafts that are

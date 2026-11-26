@@ -96,7 +96,7 @@ const rowNumbers = () =>
   within(screen.getByRole('table'))
     .getAllByRole('row')
     .slice(1)
-    .map(r => within(r).getAllByRole('cell')[0].textContent);
+    .map(r => within(r).getAllByRole('cell')[1].textContent);
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -232,7 +232,7 @@ describe('BillsPage', () => {
     expect(screen.queryByTestId('where')).not.toBeInTheDocument();
   });
 
-  it('alerts when sending fails', async () => {
+  it('shows the error in a dialog when sending fails', async () => {
     useApi();
     server.use(
       http.post(apiUrl('/businesses/biz-1/bills/b1/send'), () =>
@@ -243,7 +243,11 @@ describe('BillsPage', () => {
     const { user } = renderPage();
     const table = await screen.findByRole('table');
     await user.click(within(table).getByRole('button', { name: 'Send' }));
-    await waitFor(() => expect(alertSpy).toHaveBeenCalled());
+    const dialog = await screen.findByRole('dialog', { name: 'Something went wrong' });
+    expect(dialog).toHaveTextContent('Nope');
+    expect(alertSpy).not.toHaveBeenCalled();
+    await user.click(within(dialog).getAllByRole('button', { name: 'Close' }).at(-1)!);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('marks a sent bill paid', async () => {
@@ -270,18 +274,21 @@ describe('BillsPage', () => {
         return ok({});
       })
     );
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const { user } = renderPage();
     const table = await screen.findByRole('table');
     const menus = within(table).getAllByRole('button', { name: 'More actions' });
     await user.click(menus[0]);
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
-    expect(confirmSpy).toHaveBeenLastCalledWith('Delete bill "B-2026-27-0001"?');
+    const dialog = screen.getByRole('dialog', { name: 'Delete B-2026-27-0001?' });
+    expect(dialog).toHaveTextContent("This can't be undone.");
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(urls).toHaveLength(1));
     await user.click(menus[1]);
     expect(screen.queryByRole('menuitem', { name: /Delete/ })).not.toBeInTheDocument();
     await user.keyboard('{Escape}');
     await user.click(menus[3]);
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(urls).toHaveLength(2));
     expect(urls[0]).toMatch(/\/b1$/);
   });
@@ -357,11 +364,12 @@ describe('BillsPage', () => {
         return ok({});
       })
     );
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
     const { user } = renderPage();
     const table = await screen.findByRole('table');
     await user.click(within(table).getAllByRole('button', { name: 'More actions' })[0]);
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(called).toBe(false);
   });
 
@@ -511,5 +519,465 @@ describe('BillsPage', () => {
     server.use(http.get(apiUrl('/businesses'), () => ok([])));
     renderWithProviders(<BillsPage />, { preloadedState: signedIn('') });
     expect(screen.getByText('Please select a business')).toBeInTheDocument();
+  });
+});
+
+const conflict = (code: string, details?: Record<string, unknown>) =>
+  HttpResponse.json(
+    { success: false, error: { code, message: `${code} message`, details } },
+    { status: 409 }
+  );
+
+const SPAN = {
+  itemId: 'i1',
+  itemName: 'Prop 3m',
+  from: '2026-10-03T00:00:00.000Z',
+  to: '2026-10-03T00:00:00.000Z',
+  minQty: -1,
+};
+
+const drafts3 = [
+  bill({ _id: 'd1', billNumber: 'B-1' }),
+  bill({ _id: 'd2', billNumber: 'B-2' }),
+  bill({ _id: 'd3', billNumber: 'B-3' }),
+];
+
+const mixed = [
+  bill({ _id: 'd1', billNumber: 'B-1' }),
+  bill({ _id: 'd2', billNumber: 'B-2' }),
+  bill({ _id: 'p1', billNumber: 'B-3', status: 'paid' }),
+  bill({ _id: 'c1', billNumber: 'B-4', status: 'cancelled' }),
+];
+
+const bar = () => screen.queryByRole('region', { name: 'Bulk actions' });
+
+/** Ticks the table checkbox of each bill number. */
+async function pick(user: ReturnType<typeof renderPage>['user'], ...numbers: string[]) {
+  const table = screen.getByRole('table');
+  for (const n of numbers)
+    await user.click(within(table).getByRole('checkbox', { name: `Select ${n}` }));
+}
+
+const doneDialog = () => screen.findByRole('dialog', { name: 'Done' });
+
+/** Records each PATCH status body by bill id; `reply` can override the response. */
+function trackStatus(reply?: (id: string, body: Record<string, unknown>) => Response | undefined) {
+  const calls: Array<{ id: string; body: Record<string, unknown> }> = [];
+  server.use(
+    http.patch(apiUrl('/businesses/biz-1/bills/:id/status'), async ({ params, request }) => {
+      const id = String(params.id);
+      const body = (await request.json()) as Record<string, unknown>;
+      calls.push({ id, body });
+      return reply?.(id, body) ?? ok(bill({ _id: id, status: body.status as Bill['status'] }));
+    })
+  );
+  return calls;
+}
+
+describe('BillsPage row menu', () => {
+  const menuItems = async (user: ReturnType<typeof renderPage>['user'], index: number) => {
+    const table = screen.getByRole('table');
+    await user.click(within(table).getAllByRole('button', { name: 'More actions' })[index]);
+    const names = screen.getAllByRole('menuitem').map(i => i.textContent);
+    await user.keyboard('{Escape}');
+    return names;
+  };
+
+  it('shows only the moves each status allows', async () => {
+    useApi([
+      ...defaults,
+      bill({ _id: 'b5', billNumber: 'B-5', status: 'partial' }),
+      bill({ _id: 'b6', billNumber: 'B-6', status: 'overdue' }),
+    ]);
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    expect(await menuItems(user, 0)).toEqual([
+      'Mark as sentLocks the bill. No email is sent.',
+      'Download invoice PDF',
+      'Cancel bill',
+      'Delete',
+    ]);
+    for (const i of [1, 2, 4, 5])
+      expect(await menuItems(user, i)).toEqual(['Download invoice PDF']);
+    expect(await menuItems(user, 3)).toEqual(['Download invoice PDF', 'Delete']);
+  });
+
+  it('marks a draft as sent after confirming, without email', async () => {
+    useApi();
+    const calls = trackStatus();
+    let emailed = false;
+    server.use(
+      http.post(apiUrl('/businesses/biz-1/bills/:id/send'), () => {
+        emailed = true;
+        return ok(null);
+      })
+    );
+    const { user } = renderPage();
+    const table = await screen.findByRole('table');
+    await user.click(within(table).getAllByRole('button', { name: 'More actions' })[0]);
+    expect(screen.getByRole('menuitem', { name: 'Mark as sent' })).toHaveAccessibleDescription(
+      'Locks the bill. No email is sent.'
+    );
+    await user.click(screen.getByRole('menuitem', { name: 'Mark as sent' }));
+    const dialog = screen.getByRole('dialog', { name: 'Mark B-2026-27-0001 as sent?' });
+    expect(dialog).toHaveTextContent(
+      'The bill will be locked. Any later change is made with a correction, not by editing the bill.'
+    );
+    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Mark as sent' }));
+    await waitFor(() => expect(calls).toEqual([{ id: 'b1', body: { status: 'sent' } }]));
+    expect(emailed).toBe(false);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('blocks marking an out of date draft as sent', async () => {
+    useApi([bill({ drift: DRIFT })]);
+    const calls = trackStatus();
+    const { user } = renderPage();
+    const table = await screen.findByRole('table');
+    await user.click(within(table).getByRole('button', { name: 'More actions' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Mark as sent' }));
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Mark as sent' })
+    );
+    expect(await screen.findByRole('dialog', { name: 'Bill is out of date' })).toBeInTheDocument();
+    expect(calls).toEqual([]);
+  });
+
+  it('cancels a draft after confirming, and keeps it when declined', async () => {
+    useApi();
+    const calls = trackStatus();
+    const { user } = renderPage();
+    const table = await screen.findByRole('table');
+    const menu = within(table).getAllByRole('button', { name: 'More actions' })[0];
+    await user.click(menu);
+    await user.click(screen.getByRole('menuitem', { name: 'Cancel bill' }));
+    let dialog = screen.getByRole('dialog', { name: 'Cancel B-2026-27-0001?' });
+    expect(dialog).toHaveTextContent('You can delete it afterwards.');
+    await user.click(within(dialog).getByRole('button', { name: 'Keep bill' }));
+    expect(calls).toEqual([]);
+    await user.click(menu);
+    await user.click(screen.getByRole('menuitem', { name: 'Cancel bill' }));
+    dialog = screen.getByRole('dialog', { name: 'Cancel B-2026-27-0001?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel bill' }));
+    await waitFor(() => expect(calls).toEqual([{ id: 'b1', body: { status: 'cancelled' } }]));
+  });
+
+  it('shows a failed status change in a dialog', async () => {
+    useApi();
+    trackStatus(() => HttpResponse.json({ success: false, message: 'No way' }, { status: 400 }));
+    const { user } = renderPage();
+    const table = await screen.findByRole('table');
+    await user.click(within(table).getByRole('button', { name: 'Mark paid' }));
+    expect(await screen.findByRole('dialog', { name: 'Something went wrong' })).toHaveTextContent(
+      'No way'
+    );
+  });
+});
+
+describe('BillsPage bulk actions', () => {
+  it('counts what each action applies to on a mixed selection', async () => {
+    useApi(mixed);
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    expect(bar()).not.toBeInTheDocument();
+    await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+    const region = bar()!;
+    expect(region).toHaveTextContent('4 bills selected');
+    expect(within(region).getByRole('button', { name: 'Mark 2 as sent' })).toBeEnabled();
+    expect(within(region).getByRole('button', { name: 'Send 2 to clients' })).toBeEnabled();
+    expect(within(region).getByRole('button', { name: 'Download 4 PDFs' })).toBeEnabled();
+    expect(within(region).getByRole('button', { name: 'Delete 3' })).toBeEnabled();
+  });
+
+  it('disables actions that apply to none of the selection', async () => {
+    useApi(mixed);
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await pick(user, 'B-3');
+    const region = bar()!;
+    expect(region).toHaveTextContent('1 bill selected');
+    expect(within(region).getByRole('button', { name: 'Mark 0 as sent' })).toBeDisabled();
+    expect(within(region).getByRole('button', { name: 'Send 0 to clients' })).toBeDisabled();
+    expect(within(region).getByRole('button', { name: 'Delete 0' })).toBeDisabled();
+    expect(within(region).getByRole('button', { name: 'Download 1 PDF' })).toBeEnabled();
+    await user.click(within(region).getByRole('button', { name: 'Clear' }));
+    expect(bar()).not.toBeInTheDocument();
+  });
+
+  it('marks the drafts as sent and lists the others as skipped', async () => {
+    useApi(mixed);
+    const calls = trackStatus();
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+    await user.click(within(bar()!).getByRole('button', { name: 'Mark 2 as sent' }));
+    const confirmDialog = screen.getByRole('dialog', { name: 'Mark 2 bills as sent?' });
+    expect(confirmDialog).toHaveTextContent('They will be locked. No emails are sent.');
+    await user.click(within(confirmDialog).getByRole('button', { name: 'Mark as sent' }));
+    const done = await doneDialog();
+    expect(calls.map(c => c.id).sort()).toEqual(['d1', 'd2']);
+    expect(calls.every(c => c.body.status === 'sent' && !('acknowledgeNegative' in c.body))).toBe(
+      true
+    );
+    expect(done).toHaveTextContent('2 marked as sent');
+    expect(done).toHaveTextContent('Skipped (2)');
+    const skipped = within(done)
+      .getAllByRole('listitem')
+      .map(li => li.textContent);
+    expect(skipped).toEqual(['B-3: already sent', 'B-4: cancelled']);
+    // The skipped bills stay selected.
+    expect(bar()).toHaveTextContent('2 bills selected');
+    await user.click(within(done).getAllByRole('button', { name: 'Close' }).at(-1)!);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('uses singular copy for one bill', async () => {
+    useApi(mixed);
+    trackStatus();
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await pick(user, 'B-1');
+    await user.click(within(bar()!).getByRole('button', { name: 'Send 1 to client' }));
+    expect(screen.getByRole('dialog', { name: 'Email 1 bill to its client?' })).toBeInTheDocument();
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+    await user.click(within(bar()!).getByRole('button', { name: 'Mark 1 as sent' }));
+    const dialog = screen.getByRole('dialog', { name: 'Mark 1 bill as sent?' });
+    expect(dialog).toHaveTextContent('It will be locked. No email is sent.');
+    await user.click(within(dialog).getByRole('button', { name: 'Mark as sent' }));
+    expect(await doneDialog()).toHaveTextContent('1 marked as sent');
+    expect(bar()).not.toBeInTheDocument();
+  });
+
+  it('skips an out of date draft and keeps it selected', async () => {
+    useApi(drafts3);
+    const calls = trackStatus(id => (id === 'd2' ? conflict('BILL_OUT_OF_DATE') : undefined));
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+    await user.click(within(bar()!).getByRole('button', { name: 'Mark 3 as sent' }));
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Mark as sent' })
+    );
+    const done = await doneDialog();
+    expect(calls).toHaveLength(3);
+    expect(done).toHaveTextContent('2 marked as sent');
+    expect(
+      within(done)
+        .getAllByRole('listitem')
+        .map(li => li.textContent)
+    ).toEqual(['B-2: out of date, open it and press Refresh']);
+    expect(bar()).toHaveTextContent('1 bill selected');
+    const table = screen.getByRole('table');
+    expect(within(table).getByRole('checkbox', { name: 'Select B-2' })).toBeChecked();
+    expect(within(table).getByRole('checkbox', { name: 'Select B-1' })).not.toBeChecked();
+  });
+
+  it('never sends a draft the list already shows as out of date', async () => {
+    useApi([bill({ _id: 'd1', billNumber: 'B-1', drift: DRIFT }), drafts3[1]]);
+    const sent: string[] = [];
+    server.use(
+      http.post(apiUrl('/businesses/biz-1/bills/:id/send'), ({ params }) => {
+        sent.push(String(params.id));
+        return ok(null);
+      })
+    );
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+    await user.click(within(bar()!).getByRole('button', { name: 'Send 2 to clients' }));
+    const confirmDialog = screen.getByRole('dialog', { name: 'Email 2 bills to their clients?' });
+    await user.click(within(confirmDialog).getByRole('button', { name: 'Send' }));
+    const done = await doneDialog();
+    expect(sent).toEqual(['d2']);
+    expect(done).toHaveTextContent('1 sent');
+    expect(done).toHaveTextContent('B-1: out of date, open it and press Refresh');
+  });
+
+  it('asks once about negative stock; Cancel leaves that bill unsent', async () => {
+    useApi(drafts3);
+    const calls = trackStatus((id, body) =>
+      id === 'd3' && !body.acknowledgeNegative
+        ? conflict('NEGATIVE_STOCK_ACK_REQUIRED', { negativeStock: [SPAN] })
+        : undefined
+    );
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+    await user.click(within(bar()!).getByRole('button', { name: 'Mark 3 as sent' }));
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Mark as sent' })
+    );
+    const ask = await screen.findByRole('dialog', { name: '1 bill shows stock below zero' });
+    expect(ask).toHaveTextContent('B-3');
+    expect(within(ask).getByText(/Prop 3m: 3 Oct, lowest count -1/)).toBeInTheDocument();
+    await user.click(within(ask).getByRole('button', { name: 'Cancel' }));
+    const done = await doneDialog();
+    expect(calls).toHaveLength(3);
+    expect(done).toHaveTextContent('2 marked as sent');
+    expect(
+      within(done)
+        .getAllByRole('listitem')
+        .map(li => li.textContent)
+    ).toEqual(['B-3: stock below zero, not sent']);
+    expect(bar()).toHaveTextContent('1 bill selected');
+  });
+
+  it('Send anyway retries only the negative stock bills with the acknowledgement', async () => {
+    useApi(drafts3);
+    const bodies: unknown[] = [];
+    server.use(
+      http.post(apiUrl('/businesses/biz-1/bills/:id/send'), async ({ params, request }) => {
+        const body = await request.json().catch(() => null);
+        bodies.push({ id: params.id, body });
+        if (params.id !== 'd1' && !body) return conflict('NEGATIVE_STOCK_ACK_REQUIRED', {});
+        return ok(null);
+      })
+    );
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+    await user.click(within(bar()!).getByRole('button', { name: 'Send 3 to clients' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Send' }));
+    const ask = await screen.findByRole('dialog', { name: '2 bills show stock below zero' });
+    // No spans in the error: bill numbers only.
+    expect(ask).toHaveTextContent('B-2');
+    expect(ask).toHaveTextContent('B-3');
+    expect(within(ask).queryByRole('list')).not.toBeInTheDocument();
+    await user.click(within(ask).getByRole('button', { name: 'Send anyway' }));
+    const done = await doneDialog();
+    expect(done).toHaveTextContent('3 sent');
+    expect(done).not.toHaveTextContent('Skipped');
+    expect(bodies.slice(3)).toEqual(
+      expect.arrayContaining([
+        { id: 'd2', body: { acknowledgeNegative: true } },
+        { id: 'd3', body: { acknowledgeNegative: true } },
+      ])
+    );
+    expect(bodies).toHaveLength(5);
+    expect(bar()).not.toBeInTheDocument();
+  });
+
+  it('reports a failed retry as skipped', async () => {
+    useApi(drafts3.slice(0, 1));
+    trackStatus((_id, body) =>
+      body.acknowledgeNegative
+        ? HttpResponse.json({ success: false, message: 'Server broke' }, { status: 500 })
+        : conflict('NEGATIVE_STOCK_ACK_REQUIRED')
+    );
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await pick(user, 'B-1');
+    await user.click(within(bar()!).getByRole('button', { name: 'Mark 1 as sent' }));
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Mark as sent' })
+    );
+    const ask = await screen.findByRole('dialog', { name: '1 bill shows stock below zero' });
+    await user.click(within(ask).getByRole('button', { name: 'Send anyway' }));
+    const done = await doneDialog();
+    expect(done).toHaveTextContent('0 marked as sent');
+    expect(done).toHaveTextContent('B-1: Server broke');
+  });
+
+  it('deletes drafts and cancelled bills; a sent bill and a refused one are skipped', async () => {
+    useApi(mixed);
+    const deleted: string[] = [];
+    server.use(
+      http.delete(apiUrl('/businesses/biz-1/bills/:id'), ({ params }) => {
+        if (params.id === 'd2')
+          return HttpResponse.json({ success: false, message: 'Not allowed' }, { status: 403 });
+        deleted.push(String(params.id));
+        return ok({});
+      })
+    );
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+    await user.click(within(bar()!).getByRole('button', { name: 'Delete 3' }));
+    const confirmDialog = screen.getByRole('dialog', { name: 'Delete 3 bills?' });
+    expect(confirmDialog).toHaveTextContent("This can't be undone.");
+    await user.click(within(confirmDialog).getByRole('button', { name: 'Delete' }));
+    const done = await doneDialog();
+    expect(deleted.sort()).toEqual(['c1', 'd1']);
+    expect(done).toHaveTextContent('2 deleted');
+    expect(
+      within(done)
+        .getAllByRole('listitem')
+        .map(li => li.textContent)
+    ).toEqual(["B-3: can't delete a sent bill", 'B-2: Not allowed']);
+  });
+
+  it('downloads one PDF per selected bill', async () => {
+    useApi(mixed);
+    const fetched: string[] = [];
+    server.use(
+      http.get(apiUrl('/businesses/biz-1/bills/:id/pdf'), ({ params }) => {
+        fetched.push(String(params.id));
+        if (params.id === 'c1')
+          return HttpResponse.json({ success: false, message: 'No PDF' }, { status: 404 });
+        return new HttpResponse('pdf', { headers: { 'Content-Type': 'application/pdf' } });
+      })
+    );
+    URL.createObjectURL = vi.fn(() => 'blob:x');
+    URL.revokeObjectURL = vi.fn();
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+    await user.click(within(bar()!).getByRole('button', { name: 'Download 4 PDFs' }));
+    const done = await doneDialog();
+    expect(fetched.sort()).toEqual(['c1', 'd1', 'd2', 'p1']);
+    expect(done).toHaveTextContent('3 downloaded');
+    expect(done).toHaveTextContent('B-4: No PDF');
+  });
+
+  it('ticking a checkbox never opens the bill, in the table or the phone list', async () => {
+    useApi(mixed);
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await pick(user, 'B-1');
+    const list = screen.getByRole('list', { name: 'Bills' });
+    await user.click(within(list).getByRole('checkbox', { name: 'Select B-2' }));
+    expect(screen.queryByTestId('where')).not.toBeInTheDocument();
+    expect(bar()).toHaveTextContent('2 bills selected');
+  });
+
+  it('offers select all / clear on phones', async () => {
+    useApi(mixed);
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await user.click(screen.getByRole('button', { name: 'Select all on this page' }));
+    expect(bar()).toHaveTextContent('4 bills selected');
+    await user.click(screen.getByRole('button', { name: 'Clear selection' }));
+    expect(bar()).not.toBeInTheDocument();
+  });
+
+  it('clears the selection when the filter changes', async () => {
+    useApi(mixed);
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await pick(user, 'B-1', 'B-2');
+    expect(bar()).toHaveTextContent('2 bills selected');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'draft');
+    await waitFor(() => expect(bar()).not.toBeInTheDocument());
+    await waitFor(() => expect(rowNumbers()).toEqual(['B-1', 'B-2']));
+    expect(
+      within(screen.getByRole('table')).getByRole('checkbox', { name: 'Select B-1' })
+    ).not.toBeChecked();
+  });
+
+  it('clears the selection when the page changes', async () => {
+    const many = Array.from({ length: 27 }, (_, i) =>
+      bill({ _id: `m${i}`, billNumber: `M-${String(i + 1).padStart(2, '0')}` })
+    );
+    useApi(many);
+    const { user } = renderPage();
+    await screen.findByRole('table');
+    await pick(user, 'M-01');
+    expect(bar()).toBeInTheDocument();
+    const nav = screen.getByRole('navigation', { name: 'Bills pages' });
+    await user.click(within(nav).getByRole('button', { name: /Next/ }));
+    await waitFor(() => expect(rowNumbers()).toEqual(['M-26', 'M-27']));
+    expect(bar()).not.toBeInTheDocument();
   });
 });

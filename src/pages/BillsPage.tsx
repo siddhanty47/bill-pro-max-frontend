@@ -1,7 +1,7 @@
 /**
  * Bills management page
  */
-import { useState, useRef, type ReactNode } from 'react';
+import { useState, useRef } from 'react';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
@@ -11,15 +11,12 @@ import {
   useGetBillsPageQuery,
   useGenerateBillMutation,
   useBulkGenerateBillsMutation,
-  useUpdateBillStatusMutation,
-  useDeleteBillMutation,
-  useSendBillEmailMutation,
-  useLazyDownloadBillPdfQuery,
 } from '../api/billApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetAgreementsQuery } from '../api/agreementApi';
 import { useBillGenerationProgress } from '../hooks/useBillGenerationProgress';
 import {
+  BulkActionBar,
   Button,
   Card,
   DataTable,
@@ -29,7 +26,6 @@ import {
   FilterBar,
   Modal,
   PageHeader,
-  RowActions,
   SearchInput,
   Select,
   Spinner,
@@ -40,11 +36,14 @@ import { BillForm } from '../components/forms/BillForm';
 import { BulkBillForm } from '../components/forms/BulkBillForm';
 import { isIssued } from '../utils/billStatus';
 import { effectiveAmount } from '../utils/billMoney';
-import { useBillIssueGate } from '../hooks/useBillIssueGate';
 import { BulkBillProgress } from '../components/BulkBillProgress';
 import { getErrorMessage } from '../api/baseApi';
 import { formatDate, formatMoney } from '../utils/format';
 import type { Bill, GenerateBillInput, BulkGenerateBillInput } from '../types';
+import { BillMessageDialog } from './bills/BillConfirmDialog';
+import { useConfirm } from './bills/useConfirm';
+import { useBillBulkActions } from './bills/useBillBulkActions';
+import { useBillRowActions } from './bills/useBillRowActions';
 import styles from './BillsPage.module.css';
 
 export function BillsPage() {
@@ -79,6 +78,17 @@ export function BillsPage() {
   const hasFilters = Boolean(search || statusFilter);
   const bills = pageData?.rows ?? [];
 
+  // Selection is per page of the server list: it clears on page, filter, search or business change.
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const selectionKey = `${currentBusinessId}|${filtersKey}|${page}`;
+  const [lastSelectionKey, setLastSelectionKey] = useState(selectionKey);
+  if (selectionKey !== lastSelectionKey) {
+    setLastSelectionKey(selectionKey);
+    setSelected(new Set());
+  }
+  const selectedBills = bills.filter(b => selected.has(b._id));
+  const allOnPageSelected = bills.length > 0 && selectedBills.length === bills.length;
+
   const { data: parties } = useGetPartiesQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
   });
@@ -89,14 +99,27 @@ export function BillsPage() {
 
   const [generateBill, { isLoading: isGenerating }] = useGenerateBillMutation();
   const [bulkGenerateBills, { isLoading: isBulkGenerating }] = useBulkGenerateBillsMutation();
-  const [updateBillStatus] = useUpdateBillStatusMutation();
-  const [deleteBill] = useDeleteBillMutation();
-  const [sendBillEmail] = useSendBillEmailMutation();
-  const [downloadPdf, { isLoading: isDownloading }] = useLazyDownloadBillPdfQuery();
-
-  const gate = useBillIssueGate(currentBusinessId);
+  const [failure, setFailure] = useState<string | null>(null);
+  const confirm = useConfirm();
+  const { rowActions, dialog: rowDialog } = useBillRowActions({
+    businessId: currentBusinessId || '',
+    ask: confirm.ask,
+    onError: setFailure,
+  });
 
   const { batches, startBatch, dismissBatch } = useBillGenerationProgress();
+
+  const bulk = useBillBulkActions({
+    businessId: currentBusinessId || '',
+    bills: selectedBills,
+    ask: confirm.ask,
+    onSucceeded: ids =>
+      setSelected(prev => {
+        const next = new Set(prev);
+        ids.forEach(id => next.delete(id));
+        return next;
+      }),
+  });
 
   const handleGenerate = () => {
     setIsModalOpen(true);
@@ -120,7 +143,7 @@ export function BillsPage() {
       startBatch(result.batchId, result.jobCount);
       setIsModalOpen(false);
     } catch (err) {
-      alert(getErrorMessage(err));
+      setFailure(getErrorMessage(err));
     }
   };
 
@@ -133,56 +156,7 @@ export function BillsPage() {
       startBatch(result.batchId, result.jobCount);
       setIsBulkModalOpen(false);
     } catch (err) {
-      alert(getErrorMessage(err));
-    }
-  };
-
-  const handleStatusChange = async (bill: Bill, newStatus: Bill['status']) => {
-    try {
-      await updateBillStatus({
-        businessId: currentBusinessId!,
-        billId: bill._id,
-        status: newStatus,
-      }).unwrap();
-    } catch (err) {
-      alert(getErrorMessage(err));
-    }
-  };
-
-  const handleSendEmail = async (bill: Bill) => {
-    if (!currentBusinessId) return;
-    await gate.attempt(bill, acknowledgeNegative =>
-      sendBillEmail({
-        businessId: currentBusinessId,
-        billId: bill._id,
-        acknowledgeNegative,
-      }).unwrap()
-    );
-  };
-
-  const handleDownloadPdf = async (bill: Bill) => {
-    if (!currentBusinessId) return;
-    try {
-      await downloadPdf({
-        businessId: currentBusinessId,
-        billId: bill._id,
-        fileName: `invoice-${bill.billNumber}.pdf`,
-      }).unwrap();
-    } catch (err) {
-      alert(getErrorMessage(err));
-    }
-  };
-
-  const handleDelete = async (bill: Bill) => {
-    if (!confirm(`Delete bill "${bill.billNumber}"?`)) return;
-
-    try {
-      await deleteBill({
-        businessId: currentBusinessId!,
-        billId: bill._id,
-      }).unwrap();
-    } catch (err) {
-      alert(getErrorMessage(err));
+      setFailure(getErrorMessage(err));
     }
   };
 
@@ -231,39 +205,6 @@ export function BillsPage() {
       )}
     </span>
   );
-
-  const rowActions = (bill: Bill) => {
-    const removable = !isIssued(bill);
-    let primary: ReactNode = null;
-    if (bill.status === 'draft') {
-      primary = (
-        <Button size="sm" variant="primary" onClick={() => handleSendEmail(bill)}>
-          Send
-        </Button>
-      );
-    } else if (bill.status === 'sent' || bill.status === 'partial') {
-      primary = (
-        <Button size="sm" onClick={() => handleStatusChange(bill, 'paid')}>
-          Mark paid
-        </Button>
-      );
-    }
-    return (
-      <RowActions
-        primary={primary}
-        items={[
-          {
-            label: 'Download invoice PDF',
-            onClick: () => handleDownloadPdf(bill),
-            disabled: isDownloading,
-          },
-          ...(removable
-            ? [{ label: 'Delete', onClick: () => handleDelete(bill), tone: 'danger' as const }]
-            : []),
-        ]}
-      />
-    );
-  };
 
   const columns: Column<Bill>[] = [
     {
@@ -358,12 +299,31 @@ export function BillsPage() {
         </Select>
       </FilterBar>
 
+      {bills.length > 0 && (
+        <div className={styles.mobileSelect}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              setSelected(allOnPageSelected ? new Set() : new Set(bills.map(b => b._id)))
+            }
+          >
+            {allOnPageSelected ? 'Clear selection' : 'Select all on this page'}
+          </Button>
+        </div>
+      )}
+
       <Card padded={false}>
         <DataTable
           aria-label="Bills"
           columns={columns}
           rows={bills}
           rowKey={bill => bill._id}
+          selection={{
+            selected,
+            onChange: setSelected,
+            label: bill => `Select ${bill.billNumber}`,
+          }}
           pagination={{
             page,
             pageSize: LIST_PAGE_SIZE,
@@ -407,6 +367,14 @@ export function BillsPage() {
         />
       </Card>
 
+      <BulkActionBar
+        count={selectedBills.length}
+        noun={selectedBills.length === 1 ? 'bill' : 'bills'}
+        onClear={() => setSelected(new Set())}
+      >
+        {bulk.actions}
+      </BulkActionBar>
+
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -435,7 +403,14 @@ export function BillsPage() {
         />
       </Modal>
 
-      {gate.dialog}
+      {rowDialog}
+      {confirm.dialog}
+      {bulk.dialog}
+      <BillMessageDialog
+        title="Something went wrong"
+        message={failure}
+        onClose={() => setFailure(null)}
+      />
     </div>
   );
 }
