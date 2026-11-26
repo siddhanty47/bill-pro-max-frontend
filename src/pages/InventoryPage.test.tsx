@@ -393,10 +393,7 @@ describe('InventoryPage', () => {
       const done = await screen.findByRole('dialog', { name: 'Done' });
       expect(hits.sort()).toEqual(['i1', 'i3']);
       expect(done).toHaveTextContent('1 deleted');
-      expect(items(done)).toEqual([
-        'Steel plank: items are currently rented',
-        'Base jack: Item is in use',
-      ]);
+      expect(items(done)).toEqual(['Steel plank: out on rent', 'Base jack: Item is in use']);
       await user.click(within(done).getAllByRole('button', { name: 'Close' }).at(-1)!);
       expect(bar()).toHaveTextContent('2 items selected');
     });

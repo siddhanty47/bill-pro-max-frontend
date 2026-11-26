@@ -17,7 +17,14 @@ import { getApiError } from '../../utils/apiError';
 import { isIssued } from '../../utils/billStatus';
 import { runBulk } from '../../utils/runBulk';
 import type { Bill } from '../../types';
-import { BulkResultDialog, useInFlightGuard, type ConfirmRequest } from '../../components/bulk';
+import {
+  plural,
+  splitResults,
+  useBulkOutcome,
+  type ConfirmRequest,
+  type RowSkip,
+} from '../../components/bulk';
+import dialogStyles from '../../components/bulk/BulkDialogs.module.css';
 import styles from './BillDialogs.module.css';
 
 export const OUT_OF_DATE_REASON = 'out of date, open it and press Refresh';
@@ -26,12 +33,9 @@ const NEGATIVE_WORDING = {
   email: { button: 'Send anyway', declined: 'stock below zero, not sent' },
 } as const;
 
-type Skip = { bill: Bill; reason: string };
-type Outcome = { line: string; skipped: Skip[] };
+type Skip = RowSkip<Bill>;
 type NegativeBill = { bill: Bill; spans: NegativeStockSpan[] };
 type IssueKind = 'markSent' | 'email';
-
-const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 
 /** Bills that are not drafts can't be sent again. */
 const notDraftReason = (bill: Bill) => (bill.status === 'cancelled' ? 'cancelled' : 'already sent');
@@ -57,10 +61,19 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
   const [deleteBill] = useDeleteBillMutation();
   const [downloadPdf] = useLazyDownloadBillPdfQuery();
 
-  const [running, setRunning] = useState(false);
-  // Blocks a second run while one is going (a fast double click lands before `running` renders).
-  const guard = useInFlightGuard();
-  const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const {
+    running,
+    guard,
+    busy,
+    finish,
+    runDownloads,
+    dialog: outcomeDialog,
+  } = useBulkOutcome<Bill>({
+    rowKey: b => b._id,
+    label: b => b.billNumber,
+    noun: 'bills',
+    onSucceeded,
+  });
   const [negative, setNegative] = useState<{
     kind: IssueKind;
     items: NegativeBill[];
@@ -71,14 +84,6 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
 
   const drafts = bills.filter(b => b.status === 'draft');
   const removable = bills.filter(b => !isIssued(b));
-
-  /** `order` is the run's bills; skipped bills are listed in that order. */
-  const finish = (line: string, done: string[], skipped: Skip[], order: Bill[]) => {
-    const position = new Map(order.map((b, i) => [b._id, i]));
-    const at = (s: Skip) => position.get(s.bill._id) ?? order.length;
-    onSucceeded(done);
-    setOutcome({ line, skipped: [...skipped].sort((a, b) => at(a) - at(b)) });
-  };
 
   const issueOne = (kind: IssueKind, bill: Bill, acknowledgeNegative?: boolean) =>
     kind === 'markSent'
@@ -98,16 +103,14 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
     const order = bills;
     const skipped: Skip[] = bills
       .filter(b => b.status !== 'draft')
-      .map(bill => ({ bill, reason: notDraftReason(bill) }));
+      .map(row => ({ row, reason: notDraftReason(row) }));
     // Out-of-date drafts never reach the API (same rule as the single-bill gate).
     const ready = drafts.filter(b => {
       if (b.drift == null) return true;
-      skipped.push({ bill: b, reason: OUT_OF_DATE_REASON });
+      skipped.push({ row: b, reason: OUT_OF_DATE_REASON });
       return false;
     });
-    setRunning(true);
-    const results = await runBulk(ready, bill => issueOne(kind, bill));
-    setRunning(false);
+    const results = await busy(() => runBulk(ready, bill => issueOne(kind, bill)));
     const done: string[] = [];
     const needAck: NegativeBill[] = [];
     for (const r of results) {
@@ -125,7 +128,7 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
             : (r.item.negativeStock ?? []),
         });
       } else {
-        skipped.push({ bill: r.item, reason: reasonFor(r.error) });
+        skipped.push({ row: r.item, reason: reasonFor(r.error) });
       }
     }
     if (needAck.length > 0) setNegative({ kind, items: needAck, done, skipped, order });
@@ -139,7 +142,10 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
     finish(
       issueLine(kind, done.length),
       done,
-      [...skipped, ...items.map(({ bill }) => ({ bill, reason: NEGATIVE_WORDING[kind].declined }))],
+      [
+        ...skipped,
+        ...items.map(({ bill }) => ({ row: bill, reason: NEGATIVE_WORDING[kind].declined })),
+      ],
       order
     );
   };
@@ -147,26 +153,20 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
   const sendAnyway = guard(async () => {
     if (!negative) return;
     const { kind, items, done, skipped, order } = negative;
-    setRunning(true);
-    const results = await runBulk(
-      items.map(i => i.bill),
-      bill => issueOne(kind, bill, true)
+    const results = await busy(() =>
+      runBulk(
+        items.map(i => i.bill),
+        bill => issueOne(kind, bill, true)
+      )
     );
-    setRunning(false);
     setNegative(null);
-    const allDone = [...done];
-    const allSkipped = [...skipped];
-    for (const r of results) {
-      if (r.ok) allDone.push(r.item._id);
-      else allSkipped.push({ bill: r.item, reason: reasonFor(r.error) });
-    }
-    finish(issueLine(kind, allDone.length), allDone, allSkipped, order);
+    const retried = splitResults(results, b => b._id, reasonFor);
+    const allDone = [...done, ...retried.done];
+    finish(issueLine(kind, allDone.length), allDone, [...skipped, ...retried.skipped], order);
   });
 
-  const runDownload = guard(async () => {
-    const order = bills;
-    setRunning(true);
-    const results = await runBulk(
+  const runDownload = () =>
+    runDownloads(
       bills,
       bill =>
         downloadPdf({
@@ -174,32 +174,19 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
           billId: bill._id,
           fileName: `invoice-${bill.billNumber}.pdf`,
         }).unwrap(),
-      { concurrency: 2 }
+      reasonFor
     );
-    setRunning(false);
-    const done = results.filter(r => r.ok).map(r => r.item._id);
-    const skipped = results.flatMap(r =>
-      r.ok ? [] : [{ bill: r.item, reason: reasonFor(r.error) }]
-    );
-    finish(`${done.length} downloaded`, done, skipped, order);
-  });
 
   const runDelete = guard(async () => {
     const order = bills;
     const skipped: Skip[] = bills
       .filter(isIssued)
-      .map(bill => ({ bill, reason: "can't delete a sent bill" }));
-    setRunning(true);
-    const results = await runBulk(removable, bill =>
-      deleteBill({ businessId, billId: bill._id }).unwrap()
+      .map(row => ({ row, reason: "can't delete a sent bill" }));
+    const results = await busy(() =>
+      runBulk(removable, bill => deleteBill({ businessId, billId: bill._id }).unwrap())
     );
-    setRunning(false);
-    const done: string[] = [];
-    for (const r of results) {
-      if (r.ok) done.push(r.item._id);
-      else skipped.push({ bill: r.item, reason: reasonFor(r.error) });
-    }
-    finish(`${done.length} deleted`, done, skipped, order);
+    const deleted = splitResults(results, b => b._id, reasonFor);
+    finish(`${deleted.done.length} deleted`, deleted.done, [...skipped, ...deleted.skipped], order);
   });
 
   const n = drafts.length;
@@ -263,14 +250,14 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
         onClose={running ? () => {} : declineNegative}
         title={`${k} ${plural(k, 'bill shows', 'bills show')} stock below zero`}
       >
-        <p className={styles.text}>These items were billed as 0 on these days.</p>
+        <p className={dialogStyles.text}>These items were billed as 0 on these days.</p>
         {negative.items.map(({ bill, spans }) => (
-          <div key={bill._id} className={`${styles.section} ${styles.billGroup}`}>
+          <div key={bill._id} className={`${dialogStyles.section} ${styles.billGroup}`}>
             <strong className="mono">{bill.billNumber}</strong>
             {spans.length > 0 && <NegativeStockList spans={spans} />}
           </div>
         ))}
-        <div className={styles.actions}>
+        <div className={dialogStyles.actions}>
           <Button onClick={declineNegative} disabled={running}>
             Cancel
           </Button>
@@ -280,15 +267,8 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
         </div>
       </Modal>
     );
-  } else if (outcome) {
-    dialog = (
-      <BulkResultDialog
-        lines={[outcome.line]}
-        skipped={outcome.skipped.map(({ bill, reason }) => ({ label: bill.billNumber, reason }))}
-        noun="bills"
-        onClose={() => setOutcome(null)}
-      />
-    );
+  } else {
+    dialog = outcomeDialog;
   }
 
   return { actions, dialog, running };

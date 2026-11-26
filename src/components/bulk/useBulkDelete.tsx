@@ -4,13 +4,13 @@
  * single-row endpoint with `runBulk`, and shows the "Done" dialog. Ineligible rows and server
  * refusals (with the server's message) are listed as skipped and stay selected.
  */
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { getErrorMessage } from '../../api/baseApi';
 import { runBulk } from '../../utils/runBulk';
 import { Button } from '../ui';
-import { BulkResultDialog, type BulkSkip } from './BulkResultDialog';
 import type { ConfirmRequest } from './BulkConfirmDialog';
-import { useInFlightGuard } from './useInFlightGuard';
+import { splitResults, type RowSkip } from './bulkRun';
+import { useBulkOutcome } from './useBulkOutcome';
 
 export type BulkDeleteOptions<T> = {
   /** The selected rows, in table order. */
@@ -39,9 +39,13 @@ export function useBulkDelete<T>({
   ask,
   onSucceeded,
 }: BulkDeleteOptions<T>) {
-  const [running, setRunning] = useState(false);
-  const [outcome, setOutcome] = useState<{ line: string; skipped: BulkSkip[] } | null>(null);
-  const guard = useInFlightGuard();
+  const { running, guard, busy, finish, dialog } = useBulkOutcome<T>({
+    rowKey,
+    label,
+    noun: noun.many,
+    monoLabels: false,
+    onSucceeded,
+  });
 
   const eligible = rows.filter(r => !skipReason?.(r));
   const n = eligible.length;
@@ -49,22 +53,13 @@ export function useBulkDelete<T>({
   const run = guard(async () => {
     const order = rows;
     const items = eligible;
-    setRunning(true);
-    const results = await runBulk(items, remove);
-    setRunning(false);
-    const failed = new Map<string, string>();
-    const done: string[] = [];
-    for (const r of results) {
-      if (r.ok) done.push(rowKey(r.item));
-      else failed.set(rowKey(r.item), getErrorMessage(r.error));
-    }
-    const skipped: BulkSkip[] = [];
-    for (const row of order) {
-      const reason = skipReason?.(row) || failed.get(rowKey(row));
-      if (reason) skipped.push({ label: label(row), reason });
-    }
-    onSucceeded(done);
-    setOutcome({ line: `${done.length} deleted`, skipped });
+    const skipped: Array<RowSkip<T>> = order.flatMap(row => {
+      const reason = skipReason?.(row);
+      return reason ? [{ row, reason }] : [];
+    });
+    const results = await busy(() => runBulk(items, remove));
+    const deleted = splitResults(results, rowKey, getErrorMessage);
+    finish(`${deleted.done.length} deleted`, deleted.done, [...skipped, ...deleted.skipped], order);
   });
 
   const button: ReactNode = (
@@ -84,16 +79,6 @@ export function useBulkDelete<T>({
       Delete {n}
     </Button>
   );
-
-  const dialog: ReactNode = outcome ? (
-    <BulkResultDialog
-      lines={[outcome.line]}
-      skipped={outcome.skipped}
-      noun={noun.many}
-      monoLabels={false}
-      onClose={() => setOutcome(null)}
-    />
-  ) : null;
 
   return { button, dialog, running };
 }

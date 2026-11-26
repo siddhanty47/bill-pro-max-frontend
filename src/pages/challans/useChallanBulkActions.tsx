@@ -4,14 +4,20 @@
  * dialog: each draft is dry-run first and confirmed only when the report is clean; the rest are
  * skipped with a reason in the "Done" dialog and stay selected.
  */
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useConfirmChallanMutation, useLazyDownloadChallanPdfQuery } from '../../api/challanApi';
 import { getErrorMessage } from '../../api/baseApi';
 import { isDryRunResult } from '../../api/changeGate';
 import { Button } from '../../components/ui';
 import { getApiError } from '../../utils/apiError';
 import { runBulk } from '../../utils/runBulk';
-import { BulkResultDialog, useInFlightGuard, type ConfirmRequest } from '../../components/bulk';
+import {
+  plural,
+  splitResults,
+  useBulkOutcome,
+  type ConfirmRequest,
+  type RowSkip,
+} from '../../components/bulk';
 import type { Challan, GateReport } from '../../types';
 
 export const CHECK_REASON = 'needs a check, open it to confirm';
@@ -23,11 +29,6 @@ const GATE_CODES = new Set([
   'NEGATIVE_STOCK_CONFIRM_REQUIRED',
 ]);
 
-type Skip = { challan: Challan; reason: string };
-type Outcome = { line: string; skipped: Skip[] };
-
-const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
-
 const isClean = (r: GateReport) =>
   r.affected.length === 0 && r.negative.length === 0 && r.blocked === null && !r.requiresReason;
 
@@ -35,6 +36,7 @@ const notDraftReason = (c: Challan) =>
   c.status === 'cancelled' ? 'cancelled' : 'already confirmed';
 
 function reasonFor(err: unknown): string {
+  if (err instanceof Skipped) return err.reason;
   const { code } = getApiError(err);
   if (code === 'YEAR_CLOSED') return YEAR_CLOSED_REASON;
   if (code && GATE_CODES.has(code)) return CHECK_REASON;
@@ -71,18 +73,14 @@ export function useChallanBulkActions({
 }: Options) {
   const [confirmChallan] = useConfirmChallanMutation();
   const [downloadPdf] = useLazyDownloadChallanPdfQuery();
-  const [running, setRunning] = useState(false);
-  const guard = useInFlightGuard();
-  const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const { running, guard, busy, finish, runDownloads, dialog } = useBulkOutcome<Challan>({
+    rowKey: c => c._id,
+    label: c => c.challanNumber,
+    noun: 'challans',
+    onSucceeded,
+  });
 
   const drafts = challans.filter(c => c.status === 'draft');
-
-  const finish = (line: string, done: string[], skipped: Skip[], order: Challan[]) => {
-    const position = new Map(order.map((c, i) => [c._id, i]));
-    const at = (s: Skip) => position.get(s.challan._id) ?? order.length;
-    onSucceeded(done);
-    setOutcome({ line, skipped: [...skipped].sort((a, b) => at(a) - at(b)) });
-  };
 
   const confirmOne = async (challan: Challan) => {
     const call = (dryRun?: boolean) =>
@@ -103,28 +101,21 @@ export function useChallanBulkActions({
 
   const runConfirm = guard(async () => {
     const order = challans;
-    const skipped: Skip[] = challans
+    const skipped: Array<RowSkip<Challan>> = challans
       .filter(c => c.status !== 'draft')
-      .map(challan => ({ challan, reason: notDraftReason(challan) }));
-    setRunning(true);
-    const results = await runBulk(drafts, confirmOne);
-    setRunning(false);
-    const done: string[] = [];
-    for (const r of results) {
-      if (r.ok) done.push(r.item._id);
-      else
-        skipped.push({
-          challan: r.item,
-          reason: r.error instanceof Skipped ? r.error.reason : reasonFor(r.error),
-        });
-    }
-    finish(`${done.length} confirmed`, done, skipped, order);
+      .map(row => ({ row, reason: notDraftReason(row) }));
+    const results = await busy(() => runBulk(drafts, confirmOne));
+    const confirmed = splitResults(results, c => c._id, reasonFor);
+    finish(
+      `${confirmed.done.length} confirmed`,
+      confirmed.done,
+      [...skipped, ...confirmed.skipped],
+      order
+    );
   });
 
-  const runDownload = guard(async () => {
-    const order = challans;
-    setRunning(true);
-    const results = await runBulk(
+  const runDownload = () =>
+    runDownloads(
       challans,
       c =>
         downloadPdf({
@@ -132,15 +123,8 @@ export function useChallanBulkActions({
           challanId: c._id,
           fileName: `challan-${c.challanNumber}.pdf`,
         }).unwrap(),
-      { concurrency: 2 }
+      reasonFor
     );
-    setRunning(false);
-    const done = results.filter(r => r.ok).map(r => r.item._id);
-    const skipped = results.flatMap(r =>
-      r.ok ? [] : [{ challan: r.item, reason: reasonFor(r.error) }]
-    );
-    finish(`${done.length} downloaded`, done, skipped, order);
-  });
 
   const n = drafts.length;
   const actions: ReactNode = (
@@ -150,6 +134,7 @@ export function useChallanBulkActions({
         onClick={() =>
           ask({
             title: `Confirm ${n} ${plural(n, 'challan', 'challans')}?`,
+            body: "Each challan's stock moves are saved. Challans that need a check are skipped.",
             confirmLabel: 'Confirm',
             onConfirm: runConfirm,
           })
@@ -162,18 +147,6 @@ export function useChallanBulkActions({
       </Button>
     </>
   );
-
-  const dialog: ReactNode = outcome ? (
-    <BulkResultDialog
-      lines={[outcome.line]}
-      skipped={outcome.skipped.map(({ challan, reason }) => ({
-        label: challan.challanNumber,
-        reason,
-      }))}
-      noun="challans"
-      onClose={() => setOutcome(null)}
-    />
-  ) : null;
 
   return { actions, dialog, running };
 }

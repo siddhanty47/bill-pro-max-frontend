@@ -49,6 +49,31 @@ describe('BulkResultDialog', () => {
     expect(list).toHaveTextContent('Acme: has agreements');
   });
 
+  it('lets one row override the label font', () => {
+    render(
+      <BulkResultDialog
+        lines={['0 issued']}
+        skipped={[
+          { label: 'CN/1', reason: 'cancelled' },
+          {
+            label: (
+              <>
+                Draft on <span className="mono">B-1</span>
+              </>
+            ),
+            reason: 'too late',
+            mono: false,
+          },
+        ]}
+        onClose={() => {}}
+      />
+    );
+    const items = within(screen.getByRole('list')).getAllByRole('listitem');
+    expect(items[0].querySelector('.mono')).toHaveTextContent('CN/1');
+    expect(items[1]).toHaveTextContent('Draft on B-1: too late');
+    expect(items[1].querySelector('.mono')).toHaveTextContent(/^B-1$/);
+  });
+
   it('closes from the Close button', async () => {
     const onClose = vi.fn();
     render(<BulkResultDialog lines={['1 sent']} skipped={[]} onClose={onClose} />);

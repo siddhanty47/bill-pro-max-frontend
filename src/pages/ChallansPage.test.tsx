@@ -261,7 +261,7 @@ describe('ChallansPage', () => {
     const table = await screen.findByRole('table');
     await user.click(within(table).getByRole('button', { name: 'Confirm' }));
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Something went wrong' });
+    const dialog = await screen.findByRole('dialog', { name: "Couldn't confirm challan" });
     expect(dialog).toHaveTextContent('Nope');
     await user.click(within(dialog).getAllByRole('button', { name: 'Close' }).at(-1)!);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -646,6 +646,51 @@ describe('ChallansPage', () => {
       expect(bar()).toBeInTheDocument();
       await user.selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'draft');
       await waitFor(() => expect(bar()).not.toBeInTheDocument());
+    });
+
+    it('clears the selection when the page changes', async () => {
+      const many = Array.from({ length: 27 }, (_, i) =>
+        challan({
+          _id: `m${i}`,
+          challanNumber: `M-${String(i + 1).padStart(2, '0')}`,
+          date: `2026-10-${String(28 - i).padStart(2, '0')}T00:00:00.000Z`,
+        })
+      );
+      useApi(many);
+      const { user } = renderPage();
+      const table = await screen.findByRole('table');
+      await user.click(within(table).getByRole('checkbox', { name: 'Select M-01' }));
+      expect(bar()).toHaveTextContent('1 challan selected');
+      const nav = screen.getByRole('navigation', { name: 'Challans pages' });
+      await user.click(within(nav).getByRole('button', { name: 'Page 2' }));
+      await waitFor(() => expect(rowNumbers()).toEqual(['M-26', 'M-27']));
+      expect(bar()).not.toBeInTheDocument();
+    });
+
+    it('offers select all / clear on phones for the visible page', async () => {
+      useApi(drafts);
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(screen.getByRole('button', { name: 'Select all on this page' }));
+      expect(bar()).toHaveTextContent('4 challans selected');
+      expect(within(bar()!).getByRole('button', { name: 'Confirm 3' })).toBeEnabled();
+      await user.click(screen.getByRole('button', { name: 'Clear selection' }));
+      expect(bar()).not.toBeInTheDocument();
+    });
+
+    it('says what bulk confirm does before it runs', async () => {
+      useApi(drafts);
+      const calls = trackConfirm();
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+      await user.click(within(bar()!).getByRole('button', { name: 'Confirm 3' }));
+      const ask = screen.getByRole('dialog', { name: 'Confirm 3 challans?' });
+      expect(ask).toHaveTextContent(
+        "Each challan's stock moves are saved. Challans that need a check are skipped."
+      );
+      await user.click(within(ask).getByRole('button', { name: 'Cancel' }));
+      expect(calls).toEqual([]);
     });
   });
 

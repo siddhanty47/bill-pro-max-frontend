@@ -258,8 +258,12 @@ describe('BillNotesPage', () => {
         'Draft on B-1: too late for a credit note this year',
         'Draft on B-3: changed since you opened it, reload',
         'CN/1: already issued',
-        'CN/2: already cancelled',
+        'CN/2: cancelled',
       ]);
+      // Only numbers use the number font: "Draft on" stays in the text font.
+      const rows = within(done).getAllByRole('listitem');
+      expect(rows[0].querySelector('.mono')).toHaveTextContent(/^B-1$/);
+      expect(rows[2].querySelector('.mono')).toHaveTextContent(/^CN\/1$/);
     });
 
     it('uses the singular when issuing one note', async () => {
@@ -317,7 +321,7 @@ describe('BillNotesPage', () => {
       expect(await doneDialog()).toHaveTextContent('1 cancelled');
     });
 
-    it('downloads one PDF per selected note, named like the single download', async () => {
+    it('downloads one PDF per selected note; drafts are named by their bill', async () => {
       useApi(mixed);
       server.use(
         http.get(apiUrl('/businesses/biz-1/bill-notes/:id/pdf'), ({ params }) =>
@@ -343,9 +347,9 @@ describe('BillNotesPage', () => {
       expect(items(done)).toEqual(['CN/2: No PDF']);
       expect(names.sort()).toEqual([
         'note-CN-1.pdf',
-        'note-draft.pdf',
-        'note-draft.pdf',
-        'note-draft.pdf',
+        'note-draft-B-1.pdf',
+        'note-draft-B-2.pdf',
+        'note-draft-B-3.pdf',
       ]);
     });
 

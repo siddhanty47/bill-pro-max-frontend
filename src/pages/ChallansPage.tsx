@@ -106,7 +106,7 @@ export function ChallansPage() {
   const [createChallan, { isLoading: isCreating }] = useCreateChallanMutation();
   const [confirmChallan] = useConfirmChallanMutation();
   const { run: runGated, dialog: changeDialog } = useChangeGate();
-  const [failure, setFailure] = useState<string | null>(null);
+  const [failure, setFailure] = useState<{ title: string; message: string } | null>(null);
   const confirmDialog = useConfirm();
   const confirmedBy = user?.name || user?.email || 'Unknown';
 
@@ -157,7 +157,7 @@ export function ChallansPage() {
       );
       if (saved) setIsModalOpen(false);
     } catch (err) {
-      setFailure(getErrorMessage(err));
+      setFailure({ title: "Couldn't create challan", message: getErrorMessage(err) });
     }
   };
 
@@ -172,7 +172,7 @@ export function ChallansPage() {
         }).unwrap()
       );
     } catch (err) {
-      setFailure(getErrorMessage(err));
+      setFailure({ title: "Couldn't confirm challan", message: getErrorMessage(err) });
     }
   };
 
@@ -389,8 +389,8 @@ export function ChallansPage() {
       {confirmDialog.dialog}
       {bulk.dialog}
       <MessageDialog
-        title="Something went wrong"
-        message={failure}
+        title={failure?.title ?? ''}
+        message={failure?.message ?? null}
         onClose={() => setFailure(null)}
       />
     </div>

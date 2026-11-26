@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Button } from './Button';
 import styles from './BulkActionBar.module.css';
 
@@ -19,11 +19,33 @@ export type BulkActionBarProps = {
  * "{count} {noun} selected", the bulk actions and Clear. Sticky at the bottom of the
  * content area on desktop; a fixed bottom bar (safe-area padded) on phones.
  */
+/** The spacer's height, set from the bar's measured height (CSS falls back without it). */
+const BAR_HEIGHT_VAR = '--bulk-bar-height';
+
 export function BulkActionBar({ count, noun, onClear, children, className }: BulkActionBarProps) {
-  if (count <= 0) return null;
+  const barRef = useRef<HTMLDivElement>(null);
+  const spacerRef = useRef<HTMLDivElement>(null);
+  const shown = count > 0;
+
+  // Phones: keep the spacer exactly as tall as the fixed bar, however many rows its buttons wrap to.
+  useEffect(() => {
+    const bar = barRef.current;
+    const spacer = spacerRef.current;
+    if (!shown || !bar || !spacer || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      const height = bar.getBoundingClientRect().height;
+      if (height > 0) spacer.style.setProperty(BAR_HEIGHT_VAR, `${height}px`);
+      else spacer.style.removeProperty(BAR_HEIGHT_VAR);
+    });
+    observer.observe(bar);
+    return () => observer.disconnect();
+  }, [shown]);
+
+  if (!shown) return null;
   return (
     <>
       <div
+        ref={barRef}
         role="region"
         aria-label="Bulk actions"
         className={[styles.bar, className ?? ''].filter(Boolean).join(' ')}
@@ -39,7 +61,7 @@ export function BulkActionBar({ count, noun, onClear, children, className }: Bul
         </div>
       </div>
       {/* Phones: room under the page content so the fixed bar never covers the last row. */}
-      <div className={styles.spacer} aria-hidden="true" />
+      <div ref={spacerRef} className={styles.spacer} aria-hidden="true" />
     </>
   );
 }

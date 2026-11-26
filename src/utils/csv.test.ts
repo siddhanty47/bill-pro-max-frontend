@@ -19,8 +19,18 @@ describe('toCsv', () => {
   });
 
   it('prefixes text that a spreadsheet would run as a formula', () => {
-    const csv = toCsv(['v'], [['=SUM(A1)'], ['+1'], ['-2'], ['@cmd'], ['=a,"b"']]);
-    expect(csv).toBe(`${BOM}v\r\n'=SUM(A1)\r\n'+1\r\n'-2\r\n'@cmd\r\n"'=a,""b"""`);
+    const csv = toCsv(['v'], [['=SUM(A1)'], ['+SUM(1)'], ['-2'], ['@cmd'], ['=a,"b"']]);
+    expect(csv).toBe(`${BOM}v\r\n'=SUM(A1)\r\n'+SUM(1)\r\n'-2\r\n'@cmd\r\n"'=a,""b"""`);
+  });
+
+  it('leaves phone numbers of + digits and spaces as they are', () => {
+    const csv = toCsv(['Phone'], [['+91 98765 43210'], ['+919876543210']]);
+    expect(csv).toBe(`${BOM}Phone\r\n+91 98765 43210\r\n+919876543210`);
+  });
+
+  it('still prefixes + text that is not digits and spaces only', () => {
+    const csv = toCsv(['v'], [['+91-98765-43210'], ['+SUM(1)'], ['+ 91']]);
+    expect(csv).toBe(`${BOM}v\r\n'+91-98765-43210\r\n'+SUM(1)\r\n'+ 91`);
   });
 
   it('prefixes text starting with a tab or a carriage return', () => {

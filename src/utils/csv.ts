@@ -10,17 +10,20 @@ export type CsvValue = string | number | null | undefined;
 const BOM = '﻿';
 const NEEDS_QUOTES = /[",\r\n]/;
 const FORMULA_START = /^[=+\-@\t\r]/;
+/** `+` then digits and spaces only, e.g. `+91 98765 43210`: a phone number, left as is. */
+const PHONE = /^\+\d[\d ]*$/;
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
  * One cell. Text starting with `=`, `+`, `-`, `@`, a tab or a carriage return gets a leading
- * `'`; numbers stay numbers.
+ * `'`, except a phone number (`+` then only digits and spaces, e.g. `+91 98765 43210`);
+ * numbers stay numbers.
  */
 function cell(value: CsvValue): string {
   if (value === null || value === undefined) return '';
   let text = String(value);
-  if (typeof value === 'string' && FORMULA_START.test(text)) text = `'${text}`;
+  if (typeof value === 'string' && FORMULA_START.test(text) && !PHONE.test(text)) text = `'${text}`;
   return NEEDS_QUOTES.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 

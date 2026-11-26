@@ -3,7 +3,7 @@
  * run per note over the existing endpoints with `runBulk`. Notes an action doesn't apply to, and
  * every failure, are listed as skipped in a "Done" dialog and stay selected.
  */
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import {
   useCancelBillNoteMutation,
   useIssueBillNoteMutation,
@@ -14,22 +14,36 @@ import { Button } from '../../components/ui';
 import { getApiError } from '../../utils/apiError';
 import { noteFileName } from '../../utils/billNoteLabels';
 import { runBulk } from '../../utils/runBulk';
-import { BulkResultDialog, useInFlightGuard, type ConfirmRequest } from '../../components/bulk';
+import {
+  plural,
+  splitResults,
+  useBulkOutcome,
+  type ConfirmRequest,
+  type RowSkip,
+} from '../../components/bulk';
 import type { BillNote } from '../../types';
 
 export const DEADLINE_REASON = 'too late for a credit note this year';
 export const OUT_OF_DATE_REASON = 'changed since you opened it, reload';
 
-type Skip = { note: BillNote; reason: string };
-type Outcome = { line: string; skipped: Skip[] };
-
-const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+type Skip = RowSkip<BillNote>;
 
 /** A note's name in lists: its number, or "Draft on <bill>" before it has one. */
 export const noteLabel = (n: BillNote) => n.noteNumber ?? `Draft on ${n.billNumber}`;
 
-const notDraftReason = (n: BillNote) =>
-  n.status === 'cancelled' ? 'already cancelled' : 'already issued';
+/** `noteLabel` for the "Done" dialog, with only the bill number of a draft in mono. */
+const skipLabel = (n: BillNote): ReactNode =>
+  n.noteNumber ?? (
+    <>
+      Draft on <span className="mono">{n.billNumber}</span>
+    </>
+  );
+
+/** PDF name for a bulk download: drafts are told apart by their bill, `note-draft-<bill>.pdf`. */
+export const bulkNoteFileName = (n: BillNote): string =>
+  noteFileName(n.noteNumber ?? `draft-${n.billNumber}`);
+
+const notDraftReason = (n: BillNote) => (n.status === 'cancelled' ? 'cancelled' : 'already issued');
 
 function reasonFor(err: unknown): string {
   const { code } = getApiError(err);
@@ -52,66 +66,42 @@ export function useBillNoteBulkActions({ businessId, notes, onSucceeded, ask }: 
   const [issueNote] = useIssueBillNoteMutation();
   const [cancelNote] = useCancelBillNoteMutation();
   const [downloadPdf] = useLazyDownloadBillNotePdfQuery();
-  const [running, setRunning] = useState(false);
-  const guard = useInFlightGuard();
-  const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const { running, guard, busy, finish, runDownloads, dialog } = useBulkOutcome<BillNote>({
+    rowKey: n => n._id,
+    label: skipLabel,
+    noun: 'notes',
+    // Numbers in the number font; a draft's label sets its bill number in mono itself.
+    monoLabels: n => n.noteNumber != null,
+    onSucceeded,
+  });
 
   const drafts = notes.filter(n => n.status === 'draft');
 
-  /** Runs `fn` on `items`; notes outside `items` are skipped with `skipped`'s reasons. */
-  const run = async (
-    items: BillNote[],
-    fn: (note: BillNote) => Promise<unknown>,
-    line: (done: number) => string,
-    skipped: Skip[] = [],
-    concurrency?: number
-  ) => {
+  /** Runs `fn` on the drafts; the other notes are skipped as not drafts. */
+  const runOnDrafts = async (fn: (note: BillNote) => Promise<unknown>, verb: string) => {
     const order = notes;
-    setRunning(true);
-    const results = await runBulk(items, fn, { concurrency });
-    setRunning(false);
-    const done: string[] = [];
-    for (const r of results) {
-      if (r.ok) done.push(r.item._id);
-      else skipped.push({ note: r.item, reason: reasonFor(r.error) });
-    }
-    const position = new Map(order.map((n, i) => [n._id, i]));
-    const at = (s: Skip) => position.get(s.note._id) ?? order.length;
-    onSucceeded(done);
-    setOutcome({ line: line(done.length), skipped: [...skipped].sort((a, b) => at(a) - at(b)) });
+    const skipped: Skip[] = notes
+      .filter(n => n.status !== 'draft')
+      .map(row => ({ row, reason: notDraftReason(row) }));
+    const results = await busy(() => runBulk(drafts, fn));
+    const ran = splitResults(results, n => n._id, reasonFor);
+    finish(`${ran.done.length} ${verb}`, ran.done, [...skipped, ...ran.skipped], order);
   };
 
-  const notDrafts = () =>
-    notes.filter(n => n.status !== 'draft').map(note => ({ note, reason: notDraftReason(note) }));
-
   const runIssue = guard(() =>
-    run(
-      drafts,
-      n => issueNote({ businessId, noteId: n._id }).unwrap(),
-      k => `${k} issued`,
-      notDrafts()
-    )
+    runOnDrafts(n => issueNote({ businessId, noteId: n._id }).unwrap(), 'issued')
   );
 
   const runCancel = guard(() =>
-    run(
-      drafts,
-      n => cancelNote({ businessId, noteId: n._id }).unwrap(),
-      k => `${k} cancelled`,
-      notDrafts()
-    )
+    runOnDrafts(n => cancelNote({ businessId, noteId: n._id }).unwrap(), 'cancelled')
   );
 
-  const runDownload = guard(() =>
-    run(
+  const runDownload = () =>
+    runDownloads(
       notes,
-      n =>
-        downloadPdf({ businessId, noteId: n._id, fileName: noteFileName(n.noteNumber) }).unwrap(),
-      k => `${k} downloaded`,
-      [],
-      2
-    )
-  );
+      n => downloadPdf({ businessId, noteId: n._id, fileName: bulkNoteFileName(n) }).unwrap(),
+      reasonFor
+    );
 
   const n = drafts.length;
   const actions: ReactNode = (
@@ -149,15 +139,6 @@ export function useBillNoteBulkActions({ businessId, notes, onSucceeded, ask }: 
       </Button>
     </>
   );
-
-  const dialog: ReactNode = outcome ? (
-    <BulkResultDialog
-      lines={[outcome.line]}
-      skipped={outcome.skipped.map(({ note, reason }) => ({ label: noteLabel(note), reason }))}
-      noun="notes"
-      onClose={() => setOutcome(null)}
-    />
-  ) : null;
 
   return { actions, dialog, running };
 }

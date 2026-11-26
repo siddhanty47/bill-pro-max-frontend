@@ -43,10 +43,9 @@ import {
   useConfirm,
 } from '../components/bulk';
 import { inventoryCsv } from './inventory/inventoryCsv';
+import { RENTED_REASON } from './inventory/bulkReasons';
 import type { Inventory, CreateInventoryInput } from '../types';
 import { computeRentedFromHistory, computeAvailable } from '../utils/inventoryUtils';
-
-export const RENTED_REASON = 'items are currently rented';
 
 export function InventoryPage() {
   const { currentBusinessId } = useCurrentBusiness();
