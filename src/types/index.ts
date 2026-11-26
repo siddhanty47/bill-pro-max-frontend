@@ -1679,6 +1679,23 @@ export interface StockRow {
 }
 
 /** One item currently at a party's sites (or damaged or lost there in the last 12 months). */
+/** Party credit score: mirrors backend `src/billing/creditScore.ts` (`CreditScore`) */
+export type CreditBand = 'good' | 'moderate' | 'bad' | 'worst';
+export type CreditBucketKey = 'current' | 'days31_60' | 'days61_90' | 'days90Plus';
+export interface PartyCreditScore {
+  /** 0–100; null when nothing is unpaid and no bill was paid in the window */
+  score: number | null;
+  band: CreditBand | null;
+  unpaidScore: number | null;
+  historyScore: number | null;
+  buckets: Array<{ key: CreditBucketKey; amount: number; pct: number }>;
+  outstanding: number;
+  paidBills: number;
+  avgDaysLate: number | null;
+  asOf: string;
+  historyDays: number;
+}
+
 export interface PartyStockRow {
   itemId: string;
   code: string;

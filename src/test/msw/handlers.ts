@@ -15,6 +15,20 @@ export const handlers = [
   http.get(apiUrl('/notifications/unread-count'), () => ok({ count: 0 })),
   http.get(apiUrl('/notifications'), () => ok([])),
   http.get(apiUrl('/businesses/:businessId/parties/:partyId/stock'), () => ok([])),
+  http.get(apiUrl('/businesses/:businessId/parties/:partyId/credit-score'), () =>
+    ok({
+      score: null,
+      band: null,
+      unpaidScore: null,
+      historyScore: null,
+      buckets: [],
+      outstanding: 0,
+      paidBills: 0,
+      avgDaysLate: null,
+      asOf: '2026-11-27T00:00:00.000Z',
+      historyDays: 365,
+    })
+  ),
   http.get(apiUrl('/businesses/:businessId/dashboard/nav-counts'), () => ok({})),
   http.get(apiUrl('/businesses/:businessId/dashboard/summary'), () => ok({})),
   // No closed financial year on any site unless a test says otherwise

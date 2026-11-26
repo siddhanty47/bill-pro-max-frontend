@@ -38,6 +38,8 @@ Each entity has its own API file in `src/api/` that injects endpoints via `baseA
 
 **Party stock:** `partyApi.getPartyStock` (`GET /businesses/:id/parties/:partyId/stock`, rows `PartyStockRow`: on site now + damaged/lost last 12 months) powers the "Stock on site" section of the party About tab (`pages/party/PartyStockSection.tsx`). It provides `Party`/`Challan`/`Inventory` tags so challan mutations refresh it; a 403 hides the section.
 
+**Party credit score:** `partyApi.getPartyCreditScore` (`GET /businesses/:id/parties/:partyId/credit-score`) powers the "Credit score" section of the party About tab (`pages/party/PartyCreditScoreSection.tsx`); the backend computes everything, a 403 hides the section. Detail: `docs/features/party-credit-score-ui.md`.
+
 **Stock counts:** every "pieces with a party" number (item statement, `getItemsWithParty`, share-link running items, party stock) comes from the backend's shared party-stock rules (`services/stock/partyStock.ts`: agreement opening stock on the site's start date + challans). Never recompute it in the UI. Negative counts are real data errors and are shown, coloured with `stockTone` and explained by `components/stock/NegativeStockNotice`.
 
 **URL pattern for business-scoped resources:** `/businesses/${businessId}/entities`
