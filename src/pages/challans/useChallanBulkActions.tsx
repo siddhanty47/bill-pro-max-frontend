@@ -93,7 +93,8 @@ export function useChallanBulkActions({
         ...(dryRun && { dryRun }),
       }).unwrap();
     const preview = await call(true);
-    if (!isDryRunResult(preview)) return;
+    // Anything but a report means the server did not preview it: leave it for the single flow.
+    if (!isDryRunResult(preview)) throw new Skipped(CHECK_REASON);
     const { report } = preview;
     if (report.blocked === 'closedYear') throw new Skipped(YEAR_CLOSED_REASON);
     if (!isClean(report)) throw new Skipped(CHECK_REASON);

@@ -10,6 +10,7 @@ import {
   NotAdded,
   StatusChip,
   type Column,
+  type DataTableProps,
   type DataTableSelection,
 } from '../ui';
 import { noteSign, signedMoney } from '../../utils/billMoney';
@@ -27,6 +28,8 @@ export interface BillNotesTableProps {
   partyName?: (note: BillNote) => string;
   /** Row checkboxes for bulk actions; only the Notes page passes it (not the bill/party tabs) */
   selection?: DataTableSelection<BillNote>;
+  /** Page-owned paging (`notes` is then the current page); without it the table pages itself */
+  pagination?: DataTableProps<BillNote>['pagination'];
 }
 
 const notePath = (n: BillNote) => `/bill-notes/${n._id}`;
@@ -42,6 +45,7 @@ export function BillNotesTable({
   showBill = true,
   partyName,
   selection,
+  pagination,
 }: BillNotesTableProps) {
   const columns: Column<BillNote>[] = [
     { key: 'noteNumber', header: 'Number', nowrap: true, render: numberCell },
@@ -88,6 +92,7 @@ export function BillNotesTable({
       rowLink={notePath}
       empty={empty}
       selection={selection}
+      pagination={pagination}
       mobile={{
         title: numberCell,
         badge: n => <StatusChip status={n.status} />,

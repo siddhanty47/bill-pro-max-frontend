@@ -343,6 +343,42 @@ describe('BillNotesPage', () => {
       ]);
     });
 
+    const thirty = Array.from({ length: 30 }, (_, i) =>
+      makeBillNote({ _id: `m${i}`, billNumber: `B-${i + 1}` })
+    );
+
+    it('phone select-all picks only the 25 notes on the page', async () => {
+      useApi(thirty);
+      const { user } = renderPage();
+      await screen.findByRole('table', { name: 'Notes' });
+      expect(within(table()).getAllByRole('row')).toHaveLength(26);
+      await user.click(screen.getByRole('button', { name: 'Select all on this page' }));
+      expect(bar()).toHaveTextContent('25 notes selected');
+      expect(within(bar()!).getByRole('button', { name: 'Issue 25' })).toBeInTheDocument();
+    });
+
+    it('the desktop header checkbox picks the 25 notes on the page', async () => {
+      useApi(thirty);
+      const { user } = renderPage();
+      await screen.findByRole('table', { name: 'Notes' });
+      await selectAll(user);
+      expect(bar()).toHaveTextContent('25 notes selected');
+    });
+
+    it('changing page clears the selection and shows the rest', async () => {
+      useApi(thirty);
+      const { user } = renderPage();
+      await screen.findByRole('table', { name: 'Notes' });
+      await selectAll(user);
+      expect(bar()).toBeInTheDocument();
+      const nav = screen.getByRole('navigation', { name: 'Notes pages' });
+      await user.click(within(nav).getByRole('button', { name: 'Page 2' }));
+      expect(bar()).not.toBeInTheDocument();
+      expect(within(table()).getAllByRole('row')).toHaveLength(6);
+      await user.click(screen.getByRole('button', { name: 'Select all on this page' }));
+      expect(bar()).toHaveTextContent('5 notes selected');
+    });
+
     it('clears the selection when a filter changes', async () => {
       useApi(mixed);
       const { user } = renderPage();

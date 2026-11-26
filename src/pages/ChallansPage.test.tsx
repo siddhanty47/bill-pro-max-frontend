@@ -571,6 +571,26 @@ describe('ChallansPage', () => {
       ]);
     });
 
+    it('skips a challan whose dry run comes back without a report', async () => {
+      useApi(drafts.slice(0, 2));
+      const calls = trackConfirm((id, dryRun) =>
+        id === 'd1' && dryRun ? ok(challan({ _id: 'd1', status: 'confirmed' })) : undefined
+      );
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+      await user.click(within(bar()!).getByRole('button', { name: 'Confirm 2' }));
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm' }));
+      const done = await doneDialog();
+      expect(done).toHaveTextContent('1 confirmed');
+      expect(
+        within(done)
+          .getAllByRole('listitem')
+          .map(li => li.textContent)
+      ).toEqual(['D-1: needs a check, open it to confirm']);
+      expect(real(calls)).toEqual(['d2']);
+    });
+
     it('uses the singular in the confirm title and skips cancelled challans', async () => {
       useApi([drafts[0], challan({ _id: 'x1', challanNumber: 'D-9', status: 'cancelled' })]);
       trackConfirm();
