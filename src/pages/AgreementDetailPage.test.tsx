@@ -263,8 +263,8 @@ describe('AgreementDetailPage', () => {
     await user.clear(input);
     await user.type(input, '8{Enter}');
 
-    expect(await screen.findByText('May be marked out of date')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Save anyway' }));
+    expect(await screen.findByText('Not sent yet (1)')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save change' }));
     await waitFor(() => expect(calls).toHaveLength(2));
     expect(calls[1]).toEqual({ dryRun: false, body: { ratePerDay: 8 } });
   });
@@ -592,7 +592,7 @@ describe('AgreementDetailPage challans by site', () => {
 
 describe('AgreementDetailPage closed financial year', () => {
   const MESSAGE =
-    'FY 2025-26 is closed for this site. Nothing dated on or before 31 Mar 2026 can change.';
+    "FY 2025-26 is closed for this site. Anything dated on or before 31 Mar 2026 can't be changed.";
 
   function closedSite() {
     const seen: URLSearchParams[] = [];

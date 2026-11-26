@@ -540,7 +540,7 @@ describe('ChallanForm', () => {
 
   describe('closed financial year', () => {
     const MESSAGE =
-      'FY 2025-26 is closed for this site. Nothing dated on or before 31 Mar 2026 can change.';
+      "FY 2025-26 is closed for this site. Anything dated on or before 31 Mar 2026 can't be changed.";
 
     function closedSite() {
       const seen: URLSearchParams[] = [];

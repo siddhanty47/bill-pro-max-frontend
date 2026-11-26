@@ -403,9 +403,9 @@ describe('ChallanDetailPage', () => {
     await user.clear(input);
     await user.type(input, '12{Enter}');
 
-    expect(await screen.findByRole('link', { name: 'INV-9' })).toBeInTheDocument();
-    await user.type(screen.getByLabelText(/Reason/), 'Counted again');
-    await user.click(screen.getByRole('button', { name: 'Save anyway' }));
+    expect(await screen.findByRole('button', { name: 'INV-9 View' })).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/Why are you making/), 'Counted again');
+    await user.click(screen.getByRole('button', { name: 'Save change' }));
     await waitFor(() => expect(calls).toHaveLength(2));
     expect(calls).toEqual([
       { dryRun: true, body: { quantity: 12 } },
@@ -579,7 +579,7 @@ describe('ChallanDetailPage', () => {
 
   describe('closed financial year', () => {
     const MESSAGE =
-      'FY 2025-26 is closed for this site. Nothing dated on or before 31 Mar 2026 can change.';
+      "FY 2025-26 is closed for this site. Anything dated on or before 31 Mar 2026 can't be changed.";
 
     function closedThrough(seen: URLSearchParams[] = []) {
       server.use(

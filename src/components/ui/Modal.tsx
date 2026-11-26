@@ -10,7 +10,8 @@ import styles from './Modal.module.css';
 
 export type ModalVariant = 'delivery' | 'return';
 
-export type ModalSize = 'default' | 'form';
+/** `form`: landscape forms. `wide`: a dialog with a side panel open (two columns). */
+export type ModalSize = 'default' | 'form' | 'wide';
 
 interface ModalProps {
   isOpen: boolean;
@@ -70,7 +71,7 @@ export function Modal({ isOpen, onClose, title, children, variant, size = 'defau
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div
-        className={`${styles.modal} ${variant ? styles[variant] : ''} ${size === 'form' ? styles.formSize : ''}`}
+        className={`${styles.modal} ${variant ? styles[variant] : ''} ${size === 'form' ? styles.formSize : size === 'wide' ? styles.wideSize : ''}`}
         ref={dialogRef}
         role="dialog"
         aria-modal="true"

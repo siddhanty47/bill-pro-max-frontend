@@ -107,7 +107,7 @@ export function effectiveEndDate(agreement: AgreementEnd): string | undefined {
 /** The one line shown wherever a change is refused because the site's FY is closed. */
 export function closedYearMessage(fy: string, lockedThrough: string | Date): string {
   const day = new Date(dayOf(lockedThrough)).toISOString().slice(0, 10);
-  return `FY ${fy} is closed for this site. Nothing dated on or before ${formatDate(day, FULL_DATE)} can change.`;
+  return `FY ${fy} is closed for this site. Anything dated on or before ${formatDate(day, FULL_DATE)} can't be changed.`;
 }
 
 /** The line shown where a credit note is refused because the FY's deadline has passed. */
