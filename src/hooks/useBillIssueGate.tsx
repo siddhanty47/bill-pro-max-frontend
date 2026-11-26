@@ -17,11 +17,27 @@ export const OUT_OF_DATE_MESSAGE =
 
 type Run = (acknowledgeNegative?: boolean) => Promise<unknown>;
 
+/** How the negative-stock dialog words the action: emailing the bill, or only marking it sent. */
+export type IssueAction = 'send' | 'markSent';
+
+const ACK_WORDING: Record<IssueAction, { question: string; button: string }> = {
+  send: { question: 'Send the bill anyway?', button: 'Send anyway' },
+  markSent: { question: 'Mark the bill as sent anyway?', button: 'Mark as sent anyway' },
+};
+
 type Pending =
   | { kind: 'outOfDate'; bill: Bill; message: string }
-  | { kind: 'negative'; bill: Bill; run: Run; spans: NegativeSpan[] };
+  | { kind: 'negative'; bill: Bill; run: Run; spans: NegativeSpan[]; action: IssueAction };
 
-export function useBillIssueGate(businessId: string | null | undefined) {
+interface GateOptions {
+  /** Shows any other failure (default: `alert`). */
+  onError?: (message: string) => void;
+}
+
+export function useBillIssueGate(
+  businessId: string | null | undefined,
+  { onError }: GateOptions = {}
+) {
   const [pending, setPending] = useState<Pending | null>(null);
   const [busy, setBusy] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
@@ -47,40 +63,52 @@ export function useBillIssueGate(businessId: string | null | undefined) {
     [businessId, refreshMutation]
   );
 
-  const execute = useCallback(async (bill: Bill, run: Run, ack?: boolean) => {
-    try {
-      await run(ack);
-      setPending(null);
-    } catch (err) {
-      const info = getApiError(err);
-      if (info.code === 'BILL_OUT_OF_DATE') {
-        setPending({
-          kind: 'outOfDate',
-          bill,
-          message: info.message ?? OUT_OF_DATE_MESSAGE,
-        });
-      } else if (info.code === 'NEGATIVE_STOCK_ACK_REQUIRED') {
-        const spans = info.details?.negativeStock;
-        setPending({
-          kind: 'negative',
-          bill,
-          run,
-          spans: Array.isArray(spans) ? (spans as NegativeSpan[]) : [],
-        });
-      } else {
+  const execute = useCallback(
+    async (bill: Bill, run: Run, ack?: boolean, action: IssueAction = 'send') => {
+      try {
+        await run(ack);
         setPending(null);
-        alert(getErrorMessage(err));
+      } catch (err) {
+        const info = getApiError(err);
+        if (info.code === 'BILL_OUT_OF_DATE') {
+          setPending({
+            kind: 'outOfDate',
+            bill,
+            message: info.message ?? OUT_OF_DATE_MESSAGE,
+          });
+        } else if (info.code === 'NEGATIVE_STOCK_ACK_REQUIRED') {
+          const spans = info.details?.negativeStock;
+          setPending({
+            kind: 'negative',
+            bill,
+            run,
+            spans: Array.isArray(spans) ? (spans as NegativeSpan[]) : [],
+            action,
+          });
+        } else {
+          setPending(null);
+          const message = getErrorMessage(err);
+          if (onError) onError(message);
+          else alert(message);
+        }
       }
-    }
-  }, []);
+    },
+    [onError]
+  );
 
   /**
    * Send a bill. `run` makes the API call with the acknowledge flag. Drafts that are
    * out of date never reach the API; drafts with negative stock ask first.
    * `issuing` is false for actions that do not issue the bill (e.g. cancelling).
+   * `action` words the negative-stock dialog (default `'send'`).
    */
   const attempt = useCallback(
-    async (bill: Bill, run: Run, issuing = bill.status === 'draft') => {
+    async (
+      bill: Bill,
+      run: Run,
+      issuing = bill.status === 'draft',
+      action: IssueAction = 'send'
+    ) => {
       if (issuing) {
         if (bill.drift != null) {
           setRefreshError(null);
@@ -88,11 +116,11 @@ export function useBillIssueGate(businessId: string | null | undefined) {
           return;
         }
         if (bill.negativeStock && bill.negativeStock.length > 0) {
-          setPending({ kind: 'negative', bill, run, spans: bill.negativeStock });
+          setPending({ kind: 'negative', bill, run, spans: bill.negativeStock, action });
           return;
         }
       }
-      await execute(bill, run);
+      await execute(bill, run, undefined, action);
     },
     [execute]
   );
@@ -121,10 +149,11 @@ export function useBillIssueGate(businessId: string | null | undefined) {
       </Modal>
     );
   } else if (pending?.kind === 'negative') {
-    const { bill, run, spans } = pending;
+    const { bill, run, spans, action } = pending;
+    const wording = ACK_WORDING[action];
     dialog = (
       <Modal isOpen onClose={close} title="Stock went below zero">
-        <p>These items were billed as 0 on these days. Send the bill anyway?</p>
+        <p>These items were billed as 0 on these days. {wording.question}</p>
         <NegativeStockList spans={spans} />
         <div className={styles.actions}>
           <Button onClick={close}>Cancel</Button>
@@ -133,11 +162,11 @@ export function useBillIssueGate(businessId: string | null | undefined) {
             loading={busy}
             onClick={async () => {
               setBusy(true);
-              await execute(bill, run, true);
+              await execute(bill, run, true, action);
               setBusy(false);
             }}
           >
-            Send anyway
+            {wording.button}
           </Button>
         </div>
       </Modal>

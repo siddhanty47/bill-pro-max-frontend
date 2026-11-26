@@ -43,7 +43,14 @@ export {
   type ThProps,
   type TdProps,
 } from './Table';
-export { DataTable, type Column, type DataTableProps, type DataTableMobile } from './DataTable';
+export {
+  DataTable,
+  type Column,
+  type DataTableProps,
+  type DataTableMobile,
+  type DataTableSelection,
+} from './DataTable';
+export { BulkActionBar, type BulkActionBarProps } from './BulkActionBar';
 export {
   SegmentedControl,
   type SegmentedControlProps,
