@@ -16,7 +16,7 @@ import { Button, RowActions } from '../../components/ui';
 import { useBillIssueGate } from '../../hooks/useBillIssueGate';
 import { isIssued } from '../../utils/billStatus';
 import type { Bill } from '../../types';
-import type { ConfirmRequest } from './BillConfirmDialog';
+import type { ConfirmRequest } from '../../components/bulk';
 
 interface Options {
   businessId: string;

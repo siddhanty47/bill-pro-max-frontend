@@ -1,10 +1,10 @@
 /**
- * @fileoverview The Bills page's confirm and message dialogs (kit `Modal`), used instead of
- * `window.confirm` / `alert`.
+ * @fileoverview Confirm and message dialogs (kit `Modal`) for list pages and their bulk
+ * actions, used instead of `window.confirm` / `alert`. Open a confirm with `useConfirm`.
  */
 import { useState, type ReactNode } from 'react';
-import { Button, Modal } from '../../components/ui';
-import styles from './BillDialogs.module.css';
+import { Button, Modal } from '../ui';
+import styles from './BulkDialogs.module.css';
 
 export type ConfirmRequest = {
   title: string;
@@ -17,7 +17,7 @@ export type ConfirmRequest = {
 };
 
 /** A confirm dialog: Cancel closes, the confirm button runs `onConfirm` and then closes. */
-export function BillConfirmDialog({
+export function BulkConfirmDialog({
   request,
   onClose,
 }: {
@@ -50,8 +50,8 @@ export function BillConfirmDialog({
   );
 }
 
-/** A message with a single Close button (e.g. a failed action). */
-export function BillMessageDialog({
+/** A message with a single Close button (e.g. a failed action). Hidden while `message` is null. */
+export function MessageDialog({
   title,
   message,
   onClose,

@@ -16,11 +16,6 @@
   margin: var(--space-4) 0 0;
 }
 
-.list {
-  margin: var(--space-2) 0 0;
-  padding-left: var(--space-5);
-}
-
 .billGroup + .billGroup {
   margin-top: var(--space-3);
 }

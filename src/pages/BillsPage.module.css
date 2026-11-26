@@ -26,16 +26,3 @@
     gap: var(--space-1);
   }
 }
-
-/* Phones: the table's select-all header is hidden, so the page offers its own. */
-.mobileSelect {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: var(--space-2);
-}
-
-@media (min-width: 769px) {
-  .mobileSelect {
-    display: none;
-  }
-}

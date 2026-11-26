@@ -3,7 +3,7 @@
  * and delete, run per bill over the existing endpoints with `runBulk`. Each action runs on the
  * bills it applies to; the others, and every failure, are listed as skipped in a "Done" dialog.
  */
-import { useRef, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   useDeleteBillMutation,
   useLazyDownloadBillPdfQuery,
@@ -17,7 +17,7 @@ import { getApiError } from '../../utils/apiError';
 import { isIssued } from '../../utils/billStatus';
 import { runBulk } from '../../utils/runBulk';
 import type { Bill } from '../../types';
-import type { ConfirmRequest } from './BillConfirmDialog';
+import { BulkResultDialog, useInFlightGuard, type ConfirmRequest } from '../../components/bulk';
 import styles from './BillDialogs.module.css';
 
 export const OUT_OF_DATE_REASON = 'out of date, open it and press Refresh';
@@ -59,18 +59,7 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
 
   const [running, setRunning] = useState(false);
   // Blocks a second run while one is going (a fast double click lands before `running` renders).
-  const inFlight = useRef(false);
-  const guard =
-    <A extends unknown[]>(fn: (...args: A) => Promise<void>) =>
-    async (...args: A) => {
-      if (inFlight.current) return;
-      inFlight.current = true;
-      try {
-        await fn(...args);
-      } finally {
-        inFlight.current = false;
-      }
-    };
+  const guard = useInFlightGuard();
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [negative, setNegative] = useState<{
     kind: IssueKind;
@@ -292,28 +281,13 @@ export function useBillBulkActions({ businessId, bills, onSucceeded, ask }: Opti
       </Modal>
     );
   } else if (outcome) {
-    const close = () => setOutcome(null);
     dialog = (
-      <Modal isOpen onClose={close} title="Done">
-        <p className={styles.text}>{outcome.line}</p>
-        {outcome.skipped.length > 0 && (
-          <div className={styles.section}>
-            <p className={styles.text}>Skipped ({outcome.skipped.length})</p>
-            <ul className={styles.list} aria-label="Skipped bills">
-              {outcome.skipped.map(({ bill, reason }) => (
-                <li key={bill._id}>
-                  <span className="mono">{bill.billNumber}</span>: {reason}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <div className={styles.actions}>
-          <Button variant="primary" onClick={close}>
-            Close
-          </Button>
-        </div>
-      </Modal>
+      <BulkResultDialog
+        lines={[outcome.line]}
+        skipped={outcome.skipped.map(({ bill, reason }) => ({ label: bill.billNumber, reason }))}
+        noun="bills"
+        onClose={() => setOutcome(null)}
+      />
     );
   }
 
