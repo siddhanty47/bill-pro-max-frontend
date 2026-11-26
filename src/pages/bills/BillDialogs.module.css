@@ -1,0 +1,5 @@
+/* Layout only: bill-specific spacing; the shared dialog layout is components/bulk/BulkDialogs.module.css. */
+
+.billGroup + .billGroup {
+  margin-top: var(--space-3);
+}

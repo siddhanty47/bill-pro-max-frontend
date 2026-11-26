@@ -6,7 +6,7 @@ import { ChallansPage } from './ChallansPage';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
 import { apiUrl, ok, pagedOk } from '../test/msw/handlers';
-import type { Challan, ChallanItem, Party } from '../types';
+import type { Challan, ChallanItem, GateReport, Party } from '../types';
 
 const party = (over: Partial<Party>) =>
   ({
@@ -53,6 +53,8 @@ const defaults = [
     status: 'cancelled',
   }),
 ];
+
+const CLEAN: GateReport = { affected: [], negative: [], requiresReason: false, blocked: null };
 
 const PARTY_NAMES: Record<string, string> = { p1: 'Mehta Builders', p2: 'Om Constructions' };
 
@@ -120,7 +122,8 @@ const rowNumbers = () =>
   within(screen.getByRole('table'))
     .getAllByRole('row')
     .slice(1)
-    .map(r => within(r).getAllByRole('cell')[0].textContent);
+    // cell 0 is the selection checkbox
+    .map(r => within(r).getAllByRole('cell')[1].textContent);
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -211,19 +214,22 @@ describe('ChallansPage', () => {
 
   it('confirms a draft after the prompt without navigating', async () => {
     useApi();
-    let body: unknown;
+    const bodies: unknown[] = [];
     server.use(
       http.post(apiUrl('/businesses/biz-1/challans/c1/confirm'), async ({ request }) => {
-        body = await request.json();
+        bodies.push(await request.json());
+        if (new URL(request.url).searchParams.get('dryRun') === 'true')
+          return ok({ dryRun: true, report: CLEAN });
         return ok(challan({ status: 'confirmed' }));
       })
     );
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const { user } = renderPage();
     const table = await screen.findByRole('table');
     await user.click(within(table).getByRole('button', { name: 'Confirm' }));
-    expect(confirmSpy).toHaveBeenCalledWith('Confirm challan D-2026-27-0007?');
-    await waitFor(() => expect(body).toEqual({ confirmedBy: 'Unknown' }));
+    const dialog = screen.getByRole('dialog', { name: 'Confirm challan D-2026-27-0007?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(bodies).toHaveLength(2));
+    expect(bodies[1]).toEqual({ confirmedBy: 'Unknown' });
     expect(screen.queryByTestId('where')).not.toBeInTheDocument();
   });
 
@@ -236,26 +242,29 @@ describe('ChallansPage', () => {
         return ok(challan({}));
       })
     );
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
     const { user } = renderPage();
     const table = await screen.findByRole('table');
     await user.click(within(table).getByRole('button', { name: 'Confirm' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(called).toBe(false);
   });
 
-  it('alerts when confirming fails', async () => {
+  it('shows a message when confirming fails', async () => {
     useApi();
     server.use(
       http.post(apiUrl('/businesses/biz-1/challans/c1/confirm'), () =>
         HttpResponse.json({ success: false, message: 'Nope' }, { status: 400 })
       )
     );
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const { user } = renderPage();
     const table = await screen.findByRole('table');
     await user.click(within(table).getByRole('button', { name: 'Confirm' }));
-    await waitFor(() => expect(alertSpy).toHaveBeenCalled());
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm' }));
+    const dialog = await screen.findByRole('dialog', { name: "Couldn't confirm challan" });
+    expect(dialog).toHaveTextContent('Nope');
+    await user.click(within(dialog).getAllByRole('button', { name: 'Close' }).at(-1)!);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('navigates to the challan when a row is clicked', async () => {
@@ -398,6 +407,291 @@ describe('ChallansPage', () => {
     renderPage();
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+
+  describe('bulk actions', () => {
+    const bar = () => screen.queryByRole('region', { name: 'Bulk actions' });
+    const doneDialog = () => screen.findByRole('dialog', { name: 'Done' });
+    const conflict = (code: string, details?: Record<string, unknown>) =>
+      HttpResponse.json(
+        { success: false, error: { code, message: `${code} message`, details } },
+        { status: 409 }
+      );
+    const drafts = [
+      challan({ _id: 'd1', challanNumber: 'D-1', date: '2026-11-20T00:00:00.000Z' }),
+      challan({ _id: 'd2', challanNumber: 'D-2', date: '2026-11-19T00:00:00.000Z' }),
+      challan({ _id: 'd3', challanNumber: 'D-3', date: '2026-11-18T00:00:00.000Z' }),
+      challan({
+        _id: 'k1',
+        challanNumber: 'D-4',
+        date: '2026-11-17T00:00:00.000Z',
+        status: 'confirmed',
+      }),
+    ];
+    type Reply = (id: string, dryRun: boolean) => Response | undefined;
+    /** Records every confirm call; `reply` may override the default clean dry run / success. */
+    function trackConfirm(reply: Reply = () => undefined) {
+      const calls: { id: string; dryRun: boolean; body: unknown }[] = [];
+      server.use(
+        http.post(apiUrl('/businesses/biz-1/challans/:id/confirm'), async ({ params, request }) => {
+          const id = String(params.id);
+          const dryRun = new URL(request.url).searchParams.get('dryRun') === 'true';
+          calls.push({ id, dryRun, body: await request.json() });
+          return (
+            reply(id, dryRun) ??
+            (dryRun
+              ? ok({ dryRun: true, report: CLEAN })
+              : ok(challan({ _id: id, status: 'confirmed' })))
+          );
+        })
+      );
+      return calls;
+    }
+    const real = (calls: { id: string; dryRun: boolean }[]) =>
+      calls
+        .filter(c => !c.dryRun)
+        .map(c => c.id)
+        .sort();
+
+    it('shows no bar until a challan is ticked, then counts drafts on the buttons', async () => {
+      useApi(drafts);
+      const { user } = renderPage();
+      const table = await screen.findByRole('table');
+      expect(bar()).not.toBeInTheDocument();
+      await user.click(within(table).getByRole('checkbox', { name: 'Select D-4' }));
+      expect(bar()).toHaveTextContent('1 challan selected');
+      expect(within(bar()!).getByRole('button', { name: 'Confirm 0' })).toBeDisabled();
+      expect(within(bar()!).getByRole('button', { name: 'Download 1 PDF' })).toBeEnabled();
+      await user.click(within(table).getByRole('checkbox', { name: 'Select D-1' }));
+      expect(bar()).toHaveTextContent('2 challans selected');
+      expect(within(bar()!).getByRole('button', { name: 'Confirm 1' })).toBeEnabled();
+    });
+
+    it('confirms clean drafts and skips one whose dry run touches a bill, with no change dialog', async () => {
+      useApi(drafts);
+      const calls = trackConfirm((id, dryRun) =>
+        dryRun && id === 'd2'
+          ? ok({
+              dryRun: true,
+              report: {
+                ...CLEAN,
+                affected: [{ billId: 'b1', billNumber: 'B-1', status: 'sent' }],
+                requiresReason: true,
+              },
+            })
+          : undefined
+      );
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+      await user.click(within(bar()!).getByRole('button', { name: 'Confirm 3' }));
+      const ask = screen.getByRole('dialog', { name: 'Confirm 3 challans?' });
+      await user.click(within(ask).getByRole('button', { name: 'Confirm' }));
+      const done = await doneDialog();
+      expect(screen.getAllByRole('dialog')).toHaveLength(1);
+      expect(done).toHaveTextContent('2 confirmed');
+      expect(
+        within(done)
+          .getAllByRole('listitem')
+          .map(li => li.textContent)
+      ).toEqual(['D-2: needs a check, open it to confirm', 'D-4: already confirmed']);
+      expect(real(calls)).toEqual(['d1', 'd3']);
+      expect(
+        calls
+          .filter(c => c.dryRun)
+          .map(c => c.id)
+          .sort()
+      ).toEqual(['d1', 'd2', 'd3']);
+      expect(calls.every(c => (c.body as { confirmedBy: string }).confirmedBy === 'Unknown')).toBe(
+        true
+      );
+      await user.click(within(done).getAllByRole('button', { name: 'Close' }).at(-1)!);
+      // Skipped challans stay selected; confirmed ones leave the selection.
+      expect(bar()).toHaveTextContent('2 challans selected');
+    });
+
+    it('skips negative stock and role blocks as needing a check, closed years as year closed', async () => {
+      useApi(drafts.slice(0, 3));
+      const calls = trackConfirm((id, dryRun) => {
+        if (!dryRun) return undefined;
+        if (id === 'd1')
+          return ok({
+            dryRun: true,
+            report: { ...CLEAN, negative: [{ itemId: 'i1' }] },
+          });
+        if (id === 'd2')
+          return ok({
+            dryRun: true,
+            report: { ...CLEAN, blocked: 'closedYear', closedYear: '2025-26' },
+          });
+        return ok({ dryRun: true, report: { ...CLEAN, blocked: 'role' } });
+      });
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+      await user.click(within(bar()!).getByRole('button', { name: 'Confirm 3' }));
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm' }));
+      const done = await doneDialog();
+      expect(done).toHaveTextContent('0 confirmed');
+      expect(
+        within(done)
+          .getAllByRole('listitem')
+          .map(li => li.textContent)
+      ).toEqual([
+        'D-1: needs a check, open it to confirm',
+        'D-2: year closed',
+        'D-3: needs a check, open it to confirm',
+      ]);
+      expect(real(calls)).toEqual([]);
+    });
+
+    it('turns refusals from the server into skip reasons', async () => {
+      useApi(drafts.slice(0, 3));
+      trackConfirm((id, dryRun) => {
+        if (id === 'd1' && dryRun) return conflict('YEAR_CLOSED', { fy: '2025-26' });
+        if (id === 'd2' && !dryRun) return conflict('REASON_REQUIRED');
+        if (id === 'd3' && !dryRun)
+          return HttpResponse.json({ success: false, message: 'Server broke' }, { status: 500 });
+        return undefined;
+      });
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+      await user.click(within(bar()!).getByRole('button', { name: 'Confirm 3' }));
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm' }));
+      const done = await doneDialog();
+      expect(
+        within(done)
+          .getAllByRole('listitem')
+          .map(li => li.textContent)
+      ).toEqual([
+        'D-1: year closed',
+        'D-2: needs a check, open it to confirm',
+        'D-3: Server broke',
+      ]);
+    });
+
+    it('skips a challan whose dry run comes back without a report', async () => {
+      useApi(drafts.slice(0, 2));
+      const calls = trackConfirm((id, dryRun) =>
+        id === 'd1' && dryRun ? ok(challan({ _id: 'd1', status: 'confirmed' })) : undefined
+      );
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+      await user.click(within(bar()!).getByRole('button', { name: 'Confirm 2' }));
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm' }));
+      const done = await doneDialog();
+      expect(done).toHaveTextContent('1 confirmed');
+      expect(
+        within(done)
+          .getAllByRole('listitem')
+          .map(li => li.textContent)
+      ).toEqual(['D-1: needs a check, open it to confirm']);
+      expect(real(calls)).toEqual(['d2']);
+    });
+
+    it('uses the singular in the confirm title and skips cancelled challans', async () => {
+      useApi([drafts[0], challan({ _id: 'x1', challanNumber: 'D-9', status: 'cancelled' })]);
+      trackConfirm();
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+      await user.click(within(bar()!).getByRole('button', { name: 'Confirm 1' }));
+      await user.click(
+        within(screen.getByRole('dialog', { name: 'Confirm 1 challan?' })).getByRole('button', {
+          name: 'Confirm',
+        })
+      );
+      const done = await doneDialog();
+      expect(done).toHaveTextContent('1 confirmed');
+      expect(done).toHaveTextContent('D-9: cancelled');
+    });
+
+    it('downloads one PDF per selected challan, named like the single download', async () => {
+      useApi(drafts);
+      const fetched: string[] = [];
+      server.use(
+        http.get(apiUrl('/businesses/biz-1/challans/:id/pdf'), ({ params }) => {
+          fetched.push(String(params.id));
+          if (params.id === 'd2')
+            return HttpResponse.json({ success: false, message: 'No PDF' }, { status: 404 });
+          return new HttpResponse('pdf', { headers: { 'Content-Type': 'application/pdf' } });
+        })
+      );
+      URL.createObjectURL = vi.fn(() => 'blob:x');
+      URL.revokeObjectURL = vi.fn();
+      const names: string[] = [];
+      vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+        this: HTMLAnchorElement
+      ) {
+        names.push(this.download);
+      });
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+      await user.click(within(bar()!).getByRole('button', { name: 'Download 4 PDFs' }));
+      const done = await doneDialog();
+      expect(fetched.sort()).toEqual(['d1', 'd2', 'd3', 'k1']);
+      expect(names.sort()).toEqual(['challan-D-1.pdf', 'challan-D-3.pdf', 'challan-D-4.pdf']);
+      expect(done).toHaveTextContent('3 downloaded');
+      expect(done).toHaveTextContent('D-2: No PDF');
+    });
+
+    it('clears the selection when a filter changes', async () => {
+      useApi(drafts);
+      const { user } = renderPage();
+      const table = await screen.findByRole('table');
+      await user.click(within(table).getByRole('checkbox', { name: 'Select D-1' }));
+      expect(bar()).toBeInTheDocument();
+      await user.selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'draft');
+      await waitFor(() => expect(bar()).not.toBeInTheDocument());
+    });
+
+    it('clears the selection when the page changes', async () => {
+      const many = Array.from({ length: 27 }, (_, i) =>
+        challan({
+          _id: `m${i}`,
+          challanNumber: `M-${String(i + 1).padStart(2, '0')}`,
+          date: `2026-10-${String(28 - i).padStart(2, '0')}T00:00:00.000Z`,
+        })
+      );
+      useApi(many);
+      const { user } = renderPage();
+      const table = await screen.findByRole('table');
+      await user.click(within(table).getByRole('checkbox', { name: 'Select M-01' }));
+      expect(bar()).toHaveTextContent('1 challan selected');
+      const nav = screen.getByRole('navigation', { name: 'Challans pages' });
+      await user.click(within(nav).getByRole('button', { name: 'Page 2' }));
+      await waitFor(() => expect(rowNumbers()).toEqual(['M-26', 'M-27']));
+      expect(bar()).not.toBeInTheDocument();
+    });
+
+    it('offers select all / clear on phones for the visible page', async () => {
+      useApi(drafts);
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(screen.getByRole('button', { name: 'Select all on this page' }));
+      expect(bar()).toHaveTextContent('4 challans selected');
+      expect(within(bar()!).getByRole('button', { name: 'Confirm 3' })).toBeEnabled();
+      await user.click(screen.getByRole('button', { name: 'Clear selection' }));
+      expect(bar()).not.toBeInTheDocument();
+    });
+
+    it('says what bulk confirm does before it runs', async () => {
+      useApi(drafts);
+      const calls = trackConfirm();
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+      await user.click(within(bar()!).getByRole('button', { name: 'Confirm 3' }));
+      const ask = screen.getByRole('dialog', { name: 'Confirm 3 challans?' });
+      expect(ask).toHaveTextContent(
+        "Each challan's stock moves are saved. Challans that need a check are skipped."
+      );
+      await user.click(within(ask).getByRole('button', { name: 'Cancel' }));
+      expect(calls).toEqual([]);
+    });
   });
 
   it('asks for a business when none is selected', () => {

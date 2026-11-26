@@ -1,11 +1,12 @@
-import { describe, expect, it } from 'vitest';
-import { fireEvent, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { PaymentsPage } from './PaymentsPage';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
 import { apiUrl, ok } from '../test/msw/handlers';
+import * as download from '../utils/download';
 import type { Party, Payment } from '../types';
 
 const payment = (over: Partial<Payment>) =>
@@ -80,7 +81,7 @@ const rowRefs = () =>
   within(screen.getByRole('table'))
     .getAllByRole('row')
     .slice(1)
-    .map(r => within(r).getAllByRole('cell')[5].textContent);
+    .map(r => within(r).getAllByRole('cell')[6].textContent);
 
 describe('PaymentsPage', () => {
   it('shows a spinner while loading', () => {
@@ -210,5 +211,91 @@ describe('PaymentsPage', () => {
     await screen.findByRole('table');
     await user.type(screen.getByRole('searchbox', { name: 'Search payments' }), 'zzz');
     expect(screen.getByText('No payments match these filters')).toBeInTheDocument();
+  });
+
+  describe('bulk export', () => {
+    afterEach(() => vi.restoreAllMocks());
+    const bar = () => screen.queryByRole('region', { name: 'Bulk actions' });
+    const selectAll = (user: ReturnType<typeof renderPage>['user']) =>
+      user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+    const saved = () => {
+      const save = vi.spyOn(download, 'saveBlob').mockImplementation(() => {});
+      return async () => {
+        const [blob, name] = save.mock.calls[0];
+        return { name, text: await (blob as Blob).text() };
+      };
+    };
+
+    it('exports the selected payments with the table columns, amounts as numbers', async () => {
+      useApi();
+      const read = saved();
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      expect(bar()).not.toBeInTheDocument();
+      await selectAll(user);
+      expect(bar()).toHaveTextContent('3 payments selected');
+      expect(within(bar()!).queryByRole('button', { name: /Delete/ })).toBeNull();
+      await user.click(within(bar()!).getByRole('button', { name: 'Export 3 to CSV' }));
+      const { name, text } = await read();
+      expect(name).toMatch(/^payments-\d{4}-\d{2}-\d{2}\.csv$/);
+      expect(text.split('\r\n')).toEqual([
+        'Date,Type,Party,Amount,Method,Reference,Status',
+        '2020-05-04,Received,Mehta Builders,184200,Bank transfer,UTR123,Completed',
+        '2020-05-04,Paid,Om Constructions,99.5,Cash,,Completed',
+        '2020-05-04,Received,Mehta Builders,1000,UPI,REF-9,Pending',
+      ]);
+    });
+
+    it('exports only the ticked rows and names checkboxes by amount and date', async () => {
+      useApi();
+      const read = saved();
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(
+        within(screen.getByRole('table')).getByRole('checkbox', {
+          name: 'Select payment of ₹99.50 on 4 May 2020',
+        })
+      );
+      expect(bar()).toHaveTextContent('1 payment selected');
+      await user.click(within(bar()!).getByRole('button', { name: 'Export 1 to CSV' }));
+      const { text } = await read();
+      expect(text.split('\r\n')).toHaveLength(2);
+      expect(text).toContain('Om Constructions,99.5');
+    });
+
+    const thirty = Array.from({ length: 30 }, (_, i) =>
+      payment({ _id: `m${i}`, reference: `R-${i + 1}` })
+    );
+
+    it('select-all covers only the 25 payments on the page; a page change clears it', async () => {
+      useApi(thirty);
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(screen.getByRole('button', { name: 'Select all on this page' }));
+      expect(bar()).toHaveTextContent('25 payments selected');
+      const nav = screen.getByRole('navigation', { name: 'Payments pages' });
+      await user.click(within(nav).getByRole('button', { name: 'Page 2' }));
+      expect(bar()).not.toBeInTheDocument();
+      expect(rowRefs()).toEqual(['R-26', 'R-27', 'R-28', 'R-29', 'R-30']);
+    });
+
+    it('opens a payment from page 2', async () => {
+      useApi(thirty);
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      const nav = screen.getByRole('navigation', { name: 'Payments pages' });
+      await user.click(within(nav).getByRole('button', { name: 'Page 2' }));
+      await user.click(within(screen.getByRole('table')).getByText('R-27'));
+      expect(screen.getByTestId('where')).toHaveTextContent('/payments/m26');
+    });
+
+    it('clears the selection when a filter changes', async () => {
+      useApi();
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await selectAll(user);
+      await user.selectOptions(screen.getByRole('combobox', { name: 'Type' }), 'payable');
+      await waitFor(() => expect(bar()).not.toBeInTheDocument());
+    });
   });
 });

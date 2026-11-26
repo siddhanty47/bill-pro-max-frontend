@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { DataTable, type Column } from './DataTable';
+import { DataTable, type Column, type DataTableProps } from './DataTable';
 import { DocNumber } from './DocNumber';
 import type { ServerListSource } from '../../utils/recordNav';
 import { RowActions } from './RowActions';
@@ -452,6 +452,38 @@ describe('DataTable paging', () => {
     expect(within(list).getAllByRole('listitem')).toHaveLength(25);
   });
 
+  it('renders a controlled client page and reports page changes', async () => {
+    const onPageChange = vi.fn();
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <DataTable
+        columns={columns}
+        rows={many(30)}
+        rowKey={r => r.id}
+        aria-label="Notes"
+        page={2}
+        onPageChange={onPageChange}
+      />
+    );
+    expect(bodyRows()).toHaveLength(5);
+    expect(screen.getByRole('cell', { name: 'P26' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Page 1' }));
+    expect(onPageChange).toHaveBeenCalledWith(1);
+    // The parent's page wins over the table's own.
+    expect(bodyRows()).toHaveLength(5);
+    rerender(
+      <DataTable
+        columns={columns}
+        rows={many(30)}
+        rowKey={r => r.id}
+        aria-label="Notes"
+        page={1}
+        onPageChange={onPageChange}
+      />
+    );
+    expect(bodyRows()).toHaveLength(25);
+  });
+
   it('server mode shows the given rows unsliced with the backend total', async () => {
     const onPageChange = vi.fn();
     const user = userEvent.setup();
@@ -621,5 +653,223 @@ describe('DataTable rowLink', () => {
     await user.click(screen.getByRole('cell', { name: 'Name 1' }));
     expect(onRowClick).not.toHaveBeenCalled();
     expect(read().path).toBe('/things/r1');
+  });
+});
+
+describe('DataTable selection', () => {
+  type S = { id: string; no: string; locked?: boolean };
+  const items: S[] = [
+    { id: 's1', no: 'INV-1' },
+    { id: 's2', no: 'INV-2' },
+    { id: 's3', no: 'INV-3', locked: true },
+  ];
+  const cols: Column<S>[] = [{ key: 'no', header: 'Bill' }];
+  const label = (r: S) => `Select ${r.no}`;
+
+  /** Controlled harness: keeps the selection in state and reports every change. */
+  function Harness({
+    rows = items,
+    initial = [],
+    spy,
+    ...rest
+  }: {
+    rows?: S[];
+    initial?: string[];
+    spy?: (next: Set<string>) => void;
+  } & Partial<DataTableProps<S>>) {
+    const [selected, setSelected] = useState<Set<string>>(new Set(initial));
+    return (
+      <DataTable
+        aria-label="Bills"
+        columns={cols}
+        rows={rows}
+        rowKey={r => r.id}
+        selection={{
+          selected,
+          onChange: next => {
+            spy?.(next);
+            setSelected(next);
+          },
+          isSelectable: r => !r.locked,
+          label,
+        }}
+        {...rest}
+      />
+    );
+  }
+  const table = () => screen.getByRole('table', { name: 'Bills' });
+  const header = () => within(table()).getByRole('checkbox', { name: 'Select all on this page' });
+
+  it('adds a checkbox column and only selectable rows get a checkbox', () => {
+    render(<Harness />);
+    expect(within(table()).getByRole('checkbox', { name: 'Select INV-1' })).not.toBeChecked();
+    expect(within(table()).getByRole('checkbox', { name: 'Select INV-2' })).toBeInTheDocument();
+    expect(
+      within(table()).queryByRole('checkbox', { name: 'Select INV-3' })
+    ).not.toBeInTheDocument();
+    expect(within(table()).getAllByRole('columnheader')).toHaveLength(2);
+  });
+
+  it('toggles a row and marks it selected', async () => {
+    const user = userEvent.setup();
+    const spy = vi.fn();
+    render(<Harness spy={spy} />);
+    const box = within(table()).getByRole('checkbox', { name: 'Select INV-1' });
+    await user.click(box);
+    expect(spy).toHaveBeenLastCalledWith(new Set(['s1']));
+    expect(box).toBeChecked();
+    const row = box.closest('tr')!;
+    expect(row).toHaveClass('selected');
+    expect(row).toHaveAttribute('data-selected', 'true');
+    await user.click(box);
+    expect(spy).toHaveBeenLastCalledWith(new Set());
+    expect(row).not.toHaveClass('selected');
+  });
+
+  it('header selects every selectable row, shows a partial state, then clears', async () => {
+    const user = userEvent.setup();
+    const spy = vi.fn();
+    render(<Harness spy={spy} />);
+    expect(header()).not.toBeChecked();
+    expect(header()).not.toBePartiallyChecked();
+
+    await user.click(within(table()).getByRole('checkbox', { name: 'Select INV-2' }));
+    expect(header()).toBePartiallyChecked();
+
+    await user.click(header());
+    expect(spy).toHaveBeenLastCalledWith(new Set(['s2', 's1']));
+    expect(header()).toBeChecked();
+    expect(header()).not.toBePartiallyChecked();
+
+    await user.click(header());
+    expect(spy).toHaveBeenLastCalledWith(new Set());
+    expect(header()).not.toBeChecked();
+  });
+
+  it('header acts on the current page only and keeps keys from other pages', async () => {
+    const user = userEvent.setup();
+    const spy = vi.fn();
+    const many: S[] = Array.from({ length: 4 }, (_, i) => ({ id: `p${i}`, no: `N-${i}` }));
+    render(<Harness rows={many} initial={['elsewhere']} pageSize={2} spy={spy} />);
+    await user.click(header());
+    expect(spy).toHaveBeenLastCalledWith(new Set(['elsewhere', 'p0', 'p1']));
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    expect(header()).not.toBeChecked();
+    await user.click(header());
+    expect(spy).toHaveBeenLastCalledWith(new Set(['elsewhere', 'p0', 'p1', 'p2', 'p3']));
+    await user.click(header());
+    expect(spy).toHaveBeenLastCalledWith(new Set(['elsewhere', 'p0', 'p1']));
+  });
+
+  it('disables the header when no row on the page can be selected', () => {
+    render(<Harness rows={[items[2]]} />);
+    expect(header()).toBeDisabled();
+  });
+
+  it('defaults to every row selectable with a generic label', () => {
+    render(
+      <DataTable
+        columns={cols}
+        rows={items}
+        rowKey={r => r.id}
+        selection={{ selected: new Set(['s3']), onChange: () => {} }}
+      />
+    );
+    const boxes = screen.getAllByRole('checkbox', { name: 'Select row' });
+    expect(boxes).toHaveLength(3);
+    expect(boxes[2]).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: 'Select all on this page' })
+    ).toBePartiallyChecked();
+  });
+
+  it('a checkbox click (or a near miss in its cell) never fires onRowClick', async () => {
+    const user = userEvent.setup();
+    const onRowClick = vi.fn();
+    render(<Harness onRowClick={onRowClick} />);
+    const box = within(table()).getByRole('checkbox', { name: 'Select INV-1' });
+    await user.click(box);
+    expect(box).toBeChecked();
+    await user.click(box.closest('td')!);
+    expect(box).not.toBeChecked();
+    expect(onRowClick).not.toHaveBeenCalled();
+    box.focus();
+    await user.keyboard(' ');
+    expect(box).toBeChecked();
+    expect(onRowClick).not.toHaveBeenCalled();
+    await user.click(within(table()).getByRole('cell', { name: 'INV-2' }));
+    expect(onRowClick).toHaveBeenCalledWith(items[1]);
+  });
+
+  it('a checkbox click on a rowLink row does not navigate, on desktop or phone', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/list']}>
+        <Routes>
+          <Route
+            path="/list"
+            element={
+              <Harness
+                rowLink={r => `/bills/${r.id}`}
+                mobile={{ title: r => r.no, actions: () => <button type="button">Send</button> }}
+              />
+            }
+          />
+          <Route path="*" element={<p>Opened</p>} />
+        </Routes>
+      </MemoryRouter>
+    );
+    await user.click(within(table()).getByRole('checkbox', { name: 'Select INV-1' }));
+    const list = screen.getByRole('list', { name: 'Bills' });
+    const phoneBox = within(list).getByRole('checkbox', { name: 'Select INV-2' });
+    await user.click(phoneBox);
+    await user.click(phoneBox.closest('label')!);
+    expect(screen.queryByText('Opened')).not.toBeInTheDocument();
+    expect(within(table()).getByRole('checkbox', { name: 'Select INV-1' })).toBeChecked();
+    // The phone list shares the selection with the table.
+    expect(within(list).getByRole('checkbox', { name: 'Select INV-1' })).toBeChecked();
+    expect(phoneBox).not.toBeChecked();
+    await user.click(within(list).getByText('INV-2'));
+    expect(screen.getByText('Opened')).toBeInTheDocument();
+  });
+
+  it('gives phone-list items a leading checkbox and marks selected items', async () => {
+    const user = userEvent.setup();
+    render(<Harness initial={['s2']} mobile={{ title: r => r.no, subtitle: () => 'Party' }} />);
+    const [first, second, third] = within(screen.getByRole('list')).getAllByRole('listitem');
+    expect(first).toHaveClass('withSelect');
+    const slot = first.firstElementChild!;
+    expect(slot).toHaveClass('selectSlot');
+    expect(slot.querySelector('label')).toHaveClass('selectHit');
+    expect(first.querySelector('.body .line1')).toHaveTextContent('INV-1');
+    expect(first.querySelector('.body .line2')).toHaveTextContent('Party');
+    expect(second).toHaveClass('selected');
+    expect(second).toHaveAttribute('data-selected', 'true');
+    expect(within(third).queryByRole('checkbox')).not.toBeInTheDocument();
+    await user.click(within(first).getByRole('checkbox', { name: 'Select INV-1' }));
+    expect(first).toHaveClass('selected');
+  });
+
+  it('keeps the phone hit area at 44px', async () => {
+    const css = await readCss('./DataTable.module.css');
+    expect(rule(css, '.selectSlot .selectHit')).toMatch(/min-height:\s*44px/);
+    expect(css).toMatch(/\.selectCell \.selectHit\s*\{[^}]*min-height:\s*44px/);
+  });
+
+  it('renders exactly as before without selection', () => {
+    render(
+      <DataTable
+        columns={cols}
+        rows={items}
+        rowKey={r => r.id}
+        mobile={{ title: r => r.no }}
+        aria-label="Bills"
+      />
+    );
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    const [first] = within(screen.getByRole('list')).getAllByRole('listitem');
+    expect(first.firstElementChild).toHaveClass('line1');
+    expect(first).not.toHaveAttribute('data-selected');
+    expect(screen.getAllByRole('row')[1]).not.toHaveAttribute('data-selected');
   });
 });

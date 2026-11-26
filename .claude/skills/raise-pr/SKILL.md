@@ -46,6 +46,10 @@ git diff --name-only origin/<base>...HEAD
 
 If the frontend depends on a backend change, find the backend PR (`gh pr list -R siddhanty47/bill-pro-max-backend-v2 --head <same-branch-name>`), link both ways, and state the merge/deploy order. No backend PR but one is needed → tell the user before opening.
 
+### Docs check
+
+- [ ] **docs/features updated for new features/behaviour changes**: a new feature or a significant behaviour/architecture change adds or updates its doc in `docs/features/` and its line in `docs/features/README.md` in this PR; `CLAUDE.md` only gets a short pointer. No doc change needed → say why in the PR ("Docs: none, refactor only"). Missing → add it before opening the PR.
+
 ## 4. Manual check for UI changes
 
 Start the app (`npm run dev`) and exercise the changed screens, or state in the test plan exactly what was not checked in a browser. Never tick a box you didn't do.
@@ -81,6 +85,9 @@ Body template — keep every heading; write "None" rather than deleting:
 - [x] `coverage:changed` — all changed files ≥ 80%
 - [x] <browser steps actually performed>
 - [ ] <anything NOT verified>
+
+## Docs
+<docs/features files added/updated, or "None — <why>".>
 
 ## Merge notes
 <Stacked on #N / merge order with backend / squash vs rebase. "None" if plain.>

@@ -1,14 +1,17 @@
 /**
- * Payments list page
+ * Payments list page. Selected rows (on the visible page) export to CSV; there is no bulk
+ * delete because the backend has no payment delete.
  */
 import { useState, useRef } from 'react';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
+import { LIST_PAGE_SIZE, useListPage } from '../hooks/useListPage';
 import { shortcutLabel } from '../hooks/usePlatform';
 import { useGetPaymentsQuery, useCreatePaymentMutation } from '../api/paymentApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import { useGetBillsQuery } from '../api/billApi';
 import {
+  BulkActionBar,
   Button,
   Card,
   DataTable,
@@ -28,18 +31,11 @@ import { signTone } from '../components/ui/status';
 import { PaymentForm } from '../components/forms/PaymentForm';
 import { getErrorMessage } from '../api/baseApi';
 import { formatDate, formatMoney } from '../utils/format';
+import { csvFileName, downloadCsv } from '../utils/csv';
+import { METHOD_LABELS, paymentsCsv, typeLabel } from './payments/paymentsCsv';
+import { ExportCsvButton, MessageDialog, useBulkSelection } from '../components/bulk';
 import type { Payment, CreatePaymentInput } from '../types';
 import styles from './PaymentsPage.module.css';
-
-const METHOD_LABELS: Record<Payment['method'], string> = {
-  cash: 'Cash',
-  bank_transfer: 'Bank transfer',
-  upi: 'UPI',
-  cheque: 'Cheque',
-  other: 'Other',
-};
-
-const typeLabel = (p: Payment) => (p.type === 'receivable' ? 'Received' : 'Paid');
 
 export function PaymentsPage() {
   const { currentBusinessId } = useCurrentBusiness();
@@ -47,6 +43,7 @@ export function PaymentsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [methodFilter, setMethodFilter] = useState('');
+  const [failure, setFailure] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -85,7 +82,7 @@ export function PaymentsPage() {
       }).unwrap();
       setIsModalOpen(false);
     } catch (err) {
-      alert(getErrorMessage(err));
+      setFailure(getErrorMessage(err));
     }
   };
 
@@ -102,6 +99,22 @@ export function PaymentsPage() {
     const matchesMethod = !methodFilter || payment.method === methodFilter;
     return matchesSearch && matchesType && matchesMethod;
   });
+
+  // The table pages the whole list (so Prev/Next covers every payment) on a page held here,
+  // so the selection only ever covers the payments on screen. It clears on page, filter,
+  // search or business change.
+  const filtersKey = `${currentBusinessId}|${searchTerm}|${typeFilter}|${methodFilter}`;
+  const [page, setPage] = useListPage(filtersKey, filteredPayments.length);
+  const pageRows = filteredPayments.slice((page - 1) * LIST_PAGE_SIZE, page * LIST_PAGE_SIZE);
+  const selection = useBulkSelection({
+    rows: pageRows,
+    rowKey: p => p._id,
+    resetKey: `${filtersKey}|${page}`,
+    label: p => `Select payment of ${formatMoney(p.amount)} on ${formatDate(p.date)}`,
+  });
+  const selectedPayments = selection.selectedRows;
+  const exportSelected = () =>
+    downloadCsv(csvFileName('payments'), paymentsCsv(selectedPayments, getPartyName));
 
   const columns: Column<Payment>[] = [
     { key: 'date', header: 'Date', nowrap: true, render: p => formatDate(p.date) },
@@ -207,6 +220,8 @@ export function PaymentsPage() {
         </Select>
       </FilterBar>
 
+      {selection.mobileSelectAll}
+
       <Card padded={false}>
         <DataTable
           aria-label="Payments"
@@ -214,6 +229,9 @@ export function PaymentsPage() {
           rows={filteredPayments}
           rowKey={p => p._id}
           rowLink={p => `/payments/${p._id}`}
+          selection={selection.selectionProp}
+          page={page}
+          onPageChange={setPage}
           empty={
             (payments || []).length === 0 ? (
               <EmptyState
@@ -248,6 +266,14 @@ export function PaymentsPage() {
         />
       </Card>
 
+      <BulkActionBar
+        count={selectedPayments.length}
+        noun={selectedPayments.length === 1 ? 'payment' : 'payments'}
+        onClear={selection.clear}
+      >
+        <ExportCsvButton count={selectedPayments.length} onExport={exportSelected} />
+      </BulkActionBar>
+
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -262,6 +288,12 @@ export function PaymentsPage() {
           isLoading={isCreating}
         />
       </Modal>
+
+      <MessageDialog
+        title="Couldn't record payment"
+        message={failure}
+        onClose={() => setFailure(null)}
+      />
     </div>
   );
 }
