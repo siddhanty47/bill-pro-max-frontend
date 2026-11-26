@@ -5,9 +5,11 @@
 import { useMemo, useRef, useState } from 'react';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
+import { LIST_PAGE_SIZE, useListPage } from '../hooks/useListPage';
 import { useGetAllBillNotesQuery } from '../api/billNoteApi';
 import { useGetPartiesQuery } from '../api/partyApi';
 import {
+  BulkActionBar,
   Card,
   EmptyState,
   ErrorMessage,
@@ -19,6 +21,8 @@ import {
 } from '../components/ui';
 import { BillNotesTable } from '../components/billing/BillNotesTable';
 import type { BillNote, BillNoteSource, BillNoteStatus, BillNoteType } from '../types';
+import { useBulkSelection, useConfirm } from '../components/bulk';
+import { noteLabel, useBillNoteBulkActions } from './billNotes/useBillNoteBulkActions';
 
 export function BillNotesPage() {
   const { currentBusinessId } = useCurrentBusiness();
@@ -59,6 +63,27 @@ export function BillNotesPage() {
       partyName(n).toLowerCase().includes(search)
   );
   const hasFilters = Boolean(search || type || status || source);
+
+  // The table pages the whole list (so Prev/Next covers every note) on a page held here, so
+  // the selection (and phone "Select all on this page") only ever covers the notes on screen.
+  // It clears on page, filter, search or business change.
+  const filtersKey = `${currentBusinessId}|${search}|${type}|${status}|${source}`;
+  const [page, setPage] = useListPage(filtersKey, rows.length);
+  const pageRows = rows.slice((page - 1) * LIST_PAGE_SIZE, page * LIST_PAGE_SIZE);
+  const selection = useBulkSelection({
+    rows: pageRows,
+    rowKey: n => n._id,
+    resetKey: `${filtersKey}|${page}`,
+    label: n => `Select ${noteLabel(n)}`,
+  });
+  const selectedNotes = selection.selectedRows;
+  const confirm = useConfirm();
+  const bulk = useBillNoteBulkActions({
+    businessId: currentBusinessId || '',
+    notes: selectedNotes,
+    ask: confirm.ask,
+    onSucceeded: selection.remove,
+  });
 
   if (!currentBusinessId) {
     return <ErrorMessage error={{ message: 'Please select a business' }} />;
@@ -109,16 +134,32 @@ export function BillNotesPage() {
         </Select>
       </FilterBar>
 
+      {selection.mobileSelectAll}
+
       <Card padded={false}>
         <BillNotesTable
           aria-label="Notes"
           notes={rows}
           partyName={partyName}
+          selection={selection.selectionProp}
+          page={page}
+          onPageChange={setPage}
           empty={
             <EmptyState title={hasFilters ? 'No notes match these filters' : 'No notes yet'} />
           }
         />
       </Card>
+
+      <BulkActionBar
+        count={selectedNotes.length}
+        noun={selectedNotes.length === 1 ? 'note' : 'notes'}
+        onClear={selection.clear}
+      >
+        {bulk.actions}
+      </BulkActionBar>
+
+      {confirm.dialog}
+      {bulk.dialog}
     </div>
   );
 }

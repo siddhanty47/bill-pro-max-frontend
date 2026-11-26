@@ -452,6 +452,38 @@ describe('DataTable paging', () => {
     expect(within(list).getAllByRole('listitem')).toHaveLength(25);
   });
 
+  it('renders a controlled client page and reports page changes', async () => {
+    const onPageChange = vi.fn();
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <DataTable
+        columns={columns}
+        rows={many(30)}
+        rowKey={r => r.id}
+        aria-label="Notes"
+        page={2}
+        onPageChange={onPageChange}
+      />
+    );
+    expect(bodyRows()).toHaveLength(5);
+    expect(screen.getByRole('cell', { name: 'P26' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Page 1' }));
+    expect(onPageChange).toHaveBeenCalledWith(1);
+    // The parent's page wins over the table's own.
+    expect(bodyRows()).toHaveLength(5);
+    rerender(
+      <DataTable
+        columns={columns}
+        rows={many(30)}
+        rowKey={r => r.id}
+        aria-label="Notes"
+        page={1}
+        onPageChange={onPageChange}
+      />
+    );
+    expect(bodyRows()).toHaveLength(25);
+  });
+
   it('server mode shows the given rows unsliced with the backend total', async () => {
     const onPageChange = vi.fn();
     const user = userEvent.setup();

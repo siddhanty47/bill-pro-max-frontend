@@ -40,8 +40,7 @@ import { BulkBillProgress } from '../components/BulkBillProgress';
 import { getErrorMessage } from '../api/baseApi';
 import { formatDate, formatMoney } from '../utils/format';
 import type { Bill, GenerateBillInput, BulkGenerateBillInput } from '../types';
-import { BillMessageDialog } from './bills/BillConfirmDialog';
-import { useConfirm } from './bills/useConfirm';
+import { MessageDialog, useBulkSelection, useConfirm } from '../components/bulk';
 import { useBillBulkActions } from './bills/useBillBulkActions';
 import { useBillRowActions } from './bills/useBillRowActions';
 import styles from './BillsPage.module.css';
@@ -79,15 +78,13 @@ export function BillsPage() {
   const bills = pageData?.rows ?? [];
 
   // Selection is per page of the server list: it clears on page, filter, search or business change.
-  const [selected, setSelected] = useState<Set<string>>(() => new Set());
-  const selectionKey = `${currentBusinessId}|${filtersKey}|${page}`;
-  const [lastSelectionKey, setLastSelectionKey] = useState(selectionKey);
-  if (selectionKey !== lastSelectionKey) {
-    setLastSelectionKey(selectionKey);
-    setSelected(new Set());
-  }
-  const selectedBills = bills.filter(b => selected.has(b._id));
-  const allOnPageSelected = bills.length > 0 && selectedBills.length === bills.length;
+  const selection = useBulkSelection({
+    rows: bills,
+    rowKey: bill => bill._id,
+    resetKey: `${currentBusinessId}|${filtersKey}|${page}`,
+    label: bill => `Select ${bill.billNumber}`,
+  });
+  const selectedBills = selection.selectedRows;
 
   const { data: parties } = useGetPartiesQuery(currentBusinessId || '', {
     skip: !currentBusinessId,
@@ -113,12 +110,7 @@ export function BillsPage() {
     businessId: currentBusinessId || '',
     bills: selectedBills,
     ask: confirm.ask,
-    onSucceeded: ids =>
-      setSelected(prev => {
-        const next = new Set(prev);
-        ids.forEach(id => next.delete(id));
-        return next;
-      }),
+    onSucceeded: selection.remove,
   });
 
   const handleGenerate = () => {
@@ -299,19 +291,7 @@ export function BillsPage() {
         </Select>
       </FilterBar>
 
-      {bills.length > 0 && (
-        <div className={styles.mobileSelect}>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setSelected(allOnPageSelected ? new Set() : new Set(bills.map(b => b._id)))
-            }
-          >
-            {allOnPageSelected ? 'Clear selection' : 'Select all on this page'}
-          </Button>
-        </div>
-      )}
+      {selection.mobileSelectAll}
 
       <Card padded={false}>
         <DataTable
@@ -319,11 +299,7 @@ export function BillsPage() {
           columns={columns}
           rows={bills}
           rowKey={bill => bill._id}
-          selection={{
-            selected,
-            onChange: setSelected,
-            label: bill => `Select ${bill.billNumber}`,
-          }}
+          selection={selection.selectionProp}
           pagination={{
             page,
             pageSize: LIST_PAGE_SIZE,
@@ -370,7 +346,7 @@ export function BillsPage() {
       <BulkActionBar
         count={selectedBills.length}
         noun={selectedBills.length === 1 ? 'bill' : 'bills'}
-        onClear={() => setSelected(new Set())}
+        onClear={selection.clear}
       >
         {bulk.actions}
       </BulkActionBar>
@@ -406,7 +382,7 @@ export function BillsPage() {
       {rowDialog}
       {confirm.dialog}
       {bulk.dialog}
-      <BillMessageDialog
+      <MessageDialog
         title="Something went wrong"
         message={failure}
         onClose={() => setFailure(null)}

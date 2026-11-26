@@ -485,7 +485,11 @@ describe('PartyDetailPage', () => {
     expect(within(row2).getByText('+₹500')).toBeInTheDocument();
     expect(within(row2).getByText('Auto')).toBeInTheDocument();
 
+    // Bulk selection is only on the Notes page.
+    expect(within(table).queryByRole('checkbox')).not.toBeInTheDocument();
+
     const list = screen.getByRole('list', { name: 'Party notes' });
+    expect(within(list).queryByRole('checkbox')).not.toBeInTheDocument();
     expect(within(list).getAllByRole('listitem')[0]).toHaveTextContent(
       'Credit · B-0001 · 21 Nov · -₹1,180 · Manual'
     );

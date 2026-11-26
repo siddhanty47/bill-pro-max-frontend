@@ -774,6 +774,9 @@ describe('BillDetailPage', () => {
       const draft = within(table).getByText('+₹300').closest('tr')!;
       expect(within(draft).getByText('Auto')).toBeVisible();
       expect(screen.getByRole('tab', { name: /Credit\/debit notes/ })).toHaveTextContent('2');
+      // Bulk selection is only on the Notes page.
+      expect(within(table).queryByRole('checkbox')).not.toBeInTheDocument();
+      expect(screen.queryByRole('region', { name: 'Bulk actions' })).not.toBeInTheDocument();
     });
 
     it('offers no notes tab or new-note actions on a draft bill', async () => {

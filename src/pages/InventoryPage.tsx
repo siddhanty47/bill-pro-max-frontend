@@ -1,9 +1,11 @@
 /**
- * Inventory management page
+ * Inventory management page. Selected rows (on the visible page) export to CSV or are deleted
+ * one by one over the item delete endpoint; rented items and server refusals are skipped.
  */
 import { useState, useRef } from 'react';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
+import { LIST_PAGE_SIZE, useListPage } from '../hooks/useListPage';
 import { shortcutLabel } from '../hooks/usePlatform';
 import {
   useGetInventoryQuery,
@@ -12,6 +14,7 @@ import {
   useGetOpeningBalancesQuery,
 } from '../api/inventoryApi';
 import {
+  BulkActionBar,
   Button,
   Card,
   DataTable,
@@ -31,6 +34,16 @@ import { ImportPresetModal } from '../components/ImportPresetModal';
 import { CreatePresetModal } from '../components/CreatePresetModal';
 import { getErrorMessage } from '../api/baseApi';
 import { formatMoney } from '../utils/format';
+import { csvFileName, downloadCsv } from '../utils/csv';
+import {
+  ExportCsvButton,
+  MessageDialog,
+  useBulkDelete,
+  useBulkSelection,
+  useConfirm,
+} from '../components/bulk';
+import { inventoryCsv } from './inventory/inventoryCsv';
+import { RENTED_REASON } from './inventory/bulkReasons';
 import type { Inventory, CreateInventoryInput } from '../types';
 import { computeRentedFromHistory, computeAvailable } from '../utils/inventoryUtils';
 
@@ -42,6 +55,8 @@ export function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
+  const [failure, setFailure] = useState<{ title: string; message: string } | null>(null);
+  const confirmDialog = useConfirm();
 
   const {
     data: inventory,
@@ -76,21 +91,27 @@ export function InventoryPage() {
       }).unwrap();
       setIsModalOpen(false);
     } catch (err) {
-      alert(getErrorMessage(err));
+      setFailure({ title: "Couldn't add item", message: getErrorMessage(err) });
     }
   };
 
-  const handleDelete = async (item: Inventory) => {
-    if (!confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
-    try {
-      await deleteInventory({
-        businessId: currentBusinessId!,
-        itemId: item._id,
-      }).unwrap();
-    } catch (err) {
-      alert(getErrorMessage(err));
-    }
-  };
+  const removeItem = (item: Inventory) =>
+    deleteInventory({ businessId: currentBusinessId!, itemId: item._id }).unwrap();
+
+  const handleDelete = (item: Inventory) =>
+    confirmDialog.ask({
+      title: `Delete ${item.name}?`,
+      body: "This can't be undone.",
+      confirmLabel: 'Delete',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          await removeItem(item);
+        } catch (err) {
+          setFailure({ title: "Couldn't delete item", message: getErrorMessage(err) });
+        }
+      },
+    });
 
   const categories = [...new Set(inventory?.map(i => i.category) || [])];
 
@@ -109,6 +130,35 @@ export function InventoryPage() {
   const availableOf = (item: Inventory) =>
     computeAvailable(item.totalQuantity, computeRentedFromHistory(item.quantityHistory));
   const qty = (n: number, item: Inventory) => `${n} ${item.unit}`;
+
+  // The table pages the whole list (so Prev/Next covers every item) on a page held here,
+  // so the selection only ever covers the items on screen. It clears on page, filter,
+  // search or business change.
+  const filtersKey = `${currentBusinessId}|${searchTerm}|${categoryFilter}`;
+  const [page, setPage] = useListPage(filtersKey, filteredInventory.length);
+  const pageRows = filteredInventory.slice((page - 1) * LIST_PAGE_SIZE, page * LIST_PAGE_SIZE);
+  const selection = useBulkSelection({
+    rows: pageRows,
+    rowKey: item => item._id,
+    resetKey: `${filtersKey}|${page}`,
+    label: item => `Select ${item.name}`,
+  });
+  const selectedItems = selection.selectedRows;
+  const bulkDelete = useBulkDelete({
+    rows: selectedItems,
+    rowKey: item => item._id,
+    label: item => item.name,
+    remove: removeItem,
+    skipReason: item => (rentedOf(item) !== 0 ? RENTED_REASON : null),
+    noun: { one: 'item', many: 'items' },
+    ask: confirmDialog.ask,
+    onSucceeded: selection.remove,
+  });
+  const exportSelected = () =>
+    downloadCsv(
+      csvFileName('inventory'),
+      inventoryCsv(selectedItems, { available: availableOf, rented: rentedOf })
+    );
 
   const rowActions = (item: Inventory) => (
     <RowActions
@@ -215,6 +265,8 @@ export function InventoryPage() {
         </Select>
       </FilterBar>
 
+      {selection.mobileSelectAll}
+
       <Card padded={false}>
         <DataTable
           aria-label="Inventory"
@@ -222,6 +274,9 @@ export function InventoryPage() {
           rows={filteredInventory}
           rowKey={item => item._id}
           rowLink={item => `/inventory/${item._id}`}
+          selection={selection.selectionProp}
+          page={page}
+          onPageChange={setPage}
           empty={
             (inventory || []).length === 0 ? (
               <EmptyState
@@ -259,6 +314,15 @@ export function InventoryPage() {
         />
       </Card>
 
+      <BulkActionBar
+        count={selectedItems.length}
+        noun={selectedItems.length === 1 ? 'item' : 'items'}
+        onClear={selection.clear}
+      >
+        <ExportCsvButton count={selectedItems.length} onExport={exportSelected} />
+        {bulkDelete.button}
+      </BulkActionBar>
+
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -284,6 +348,14 @@ export function InventoryPage() {
         onClose={() => setIsCreatePresetOpen(false)}
         businessId={currentBusinessId!}
         inventory={inventory || []}
+      />
+
+      {confirmDialog.dialog}
+      {bulkDelete.dialog}
+      <MessageDialog
+        title={failure?.title ?? ''}
+        message={failure?.message ?? null}
+        onClose={() => setFailure(null)}
       />
     </div>
   );

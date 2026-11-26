@@ -53,9 +53,10 @@
     border-radius: 0;
   }
 
-  /* Count line + one wrapped row of 44px buttons + padding. */
+  /* The bar's measured height (set by BulkActionBar); without ResizeObserver, the count line
+     + one wrapped row of 44px buttons + padding. */
   .spacer {
     display: block;
-    height: calc(var(--space-14) * 2 + env(safe-area-inset-bottom, 0px));
+    height: var(--bulk-bar-height, calc(var(--space-14) * 2 + env(safe-area-inset-bottom, 0px)));
   }
 }
