@@ -922,6 +922,8 @@ export interface CreatePaymentInput {
   reference?: string;
   date: string;
   notes?: string;
+  /** Paying a draft bill issues it: confirms its negative stock was seen */
+  acknowledgeNegative?: boolean;
 }
 
 export interface PaymentStats {
