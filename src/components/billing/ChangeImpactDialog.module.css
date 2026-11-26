@@ -1,6 +1,20 @@
 /* Layout only: the dialog is built from the ui kit. */
 
-.section {
+/* With a bill open: the change on the left, the bill on the right. */
+.layout.withPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.main,
+.side {
+  min-width: 0;
+}
+
+.section + .section,
+.main > * + .section {
   margin-top: var(--space-4);
 }
 
@@ -8,13 +22,30 @@
   margin: 0;
 }
 
-.list {
-  margin: var(--space-2) 0 0;
-  padding-left: var(--space-5);
+.helper {
+  margin: var(--space-1) 0 0;
+  color: var(--text-secondary);
 }
 
-.note {
-  margin: var(--space-4) 0 0;
+/* Many bills scroll inside the dialog instead of pushing the actions away. */
+.list {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.billButton {
+  max-width: 100%;
+  justify-content: flex-start;
+}
+
+.view {
+  padding-left: var(--space-2);
 }
 
 .actions {
@@ -23,4 +54,19 @@
   justify-content: flex-end;
   gap: var(--space-2);
   margin-top: var(--space-5);
+}
+
+/* Phones: the bill replaces the dialog body (the change stays mounted, so a typed reason is kept). */
+@media (max-width: 768px) {
+  .layout.withPanel {
+    display: block;
+  }
+
+  .layout.withPanel .main {
+    display: none;
+  }
+
+  .list {
+    max-height: none;
+  }
 }

@@ -170,6 +170,17 @@ describe('Modal', () => {
     expect(screen.getByRole('dialog')).toHaveClass('delivery', 'formSize');
   });
 
+  it('applies the wide class for size="wide"', () => {
+    render(
+      <Modal isOpen onClose={vi.fn()} title="Change" size="wide">
+        <p>Body</p>
+      </Modal>
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveClass('wideSize');
+    expect(dialog).not.toHaveClass('formSize');
+  });
+
   // Regression: tall forms (add party/agreement/challan) were clipped on desktop
   // with their Cancel/Save buttons unreachable, because the form-size modal hides
   // overflow and nothing inside scrolled.

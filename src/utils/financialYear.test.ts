@@ -75,10 +75,10 @@ describe('isOnOrBeforeDay', () => {
 describe('closedYearMessage', () => {
   it('names the FY and the lock day with its year', () => {
     expect(closedYearMessage('2025-26', '2026-03-31T00:00:00.000Z')).toBe(
-      'FY 2025-26 is closed for this site. Nothing dated on or before 31 Mar 2026 can change.'
+      "FY 2025-26 is closed for this site. Anything dated on or before 31 Mar 2026 can't be changed."
     );
     expect(closedYearMessage('2024-25', fyEnd('2024-25'))).toBe(
-      'FY 2024-25 is closed for this site. Nothing dated on or before 31 Mar 2025 can change.'
+      "FY 2024-25 is closed for this site. Anything dated on or before 31 Mar 2025 can't be changed."
     );
   });
 });

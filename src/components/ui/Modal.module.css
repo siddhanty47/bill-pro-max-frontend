@@ -34,6 +34,11 @@
   flex-direction: column;
 }
 
+/* Two columns (a dialog with its side panel open) */
+.modal.wideSize {
+  max-width: min(95vw, 1040px);
+}
+
 /* Header stays put; the body scrolls so tall forms keep their actions reachable. */
 .modal.formSize .body {
   flex: 1;
@@ -111,7 +116,8 @@
   }
 
   .modal,
-  .modal.formSize {
+  .modal.formSize,
+  .modal.wideSize {
     min-width: 0;
     width: 100%;
     max-width: 100%;

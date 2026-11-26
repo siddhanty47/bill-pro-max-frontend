@@ -23,17 +23,24 @@ dialog reopens with the server's answer.
 
 ## Dialog (`src/components/billing/ChangeImpactDialog.tsx`)
 
+Plain words for the owner: no "credit/debit note" or "drift" jargon in the dialog.
+
 | Report | Shows |
 |--------|-------|
-| `blocked: 'closedYear'` | Title "This year is closed", danger notice `closedYearMessage(fy, fyEnd(fy))` ("FY 2025-26 is closed for this site. Nothing dated on or before … can change."), Close button only |
-| `blocked: 'role'` | Warning "This month is already billed. Ask an owner or manager to make this change."; Save disabled; no reason field |
-| drafts in `affected` | "May be marked out of date" + bill links |
-| issued in `affected` | "Already sent — will be rechecked; a correction may be needed" + "A draft credit or debit note will be updated after you save." |
+| `blocked: 'closedYear'` | Title "This year is closed", danger notice `closedYearMessage(fy, lockedThrough)` ("FY 2025-26 is closed for this site. Anything dated on or before 31 Mar 2026 can't be changed."), Close button only |
+| `blocked: 'role'` | Warning "These months are already billed. Only an owner or manager can make this change."; Close button only, no reason field |
+| drafts in `affected` | "Not sent yet (k)": "We'll update these. Check them before sending." + bill rows |
+| issued in `affected` | "Already sent to the client (k)": "We won't change a sent bill. We'll prepare a correction with the difference for you to review and send." + bill rows |
 | `negative` | "Stock will go below zero" + `NegativeStockList` |
-| any `affected` | "Exact amounts appear on the bills after you save." |
 
-Title "This change affects billed months"; Reason field (required when `requiresReason`; Save
-disabled until typed); buttons Cancel / "Save anyway".
+Title: "This change will update N bills" when bills are affected, else "Stock will go below zero",
+else "Check this change". Reason field "Why are you making this change?" (required when
+`requiresReason`); buttons Cancel / "Save change".
+
+**Bill preview:** clicking a bill row opens `BillPreviewPanel` (`components/billing/`) beside the
+dialog (the Modal goes `size="wide"`): period, total, paid, balance, up to 6 items and "Open full
+bill" (new tab). Clicking the row again, the panel's close button or Escape closes only the panel;
+the typed reason is kept. On phones the panel replaces the dialog body and shows "Back to the change".
 
 ## API side (`src/api/changeGate.ts`)
 

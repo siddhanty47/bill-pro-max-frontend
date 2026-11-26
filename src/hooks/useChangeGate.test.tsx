@@ -90,19 +90,16 @@ describe('useChangeGate', () => {
     const { user, onDone } = setup(call);
     await user.click(screen.getByRole('button', { name: 'Go' }));
 
-    expect(await screen.findByText('May be marked out of date')).toBeInTheDocument();
-    expect(
-      screen.getByText('Already sent — will be rechecked; a correction may be needed')
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'INV-1' })).toHaveAttribute('href', '/bills/b1');
-    expect(screen.getByRole('link', { name: 'INV-2' })).toHaveAttribute('href', '/bills/b2');
-    expect(screen.getByText('Exact amounts appear on the bills after you save.')).toBeVisible();
+    expect(await screen.findByText('Not sent yet (1)')).toBeInTheDocument();
+    expect(screen.getByText('Already sent to the client (1)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'INV-1 View' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'INV-2 View' })).toBeInTheDocument();
 
-    const save = screen.getByRole('button', { name: 'Save anyway' });
+    const save = screen.getByRole('button', { name: 'Save change' });
     expect(save).toBeDisabled();
-    await user.type(screen.getByLabelText(/Reason/), '   ');
+    await user.type(screen.getByLabelText(/Why are you making/), '   ');
     expect(save).toBeDisabled();
-    await user.type(screen.getByLabelText(/Reason/), '  Wrong count  ');
+    await user.type(screen.getByLabelText(/Why are you making/), '  Wrong count  ');
     await user.click(save);
 
     await waitFor(() => expect(onDone).toHaveBeenCalledWith(true));
@@ -118,7 +115,7 @@ describe('useChangeGate', () => {
     expect(await screen.findByText('Stock will go below zero')).toBeInTheDocument();
     expect(screen.getByText(/Ladder/)).toHaveTextContent('lowest count -3');
     expect(screen.getByText(/Ladder/)).toHaveTextContent('challan D-0007');
-    await user.click(screen.getByRole('button', { name: 'Save anyway' }));
+    await user.click(screen.getByRole('button', { name: 'Save change' }));
 
     await waitFor(() => expect(onDone).toHaveBeenCalledWith(true));
     expect(gates[1]).toEqual({ confirmNegative: true });
@@ -131,11 +128,11 @@ describe('useChangeGate', () => {
 
     expect(
       await screen.findByText(
-        'This month is already billed. Ask an owner or manager to make this change.'
+        'These months are already billed. Only an owner or manager can make this change.'
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save anyway' })).toBeDisabled();
-    expect(screen.queryByLabelText(/Reason/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save change' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Why are you making/)).not.toBeInTheDocument();
     expect(gates).toEqual([{ dryRun: true }]);
   });
 
@@ -163,7 +160,7 @@ describe('useChangeGate', () => {
 
     expect(await screen.findByText('Stock will go below zero')).toBeInTheDocument();
     expect(onDone).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Save anyway' }));
+    await user.click(screen.getByRole('button', { name: 'Save change' }));
     await waitFor(() => expect(onDone).toHaveBeenCalledWith(true));
     expect(gates).toEqual([{ dryRun: true }, {}, { confirmNegative: true }]);
   });
@@ -178,7 +175,7 @@ describe('useChangeGate', () => {
     const { user, onDone } = setup(call);
     await user.click(screen.getByRole('button', { name: 'Go' }));
 
-    await user.click(await screen.findByRole('button', { name: 'Save anyway' }));
+    await user.click(await screen.findByRole('button', { name: 'Save change' }));
     await waitFor(() => expect(onDone).toHaveBeenCalledWith(true));
     expect(gates).toEqual([{ dryRun: true }, {}, { confirmNegative: true }]);
   });
@@ -188,8 +185,8 @@ describe('useChangeGate', () => {
     const { call } = makeCall(draftAndIssued, () => new Promise(resolve => (finish = resolve)));
     const { user, onDone } = setup(call);
     await user.click(screen.getByRole('button', { name: 'Go' }));
-    await user.type(await screen.findByLabelText(/Reason/), 'Fix');
-    await user.click(screen.getByRole('button', { name: 'Save anyway' }));
+    await user.type(await screen.findByLabelText(/Why are you making/), 'Fix');
+    await user.click(screen.getByRole('button', { name: 'Save change' }));
 
     const cancel = screen.getByRole('button', { name: 'Cancel' });
     await waitFor(() => expect(cancel).toBeDisabled());
@@ -209,9 +206,9 @@ describe('useChangeGate', () => {
     const { user, onDone } = setup(call);
     await user.click(screen.getByRole('button', { name: 'Go' }));
 
-    const save = await screen.findByRole('button', { name: 'Save anyway' });
+    const save = await screen.findByRole('button', { name: 'Save change' });
     expect(save).toBeDisabled();
-    await user.type(screen.getByLabelText(/Reason/), 'Typo');
+    await user.type(screen.getByLabelText(/Why are you making/), 'Typo');
     await user.click(save);
     await waitFor(() => expect(onDone).toHaveBeenCalledWith(true));
     expect(gates[2]).toEqual({ reason: 'Typo' });
@@ -223,8 +220,8 @@ describe('useChangeGate', () => {
     });
     const { user } = setup(call);
     await user.click(screen.getByRole('button', { name: 'Go' }));
-    expect(await screen.findByText(/This month is already billed/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save anyway' })).toBeDisabled();
+    expect(await screen.findByText(/These months are already billed/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save change' })).not.toBeInTheDocument();
   });
 
   it('rejects with other errors from the real save and closes the dialog', async () => {
@@ -234,8 +231,8 @@ describe('useChangeGate', () => {
     });
     const { user, onDone } = setup(call);
     await user.click(screen.getByRole('button', { name: 'Go' }));
-    await user.type(await screen.findByLabelText(/Reason/), 'Fix');
-    await user.click(screen.getByRole('button', { name: 'Save anyway' }));
+    await user.type(await screen.findByLabelText(/Why are you making/), 'Fix');
+    await user.click(screen.getByRole('button', { name: 'Save change' }));
     await waitFor(() => expect(onDone).toHaveBeenCalledWith({ error: boom }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
@@ -249,7 +246,7 @@ describe('useChangeGate', () => {
 
   describe('closed year', () => {
     const MESSAGE =
-      'FY 2025-26 is closed for this site. Nothing dated on or before 31 Mar 2026 can change.';
+      "FY 2025-26 is closed for this site. Anything dated on or before 31 Mar 2026 can't be changed.";
     const yearClosed = () =>
       apiError(409, 'YEAR_CLOSED', {
         fy: '2025-26',
@@ -267,8 +264,8 @@ describe('useChangeGate', () => {
       await user.click(screen.getByRole('button', { name: 'Go' }));
 
       expect(await screen.findByRole('alert')).toHaveTextContent(MESSAGE);
-      expect(screen.queryByRole('button', { name: 'Save anyway' })).not.toBeInTheDocument();
-      expect(screen.queryByLabelText(/Reason/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Save change' })).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/Why are you making/)).not.toBeInTheDocument();
       await user.click(screen.getByText('Close'));
       await waitFor(() => expect(onDone).toHaveBeenCalledWith(false));
       expect(gates).toEqual([{ dryRun: true }]);
@@ -282,7 +279,7 @@ describe('useChangeGate', () => {
       await user.click(screen.getByRole('button', { name: 'Go' }));
 
       expect(await screen.findByRole('alert')).toHaveTextContent(MESSAGE);
-      expect(screen.queryByRole('button', { name: 'Save anyway' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Save change' })).not.toBeInTheDocument();
       await user.click(screen.getByText('Close'));
       await waitFor(() => expect(onDone).toHaveBeenCalledWith(false));
       expect(gates).toEqual([{ dryRun: true }, {}]);
