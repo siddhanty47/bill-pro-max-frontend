@@ -18,7 +18,6 @@ import {
   Input,
   Notice,
   SearchInput,
-  Select,
 } from '../ui';
 import styles from './BulkBillForm.module.css';
 import { isBillableAgreement, monthEndOf, periodProblem } from '../../utils/billingPeriod';
@@ -29,7 +28,6 @@ const bulkBillSchema = z
     billDate: z.string().min(1, 'Bill date is required'),
     periodStart: z.string().min(1, 'Start date is required'),
     periodEnd: z.string().min(1, 'End date is required'),
-    taxMode: z.enum(['intra', 'inter']),
     sgstRate: z.number().min(0).max(100).optional(),
     cgstRate: z.number().min(0).max(100).optional(),
     igstRate: z.number().min(0).max(100).optional(),
@@ -71,7 +69,6 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
         .toISOString()
         .split('T')[0],
       periodEnd: new Date().toISOString().split('T')[0],
-      taxMode: 'intra',
       sgstRate: 9,
       cgstRate: 9,
       igstRate: 18,
@@ -79,7 +76,6 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
     },
   });
 
-  const taxMode = useWatch({ control, name: 'taxMode' });
   const periodStart = useWatch({ control, name: 'periodStart' });
   const periodEnd = useWatch({ control, name: 'periodEnd' });
   const periodWarning = periodProblem(periodStart ?? '', periodEnd ?? '');
@@ -87,21 +83,14 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
   // agreements a bill can be made for: active ones, and one closed by a rate change
   const activeAgreements = useMemo(() => agreements.filter(isBillableAgreement), [agreements]);
 
-  // Auto-select tax mode based on business and selected agreements' site state codes
-  useEffect(() => {
-    if (!currentBusiness || selectedIds.size === 0) return;
-    const businessStateCode =
-      currentBusiness.stateCode ??
-      (currentBusiness.gst?.length === 15 ? currentBusiness.gst.substring(0, 2) : undefined);
-    const selectedAgreements = activeAgreements.filter(a => selectedIds.has(a.agreementId));
-    const anyDifferentState = selectedAgreements.some(a => {
-      const siteStateCode = a.siteStateCode ?? undefined;
-      return siteStateCode && businessStateCode && siteStateCode !== businessStateCode;
-    });
-    if (businessStateCode && selectedAgreements.length > 0) {
-      setValue('taxMode', anyDifferentState ? 'inter' : 'intra');
-    }
-  }, [currentBusiness, selectedIds, activeAgreements, setValue]);
+  // Each bill's GST follows its site: same state as the business CGST+SGST, else IGST (the server decides)
+  const businessStateCode =
+    currentBusiness?.stateCode ||
+    (currentBusiness?.gst?.length === 15 ? currentBusiness.gst.substring(0, 2) : undefined);
+  const taxLabel = (a: AgreementWithParty): string => {
+    if (!businessStateCode || !a.siteStateCode) return 'CGST + SGST (state not set)';
+    return a.siteStateCode === businessStateCode ? 'CGST + SGST' : 'IGST';
+  };
 
   useEffect(() => {
     if (!currentBusiness) return;
@@ -165,10 +154,9 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
         start: data.periodStart,
         end: data.periodEnd,
       },
-      taxMode: data.taxMode,
-      sgstRate: data.taxMode === 'intra' ? sgstRate : undefined,
-      cgstRate: data.taxMode === 'intra' ? cgstRate : undefined,
-      igstRate: data.taxMode === 'inter' ? igstRate : undefined,
+      sgstRate,
+      cgstRate,
+      igstRate,
       discountRate: sanitize(data.discountRate),
       notes: data.notes || undefined,
       agreements: selected.map(a => ({
@@ -210,69 +198,49 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
           )}
         </div>
         <div className={styles.column}>
-          <Field label="Tax mode" required>
-            <Select {...register('taxMode')} disabled={isLoading}>
-              <option value="intra">Intra-state (SGST + CGST)</option>
-              <option value="inter">Inter-state (IGST)</option>
-            </Select>
-          </Field>
-
-          {taxMode === 'intra' ? (
-            <>
-              <div className={styles.pair}>
-                <Field label="SGST (%)">
-                  <Input
-                    mono
-                    type="number"
-                    step="0.01"
-                    {...register('sgstRate', { valueAsNumber: true })}
-                    disabled={isLoading}
-                  />
-                </Field>
-                <Field label="CGST (%)">
-                  <Input
-                    mono
-                    type="number"
-                    step="0.01"
-                    {...register('cgstRate', { valueAsNumber: true })}
-                    disabled={isLoading}
-                  />
-                </Field>
-              </div>
-              <div className={styles.pair}>
-                <Field label="Discount (%)">
-                  <Input
-                    mono
-                    type="number"
-                    step="0.01"
-                    {...register('discountRate', { valueAsNumber: true })}
-                    disabled={isLoading}
-                  />
-                </Field>
-              </div>
-            </>
-          ) : (
-            <div className={styles.pair}>
-              <Field label="IGST (%)">
-                <Input
-                  mono
-                  type="number"
-                  step="0.01"
-                  {...register('igstRate', { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-              </Field>
-              <Field label="Discount (%)">
-                <Input
-                  mono
-                  type="number"
-                  step="0.01"
-                  {...register('discountRate', { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-              </Field>
-            </div>
-          )}
+          <div className={styles.pair}>
+            <Field label="SGST (%)">
+              <Input
+                mono
+                type="number"
+                step="0.01"
+                {...register('sgstRate', { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+            </Field>
+            <Field label="CGST (%)">
+              <Input
+                mono
+                type="number"
+                step="0.01"
+                {...register('cgstRate', { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+            </Field>
+          </div>
+          <div className={styles.pair}>
+            <Field
+              label="IGST (%)"
+              hint="Sites in your state get CGST + SGST; sites in another state get IGST."
+            >
+              <Input
+                mono
+                type="number"
+                step="0.01"
+                {...register('igstRate', { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+            </Field>
+            <Field label="Discount (%)">
+              <Input
+                mono
+                type="number"
+                step="0.01"
+                {...register('discountRate', { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+            </Field>
+          </div>
         </div>
       </div>
 
@@ -321,6 +289,7 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
                         {a.siteCode}
                         {a.siteAddress && ` — ${a.siteAddress}`}
                       </span>
+                      <span className={styles.taxTag}>{taxLabel(a)}</span>
                     </span>
                   }
                 />

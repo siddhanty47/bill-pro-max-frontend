@@ -46,7 +46,7 @@ const generate = (n: number) =>
 describe('BulkBillForm', () => {
   it('submits the exact payload for the selected agreements', async () => {
     const { user, onSubmit } = setup();
-    await waitFor(() => expect(screen.getByLabelText(/sgst/i)).toHaveValue(9));
+    await waitFor(() => expect(screen.getByLabelText(/^sgst/i)).toHaveValue(9));
     fireEvent.change(screen.getByLabelText(/^bill date/i), { target: { value: '2026-11-01' } });
     fireEvent.change(screen.getByLabelText(/period start/i), { target: { value: '2026-10-01' } });
     fireEvent.change(screen.getByLabelText(/period end/i), { target: { value: '2026-10-31' } });
@@ -61,10 +61,9 @@ describe('BulkBillForm', () => {
     expect(onSubmit.mock.calls[0][0]).toEqual({
       billDate: '2026-11-01',
       billingPeriod: { start: '2026-10-01', end: '2026-10-31' },
-      taxMode: 'intra',
       sgstRate: 9,
       cgstRate: 9,
-      igstRate: undefined,
+      igstRate: 18,
       discountRate: 5,
       notes: undefined,
       agreements: [
@@ -114,24 +113,31 @@ describe('BulkBillForm', () => {
     expect(screen.queryByText('AG-GONE')).not.toBeInTheDocument();
   });
 
-  it('switches to inter-state when a selected site is in another state', async () => {
+  it('shows each agreement its own GST and lets the server pick the mode', async () => {
     const { user, onSubmit } = setup(
-      [agr({}), agr({ agreementId: 'AG-2', partyId: 'p2', siteStateCode: '24' })],
+      [
+        agr({}),
+        agr({ agreementId: 'AG-2', partyId: 'p2', siteStateCode: '24' }),
+        agr({ agreementId: 'AG-3', partyId: 'p3', siteStateCode: undefined }),
+      ],
       '27'
     );
+    expect(
+      await screen.findByRole('checkbox', { name: /AG-1.*CGST \+ SGST$/ })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /AG-2.*IGST$/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', { name: /AG-3.*CGST \+ SGST \(state not set\)/ })
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText(/tax mode/i)).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText(/^igst/i)).toHaveValue(18));
+    await user.click(screen.getByRole('checkbox', { name: /AG-1/ }));
     await user.click(screen.getByRole('checkbox', { name: /AG-2/ }));
-    await waitFor(() => expect(screen.getByLabelText(/tax mode/i)).toHaveValue('inter'));
-    expect(screen.queryByLabelText(/sgst/i)).not.toBeInTheDocument();
-    await waitFor(() => expect(screen.getByLabelText(/igst/i)).toHaveValue(18));
-    await user.click(generate(1));
+    await user.click(generate(2));
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
-    expect(onSubmit.mock.calls[0][0]).toMatchObject({
-      taxMode: 'inter',
-      sgstRate: undefined,
-      cgstRate: undefined,
-      igstRate: 18,
-      agreements: [{ partyId: 'p2', agreementId: 'AG-2' }],
-    });
+    const payload = onSubmit.mock.calls[0][0];
+    expect(payload).not.toHaveProperty('taxMode');
+    expect(payload).toMatchObject({ sgstRate: 9, cgstRate: 9, igstRate: 18 });
   });
 
   it('filters by search, selects all filtered and clears them again', async () => {
