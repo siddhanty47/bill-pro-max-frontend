@@ -36,6 +36,8 @@ import { METHOD_LABELS, paymentsCsv, typeLabel } from './payments/paymentsCsv';
 import { ExportCsvButton, MessageDialog, useBulkSelection } from '../components/bulk';
 import type { Payment, CreatePaymentInput } from '../types';
 import styles from './PaymentsPage.module.css';
+import { useBillIssueGate } from '../hooks/useBillIssueGate';
+import { matchesSearch } from '../utils/search';
 
 export function PaymentsPage() {
   const { currentBusinessId } = useCurrentBusiness();
@@ -74,7 +76,26 @@ export function PaymentsPage() {
   });
   useHotkey('/', () => searchRef.current?.focus());
 
+  // Paying a draft bill sends it: the same out-of-date and negative-stock checks as sending
+  const issueGate = useBillIssueGate(currentBusinessId, { onError: setFailure });
+
   const handleSubmit = async (data: CreatePaymentInput) => {
+    const bill = data.billId ? bills?.find(b => b._id === data.billId) : undefined;
+    if (bill?.status === 'draft') {
+      await issueGate.attempt(
+        bill,
+        async acknowledgeNegative => {
+          await createPayment({
+            businessId: currentBusinessId!,
+            data: acknowledgeNegative ? { ...data, acknowledgeNegative } : data,
+          }).unwrap();
+          setIsModalOpen(false);
+        },
+        true,
+        'pay'
+      );
+      return;
+    }
     try {
       await createPayment({
         businessId: currentBusinessId!,
@@ -91,13 +112,11 @@ export function PaymentsPage() {
   };
 
   const filteredPayments = (payments || []).filter(payment => {
-    const matchesSearch =
-      !searchTerm ||
-      getPartyName(payment.partyId).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (payment.reference && payment.reference.toLowerCase().includes(searchTerm.toLowerCase()));
+    const party = parties?.find(p => p._id === payment.partyId);
+    const matchesText = matchesSearch(searchTerm, [party?.name, party?.code, payment.reference]);
     const matchesType = !typeFilter || payment.type === typeFilter;
     const matchesMethod = !methodFilter || payment.method === methodFilter;
-    return matchesSearch && matchesType && matchesMethod;
+    return matchesText && matchesType && matchesMethod;
   });
 
   // The table pages the whole list (so Prev/Next covers every payment) on a page held here,
@@ -197,7 +216,7 @@ export function PaymentsPage() {
           ref={searchRef}
           label="Search payments"
           hint="/"
-          placeholder="Party or reference"
+          placeholder="Party, party code or reference"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />
@@ -288,6 +307,8 @@ export function PaymentsPage() {
           isLoading={isCreating}
         />
       </Modal>
+
+      {issueGate.dialog}
 
       <MessageDialog
         title="Couldn't record payment"

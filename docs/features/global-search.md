@@ -33,6 +33,23 @@ index downloaded once per business) and bills/challans by number from the server
 | `src/api/searchApi.ts` | Endpoints |
 | `src/hooks/useSearchIndexSync.ts` | Socket invalidation |
 
+## List search (table search boxes)
+
+Separate from the header search: each list page has its own search box (`/` focuses it).
+
+| List | Matches |
+|------|---------|
+| Bills, Challans (server, `search` param) | document number, party name or code, site code; challans also vehicle number and transporter |
+| Parties | name, code, contact person, phone, email, GSTIN, site codes and addresses |
+| Agreements | party, agreement id, site code, site address |
+| Inventory | name, code, category, description |
+| Payments | party name or code, reference |
+| Credit/debit notes | note number, bill number, party name or code |
+
+Browser-side lists use `matchesSearch(term, values)` (`src/utils/search.ts`: trimmed,
+case-insensitive, skips missing values). The placeholder says what each box matches; keep it in
+step when adding a field.
+
 ## Changing it safely
 
 - Mutation on parties/sites/agreements/inventory: add `'SearchIndex'` to `invalidatesTags` (the

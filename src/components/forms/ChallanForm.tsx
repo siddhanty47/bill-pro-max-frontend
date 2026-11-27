@@ -187,6 +187,7 @@ export function ChallanForm({
   const [extractionReview, setExtractionReview] = useState<ExtractedChallanData | null>(null);
   const [extractChallanFromPhoto] = useExtractChallanFromPhotoMutation();
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -564,14 +565,37 @@ export function ChallanForm({
           tabIndex={-1}
           aria-hidden="true"
         />
-        <Button
-          className={styles.scanButton}
-          onClick={() => photoInputRef.current?.click()}
-          loading={isExtracting}
-          disabled={isLoading}
-        >
-          Scan from photo
-        </Button>
+        {/* Android only offers the camera when the input asks for it with `capture`, so the
+            camera gets its own input and button (shown on touch screens). */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          id="challan-camera"
+          accept="image/*"
+          capture="environment"
+          className={styles.hiddenFileInput}
+          onChange={handlePhotoUpload}
+          disabled={isLoading || isExtracting}
+          tabIndex={-1}
+          aria-hidden="true"
+        />
+        <div className={styles.scanButtons}>
+          <Button
+            className={styles.cameraButton}
+            onClick={() => cameraInputRef.current?.click()}
+            loading={isExtracting}
+            disabled={isLoading}
+          >
+            Take photo
+          </Button>
+          <Button
+            onClick={() => photoInputRef.current?.click()}
+            loading={isExtracting}
+            disabled={isLoading}
+          >
+            Scan from photo
+          </Button>
+        </div>
         {extractionWarnings.length > 0 && (
           <Notice tone="danger">
             {extractionWarnings.map((w, i) => (

@@ -12,8 +12,11 @@ here, and this index, in the same PR.
 - [notes-ui.md](notes-ui.md) — credit/debit notes pages, form, tables, money helpers, PDFs
 - [year-close-ui.md](year-close-ui.md) — `/year-close`, `useSiteLock`, closed-year locks, credit-note deadline
 - [business-settings.md](business-settings.md) — `/business` fields: contact, PAN, tax defaults, credit-note deadline, document terms and signatory
+- [bill-generation-ui.md](bill-generation-ui.md) — single and bulk bill forms, GST mode per site
 - [bulk-actions.md](bulk-actions.md) — multi-select, bulk bar, "Done" dialog with skip reasons, CSV export
+- [party-credit-score-ui.md](party-credit-score-ui.md) — credit score section on the party page (score, band, unpaid by age)
 - [dashboard.md](dashboard.md) — insights dashboard, charts, sidebar counts, party stock section
+- [challan-photo-scan-ui.md](challan-photo-scan-ui.md) — scan a challan photo: camera vs gallery inputs, auto-fill, review panel
 - [global-search.md](global-search.md) — header search (MiniSearch + document search), live index sync
 - [design-system.md](design-system.md) — pointers to the `frontend-design` skill and the `ui/` kit
 

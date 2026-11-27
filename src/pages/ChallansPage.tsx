@@ -294,7 +294,7 @@ export function ChallansPage() {
           ref={searchRef}
           label="Search challans"
           hint="/"
-          placeholder="Search challan no. or party"
+          placeholder="Search challan no., party, site or vehicle"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />

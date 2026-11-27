@@ -1,0 +1,51 @@
+/* Party credit score: layout only. Chip, meter and legend are kit components. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+}
+
+.headline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.score {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.outOf {
+  margin-left: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-heading);
+}
+
+.note,
+.empty {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.empty {
+  color: var(--text-muted);
+}
