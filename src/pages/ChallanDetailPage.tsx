@@ -7,7 +7,7 @@
  * closed financial year of its site is read only.
  */
 import { useState, useCallback, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import styles from './ChallanDetailPage.module.css';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useAuth } from '../hooks/useAuth';
@@ -18,6 +18,8 @@ import {
   useUpdateChallanItemMutation,
   useAddChallanItemMutation,
   useDeleteChallanItemMutation,
+  useDeleteChallanMutation,
+  useCancelChallanMutation,
   useUpdateChallanDamagedItemsMutation,
   useUpdateChallanDateMutation,
   useLazyDownloadChallanPdfQuery,
@@ -42,6 +44,7 @@ import {
   type Column,
 } from '../components/ui';
 import { useChangeGate } from '../hooks/useChangeGate';
+import { useConfirm } from '../components/bulk';
 import { useSiteLock } from '../hooks/useSiteLock';
 import { EditableField } from '../components/EditableField';
 import type { ChallanItem, DamagedItem } from '../types';
@@ -100,6 +103,10 @@ export function ChallanDetailPage() {
   const [updateTransportation, { isLoading: isSavingTransportation }] =
     useUpdateChallanTransportationMutation();
   const [confirmChallan, { isLoading: isConfirming }] = useConfirmChallanMutation();
+  const [deleteChallan, { isLoading: isDeleting }] = useDeleteChallanMutation();
+  const [cancelChallan, { isLoading: isCancelling }] = useCancelChallanMutation();
+  const { ask, dialog: confirmDialog } = useConfirm();
+  const navigate = useNavigate();
   const [updateItem, { isLoading: isSavingItem }] = useUpdateChallanItemMutation();
   const [addItem, { isLoading: isAddingItem }] = useAddChallanItemMutation();
   const [deleteItem] = useDeleteChallanItemMutation();
@@ -294,6 +301,45 @@ export function ChallanDetailPage() {
       alert(getErrorMessage(err));
     }
   }, [challan, currentBusinessId, confirmChallan, user, runGated]);
+
+  const handleDelete = useCallback(() => {
+    if (!challan || !currentBusinessId) return;
+    ask({
+      title: `Delete draft ${challan.challanNumber}?`,
+      body: 'The draft is removed for good. It never moved any stock, so nothing else changes.',
+      confirmLabel: 'Delete draft',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          await deleteChallan({ businessId: currentBusinessId, challanId: challan._id }).unwrap();
+          navigate('/challans');
+        } catch (err) {
+          alert(getErrorMessage(err));
+        }
+      },
+    });
+  }, [ask, challan, currentBusinessId, deleteChallan, navigate]);
+
+  const handleCancel = useCallback(() => {
+    if (!challan || !currentBusinessId) return;
+    ask({
+      title: `Cancel challan ${challan.challanNumber}?`,
+      body: 'Its stock moves are undone and the challan stays in the list as Cancelled, keeping its number. Bills for this site are re-checked.',
+      confirmLabel: 'Cancel challan',
+      cancelLabel: 'Keep challan',
+      danger: true,
+      // Not awaited: this dialog closes first, then the change dialog may open on its own.
+      onConfirm: () => {
+        runGated(gate =>
+          cancelChallan({
+            businessId: currentBusinessId,
+            challanId: challan._id,
+            ...gate,
+          }).unwrap()
+        ).catch(err => alert(getErrorMessage(err)));
+      },
+    });
+  }, [ask, challan, currentBusinessId, cancelChallan, runGated]);
 
   const resetAddItem = () => {
     setShowAddItem(false);
@@ -590,6 +636,21 @@ export function ChallanDetailPage() {
               Download PDF
             </Button>
             {isDraft && (
+              <Button variant="ghost" onClick={handleDelete} loading={isDeleting}>
+                Delete
+              </Button>
+            )}
+            {challan.status === 'confirmed' && (
+              <Button
+                variant="ghost"
+                onClick={handleCancel}
+                loading={isCancelling}
+                disabled={locked}
+              >
+                Cancel challan
+              </Button>
+            )}
+            {isDraft && (
               <Button
                 variant="primary"
                 onClick={handleConfirm}
@@ -760,6 +821,7 @@ export function ChallanDetailPage() {
         </>
       )}
       {changeDialog}
+      {confirmDialog}
     </DetailPageShell>
   );
 }

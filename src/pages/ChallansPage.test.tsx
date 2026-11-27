@@ -571,6 +571,45 @@ describe('ChallansPage', () => {
       ]);
     });
 
+    it('deletes selected drafts and skips confirmed and cancelled ones', async () => {
+      useApi([
+        ...drafts,
+        challan({
+          _id: 'x1',
+          challanNumber: 'D-9',
+          date: '2026-11-16T00:00:00.000Z',
+          status: 'cancelled',
+        }),
+      ]);
+      const deleted: string[] = [];
+      server.use(
+        http.delete(apiUrl('/businesses/biz-1/challans/:id'), ({ params }) => {
+          if (params.id === 'd3') {
+            return HttpResponse.json(
+              { success: false, error: { message: 'Gone already' } },
+              { status: 404 }
+            );
+          }
+          deleted.push(String(params.id));
+          return ok({ id: params.id });
+        })
+      );
+      const { user } = renderPage();
+      await screen.findByRole('table');
+      await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
+      await user.click(within(bar()!).getByRole('button', { name: 'Delete 3' }));
+      const ask = screen.getByRole('dialog', { name: 'Delete 3 draft challans?' });
+      await user.click(within(ask).getByRole('button', { name: 'Delete' }));
+      const done = await doneDialog();
+      expect(done).toHaveTextContent('2 deleted');
+      expect(
+        within(done)
+          .getAllByRole('listitem')
+          .map(li => li.textContent)
+      ).toEqual(['D-3: Gone already', 'D-4: confirmed, open it to cancel', 'D-9: cancelled']);
+      expect(deleted.sort()).toEqual(['d1', 'd2']);
+    });
+
     it('skips a challan whose dry run comes back without a report', async () => {
       useApi(drafts.slice(0, 2));
       const calls = trackConfirm((id, dryRun) =>
