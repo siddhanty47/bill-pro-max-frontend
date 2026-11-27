@@ -280,15 +280,14 @@ export function BulkBillForm({ agreements, onSubmit, onCancel, isLoading }: Bulk
                   disabled={isLoading}
                   label={
                     <span className={styles.agreementInfo}>
-                      <span className="mono">{a.agreementId}</span>
+                      <span className={styles.agreementSite}>
+                        {a.partyName} · {a.siteCode}
+                        {a.siteAddress && ` — ${a.siteAddress}`}
+                      </span>
                       {a.status !== 'active' && a.endDate && (
                         <span>until {formatDate(a.endDate, { year: 'always' })}</span>
                       )}
-                      <span>{a.partyName}</span>
-                      <span>
-                        {a.siteCode}
-                        {a.siteAddress && ` — ${a.siteAddress}`}
-                      </span>
+                      <span className={`mono ${styles.agreementId}`}>{a.agreementId}</span>
                       <span className={styles.taxTag}>{taxLabel(a)}</span>
                     </span>
                   }

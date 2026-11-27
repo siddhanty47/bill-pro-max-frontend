@@ -370,8 +370,9 @@ describe('ChallanForm', () => {
     await user.type(partyInput(), 'MEH');
     await user.click(await screen.findByRole('option', { name: /Mehta Builders/ }));
     expect(screen.getByLabelText(/^agreement/i)).toBeEnabled();
-    expect(screen.getByRole('option', { name: /^AG-1/ })).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: /^AG-0/ })).not.toBeInTheDocument();
+    const options = screen.getAllByRole<HTMLOptionElement>('option', { name: /^S1 — Plot 12/ });
+    expect(options.map(o => o.value)).toEqual(['AG-1']);
+    expect(options[0]).toHaveTextContent(/^S1 — Plot 12 \(from 1 Apr/);
   });
 
   it('predicts the number locally when the API fails', async () => {

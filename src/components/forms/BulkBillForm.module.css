@@ -63,6 +63,15 @@
   min-width: 0;
 }
 
+.agreementSite {
+  color: var(--text-primary);
+}
+
+.agreementId {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;

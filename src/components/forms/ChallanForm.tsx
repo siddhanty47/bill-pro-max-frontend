@@ -45,6 +45,7 @@ import {
   Tr,
 } from '../ui';
 import { formatDate } from '../../utils/format';
+import { siteLabel } from '../../utils/sites';
 import { optionalNumber } from './optionalNumber';
 import styles from './ChallanForm.module.css';
 
@@ -646,7 +647,8 @@ export function ChallanForm({
             <option value="">Select agreement</option>
             {activeAgreements.map(agreement => (
               <option key={agreement.agreementId} value={agreement.agreementId}>
-                {agreement.agreementId} (from {formatDate(agreement.startDate)})
+                {siteLabel(agreement.siteCode, selectedParty?.sites)} (from{' '}
+                {formatDate(agreement.startDate)})
               </option>
             ))}
           </Select>
