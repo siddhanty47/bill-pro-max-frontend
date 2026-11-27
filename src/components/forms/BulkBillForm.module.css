@@ -51,6 +51,11 @@
   padding: var(--space-3) var(--space-4);
 }
 
+.taxTag {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
 .agreementInfo {
   display: flex;
   flex-direction: column;

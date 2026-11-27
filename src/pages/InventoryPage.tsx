@@ -46,6 +46,7 @@ import { inventoryCsv } from './inventory/inventoryCsv';
 import { RENTED_REASON } from './inventory/bulkReasons';
 import type { Inventory, CreateInventoryInput } from '../types';
 import { computeRentedFromHistory, computeAvailable } from '../utils/inventoryUtils';
+import { matchesSearch } from '../utils/search';
 
 export function InventoryPage() {
   const { currentBusinessId } = useCurrentBusiness();
@@ -116,13 +117,14 @@ export function InventoryPage() {
   const categories = [...new Set(inventory?.map(i => i.category) || [])];
 
   const filteredInventory = (inventory || []).filter(item => {
-    const matchesSearch =
-      !searchTerm ||
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesText = matchesSearch(searchTerm, [
+      item.name,
+      item.code,
+      item.category,
+      item.description,
+    ]);
     const matchesCategory = !categoryFilter || item.category === categoryFilter;
-    return matchesSearch && matchesCategory;
+    return matchesText && matchesCategory;
   });
 
   const rentedOf = (item: Inventory) =>
@@ -247,7 +249,7 @@ export function InventoryPage() {
           ref={searchRef}
           label="Search inventory"
           hint="/"
-          placeholder="Search name, code or category"
+          placeholder="Search name, code, category or description"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />
