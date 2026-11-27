@@ -31,7 +31,9 @@ The bills list shows an "Out of date" marker on drifted drafts (`BillsPage`).
   A 409 `BILL_PERIOD_EMPTY` on refresh shows its own message (delete the draft).
 - Negative stock → confirmation listing the spans, then retries with `acknowledgeNegative: true`.
 - The server's 409s (`BILL_OUT_OF_DATE`, `NEGATIVE_STOCK_ACK_REQUIRED`) open the same dialogs.
-- Used by `BillDetailPage` and `BillsPage`; render `gate.dialog`.
+- Used by `BillDetailPage`, `BillsPage` and `PaymentsPage` (a payment on a draft bill issues it:
+  action `'pay'`, "Recording a payment sends the bill. Record it anyway?" / "Record payment
+  anyway"; the retry sends `acknowledgeNegative` in the payment body). Render `gate.dialog`.
 
 ## Tags
 

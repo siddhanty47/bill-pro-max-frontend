@@ -17,12 +17,16 @@ export const OUT_OF_DATE_MESSAGE =
 
 type Run = (acknowledgeNegative?: boolean) => Promise<unknown>;
 
-/** How the negative-stock dialog words the action: emailing the bill, or only marking it sent. */
-export type IssueAction = 'send' | 'markSent';
+/** How the negative-stock dialog words the action: emailing the bill, marking it sent, or paying it. */
+export type IssueAction = 'send' | 'markSent' | 'pay';
 
 const ACK_WORDING: Record<IssueAction, { question: string; button: string }> = {
   send: { question: 'Send the bill anyway?', button: 'Send anyway' },
   markSent: { question: 'Mark the bill as sent anyway?', button: 'Mark as sent anyway' },
+  pay: {
+    question: 'Recording a payment sends the bill. Record it anyway?',
+    button: 'Record payment anyway',
+  },
 };
 
 type Pending =

@@ -36,6 +36,7 @@ import { METHOD_LABELS, paymentsCsv, typeLabel } from './payments/paymentsCsv';
 import { ExportCsvButton, MessageDialog, useBulkSelection } from '../components/bulk';
 import type { Payment, CreatePaymentInput } from '../types';
 import styles from './PaymentsPage.module.css';
+import { useBillIssueGate } from '../hooks/useBillIssueGate';
 import { matchesSearch } from '../utils/search';
 
 export function PaymentsPage() {
@@ -75,7 +76,26 @@ export function PaymentsPage() {
   });
   useHotkey('/', () => searchRef.current?.focus());
 
+  // Paying a draft bill sends it: the same out-of-date and negative-stock checks as sending
+  const issueGate = useBillIssueGate(currentBusinessId, { onError: setFailure });
+
   const handleSubmit = async (data: CreatePaymentInput) => {
+    const bill = data.billId ? bills?.find(b => b._id === data.billId) : undefined;
+    if (bill?.status === 'draft') {
+      await issueGate.attempt(
+        bill,
+        async acknowledgeNegative => {
+          await createPayment({
+            businessId: currentBusinessId!,
+            data: acknowledgeNegative ? { ...data, acknowledgeNegative } : data,
+          }).unwrap();
+          setIsModalOpen(false);
+        },
+        true,
+        'pay'
+      );
+      return;
+    }
     try {
       await createPayment({
         businessId: currentBusinessId!,
@@ -287,6 +307,8 @@ export function PaymentsPage() {
           isLoading={isCreating}
         />
       </Modal>
+
+      {issueGate.dialog}
 
       <MessageDialog
         title="Couldn't record payment"
