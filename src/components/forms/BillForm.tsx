@@ -10,6 +10,7 @@ import { z } from 'zod';
 import type { Party, GenerateBillInput } from '../../types';
 import { isBillableAgreement, monthEndOf, periodProblem } from '../../utils/billingPeriod';
 import { formatDate } from '../../utils/format';
+import { siteLabel } from '../../utils/sites';
 import { useCurrentBusiness } from '../../hooks/useCurrentBusiness';
 import { useGetNextBillNumberQuery } from '../../api/billApi';
 import { Button, Field, Input, Notice, Select, Textarea } from '../ui';
@@ -258,7 +259,8 @@ export function BillForm({ parties, onSubmit, onCancel, isLoading }: BillFormPro
                 <option value="">Select agreement…</option>
                 {activeAgreements.map(agreement => (
                   <option key={agreement.agreementId} value={agreement.agreementId}>
-                    {agreement.agreementId} ({agreement.terms.billingCycle}
+                    {siteLabel(agreement.siteCode, selectedParty?.sites)} (
+                    {agreement.terms.billingCycle}
                     {agreement.status !== 'active' && agreement.endDate
                       ? `, until ${formatDate(agreement.endDate, { year: 'always' })}`
                       : ''}

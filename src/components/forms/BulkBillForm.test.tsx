@@ -109,7 +109,7 @@ describe('BulkBillForm', () => {
       } as Partial<AgreementWithParty>),
       agr({ agreementId: 'AG-GONE', status: 'expired' }),
     ]);
-    expect(screen.getByRole('checkbox', { name: /AG-OLD.*until 31 Aug 2026/ })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /until 31 Aug 2026.*AG-OLD/ })).toBeInTheDocument();
     expect(screen.queryByText('AG-GONE')).not.toBeInTheDocument();
   });
 

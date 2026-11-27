@@ -126,8 +126,10 @@ describe('BillForm', () => {
     expect(screen.getByLabelText(/^agreement/i)).toBeDisabled();
     expect(screen.queryByText(/bill #/i)).not.toBeInTheDocument();
     await pickParty(user);
-    expect(screen.getByRole('option', { name: /AG-1 \(monthly\)/ })).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: /AG-0/ })).not.toBeInTheDocument();
+    const options = screen.getAllByRole<HTMLOptionElement>('option', { name: /^S1 — Plot 12/ });
+    expect(options.map(o => [o.value, o.textContent])).toEqual([
+      ['AG-1', 'S1 — Plot 12 (monthly)'],
+    ]);
   });
 
   it('also lists an agreement closed by a rate change, with its end date', async () => {
@@ -162,11 +164,11 @@ describe('BillForm', () => {
 
     await pickParty(user);
 
-    expect(screen.getByRole('option', { name: /AG-2 \(monthly\)/ })).toBeInTheDocument();
-    expect(
-      screen.getByRole('option', { name: /AG-1 \(monthly, until 31 Aug 2026\)/ })
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: /AG-0/ })).not.toBeInTheDocument();
+    const options = screen.getAllByRole<HTMLOptionElement>('option', { name: /^S1 — Plot 12/ });
+    expect(options.map(o => [o.value, o.textContent])).toEqual([
+      ['AG-2', 'S1 — Plot 12 (monthly)'],
+      ['AG-1', 'S1 — Plot 12 (monthly, until 31 Aug 2026)'],
+    ]);
   });
 
   it('fills the period end with the month end and warns about a long period', () => {
