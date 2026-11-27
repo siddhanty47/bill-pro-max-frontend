@@ -13,6 +13,7 @@ here, and this index, in the same PR.
 - [year-close-ui.md](year-close-ui.md) — `/year-close`, `useSiteLock`, closed-year locks, credit-note deadline
 - [bulk-actions.md](bulk-actions.md) — multi-select, bulk bar, "Done" dialog with skip reasons, CSV export
 - [dashboard.md](dashboard.md) — insights dashboard, charts, sidebar counts, party stock section
+- [challan-photo-scan-ui.md](challan-photo-scan-ui.md) — scan a challan photo: camera vs gallery inputs, auto-fill, review panel
 - [global-search.md](global-search.md) — header search (MiniSearch + document search), live index sync
 - [design-system.md](design-system.md) — pointers to the `frontend-design` skill and the `ui/` kit
 

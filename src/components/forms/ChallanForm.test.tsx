@@ -433,7 +433,30 @@ describe('ChallanForm', () => {
 
     const photo = () => new File(['x'], 'challan.jpg', { type: 'image/jpeg' });
     const fileInput = (container: HTMLElement) =>
-      container.querySelector('input[type="file"]') as HTMLInputElement;
+      container.querySelector('#challan-photo') as HTMLInputElement;
+
+    it('opens the camera from "Take photo" and the gallery from "Scan from photo"', async () => {
+      const { user, container } = setup();
+      const camera = container.querySelector('#challan-camera') as HTMLInputElement;
+      expect(camera).toHaveAttribute('capture', 'environment');
+      expect(camera).toHaveAttribute('accept', 'image/*');
+      const cameraClick = vi.spyOn(camera, 'click');
+      const galleryClick = vi.spyOn(fileInput(container), 'click');
+
+      await user.click(screen.getByRole('button', { name: 'Take photo' }));
+      expect(cameraClick).toHaveBeenCalledTimes(1);
+      await user.click(screen.getByRole('button', { name: 'Scan from photo' }));
+      expect(galleryClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('uploads a photo taken with the camera', async () => {
+      const { user, container } = setup({ type: 'return' });
+      server.use(
+        http.post(apiUrl('/businesses/biz-1/challans/extract-from-photo'), () => ok(extracted()))
+      );
+      await user.upload(container.querySelector('#challan-camera') as HTMLInputElement, photo());
+      expect(await screen.findByText('Scan review')).toBeInTheDocument();
+    });
 
     it('applies the extracted data and shows the review', async () => {
       const { user, container, onSubmit } = setup({ type: 'return' });

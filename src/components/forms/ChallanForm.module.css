@@ -8,8 +8,17 @@
   margin-bottom: var(--space-5);
 }
 
-.scanButton {
-  align-self: flex-start;
+.scanButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Camera capture only makes sense on phones and tablets. */
+@media (hover: hover) and (pointer: fine) {
+  .cameraButton {
+    display: none;
+  }
 }
 
 .hiddenFileInput {
