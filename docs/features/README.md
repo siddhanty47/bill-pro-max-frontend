@@ -16,6 +16,7 @@ here, and this index, in the same PR.
 - [bulk-actions.md](bulk-actions.md) — multi-select, bulk bar, "Done" dialog with skip reasons, CSV export
 - [party-credit-score-ui.md](party-credit-score-ui.md) — credit score section on the party page (score, band, unpaid by age)
 - [dashboard.md](dashboard.md) — insights dashboard, charts, sidebar counts, party stock section
+- [challan-delete-cancel-ui.md](challan-delete-cancel-ui.md) — delete a draft, cancel a confirmed challan (gated), bulk delete drafts
 - [challan-photo-scan-ui.md](challan-photo-scan-ui.md) — scan a challan photo: camera vs gallery inputs, auto-fill, review panel
 - [global-search.md](global-search.md) — header search (MiniSearch + document search), live index sync
 - [agreement-pickers.md](agreement-pickers.md) — agreement selects/checkboxes are labelled by site code + full address (`siteLabel`), not agreement id

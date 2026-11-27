@@ -186,6 +186,39 @@ export const challanApi = baseApi.injectEndpoints({
       ]),
     }),
 
+    /** Delete a draft challan (confirmed ones are cancelled instead) */
+    deleteChallan: builder.mutation<void, { businessId: string; challanId: string }>({
+      query: ({ businessId, challanId }) => ({
+        url: `/businesses/${businessId}/challans/${challanId}`,
+        method: 'DELETE',
+      }),
+      transformResponse: () => undefined,
+      invalidatesTags: ['Challan', 'AuditLog', 'Dashboard'],
+    }),
+
+    /** Cancel a challan: stock reversed and bills re-checked (gated) */
+    cancelChallan: builder.mutation<
+      Challan | DryRunResult,
+      { businessId: string; challanId: string } & GateArgs
+    >({
+      query: ({ businessId, challanId, ...gate }) => ({
+        url: `/businesses/${businessId}/challans/${challanId}/cancel`,
+        method: 'POST',
+        ...withGate(gate),
+      }),
+      transformResponse: unwrapGated<Challan>,
+      invalidatesTags: gatedTags(({ challanId }) => [
+        { type: 'Challan', id: challanId },
+        'Challan',
+        'Bill',
+        'BillNote',
+        'AuditLog',
+        'Dashboard',
+        'Inventory',
+        'Party',
+      ]),
+    }),
+
     deleteChallanItem: builder.mutation<
       Challan | DryRunResult,
       { businessId: string; challanId: string; itemId: string } & GateArgs
@@ -302,6 +335,8 @@ export const {
   useUpdateChallanTransportationMutation,
   useAddChallanItemMutation,
   useDeleteChallanItemMutation,
+  useDeleteChallanMutation,
+  useCancelChallanMutation,
   useUpdateChallanDamagedItemsMutation,
   useUpdateChallanDateMutation,
   useGetNextChallanNumberQuery,

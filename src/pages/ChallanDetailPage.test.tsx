@@ -269,6 +269,95 @@ describe('ChallanDetailPage', () => {
     await waitFor(() => expect(alert).toHaveBeenCalledWith(expect.stringContaining('Stock short')));
   });
 
+  it('deletes a draft after the dialog and goes back to the list', async () => {
+    useApi();
+    let deletes = 0;
+    server.use(
+      http.delete(apiUrl(BASE), () => {
+        deletes++;
+        return ok({ id: 'c1' });
+      })
+    );
+    const { user } = renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Delete' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Delete draft R-2026-27-0003?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(deletes).toBe(0);
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    await user.click(await screen.findByRole('button', { name: 'Delete draft' }));
+    expect(await screen.findByText('elsewhere')).toBeInTheDocument();
+    expect(deletes).toBe(1);
+    expect(screen.queryByRole('button', { name: 'Cancel challan' })).not.toBeInTheDocument();
+  });
+
+  it('alerts when deleting a draft fails', async () => {
+    useApi();
+    server.use(
+      http.delete(apiUrl(BASE), () =>
+        HttpResponse.json({ success: false, error: { message: 'Nope' } }, { status: 409 })
+      )
+    );
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const { user } = renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Delete' }));
+    await user.click(await screen.findByRole('button', { name: 'Delete draft' }));
+    await waitFor(() => expect(alert).toHaveBeenCalledWith(expect.stringContaining('Nope')));
+  });
+
+  it('cancels a confirmed challan through the change gate', async () => {
+    useApi(makeChallan({ status: 'confirmed' }));
+    const calls: Array<{ dryRun: boolean; body: unknown }> = [];
+    server.use(
+      http.post(apiUrl(`${BASE}/cancel`), async ({ request }) => {
+        const dryRun = new URL(request.url).searchParams.get('dryRun') === 'true';
+        calls.push({ dryRun, body: await request.json() });
+        if (dryRun) {
+          return ok({
+            dryRun: true,
+            report: {
+              affected: [{ billId: 'b9', billNumber: 'INV-9', status: 'sent', issued: true }],
+              negative: [],
+              requiresReason: true,
+              blocked: null,
+            },
+          });
+        }
+        return ok(makeChallan({ status: 'cancelled' }));
+      })
+    );
+    const { user } = renderPage();
+
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: 'Cancel challan' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Cancel challan R-2026-27-0003?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel challan' }));
+
+    await user.type(await screen.findByLabelText(/Why are you making/), 'Entered twice');
+    await user.click(screen.getByRole('button', { name: 'Save change' }));
+    await waitFor(() => expect(calls).toHaveLength(2));
+    expect(calls).toEqual([
+      { dryRun: true, body: {} },
+      { dryRun: false, body: { reason: 'Entered twice' } },
+    ]);
+  });
+
+  it('alerts when cancelling fails', async () => {
+    useApi(makeChallan({ status: 'confirmed' }));
+    server.use(
+      http.post(apiUrl(`${BASE}/cancel`), () =>
+        HttpResponse.json({ success: false, error: { message: 'Broken' } }, { status: 500 })
+      )
+    );
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const { user } = renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Cancel challan' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Cancel challan R-2026-27-0003?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel challan' }));
+    await waitFor(() => expect(alert).toHaveBeenCalledWith(expect.stringContaining('Broken')));
+  });
+
   it('makes Download PDF the primary action once the challan is confirmed', async () => {
     useApi(
       makeChallan({

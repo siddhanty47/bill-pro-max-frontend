@@ -1,11 +1,16 @@
 /**
  * @fileoverview Bulk actions for the Challans table: confirm drafts and download PDFs, run per
- * challan over the existing endpoints with `runBulk`. Bulk confirm never opens the change
+ * challan over the existing endpoints with `runBulk`. Bulk delete removes drafts only; confirmed
+ * challans are skipped (cancel them one by one from their page). Bulk confirm never opens the change
  * dialog: each draft is dry-run first and confirmed only when the report is clean; the rest are
  * skipped with a reason in the "Done" dialog and stay selected.
  */
 import type { ReactNode } from 'react';
-import { useConfirmChallanMutation, useLazyDownloadChallanPdfQuery } from '../../api/challanApi';
+import {
+  useConfirmChallanMutation,
+  useDeleteChallanMutation,
+  useLazyDownloadChallanPdfQuery,
+} from '../../api/challanApi';
 import { getErrorMessage } from '../../api/baseApi';
 import { isDryRunResult } from '../../api/changeGate';
 import { Button } from '../../components/ui';
@@ -72,6 +77,7 @@ export function useChallanBulkActions({
   ask,
 }: Options) {
   const [confirmChallan] = useConfirmChallanMutation();
+  const [deleteChallan] = useDeleteChallanMutation();
   const [downloadPdf] = useLazyDownloadChallanPdfQuery();
   const { running, guard, busy, finish, runDownloads, dialog } = useBulkOutcome<Challan>({
     rowKey: c => c._id,
@@ -114,6 +120,25 @@ export function useChallanBulkActions({
     );
   });
 
+  const runDelete = guard(async () => {
+    const skipped: Array<RowSkip<Challan>> = challans
+      .filter(c => c.status !== 'draft')
+      .map(row => ({
+        row,
+        reason: row.status === 'cancelled' ? 'cancelled' : 'confirmed, open it to cancel',
+      }));
+    const results = await busy(() =>
+      runBulk(drafts, c => deleteChallan({ businessId, challanId: c._id }).unwrap())
+    );
+    const deleted = splitResults(results, c => c._id, reasonFor);
+    finish(
+      `${deleted.done.length} deleted`,
+      deleted.done,
+      [...skipped, ...deleted.skipped],
+      challans
+    );
+  });
+
   const runDownload = () =>
     runDownloads(
       challans,
@@ -141,6 +166,21 @@ export function useChallanBulkActions({
         }
       >
         Confirm {n}
+      </Button>
+      <Button
+        variant="danger"
+        disabled={n === 0 || running}
+        onClick={() =>
+          ask({
+            title: `Delete ${n} draft ${plural(n, 'challan', 'challans')}?`,
+            body: 'Drafts are removed for good. Confirmed challans are skipped.',
+            confirmLabel: 'Delete',
+            danger: true,
+            onConfirm: runDelete,
+          })
+        }
+      >
+        Delete {n}
       </Button>
       <Button disabled={challans.length === 0 || running} onClick={() => runDownload()}>
         Download {challans.length} {plural(challans.length, 'PDF', 'PDFs')}
