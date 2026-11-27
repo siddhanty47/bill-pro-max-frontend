@@ -20,6 +20,39 @@ const TABS = [
   { id: 'change-history', label: 'Change history' },
 ];
 
+const PAN_RE = /^[A-Z]{5}\d{4}[A-Z]$/;
+
+/** Text settings printed on documents: shown as entered, saved trimmed */
+const DOC_TEXT: Array<{
+  key: 'invoiceTerms' | 'challanTerms' | 'signatoryName' | 'signatoryTitle';
+  label: string;
+  multiline?: boolean;
+  hint: string;
+}> = [
+  {
+    key: 'invoiceTerms',
+    label: 'Invoice terms',
+    multiline: true,
+    hint: 'One per line. Printed on invoices and credit/debit notes.',
+  },
+  {
+    key: 'challanTerms',
+    label: 'Challan terms',
+    multiline: true,
+    hint: 'One per line. Printed on delivery and return challans.',
+  },
+  {
+    key: 'signatoryName',
+    label: 'Signatory name',
+    hint: 'Printed in the signature box of invoices, notes and challans.',
+  },
+  {
+    key: 'signatoryTitle',
+    label: 'Signatory title',
+    hint: 'Printed under the name. Empty prints "Authorised Signatory".',
+  },
+];
+
 const BILLING_CYCLE_OPTIONS = [
   { value: 'monthly', label: 'Monthly' },
   { value: 'weekly', label: 'Weekly' },
@@ -79,6 +112,18 @@ export function BusinessDetailPage() {
       await handleSettingsSave('creditNoteDeadline', parsed.data);
     },
     [handleSettingsSave]
+  );
+
+  /** PAN: 5 letters, 4 digits, 1 letter (upper-cased); empty clears it */
+  const handlePanSave = useCallback(
+    async (newValue: string | number) => {
+      const pan = String(newValue).trim().toUpperCase();
+      if (pan && !PAN_RE.test(pan)) {
+        throw new FieldValidationError('PAN looks like ABCDE1234F');
+      }
+      await handleSave('pan', pan);
+    },
+    [handleSave]
   );
 
   // Early return must come after every hook (rules-of-hooks).
@@ -164,6 +209,18 @@ export function BusinessDetailPage() {
                     rawValue: business.gst ?? '',
                     inputType: 'text',
                     onSave: v => handleSave('gst', v),
+                    isSaving,
+                  }}
+                />
+                <DetailField
+                  label="PAN"
+                  mono
+                  value={business.pan}
+                  hint="Printed on documents. Left empty, it is read from your GSTIN."
+                  editable={{
+                    rawValue: business.pan ?? '',
+                    inputType: 'text',
+                    onSave: handlePanSave,
                     isSaving,
                   }}
                 />
@@ -277,6 +334,24 @@ export function BusinessDetailPage() {
                     isSaving,
                   }}
                 />
+              </DetailSection>
+
+              {/* What invoices, notes and challans print */}
+              <DetailSection title="Documents (PDF)">
+                {DOC_TEXT.map(f => (
+                  <DetailField
+                    key={f.key}
+                    label={f.label}
+                    value={business.settings[f.key]}
+                    hint={f.hint}
+                    editable={{
+                      rawValue: business.settings[f.key] ?? '',
+                      inputType: f.multiline ? 'textarea' : 'text',
+                      onSave: v => handleSettingsSave(f.key, String(v).trim()),
+                      isSaving,
+                    }}
+                  />
+                ))}
               </DetailSection>
             </>
           )}

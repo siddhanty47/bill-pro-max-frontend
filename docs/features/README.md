@@ -11,6 +11,7 @@ here, and this index, in the same PR.
 - [bill-integrity-ui.md](bill-integrity-ui.md) — frozen bills, out-of-date drafts, draft auto notes, negative stock, `useBillIssueGate`
 - [notes-ui.md](notes-ui.md) — credit/debit notes pages, form, tables, money helpers, PDFs
 - [year-close-ui.md](year-close-ui.md) — `/year-close`, `useSiteLock`, closed-year locks, credit-note deadline
+- [business-settings.md](business-settings.md) — `/business` fields: contact, PAN, tax defaults, credit-note deadline, document terms and signatory
 - [bill-generation-ui.md](bill-generation-ui.md) — single and bulk bill forms, GST mode per site
 - [bulk-actions.md](bulk-actions.md) — multi-select, bulk bar, "Done" dialog with skip reasons, CSV export
 - [party-credit-score-ui.md](party-credit-score-ui.md) — credit score section on the party page (score, band, unpaid by age)
