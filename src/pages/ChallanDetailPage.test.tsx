@@ -537,15 +537,71 @@ describe('ChallanDetailPage', () => {
     await waitFor(() => expect(calls).toHaveLength(1));
   });
 
-  it('cannot delete the only item', async () => {
+  it('cannot delete the only item but can change it to another item', async () => {
     useApi(makeChallan({ items: [{ itemId: 'i1', itemName: 'Ladder 1.5m', quantity: 10 }] }));
+    const bodies = capture('patch', `${BASE}/items/i1`);
     const { user } = renderPage();
     await openTab(user, /^Items/);
-    expect(
-      within(screen.getByRole('table', { name: 'Items' })).queryByRole('button', {
-        name: 'More actions',
-      })
-    ).not.toBeInTheDocument();
+    const table = await screen.findByRole('table', { name: 'Items' });
+    await user.click(within(table).getByRole('button', { name: 'More actions' }));
+    expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('menuitem', { name: 'Change item' }));
+
+    expect(screen.getByText('Ladder 1.5m', { selector: 'strong' })).toBeInTheDocument();
+    const save = screen.getByRole('button', { name: 'Save' });
+    expect(save).toBeDisabled();
+    await user.type(screen.getByRole('combobox', { name: 'Replacement item' }), 'CLP');
+    await user.click(await screen.findByRole('option', { name: /CLP/ }));
+    const qty = screen.getByRole('spinbutton', { name: 'Quantity' });
+    await user.clear(qty);
+    await user.type(qty, '7');
+    await user.click(save);
+    await waitFor(() => expect(bodies).toEqual([{ quantity: 7, itemId: 'i3' }]));
+    await waitFor(() =>
+      expect(screen.queryByRole('combobox', { name: 'Replacement item' })).not.toBeInTheDocument()
+    );
+  });
+
+  it('does not offer items already on the challan and closes on Cancel', async () => {
+    useApi();
+    const { user } = renderPage();
+    await openTab(user, /^Items/);
+    const row = within(await screen.findByRole('table', { name: 'Items' })).getByRole('row', {
+      name: /Prop 3m/,
+    });
+    await user.click(within(row).getByRole('button', { name: 'More actions' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Change item' }));
+    await user.type(screen.getByRole('combobox', { name: 'Replacement item' }), 'LAD');
+    expect(screen.queryByRole('option', { name: /LAD/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('combobox', { name: 'Replacement item' })).not.toBeInTheDocument();
+  });
+
+  it('alerts when the swap fails and keeps the editor open', async () => {
+    useApi();
+    server.use(
+      http.patch(apiUrl(`${BASE}/items/i2`), () =>
+        HttpResponse.json(
+          { success: false, error: { message: 'Insufficient quantity for Clamp' } },
+          { status: 400 }
+        )
+      )
+    );
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const { user } = renderPage();
+    await openTab(user, /^Items/);
+    const row = within(await screen.findByRole('table', { name: 'Items' })).getByRole('row', {
+      name: /Prop 3m/,
+    });
+    await user.click(within(row).getByRole('button', { name: 'More actions' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Change item' }));
+    await user.type(screen.getByRole('combobox', { name: 'Replacement item' }), 'CLP');
+    await user.click(await screen.findByRole('option', { name: /CLP/ }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(alert).toHaveBeenCalledWith(expect.stringContaining('Insufficient quantity'))
+    );
+    expect(screen.getByRole('combobox', { name: 'Replacement item' })).toBeInTheDocument();
   });
 
   it('adds an item from the inventory autocomplete', async () => {

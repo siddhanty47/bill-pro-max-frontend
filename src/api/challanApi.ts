@@ -92,12 +92,19 @@ export const challanApi = baseApi.injectEndpoints({
 
     updateChallanItem: builder.mutation<
       Challan | DryRunResult,
-      { businessId: string; challanId: string; itemId: string; quantity: number } & GateArgs
+      {
+        businessId: string;
+        challanId: string;
+        itemId: string;
+        quantity: number;
+        /** Swap the line to this inventory item (same position) */
+        newItemId?: string;
+      } & GateArgs
     >({
-      query: ({ businessId, challanId, itemId, quantity, ...gate }) => ({
+      query: ({ businessId, challanId, itemId, quantity, newItemId, ...gate }) => ({
         url: `/businesses/${businessId}/challans/${challanId}/items/${itemId}`,
         method: 'PATCH',
-        ...withGate(gate, { quantity }),
+        ...withGate(gate, newItemId ? { quantity, itemId: newItemId } : { quantity }),
       }),
       transformResponse: unwrapGated<Challan>,
       invalidatesTags: gatedTags(({ challanId }) => [
