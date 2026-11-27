@@ -23,6 +23,7 @@ import {
 } from '../components/ui';
 import { formatDate } from '../utils/format';
 import type { AgreementWithParty } from '../types';
+import { matchesSearch } from '../utils/search';
 
 const sentenceCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const dateOf = (d: string | undefined) => (d ? formatDate(d) || '—' : '—');
@@ -45,14 +46,14 @@ export function AgreementsPage() {
   useHotkey('/', () => searchRef.current?.focus());
 
   const filteredAgreements = (agreements || []).filter(agreement => {
-    const term = searchTerm.toLowerCase();
-    const matchesSearch =
-      !searchTerm ||
-      agreement.partyName.toLowerCase().includes(term) ||
-      agreement.agreementId.toLowerCase().includes(term) ||
-      agreement.siteCode?.toLowerCase().includes(term);
+    const matchesText = matchesSearch(searchTerm, [
+      agreement.partyName,
+      agreement.agreementId,
+      agreement.siteCode,
+      agreement.siteAddress,
+    ]);
     const matchesStatus = !statusFilter || agreement.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    return matchesText && matchesStatus;
   });
 
   const columns: Column<AgreementWithParty>[] = [
@@ -123,7 +124,7 @@ export function AgreementsPage() {
           ref={searchRef}
           label="Search agreements"
           hint="/"
-          placeholder="Party, agreement or site"
+          placeholder="Party, agreement, site or address"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />

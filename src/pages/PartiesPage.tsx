@@ -49,6 +49,7 @@ import {
 import { activeAgreements, partiesCsv, roleLabel, siteCount } from './party/partiesCsv';
 import type { Party, CreatePartyInput, CreateAgreementInput } from '../types';
 import styles from './PartiesPage.module.css';
+import { matchesSearch } from '../utils/search';
 
 export function PartiesPage() {
   const { currentBusinessId } = useCurrentBusiness();
@@ -160,13 +161,17 @@ export function PartiesPage() {
   };
 
   const filteredParties = (parties || []).filter(party => {
-    const matchesSearch =
-      !searchTerm ||
-      party.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      party.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      party.contact.person.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesText = matchesSearch(searchTerm, [
+      party.name,
+      party.code,
+      party.contact.person,
+      party.contact.phone,
+      party.contact.email,
+      party.contact.gst,
+      ...party.sites.flatMap(s => [s.code, s.address]),
+    ]);
     const matchesRole = !roleFilter || party.roles.includes(roleFilter as 'client' | 'supplier');
-    return matchesSearch && matchesRole;
+    return matchesText && matchesRole;
   });
 
   // The table pages the whole list (so Prev/Next covers every party) on a page held here,
@@ -278,7 +283,7 @@ export function PartiesPage() {
           ref={searchRef}
           label="Search parties"
           hint="/"
-          placeholder="Name, code or contact"
+          placeholder="Name, code, phone, GSTIN or site"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />

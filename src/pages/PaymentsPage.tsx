@@ -36,6 +36,7 @@ import { METHOD_LABELS, paymentsCsv, typeLabel } from './payments/paymentsCsv';
 import { ExportCsvButton, MessageDialog, useBulkSelection } from '../components/bulk';
 import type { Payment, CreatePaymentInput } from '../types';
 import styles from './PaymentsPage.module.css';
+import { matchesSearch } from '../utils/search';
 
 export function PaymentsPage() {
   const { currentBusinessId } = useCurrentBusiness();
@@ -91,13 +92,11 @@ export function PaymentsPage() {
   };
 
   const filteredPayments = (payments || []).filter(payment => {
-    const matchesSearch =
-      !searchTerm ||
-      getPartyName(payment.partyId).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (payment.reference && payment.reference.toLowerCase().includes(searchTerm.toLowerCase()));
+    const party = parties?.find(p => p._id === payment.partyId);
+    const matchesText = matchesSearch(searchTerm, [party?.name, party?.code, payment.reference]);
     const matchesType = !typeFilter || payment.type === typeFilter;
     const matchesMethod = !methodFilter || payment.method === methodFilter;
-    return matchesSearch && matchesType && matchesMethod;
+    return matchesText && matchesType && matchesMethod;
   });
 
   // The table pages the whole list (so Prev/Next covers every payment) on a page held here,
@@ -197,7 +196,7 @@ export function PaymentsPage() {
           ref={searchRef}
           label="Search payments"
           hint="/"
-          placeholder="Party or reference"
+          placeholder="Party, party code or reference"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />

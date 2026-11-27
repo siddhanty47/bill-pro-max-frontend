@@ -23,6 +23,7 @@ import { BillNotesTable } from '../components/billing/BillNotesTable';
 import type { BillNote, BillNoteSource, BillNoteStatus, BillNoteType } from '../types';
 import { useBulkSelection, useConfirm } from '../components/bulk';
 import { noteLabel, useBillNoteBulkActions } from './billNotes/useBillNoteBulkActions';
+import { matchesSearch } from '../utils/search';
 
 export function BillNotesPage() {
   const { currentBusinessId } = useCurrentBusiness();
@@ -51,16 +52,17 @@ export function BillNotesPage() {
     skip: !currentBusinessId,
   });
 
-  const partyNames = useMemo(() => new Map((parties ?? []).map(p => [p._id, p.name])), [parties]);
-  const partyName = (n: BillNote) => partyNames.get(n.partyId) ?? '';
+  const partyById = useMemo(() => new Map((parties ?? []).map(p => [p._id, p])), [parties]);
+  const partyName = (n: BillNote) => partyById.get(n.partyId)?.name ?? '';
 
   const search = searchTerm.trim().toLowerCase();
-  const rows = (notes ?? []).filter(
-    n =>
-      !search ||
-      (n.noteNumber ?? '').toLowerCase().includes(search) ||
-      n.billNumber.toLowerCase().includes(search) ||
-      partyName(n).toLowerCase().includes(search)
+  const rows = (notes ?? []).filter(n =>
+    matchesSearch(searchTerm, [
+      n.noteNumber,
+      n.billNumber,
+      partyName(n),
+      partyById.get(n.partyId)?.code,
+    ])
   );
   const hasFilters = Boolean(search || type || status || source);
 
@@ -100,7 +102,7 @@ export function BillNotesPage() {
           ref={searchRef}
           label="Search notes"
           hint="/"
-          placeholder="Search note no., bill no. or party"
+          placeholder="Search note no., bill no., party or code"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />
