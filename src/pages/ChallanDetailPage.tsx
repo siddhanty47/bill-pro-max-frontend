@@ -115,6 +115,14 @@ export function ChallanDetailPage() {
   // Add item state
   const [showAddItem, setShowAddItem] = useState(false);
   const [addItemSearch, setAddItemSearch] = useState('');
+  /** The line being swapped to another item, with the picked replacement */
+  const [swap, setSwap] = useState<{
+    itemId: string;
+    itemName: string;
+    quantity: number;
+    search: string;
+    toItemId?: string;
+  } | null>(null);
   const [addItemData, setAddItemData] = useState<{
     itemId: string;
     itemName: string;
@@ -178,6 +186,25 @@ export function ChallanDetailPage() {
     },
     [currentBusinessId, challanId, updateItem, runGated]
   );
+
+  const handleSwapSave = useCallback(async () => {
+    if (!currentBusinessId || !challanId || !swap?.toItemId) return;
+    try {
+      const saved = await runGated(gate =>
+        updateItem({
+          businessId: currentBusinessId,
+          challanId,
+          itemId: swap.itemId,
+          quantity: swap.quantity,
+          newItemId: swap.toItemId,
+          ...gate,
+        }).unwrap()
+      );
+      if (saved) setSwap(null);
+    } catch (err) {
+      alert(getErrorMessage(err));
+    }
+  }, [currentBusinessId, challanId, swap, updateItem, runGated]);
 
   const handleAddItem = useCallback(async () => {
     if (!currentBusinessId || !challanId || !addItemData) return;
@@ -330,10 +357,26 @@ export function ChallanDetailPage() {
       />
     );
 
+  const startSwap = (row: ItemRow) => {
+    setShowAddItem(false);
+    setSwap({ itemId: row.itemId, itemName: row.itemName, quantity: row.quantity, search: '' });
+  };
+
   const itemActions = (row: ItemRow) =>
-    challan && challan.items.length > 1 && !locked ? (
+    challan && !locked ? (
       <RowActions
-        items={[{ label: 'Delete', tone: 'danger', onClick: () => handleDeleteItem(row.itemId) }]}
+        items={[
+          { label: 'Change item', onClick: () => startSwap(row) },
+          ...(challan.items.length > 1
+            ? [
+                {
+                  label: 'Delete',
+                  tone: 'danger' as const,
+                  onClick: () => handleDeleteItem(row.itemId),
+                },
+              ]
+            : []),
+        ]}
       />
     ) : null;
 
@@ -639,7 +682,10 @@ export function ChallanDetailPage() {
                     <Button
                       size="sm"
                       icon="plus"
-                      onClick={() => setShowAddItem(true)}
+                      onClick={() => {
+                        setSwap(null);
+                        setShowAddItem(true);
+                      }}
                       disabled={locked}
                     >
                       Add item
@@ -664,6 +710,49 @@ export function ChallanDetailPage() {
                     actionsPlacement: 'trailing',
                   }}
                 />
+                {swap && (
+                  <div className={styles.addRow}>
+                    <span>
+                      Change <strong>{swap.itemName}</strong> to
+                    </span>
+                    <div className={styles.grow}>
+                      <CodeAutocomplete
+                        label=""
+                        aria-label="Replacement item"
+                        placeholder="Item code or name"
+                        value={swap.search}
+                        onChange={v => setSwap(s => s && { ...s, search: v, toItemId: undefined })}
+                        items={inventoryAutocompleteItems.filter(
+                          i => !challan.items.some(ci => ci.itemId === i.id)
+                        )}
+                        onSelect={item =>
+                          setSwap(s => s && { ...s, search: item.code, toItemId: item.id })
+                        }
+                      />
+                    </div>
+                    <div className={styles.qty}>
+                      <Input
+                        type="number"
+                        mono
+                        min={1}
+                        aria-label="Quantity"
+                        value={swap.quantity}
+                        onChange={e =>
+                          setSwap(s => s && { ...s, quantity: Number(e.target.value) })
+                        }
+                      />
+                    </div>
+                    <Button
+                      variant="primary"
+                      onClick={handleSwapSave}
+                      disabled={!swap.toItemId || swap.quantity < 1}
+                      loading={isSavingItem}
+                    >
+                      Save
+                    </Button>
+                    <Button onClick={() => setSwap(null)}>Cancel</Button>
+                  </div>
+                )}
                 {showAddItem && (
                   <div className={styles.addRow}>
                     <div className={styles.grow}>
