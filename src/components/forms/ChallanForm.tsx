@@ -185,6 +185,8 @@ export function ChallanForm({
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
   const [extractionReview, setExtractionReview] = useState<ExtractedChallanData | null>(null);
+  /** Scanned agreement to select once the chosen party's agreement options have rendered */
+  const [pendingAgreementId, setPendingAgreementId] = useState<string | null>(null);
   const [extractChallanFromPhoto] = useExtractChallanFromPhotoMutation();
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -229,7 +231,10 @@ export function ChallanForm({
   const selectedPartyId = watch('partyId');
   const selectedAgreementId = watch('agreementId');
   const selectedParty = parties.find(p => p._id === selectedPartyId);
-  const activeAgreements = selectedParty?.agreements?.filter(a => a.status === 'active') || [];
+  const activeAgreements = useMemo(
+    () => selectedParty?.agreements?.filter(a => a.status === 'active') ?? [],
+    [selectedParty]
+  );
   const challanDate = watch('date');
   const siteLock = useSiteLock(businessId, selectedPartyId, selectedAgreementId);
   const dateLocked = siteLock.isLocked(challanDate);
@@ -243,6 +248,16 @@ export function ChallanForm({
     () => employeesResponse?.data ?? [],
     [employeesResponse]
   );
+
+  // A scanned agreement is selected only once it is an option of the selected party (the select's
+  // options render after partyId changes); one that is not among them is dropped.
+  useEffect(() => {
+    if (!pendingAgreementId || !selectedPartyId) return;
+    if (activeAgreements.some(a => a.agreementId === pendingAgreementId)) {
+      setValue('agreementId', pendingAgreementId, { shouldValidate: true });
+    }
+    setPendingAgreementId(null);
+  }, [pendingAgreementId, selectedPartyId, activeAgreements, setValue]);
 
   /** Auto-fill cartage charges when agreement or challan type changes */
   const selectedAgreement = selectedParty?.agreements?.find(
@@ -405,22 +420,37 @@ export function ChallanForm({
   }, []);
 
   /** Apply extracted data from a photo to the form fields */
+  /**
+   * Apply a scan to the form. Returns the result as applied: a party, agreement or item id that is
+   * not in this business's lists is dropped (shown as "not matched" in the review).
+   */
   const applyExtractedData = useCallback(
-    (result: ExtractedChallanData) => {
+    (scanned: ExtractedChallanData): ExtractedChallanData => {
+      const party = scanned.partyId ? parties.find(p => p._id === scanned.partyId) : undefined;
+      const knownItem = (item: ExtractedChallanData['items'][number]) => {
+        const inv = item.itemId ? inventoryItems.find(i => i._id === item.itemId) : undefined;
+        return inv
+          ? { ...item, itemName: inv.name }
+          : { ...item, itemId: null, itemName: item.readAs ?? item.itemName };
+      };
+      const agreementOk =
+        !!party && party.agreements?.some(a => a.agreementId === scanned.agreementId);
+      const result: ExtractedChallanData = {
+        ...scanned,
+        partyId: party ? party._id : null,
+        agreementId: agreementOk ? scanned.agreementId : null,
+        items: scanned.items.map(knownItem),
+        damagedItems: scanned.damagedItems.map(knownItem),
+      };
+
       if (result.date) setValue('date', result.date);
 
-      if (result.partyId) {
-        setValue('partyId', result.partyId);
-        const party = parties.find(p => p._id === result.partyId);
-        if (party) {
-          setPartySearchValue(party.code || party.name);
-        }
+      if (party) {
+        setValue('partyId', party._id);
+        setValue('agreementId', '');
+        setPartySearchValue(party.code || party.name);
       }
-
-      // Agreement — defer to next render so the select options populate after partyId change
-      if (result.agreementId) {
-        setTimeout(() => setValue('agreementId', result.agreementId!), 0);
-      }
+      setPendingAgreementId(result.agreementId);
 
       if (result.challanNumber) {
         const seq = parseInt(result.challanNumber.replace(/\D/g, ''), 10);
@@ -473,6 +503,7 @@ export function ChallanForm({
         });
         setDamagedItemSearchValues(newDamagedSearchValues);
       }
+      return result;
     },
     [parties, inventoryItems, challanType, setValue, replaceItems, replaceDamagedItems]
   );
@@ -494,8 +525,7 @@ export function ChallanForm({
 
       try {
         const result = await extractChallanFromPhoto({ businessId, photo: file }).unwrap();
-        applyExtractedData(result);
-        setExtractionReview(result);
+        setExtractionReview(applyExtractedData(result));
       } catch (err) {
         setExtractionWarnings([getErrorMessage(err)]);
       } finally {

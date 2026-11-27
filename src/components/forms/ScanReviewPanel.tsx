@@ -1,8 +1,8 @@
 /**
  * ScanReviewPanel
  * Shows what the photo-scan extractor read and flagged, so the user can verify
- * before submitting: confidence, raw GSTIN/site read off the challan, the party
- * and items that were not auto-matched, and any warnings (e.g. failed quantity
+ * before submitting: confidence, raw GSTIN/site read off the challan, what each
+ * handwritten item was matched to, the party and items that were not auto-matched, and any warnings (e.g. failed quantity
  * checksums).
  */
 import { useMemo } from 'react';
@@ -45,6 +45,10 @@ export default function ScanReviewPanel({ result, onDismiss }: ScanReviewPanelPr
   if (result.siteAddress) rows.push({ label: 'Site read', value: result.siteAddress });
   if (partyUnmatched)
     rows.push({ label: 'Party not matched', value: `${result.partyName}. Select it below.` });
+  const readAs = [...result.items, ...result.damagedItems]
+    .filter(i => i.itemId && i.readAs)
+    .map(i => `${i.readAs} → ${i.itemName}`);
+  if (readAs.length > 0) rows.push({ label: 'Matched', value: readAs.join('; ') });
   if (unmatchedItems.length > 0)
     rows.push({
       label: unmatchedItems.length > 1 ? 'Items not matched' : 'Item not matched',

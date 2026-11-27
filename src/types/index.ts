@@ -547,9 +547,12 @@ export interface ItemWithParty {
 // ============ Challan Extraction ============
 
 export interface ExtractedChallanItem {
+  /** Catalog name when matched, else the text read off the challan */
   itemName: string;
   itemId: string | null;
   quantity: number;
+  /** Text read off the challan, when it differs from `itemName` */
+  readAs?: string;
 }
 
 export interface ExtractedChallanData {

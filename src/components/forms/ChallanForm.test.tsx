@@ -537,6 +537,69 @@ describe('ChallanForm', () => {
       });
     });
 
+    it('selects the scanned agreement once the party is filled in', async () => {
+      const { user, container } = setup({ type: 'return' });
+      server.use(
+        http.post(apiUrl('/businesses/biz-1/challans/extract-from-photo'), () =>
+          ok(
+            extracted({
+              items: [
+                { itemName: 'Steel Pipe', itemId: 'i1', quantity: 40, readAs: 'S. PIPE 3 MTR' },
+              ],
+              damagedItems: [],
+            })
+          )
+        )
+      );
+      await screen.findByDisplayValue('3');
+      await user.upload(fileInput(container), photo());
+      expect(await screen.findByText('Scan review')).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByLabelText(/^agreement/i)).toHaveValue('AG-1'));
+      expect(
+        within(screen.getByRole('table', { name: 'Read from photo' })).getByText(
+          'S. PIPE 3 MTR → Steel Pipe'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('drops a party, agreement or item that is not in this business', async () => {
+      const { user, container } = setup({ type: 'return' });
+      server.use(
+        http.post(apiUrl('/businesses/biz-1/challans/extract-from-photo'), () =>
+          ok(
+            extracted({
+              partyId: 'ghost',
+              agreementId: 'AG-GHOST',
+              items: [{ itemName: 'Pipe', itemId: 'gone', quantity: 5, readAs: 'S. PIPE' }],
+              damagedItems: [],
+            })
+          )
+        )
+      );
+      await screen.findByDisplayValue('3');
+      await user.upload(fileInput(container), photo());
+      const review = await screen.findByRole('table', { name: 'Read from photo' });
+      expect(within(review).getByText('Mehta. Select it below.')).toBeInTheDocument();
+      expect(within(review).getByText('S. PIPE. Select it below.')).toBeInTheDocument();
+      expect(partyInput()).toHaveValue('');
+      expect(screen.getByLabelText(/^agreement/i)).toHaveValue('');
+      expect(itemInputs().map(i => (i as HTMLInputElement).value)).toEqual(['S. PIPE']);
+    });
+
+    it('does not select an agreement that belongs to another party', async () => {
+      const { user, container } = setup({ type: 'return' });
+      server.use(
+        http.post(apiUrl('/businesses/biz-1/challans/extract-from-photo'), () =>
+          ok(extracted({ agreementId: 'AG-OTHER', damagedItems: [] }))
+        )
+      );
+      await screen.findByDisplayValue('3');
+      await user.upload(fileInput(container), photo());
+      expect(await screen.findByText('Scan review')).toBeInTheDocument();
+      expect(partyInput()).toHaveValue('MEHT');
+      expect(screen.getByLabelText(/^agreement/i)).toHaveValue('');
+    });
+
     it('shows the API error', async () => {
       const { user, container } = setup();
       server.use(
