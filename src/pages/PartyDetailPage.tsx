@@ -58,6 +58,7 @@ import { getErrorMessage } from '../api/baseApi';
 import { ShareLinkManager } from '../components/ShareLinkManager';
 import ChangeHistoryTable from '../components/ChangeHistoryTable';
 import { PartyStockSection } from './party/PartyStockSection';
+import { PartyCreditScoreSection } from './party/PartyCreditScoreSection';
 import { EditableField } from '../components/EditableField';
 import { formatDate, formatMoney } from '../utils/format';
 import type { Agreement, Bill, CreateAgreementInput, Payment, Site } from '../types';
@@ -499,6 +500,11 @@ export function PartyDetailPage() {
                 {contactField('GST', 'gst', true)}
                 {contactField('State code', 'stateCode', true)}
               </DetailSection>
+
+              <PartyCreditScoreSection
+                businessId={currentBusinessId || ''}
+                partyId={partyId || ''}
+              />
 
               <PartyStockSection businessId={currentBusinessId || ''} partyId={partyId || ''} />
 

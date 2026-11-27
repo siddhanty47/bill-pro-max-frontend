@@ -14,6 +14,7 @@ import type {
   ApiResponse,
   OutstandingSummary,
   PartyStockRow,
+  PartyCreditScore,
   GateArgs,
   DryRunResult,
 } from '../types';
@@ -53,6 +54,19 @@ export const partyApi = baseApi.injectEndpoints({
         'Inventory',
         // opening balances on agreement rates count as on site
         'Agreement',
+      ],
+    }),
+
+    getPartyCreditScore: builder.query<PartyCreditScore, { businessId: string; partyId: string }>({
+      query: ({ businessId, partyId }) =>
+        `/businesses/${businessId}/parties/${partyId}/credit-score`,
+      transformResponse: (response: ApiResponse<PartyCreditScore>) => response.data,
+      // Money in or out of the party changes it
+      providesTags: (_result, _error, { partyId }) => [
+        { type: 'Party', id: partyId },
+        'Bill',
+        'Payment',
+        'BillNote',
       ],
     }),
 
@@ -172,6 +186,7 @@ export const {
   useGetPartiesQuery,
   useGetPartyQuery,
   useGetPartyStockQuery,
+  useGetPartyCreditScoreQuery,
   useGetOutstandingSummaryQuery,
   useGetPartyOutstandingBySiteQuery,
   useCreatePartyMutation,
