@@ -1,7 +1,7 @@
 /**
  * @fileoverview Bulk actions for the Challans table: confirm drafts and download PDFs, run per
- * challan over the existing endpoints with `runBulk`. Bulk delete removes drafts only; confirmed
- * challans are skipped (cancel them one by one from their page). Bulk confirm never opens the change
+ * challan over the existing endpoints with `runBulk`. Bulk delete removes drafts and cancels
+ * confirmed challans (each dry-run first; one that touches a sent bill or needs a check is skipped). Bulk confirm never opens the change
  * dialog: each draft is dry-run first and confirmed only when the report is clean; the rest are
  * skipped with a reason in the "Done" dialog and stay selected.
  */
@@ -9,6 +9,7 @@ import type { ReactNode } from 'react';
 import {
   useConfirmChallanMutation,
   useDeleteChallanMutation,
+  useCancelChallanMutation,
   useLazyDownloadChallanPdfQuery,
 } from '../../api/challanApi';
 import { getErrorMessage } from '../../api/baseApi';
@@ -26,6 +27,7 @@ import {
 import type { Challan, GateReport } from '../../types';
 
 export const CHECK_REASON = 'needs a check, open it to confirm';
+export const CANCEL_CHECK_REASON = 'needs a check, open it to cancel';
 export const YEAR_CLOSED_REASON = 'year closed';
 /** Gate refusals the change dialog would handle; in bulk they mean "open it to confirm". */
 const GATE_CODES = new Set([
@@ -40,11 +42,11 @@ const isClean = (r: GateReport) =>
 const notDraftReason = (c: Challan) =>
   c.status === 'cancelled' ? 'cancelled' : 'already confirmed';
 
-function reasonFor(err: unknown): string {
+function reasonFor(err: unknown, check = CHECK_REASON): string {
   if (err instanceof Skipped) return err.reason;
   const { code } = getApiError(err);
   if (code === 'YEAR_CLOSED') return YEAR_CLOSED_REASON;
-  if (code && GATE_CODES.has(code)) return CHECK_REASON;
+  if (code && GATE_CODES.has(code)) return check;
   return getErrorMessage(err);
 }
 
@@ -78,6 +80,7 @@ export function useChallanBulkActions({
 }: Options) {
   const [confirmChallan] = useConfirmChallanMutation();
   const [deleteChallan] = useDeleteChallanMutation();
+  const [cancelChallan] = useCancelChallanMutation();
   const [downloadPdf] = useLazyDownloadChallanPdfQuery();
   const { running, guard, busy, finish, runDownloads, dialog } = useBulkOutcome<Challan>({
     rowKey: c => c._id,
@@ -120,24 +123,56 @@ export function useChallanBulkActions({
     );
   });
 
+  // Delete = drafts removed, confirmed challans cancelled (stock moves undone, number kept).
+  const removable = challans.filter(c => c.status === 'draft' || c.status === 'confirmed');
+  const confirmedCount = removable.filter(c => c.status === 'confirmed').length;
+  const draftCount = removable.length - confirmedCount;
+
+  /** Cancel one confirmed challan only when its dry run is clean, like bulk confirm. */
+  const cancelOne = async (challan: Challan) => {
+    const call = (dryRun?: boolean) =>
+      cancelChallan({ businessId, challanId: challan._id, ...(dryRun && { dryRun }) }).unwrap();
+    const preview = await call(true);
+    if (!isDryRunResult(preview)) throw new Skipped(CANCEL_CHECK_REASON);
+    const { report } = preview;
+    if (report.blocked === 'closedYear') throw new Skipped(YEAR_CLOSED_REASON);
+    if (!isClean(report)) throw new Skipped(CANCEL_CHECK_REASON);
+    await call();
+  };
+
   const runDelete = guard(async () => {
     const skipped: Array<RowSkip<Challan>> = challans
-      .filter(c => c.status !== 'draft')
-      .map(row => ({
-        row,
-        reason: row.status === 'cancelled' ? 'cancelled' : 'confirmed, open it to cancel',
-      }));
+      .filter(c => c.status === 'cancelled')
+      .map(row => ({ row, reason: 'already cancelled' }));
     const results = await busy(() =>
-      runBulk(drafts, c => deleteChallan({ businessId, challanId: c._id }).unwrap())
+      runBulk(removable, c =>
+        c.status === 'draft'
+          ? deleteChallan({ businessId, challanId: c._id }).unwrap()
+          : cancelOne(c)
+      )
     );
-    const deleted = splitResults(results, c => c._id, reasonFor);
-    finish(
-      `${deleted.done.length} deleted`,
-      deleted.done,
-      [...skipped, ...deleted.skipped],
-      challans
+    const removed = splitResults(
+      results,
+      c => c._id,
+      err => reasonFor(err, CANCEL_CHECK_REASON)
     );
+    const doneIds = new Set(removed.done);
+    const deleted = removable.filter(c => doneIds.has(c._id) && c.status === 'draft').length;
+    const cancelled = removed.done.length - deleted;
+    const summary = [deleted > 0 && `${deleted} deleted`, cancelled > 0 && `${cancelled} cancelled`]
+      .filter(Boolean)
+      .join(', ');
+    finish(summary || '0 deleted', removed.done, [...skipped, ...removed.skipped], challans);
   });
+
+  const deleteBody = [
+    draftCount > 0 &&
+      `${draftCount} ${plural(draftCount, 'draft is', 'drafts are')} removed for good.`,
+    confirmedCount > 0 &&
+      `${confirmedCount} confirmed ${plural(confirmedCount, 'challan is', 'challans are')} cancelled: stock moves are undone and ${plural(confirmedCount, 'it stays', 'they stay')} in the list as Cancelled. Any that touch a sent bill or need a check are skipped; open them to cancel.`,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   const runDownload = () =>
     runDownloads(
@@ -169,18 +204,18 @@ export function useChallanBulkActions({
       </Button>
       <Button
         variant="danger"
-        disabled={n === 0 || running}
+        disabled={removable.length === 0 || running}
         onClick={() =>
           ask({
-            title: `Delete ${n} draft ${plural(n, 'challan', 'challans')}?`,
-            body: 'Drafts are removed for good. Confirmed challans are skipped.',
+            title: `Delete ${removable.length} ${plural(removable.length, 'challan', 'challans')}?`,
+            body: deleteBody,
             confirmLabel: 'Delete',
             danger: true,
             onConfirm: runDelete,
           })
         }
       >
-        Delete {n}
+        Delete {removable.length}
       </Button>
       <Button disabled={challans.length === 0 || running} onClick={() => runDownload()}>
         Download {challans.length} {plural(challans.length, 'PDF', 'PDFs')}

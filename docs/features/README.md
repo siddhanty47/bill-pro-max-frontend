@@ -4,8 +4,9 @@ One doc per feature: pages, components, hooks, API files, tag invalidation, UX r
 `CLAUDE.md` is the short pointer layer; detail lives here. Backend rules for the same features:
 `bill-pro-max-backend-v2/docs/features/README.md`.
 
-**Rule:** every new feature or significant behaviour/architecture change adds or updates its doc
-here, and this index, in the same PR.
+**Rule:** a new doc here (and its line in this index) only for a major architecture change (new
+subsystem, cross-cutting pattern, data-model or flow redesign). Small features, fixes and UI tweaks
+get no new doc; when they change behaviour an existing doc describes, update that doc.
 
 - [change-gate-ui.md](change-gate-ui.md) — dry-run preview, `ChangeImpactDialog`, `useChangeGate`, `withGate` / `gatedTags`
 - [bill-integrity-ui.md](bill-integrity-ui.md) — frozen bills, out-of-date drafts, draft auto notes, negative stock, `useBillIssueGate`

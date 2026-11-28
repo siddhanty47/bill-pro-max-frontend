@@ -571,17 +571,24 @@ describe('ChallansPage', () => {
       ]);
     });
 
-    it('deletes selected drafts and skips confirmed and cancelled ones', async () => {
+    it('deletes drafts, cancels clean confirmed ones and skips the rest', async () => {
       useApi([
         ...drafts,
         challan({
+          _id: 'k2',
+          challanNumber: 'D-5',
+          date: '2026-11-16T00:00:00.000Z',
+          status: 'confirmed',
+        }),
+        challan({
           _id: 'x1',
           challanNumber: 'D-9',
-          date: '2026-11-16T00:00:00.000Z',
+          date: '2026-11-15T00:00:00.000Z',
           status: 'cancelled',
         }),
       ]);
       const deleted: string[] = [];
+      const cancels: Array<{ id: string; dryRun: boolean }> = [];
       server.use(
         http.delete(apiUrl('/businesses/biz-1/challans/:id'), ({ params }) => {
           if (params.id === 'd3') {
@@ -592,22 +599,86 @@ describe('ChallansPage', () => {
           }
           deleted.push(String(params.id));
           return ok({ id: params.id });
+        }),
+        http.post(apiUrl('/businesses/biz-1/challans/:id/cancel'), ({ params, request }) => {
+          const id = String(params.id);
+          const dryRun = new URL(request.url).searchParams.get('dryRun') === 'true';
+          cancels.push({ id, dryRun });
+          if (dryRun) {
+            // D-5's cancel would change a sent bill: the change dialog would ask for a reason.
+            return ok({
+              dryRun: true,
+              report:
+                id === 'k2'
+                  ? {
+                      ...CLEAN,
+                      requiresReason: true,
+                      affected: [{ billId: 'b1', billNumber: 'B-1', status: 'sent', issued: true }],
+                    }
+                  : CLEAN,
+            });
+          }
+          return ok(challan({ _id: id, status: 'cancelled' }));
         })
       );
       const { user } = renderPage();
       await screen.findByRole('table');
       await user.click(screen.getByRole('checkbox', { name: 'Select all on this page' }));
-      await user.click(within(bar()!).getByRole('button', { name: 'Delete 3' }));
-      const ask = screen.getByRole('dialog', { name: 'Delete 3 draft challans?' });
+      await user.click(within(bar()!).getByRole('button', { name: 'Delete 5' }));
+      const ask = screen.getByRole('dialog', { name: 'Delete 5 challans?' });
+      expect(ask).toHaveTextContent('3 drafts are removed for good.');
+      expect(ask).toHaveTextContent('2 confirmed challans are cancelled');
       await user.click(within(ask).getByRole('button', { name: 'Delete' }));
       const done = await doneDialog();
-      expect(done).toHaveTextContent('2 deleted');
+      expect(done).toHaveTextContent('2 deleted, 1 cancelled');
       expect(
         within(done)
           .getAllByRole('listitem')
           .map(li => li.textContent)
-      ).toEqual(['D-3: Gone already', 'D-4: confirmed, open it to cancel', 'D-9: cancelled']);
+      ).toEqual([
+        'D-3: Gone already',
+        'D-5: needs a check, open it to cancel',
+        'D-9: already cancelled',
+      ]);
       expect(deleted.sort()).toEqual(['d1', 'd2']);
+      expect(cancels.filter(c => !c.dryRun).map(c => c.id)).toEqual(['k1']);
+    });
+
+    it('cancels a single confirmed challan and reports a closed year', async () => {
+      useApi([
+        challan({ _id: 'k1', challanNumber: 'D-4', status: 'confirmed' }),
+        challan({ _id: 'k2', challanNumber: 'D-5', status: 'confirmed' }),
+      ]);
+      server.use(
+        http.post(apiUrl('/businesses/biz-1/challans/:id/cancel'), ({ params, request }) => {
+          const dryRun = new URL(request.url).searchParams.get('dryRun') === 'true';
+          if (params.id === 'k2') {
+            return dryRun
+              ? ok({ dryRun: true, report: { ...CLEAN, blocked: 'closedYear' } })
+              : conflict('YEAR_CLOSED');
+          }
+          return dryRun
+            ? ok({ dryRun: true, report: CLEAN })
+            : ok(challan({ _id: 'k1', status: 'cancelled' }));
+        })
+      );
+      const { user } = renderPage();
+      const table = await screen.findByRole('table');
+      await user.click(within(table).getByRole('checkbox', { name: 'Select D-4' }));
+      await user.click(within(bar()!).getByRole('button', { name: 'Delete 1' }));
+      expect(screen.getByRole('dialog', { name: 'Delete 1 challan?' })).toHaveTextContent(
+        '1 confirmed challan is cancelled: stock moves are undone and it stays in the list'
+      );
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
+      expect(await doneDialog()).toHaveTextContent('1 cancelled');
+      await user.click(within(await doneDialog()).getAllByRole('button', { name: /close/i })[0]);
+
+      await user.click(within(table).getByRole('checkbox', { name: 'Select D-5' }));
+      await user.click(within(bar()!).getByRole('button', { name: /^Delete/ }));
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
+      const done = await doneDialog();
+      expect(done).toHaveTextContent('0 deleted');
+      expect(within(done).getByRole('listitem')).toHaveTextContent('D-5: year closed');
     });
 
     it('skips a challan whose dry run comes back without a report', async () => {
