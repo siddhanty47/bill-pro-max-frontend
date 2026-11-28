@@ -6,6 +6,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { supabase } from './lib/supabase';
 import { setCredentials, setUser, setLoading, logout } from './store/authSlice';
+import { useApplyTheme } from './theme/useTheme';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
@@ -38,6 +39,7 @@ const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 
 function App() {
   const dispatch = useDispatch();
+  useApplyTheme();
 
   useEffect(() => {
     // Hydrate session on app load
