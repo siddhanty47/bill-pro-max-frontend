@@ -144,6 +144,68 @@
   color-scheme: dark;
 }
 
+/* ===== Light theme (data-theme set by src/theme/theme.ts and index.html) =====
+ * Same token names, light values. The accent is a deeper green than in dark so text and
+ * outlines in it keep enough contrast on white. */
+:root[data-theme='light'] {
+  --bg-deepest: #f4f6f5;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-card: #ffffff;
+  --bg-hover: #eef1ef;
+  --bg-header: rgba(244, 246, 245, 0.8);
+  --bg-table-head: rgba(0, 0, 0, 0.025);
+  --bg-overlay: rgba(15, 23, 20, 0.35);
+
+  --border-subtle: rgba(0, 0, 0, 0.07);
+  --border-default: rgba(0, 0, 0, 0.12);
+  --border-medium: rgba(0, 0, 0, 0.22);
+
+  --text-primary: #2a2f2c;
+  --text-heading: #0b0f0d;
+  --text-secondary: #5f6863;
+  --text-muted: #8c9590;
+  --text-inverse: #ffffff;
+  --text-on-accent: #ffffff;
+
+  --accent: #00875a;
+  --accent-hover: #00714b;
+  --accent-muted: rgba(0, 135, 90, 0.1);
+  --accent-line: rgba(0, 135, 90, 0.35);
+
+  --status-success-bg: rgba(22, 163, 74, 0.1);
+  --status-success-text: #15803d;
+  --status-success-border: rgba(22, 163, 74, 0.3);
+
+  --status-warning-bg: rgba(217, 119, 6, 0.1);
+  --status-warning-text: #b45309;
+  --status-warning-border: rgba(217, 119, 6, 0.3);
+
+  --status-danger-bg: rgba(220, 38, 38, 0.08);
+  --status-danger-text: #c62828;
+  --status-danger-border: rgba(220, 38, 38, 0.3);
+
+  --status-info-bg: rgba(37, 99, 235, 0.08);
+  --status-info-text: #1d4ed8;
+  --status-info-border: rgba(37, 99, 235, 0.3);
+
+  --status-neutral-bg: rgba(0, 0, 0, 0.04);
+  --status-neutral-text: #5f6863;
+  --status-neutral-border: rgba(0, 0, 0, 0.12);
+
+  --delivery-accent: #2563eb;
+  --delivery-bg: rgba(37, 99, 235, 0.08);
+  --delivery-border: rgba(37, 99, 235, 0.3);
+  --return-accent: #d97706;
+  --return-bg: rgba(217, 119, 6, 0.1);
+  --return-border: rgba(217, 119, 6, 0.3);
+
+  --shadow-pop: 0 12px 32px rgba(15, 23, 20, 0.14), 0 0 0 1px var(--border-default);
+  --shadow-accent: 0 8px 24px rgba(0, 135, 90, 0.2);
+
+  color-scheme: light;
+}
+
 @media (max-width: 768px) {
   :root {
     --page-pad: 16px;

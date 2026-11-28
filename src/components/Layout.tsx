@@ -5,6 +5,8 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../theme/useTheme';
+import { THEME_PREFERENCES, type ThemePreference } from '../theme/theme';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { NotificationBell } from './NotificationBell';
 import { WebSocketProvider } from '../context/WebSocketContext';
@@ -110,9 +112,16 @@ function SearchIndexSync() {
   return null;
 }
 
+const THEME_LABEL: Record<ThemePreference, string> = {
+  system: 'Same as device',
+  light: 'Light',
+  dark: 'Dark',
+};
+
 export function Layout() {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { preference: themePreference, setPreference: setThemePreference } = useTheme();
   const { businesses, currentBusiness, currentBusinessId, selectBusiness, hasMultipleBusinesses } =
     useCurrentBusiness();
   // Polls so badges catch up with other members' changes (no refetch-on-focus listeners).
@@ -231,6 +240,18 @@ export function Layout() {
             >
               {user?.email && <MenuLabel>{user.email}</MenuLabel>}
               {user?.email && <MenuDivider />}
+              <MenuLabel>Theme</MenuLabel>
+              {THEME_PREFERENCES.map(pref => (
+                <MenuItem
+                  key={pref}
+                  unread={pref === themePreference}
+                  aria-current={pref === themePreference ? 'true' : undefined}
+                  onSelect={() => setThemePreference(pref)}
+                >
+                  {THEME_LABEL[pref]}
+                </MenuItem>
+              ))}
+              <MenuDivider />
               <MenuItem onSelect={() => void logout()}>Log out</MenuItem>
             </Menu>
           </div>

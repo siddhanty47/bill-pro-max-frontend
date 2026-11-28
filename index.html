@@ -4,6 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <!-- Theme before first paint (same rule as src/theme/theme.ts; key bpm-theme) -->
+    <script>
+      (function () {
+        var pref = 'system';
+        try {
+          var v = localStorage.getItem('bpm-theme');
+          if (v === 'light' || v === 'dark' || v === 'system') pref = v;
+        } catch (e) {}
+        var dark =
+          pref === 'dark' ||
+          (pref === 'system' &&
+            !(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches));
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      })();
+    </script>
     <title>BillProMax - Scaffolding Rental Management</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

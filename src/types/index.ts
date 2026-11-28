@@ -13,6 +13,8 @@ export interface User {
   lastName: string;
   roles: string[];
   businessIds: string[];
+  /** Colour theme saved on the account (`system` follows the device) */
+  theme?: 'system' | 'light' | 'dark';
 }
 
 export interface AuthState {

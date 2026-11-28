@@ -260,6 +260,24 @@ describe('Layout', () => {
     expect(store.getState().auth.token).toBeNull();
   });
 
+  it('picks the theme from the profile menu', async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole('button', { name: 'Account' }));
+    const menu = screen.getByRole('menu');
+    expect(within(menu).getByText('Theme')).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: 'Same as device' })).toHaveAttribute(
+      'aria-current',
+      'true'
+    );
+    await user.click(within(menu).getByRole('menuitem', { name: 'Light' }));
+    expect(localStorage.getItem('bpm-theme')).toBe('light');
+
+    await user.click(screen.getByRole('button', { name: 'Account' }));
+    expect(
+      within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Light' })
+    ).toHaveAttribute('aria-current', 'true');
+  });
+
   it('toggles the mobile drawer with the menu button', async () => {
     const { user } = setup();
     const nav = screen.getByRole('navigation', { name: 'Main' });
