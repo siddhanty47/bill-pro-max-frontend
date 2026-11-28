@@ -6,7 +6,7 @@ import { TeamPage } from './TeamPage';
 import { renderWithProviders, signedIn } from '../test/render';
 import { server } from '../test/msw/server';
 import { apiUrl, ok } from '../test/msw/handlers';
-import type { Employee } from '../types';
+import type { Employee, User } from '../types';
 
 const emp = (over: Partial<Employee>) =>
   ({
@@ -37,7 +37,7 @@ const employees = [
   emp({ _id: 'e3', name: 'Nita', salaryType: undefined, monthlySalary: undefined }),
 ];
 
-function useApi(rows: Employee[] = employees) {
+function useApi(rows: Employee[] = employees, myRole = 'owner') {
   server.use(
     http.get(apiUrl('/businesses'), () => ok([{ _id: 'biz-1', name: 'Patel Scaffold Co.' }])),
     http.get(apiUrl('/businesses/biz-1/employees'), () => ok(rows)),
@@ -49,7 +49,7 @@ function useApi(rows: Employee[] = employees) {
           userId: 'u1',
           email: 'owner@x.in',
           name: 'Asha',
-          role: 'owner',
+          role: myRole,
           joinedAt: '2020-03-05T00:00:00.000Z',
         },
       ])
@@ -85,8 +85,17 @@ function renderPage() {
       <Route path="/" element={<TeamPage />} />
       <Route path="*" element={<Where />} />
     </Routes>,
-    { preloadedState: signedIn() }
+    { preloadedState: asUser('u1') }
   );
+}
+
+/** Signed in as user `id` (the Team page reads the member with this id for its role). */
+function asUser(id: string) {
+  const state = signedIn();
+  return {
+    ...state,
+    auth: { ...state.auth!, user: { id, email: 'owner@x.in', name: 'Asha' } as User },
+  };
 }
 
 const names = () =>
@@ -294,5 +303,17 @@ describe('TeamPage', () => {
     expect(screen.getAllByText('p@x.in').length).toBeGreaterThan(0);
     await user.click(screen.getByRole('button', { name: 'Invite member' }));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('shows a manager the employees read only', async () => {
+    useApi(employees, 'manager');
+    renderPage();
+    await screen.findByRole('table');
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /add employee/i })).not.toBeInTheDocument()
+    );
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'n', altKey: true });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

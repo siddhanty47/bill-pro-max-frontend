@@ -7,6 +7,7 @@
 import { useState, useRef, type ReactNode } from 'react';
 import { useCurrentBusiness } from '../hooks/useCurrentBusiness';
 import { useHotkey } from '../hooks/useHotkey';
+import { useAuth } from '../hooks/useAuth';
 import { shortcutLabel } from '../hooks/usePlatform';
 import { useGetMembersQuery } from '../api/memberApi';
 import { useGetInvitationsQuery } from '../api/invitationApi';
@@ -108,6 +109,11 @@ export function TeamPage() {
     refetch: refetchMembers,
   } = useGetMembersQuery(businessId!, { skip: !businessId });
 
+  // Only the owner adds, edits or deletes employees; managers see the list read only.
+  const { user } = useAuth();
+  const myRole = membersResponse?.data?.find(m => m.userId === user?.id)?.role;
+  const canManageEmployees = myRole === 'owner';
+
   const {
     data: invitationsResponse,
     isLoading: invitationsLoading,
@@ -140,7 +146,7 @@ export function TeamPage() {
   };
 
   useHotkey('alt+n', () => {
-    if (!isEmployeeFormOpen && activeTab === 'employees') handleAddEmployee();
+    if (canManageEmployees && !isEmployeeFormOpen && activeTab === 'employees') handleAddEmployee();
   });
   useHotkey('/', () => {
     if (activeTab === 'employees') searchRef.current?.focus();
@@ -229,7 +235,17 @@ export function TeamPage() {
       nowrap: true,
       render: e => <StatusChip status={e.isActive ? 'active' : 'inactive'} />,
     },
-    { key: 'actions', header: '', align: 'right', nowrap: true, render: actionsCell },
+    ...(canManageEmployees
+      ? [
+          {
+            key: 'actions',
+            header: '',
+            align: 'right' as const,
+            nowrap: true,
+            render: actionsCell,
+          },
+        ]
+      : []),
   ];
 
   const hasEmployeeFilters = Boolean(searchTerm || typeFilter || statusFilter);
@@ -241,14 +257,16 @@ export function TeamPage() {
         title="Team"
         actions={
           activeTab === 'employees' ? (
-            <Button
-              variant="primary"
-              icon="plus"
-              hint={shortcutLabel('N')}
-              onClick={handleAddEmployee}
-            >
-              Add employee
-            </Button>
+            canManageEmployees && (
+              <Button
+                variant="primary"
+                icon="plus"
+                hint={shortcutLabel('N')}
+                onClick={handleAddEmployee}
+              >
+                Add employee
+              </Button>
+            )
           ) : (
             <Button variant="primary" icon="plus" onClick={() => setIsInviteModalOpen(true)}>
               Invite member
@@ -335,7 +353,7 @@ export function TeamPage() {
                       formatEmployeeType(e.type),
                       salaryCell(e) && <span key="salary">{salaryCell(e)}</span>,
                     ],
-                    actions: actionsCell,
+                    actions: canManageEmployees ? actionsCell : undefined,
                   }}
                 />
               </Card>

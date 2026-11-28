@@ -12,7 +12,7 @@ import type {
   Inventory,
   Challan,
   CreateChallanInput,
-  Employee,
+  TransporterOption,
   ExtractedChallanData,
 } from '../../types';
 import ScanReviewPanel from './ScanReviewPanel';
@@ -23,7 +23,7 @@ import {
   useExtractChallanFromPhotoMutation,
 } from '../../api/challanApi';
 import { getErrorMessage } from '../../api/baseApi';
-import { useGetEmployeesQuery } from '../../api/employeeApi';
+import { useGetTransportersQuery } from '../../api/employeeApi';
 import { useSiteLock } from '../../hooks/useSiteLock';
 import { CodeAutocomplete, type AutocompleteItem } from '../CodeAutocomplete';
 import { DocumentNumberBadge } from '../DocumentNumberBadge';
@@ -240,15 +240,9 @@ export function ChallanForm({
   const siteLock = useSiteLock(businessId, selectedPartyId, selectedAgreementId);
   const dateLocked = siteLock.isLocked(challanDate);
 
-  /** Fetch transporter employees for the business */
-  const { data: employeesResponse } = useGetEmployeesQuery(
-    { businessId, type: 'transporter' },
-    { skip: !businessId }
-  );
-  const transporters: Employee[] = useMemo(
-    () => employeesResponse?.data ?? [],
-    [employeesResponse]
-  );
+  /** Active transporters (slim list any challan creator may read) */
+  const { data: transporterRows } = useGetTransportersQuery(businessId, { skip: !businessId });
+  const transporters: TransporterOption[] = useMemo(() => transporterRows ?? [], [transporterRows]);
 
   // A scanned agreement is selected only once it is an option of the selected party (the select's
   // options render after partyId changes); one that is not among them is dropped.

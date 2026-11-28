@@ -94,7 +94,7 @@ function useApi(challans: Challan[] = defaults) {
     http.get(apiUrl('/businesses/biz-1/inventory'), () => ok([])),
     // requested by the create modal's form
     http.get(apiUrl('/businesses/biz-1/challans/next-number'), () => ok('D-2026-27-0008')),
-    http.get(apiUrl('/businesses/biz-1/employees'), () => ok([]))
+    http.get(apiUrl('/businesses/biz-1/employees/transporters'), () => ok([]))
   );
 }
 
