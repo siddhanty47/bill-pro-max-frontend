@@ -48,7 +48,7 @@ If the frontend depends on a backend change, find the backend PR (`gh pr list -R
 
 ### Docs check
 
-- [ ] **docs/features updated for new features/behaviour changes**: a new feature or a significant behaviour/architecture change adds or updates its doc in `docs/features/` and its line in `docs/features/README.md` in this PR; `CLAUDE.md` only gets a short pointer. No doc change needed → say why in the PR ("Docs: none, refactor only"). Missing → add it before opening the PR.
+- [ ] **docs/features kept accurate**: only a major architecture change (new subsystem, cross-cutting pattern, data-model or flow redesign) adds a new doc in `docs/features/` plus its line in `docs/features/README.md`; `CLAUDE.md` only gets a short pointer. Small features and fixes add no new doc, but if they change behaviour an existing doc describes, update that doc in this PR. Say which in the PR ("Docs: none, small fix").
 
 ## 4. Manual check for UI changes
 

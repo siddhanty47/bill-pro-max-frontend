@@ -20,7 +20,7 @@ React SPA for scaffolding rental business management. See README.md for setup. T
 ## Feature docs
 
 - Per-feature UI docs live in **`docs/features/`**; index: **`docs/features/README.md`** (one line per doc). Backend rules for the same features: `../bill-pro-max-backend-v2/docs/features/README.md`.
-- **Rule (binding):** every new feature or significant behaviour/architecture change must add or update its doc in `docs/features/` and the index in the same PR. This file stays the short pointer layer: keep critical rules here (contracts, tag rules, locks) and put detail in the feature doc.
+- **Rule:** add a new doc in `docs/features/` (plus its index line) only for a major architecture change (new subsystem, cross-cutting pattern, data-model or flow redesign). Small features, fixes and UI tweaks get no new doc; when they change behaviour an existing doc describes, update that doc in the same PR. This file stays the short pointer layer: keep critical rules here (contracts, tag rules, locks) and put detail in the feature doc.
 - If this file and a feature doc disagree with the code, the code wins: fix the doc in the same PR.
 
 ## API Layer (RTK Query)

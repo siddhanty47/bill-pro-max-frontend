@@ -5,7 +5,7 @@ Backend rules: `bill-pro-max-backend-v2/docs/features/challan-delete-cancel.md`.
 | Where | Draft | Confirmed | Cancelled |
 |---|---|---|---|
 | Challan page header | **Delete** → confirm dialog → `DELETE`, then back to `/challans` | **Cancel challan** → confirm dialog → gated `POST …/cancel` | nothing |
-| Challans list, bulk bar | **Delete N** (drafts only) | skipped: "confirmed, open it to cancel" | skipped: "cancelled" |
+| Challans list, bulk bar | **Delete N** deletes it | **Delete N** cancels it; one that changes a bill or stock opens its impact dialog first (closing it keeps the challan: "kept, not cancelled") | skipped: "already cancelled" |
 
 - API: `challanApi.deleteChallan` (`useDeleteChallanMutation`, invalidates `Challan`, `AuditLog`,
   `Dashboard`) and `challanApi.cancelChallan` (`useCancelChallanMutation`, `withGate` +
@@ -17,7 +17,7 @@ Backend rules: `bill-pro-max-backend-v2/docs/features/challan-delete-cancel.md`.
   locked (a draft moved no stock).
 - Staff lack the `delete` challan permission; the server's 403 shows as an alert (detail page) or
   a skip reason (bulk).
-- Bulk delete: `useChallanBulkActions` (`runDelete`, `runBulk`, "Done" dialog).
+- Bulk delete: `useChallanBulkActions` (`runDelete`, `cancelOne`, "Done" dialog). N counts drafts + confirmed. Drafts are deleted in parallel; confirmed challans are cancelled one at a time through the page's `useChangeGate` (`runGated`), so a cancel that changes a bill (draft or sent), takes stock below zero or hits a closed year shows `ChangeImpactDialog` for that challan ("Cancelling challan D-5", the `subject` prop) before anything is saved. The "Done" dialog reads e.g. "2 deleted, 1 cancelled".
 - Confirms use the kit dialog (`useConfirm`), never `window.confirm`.
 - Tests: `ChallanDetailPage.test.tsx` (delete, cancel through the gate, failures),
   `ChallansPage.test.tsx` (bulk delete with skips).
