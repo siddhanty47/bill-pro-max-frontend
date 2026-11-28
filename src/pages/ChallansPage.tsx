@@ -125,6 +125,7 @@ export function ChallansPage() {
     challans: selectedChallans,
     confirmedBy,
     ask: confirmDialog.ask,
+    runGated,
     onSucceeded: selection.remove,
   });
 

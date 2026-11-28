@@ -5,7 +5,7 @@
  * A change dated in a closed financial year gets only the closed-year line and a Close button:
  * nobody may make it.
  */
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Button, DocNumber, Field, Input, Modal, Notice } from '../ui';
 import { NegativeStockList } from '../BillIntegrity';
 import { BillPreviewPanel } from './BillPreviewPanel';
@@ -15,6 +15,8 @@ import styles from './ChangeImpactDialog.module.css';
 
 interface Props {
   report: GateReport;
+  /** Which record the change is for, e.g. "Cancelling challan D-5" (bulk runs show one per record) */
+  subject?: ReactNode;
   busy: boolean;
   onCancel: () => void;
   /** Called with the trimmed reason (empty when none was typed). */
@@ -29,7 +31,7 @@ function impactTitle(report: GateReport): string {
   return 'Check this change';
 }
 
-export function ChangeImpactDialog({ report, busy, onCancel, onConfirm }: Props) {
+export function ChangeImpactDialog({ report, subject, busy, onCancel, onConfirm }: Props) {
   const [reason, setReason] = useState('');
   const [openBillId, setOpenBillId] = useState<string | null>(null);
   const idPrefix = useId();
@@ -56,6 +58,7 @@ export function ChangeImpactDialog({ report, busy, onCancel, onConfirm }: Props)
   if (report.blocked === 'closedYear' && report.closedYear) {
     return (
       <Modal isOpen onClose={onCancel} title="This year is closed">
+        {subject && <p className={styles.subject}>{subject}</p>}
         <Notice tone="danger">
           {closedYearMessage(report.closedYear, fyEnd(report.closedYear))}
         </Notice>
@@ -105,6 +108,7 @@ export function ChangeImpactDialog({ report, busy, onCancel, onConfirm }: Props)
     >
       <div className={`${styles.layout} ${openBill ? styles.withPanel : ''}`}>
         <div className={styles.main}>
+          {subject && <p className={styles.subject}>{subject}</p>}
           {blocked && (
             <Notice tone="warning">
               These months are already billed. Only an owner or manager can make this change.

@@ -14,6 +14,7 @@ import {
 } from '../../api/challanApi';
 import { getErrorMessage } from '../../api/baseApi';
 import { isDryRunResult } from '../../api/changeGate';
+import type { GatedCall } from '../../hooks/useChangeGate';
 import { Button } from '../../components/ui';
 import { getApiError } from '../../utils/apiError';
 import { runBulk } from '../../utils/runBulk';
@@ -28,6 +29,7 @@ import type { Challan, GateReport } from '../../types';
 
 export const CHECK_REASON = 'needs a check, open it to confirm';
 export const CANCEL_CHECK_REASON = 'needs a check, open it to cancel';
+export const KEPT_REASON = 'kept, not cancelled';
 export const YEAR_CLOSED_REASON = 'year closed';
 /** Gate refusals the change dialog would handle; in bulk they mean "open it to confirm". */
 const GATE_CODES = new Set([
@@ -69,6 +71,8 @@ interface Options {
   onSucceeded: (ids: string[]) => void;
   /** Opens a confirm dialog (from the page's `useConfirm`). */
   ask: (request: ConfirmRequest) => void;
+  /** The page's `useChangeGate().run`: cancels that change a bill or stock show its impact dialog. */
+  runGated: (call: GatedCall, opts?: { subject?: ReactNode }) => Promise<boolean>;
 }
 
 export function useChallanBulkActions({
@@ -77,6 +81,7 @@ export function useChallanBulkActions({
   confirmedBy,
   onSucceeded,
   ask,
+  runGated,
 }: Options) {
   const [confirmChallan] = useConfirmChallanMutation();
   const [deleteChallan] = useDeleteChallanMutation();
@@ -128,29 +133,35 @@ export function useChallanBulkActions({
   const confirmedCount = removable.filter(c => c.status === 'confirmed').length;
   const draftCount = removable.length - confirmedCount;
 
-  /** Cancel one confirmed challan only when its dry run is clean, like bulk confirm. */
+  /**
+   * Cancel one confirmed challan through the change gate: a clean dry run cancels straight away;
+   * one that would change a bill (draft or sent), stock or a closed year opens the impact dialog
+   * for that challan. Closing the dialog keeps the challan.
+   */
   const cancelOne = async (challan: Challan) => {
-    const call = (dryRun?: boolean) =>
-      cancelChallan({ businessId, challanId: challan._id, ...(dryRun && { dryRun }) }).unwrap();
-    const preview = await call(true);
-    if (!isDryRunResult(preview)) throw new Skipped(CANCEL_CHECK_REASON);
-    const { report } = preview;
-    if (report.blocked === 'closedYear') throw new Skipped(YEAR_CLOSED_REASON);
-    if (!isClean(report)) throw new Skipped(CANCEL_CHECK_REASON);
-    await call();
+    const done = await runGated(
+      gate => cancelChallan({ businessId, challanId: challan._id, ...gate }).unwrap(),
+      { subject: `Cancelling challan ${challan.challanNumber}` }
+    );
+    if (!done) throw new Skipped(KEPT_REASON);
   };
 
   const runDelete = guard(async () => {
     const skipped: Array<RowSkip<Challan>> = challans
       .filter(c => c.status === 'cancelled')
       .map(row => ({ row, reason: 'already cancelled' }));
-    const results = await busy(() =>
-      runBulk(removable, c =>
-        c.status === 'draft'
-          ? deleteChallan({ businessId, challanId: c._id }).unwrap()
-          : cancelOne(c)
-      )
-    );
+    // Drafts in parallel; confirmed one at a time, since each may open its own impact dialog.
+    const results = await busy(async () => [
+      ...(await runBulk(
+        removable.filter(c => c.status === 'draft'),
+        c => deleteChallan({ businessId, challanId: c._id }).unwrap()
+      )),
+      ...(await runBulk(
+        removable.filter(c => c.status === 'confirmed'),
+        cancelOne,
+        { concurrency: 1 }
+      )),
+    ]);
     const removed = splitResults(
       results,
       c => c._id,
@@ -169,7 +180,7 @@ export function useChallanBulkActions({
     draftCount > 0 &&
       `${draftCount} ${plural(draftCount, 'draft is', 'drafts are')} removed for good.`,
     confirmedCount > 0 &&
-      `${confirmedCount} confirmed ${plural(confirmedCount, 'challan is', 'challans are')} cancelled: stock moves are undone and ${plural(confirmedCount, 'it stays', 'they stay')} in the list as Cancelled. Any that touch a sent bill or need a check are skipped; open them to cancel.`,
+      `${confirmedCount} confirmed ${plural(confirmedCount, 'challan is', 'challans are')} cancelled: stock moves are undone and ${plural(confirmedCount, 'it stays', 'they stay')} in the list as Cancelled. If a cancel changes a bill or stock, you'll see which bills and confirm each one.`,
   ]
     .filter(Boolean)
     .join(' ');

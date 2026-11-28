@@ -70,3 +70,9 @@
     max-height: none;
   }
 }
+
+.subject {
+  margin-bottom: var(--space-3);
+  color: var(--text-heading);
+  font-weight: 500;
+}

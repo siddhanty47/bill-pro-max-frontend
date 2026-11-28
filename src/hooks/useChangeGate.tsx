@@ -17,6 +17,7 @@ export type GatedCall = (gate: GateArgs) => Promise<unknown>;
 interface Pending {
   call: GatedCall;
   report: GateReport;
+  subject?: ReactNode;
   /** The server asked to confirm negative stock (even when it sent no spans) */
   confirmNegative?: boolean;
   resolve: (saved: boolean) => void;
@@ -96,7 +97,8 @@ export function useChangeGate() {
    * rejects with the API error for anything the dialog cannot fix.
    */
   const run = useCallback(
-    async (call: GatedCall): Promise<boolean> => {
+    async (call: GatedCall, opts: { subject?: ReactNode } = {}): Promise<boolean> => {
+      const { subject } = opts;
       let preview: unknown;
       try {
         preview = await call({ dryRun: true });
@@ -104,13 +106,13 @@ export function useChangeGate() {
         const closed = closedYearReport(err, EMPTY_REPORT);
         if (!closed) throw err;
         return new Promise<boolean>((resolve, reject) =>
-          show({ call, report: closed, resolve, reject })
+          show({ call, report: closed, subject, resolve, reject })
         );
       }
       if (!isDryRunResult(preview)) return true;
       const { report } = preview;
       return new Promise<boolean>((resolve, reject) => {
-        const next: Pending = { call, report, resolve, reject };
+        const next: Pending = { call, report, subject, resolve, reject };
         if (needsDialog(report)) show(next);
         else void commit(next, {});
       });
@@ -138,7 +140,13 @@ export function useChangeGate() {
   };
 
   const dialog: ReactNode = pending ? (
-    <ChangeImpactDialog report={pending.report} busy={busy} onCancel={cancel} onConfirm={confirm} />
+    <ChangeImpactDialog
+      report={pending.report}
+      subject={pending.subject}
+      busy={busy}
+      onCancel={cancel}
+      onConfirm={confirm}
+    />
   ) : null;
 
   return { run, dialog };

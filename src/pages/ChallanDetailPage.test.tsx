@@ -334,6 +334,9 @@ describe('ChallanDetailPage', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Cancel challan R-2026-27-0003?' });
     await user.click(within(dialog).getByRole('button', { name: 'Cancel challan' }));
 
+    expect(
+      await screen.findByRole('dialog', { name: 'This change will update 1 bill' })
+    ).toHaveTextContent('Cancelling challan R-2026-27-0003');
     await user.type(await screen.findByLabelText(/Why are you making/), 'Entered twice');
     await user.click(screen.getByRole('button', { name: 'Save change' }));
     await waitFor(() => expect(calls).toHaveLength(2));

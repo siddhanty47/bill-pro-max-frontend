@@ -357,12 +357,14 @@ export function ChallanDetailPage() {
       danger: true,
       // Not awaited: this dialog closes first, then the change dialog may open on its own.
       onConfirm: () => {
-        runGated(gate =>
-          cancelChallan({
-            businessId: currentBusinessId,
-            challanId: challan._id,
-            ...gate,
-          }).unwrap()
+        runGated(
+          gate =>
+            cancelChallan({
+              businessId: currentBusinessId,
+              challanId: challan._id,
+              ...gate,
+            }).unwrap(),
+          { subject: `Cancelling challan ${challan.challanNumber}` }
         ).catch(err => alert(getErrorMessage(err)));
       },
     });
