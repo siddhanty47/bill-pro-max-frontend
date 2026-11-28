@@ -7,6 +7,7 @@ import type {
   CreateEmployeeInput,
   UpdateEmployeeInput,
   PaginatedResponse,
+  TransporterOption,
 } from '../types';
 
 export const employeeApi = baseApi.injectEndpoints({
@@ -26,6 +27,15 @@ export const employeeApi = baseApi.injectEndpoints({
         return `/businesses/${businessId}/employees${qs ? `?${qs}` : ''}`;
       },
       providesTags: (_result, _error, { businessId }) => [
+        { type: 'Employee' as const, id: businessId },
+      ],
+    }),
+
+    /** Active transporters for the challan picker (id, name, vehicle; staff and managers too) */
+    getTransporters: builder.query<TransporterOption[], string>({
+      query: businessId => `/businesses/${businessId}/employees/transporters`,
+      transformResponse: (response: { data: TransporterOption[] }) => response.data,
+      providesTags: (_result, _error, businessId) => [
         { type: 'Employee' as const, id: businessId },
       ],
     }),
@@ -94,6 +104,7 @@ export const employeeApi = baseApi.injectEndpoints({
 
 export const {
   useGetEmployeesQuery,
+  useGetTransportersQuery,
   useGetEmployeeByIdQuery,
   useCreateEmployeeMutation,
   useUpdateEmployeeMutation,

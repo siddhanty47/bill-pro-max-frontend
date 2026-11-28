@@ -86,7 +86,7 @@ function setup({
         ? HttpResponse.json({ success: false }, { status: 500 })
         : ok([{ itemId: 'i1', itemName: 'Steel Pipe', quantity: 12 }])
     ),
-    http.get(apiUrl('/businesses/biz-1/employees'), () => ok([transporter]))
+    http.get(apiUrl('/businesses/biz-1/employees/transporters'), () => ok([transporter]))
   );
   const onSubmit = vi.fn().mockResolvedValue(undefined);
   const onCancel = vi.fn();

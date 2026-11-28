@@ -1051,6 +1051,13 @@ export interface EmergencyContact {
   phone: string;
 }
 
+/** A transporter as the challan form sees it (`GET /employees/transporters`) */
+export interface TransporterOption {
+  _id: string;
+  name: string;
+  details: { vehicleNumber: string };
+}
+
 export interface Employee {
   _id: string;
   businessId: string;

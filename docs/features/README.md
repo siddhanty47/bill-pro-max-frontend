@@ -21,6 +21,7 @@ here, and this index, in the same PR.
 - [challan-photo-scan-ui.md](challan-photo-scan-ui.md) — scan a challan photo: camera vs gallery inputs, auto-fill, review panel
 - [global-search.md](global-search.md) — header search (MiniSearch + document search), live index sync
 - [agreement-pickers.md](agreement-pickers.md) — agreement selects/checkboxes are labelled by site code + full address (`siteLabel`), not agreement id
+- [employee-access-ui.md](employee-access-ui.md) — Team page read only for managers; challan transporter picker from the slim transporter list
 - [theme.md](theme.md) — light / dark / same-as-device theme saved on the account, tokens per theme, no-flash startup
 - [design-system.md](design-system.md) — pointers to the `frontend-design` skill and the `ui/` kit
 
